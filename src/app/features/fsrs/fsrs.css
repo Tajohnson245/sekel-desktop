@@ -155,7 +155,7 @@
     transition: opacity var(--transition-fast);
 }
 
-/* Colors matching typical Anki / Better Anki styles */
+/* Colors matching typical Anki / Sekel styles */
 .again {
     background-color: #ef4444;
     color: white;

@@ -46,7 +46,7 @@ export default function AIGenerationPage() {
 
                         <div className="walkthrough-text">
                             <h2>Stop making cards. Start learning.</h2>
-                            <p>Card creation is the biggest bottleneck in spaced repetition. Better Anki eliminates it completely with context-aware AI.</p>
+                            <p>Card creation is the biggest bottleneck in spaced repetition. Sekel eliminates it completely with context-aware AI.</p>
 
                             <ul className="benefit-list">
                                 <li><FileText className="benefit-icon text-accent" /> Upload PDFs, PowerPoint slides, or paste YouTube URLs.</li>

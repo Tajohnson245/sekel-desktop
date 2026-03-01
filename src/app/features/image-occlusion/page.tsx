@@ -11,14 +11,14 @@ const steps = [
     {
         id: 1,
         title: "Step 1: Upload a Diagram",
-        desc: "Start by bringing in a complex diagram, map, or anatomical chart. Better Anki supports high-res images directly from your clipboard or file system.",
+        desc: "Start by bringing in a complex diagram, map, or anatomical chart. Sekel supports high-res images directly from your clipboard or file system.",
         buttonAction: "Upload Image",
         buttonIcon: <Upload size={16} />
     },
     {
         id: 2,
         title: "Step 2: Draw Occlusion Masks",
-        desc: "Simply click and drag to draw boxes over the labels you want to memorize. Better Anki instantly creates a linked card for every mask you draw.",
+        desc: "Simply click and drag to draw boxes over the labels you want to memorize. Sekel instantly creates a linked card for every mask you draw.",
         buttonAction: "Draw Masks",
         buttonIcon: <Square size={16} />
     },
@@ -80,7 +80,7 @@ export default function ImageOcclusionPage() {
 
                         <div className="walkthrough-text">
                             <h2>A picture is worth a thousand reps.</h2>
-                            <p>Text flashcards fall short for highly visual subjects. Better Anki features a deeply integrated Image Occlusion editor that feels like a premium design tool.</p>
+                            <p>Text flashcards fall short for highly visual subjects. Sekel features a deeply integrated Image Occlusion editor that feels like a premium design tool.</p>
 
                             <ul className="benefit-list">
                                 <li><MousePointerClick className="benefit-icon text-accent" /> Intuitive drag-and-drop bounding boxes.</li>

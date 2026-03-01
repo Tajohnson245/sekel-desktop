@@ -14,7 +14,7 @@ export default function Comparison() {
         { name: 'Built-in Image Occlusion editor', supported: false },
     ];
 
-    const betterAnkiFeatures = [
+    const sekelFeatures = [
         { name: 'Advanced FSRS Scheduling', supported: true },
         { name: 'Rich, interactive card types', supported: true },
         { name: 'Seamless cloud sync (Supabase)', supported: true },
@@ -51,7 +51,7 @@ export default function Comparison() {
                 <div className="comparison-header">
                     <h2 className="section-title">Why upgrade from Anki?</h2>
                     <p className="section-subtitle">
-                        Anki is a powerful engine with a dated exterior. Better Anki brings the engine into the modern era with a state-of-the-art interface and AI superpowers.
+                        Anki is a powerful engine with a dated exterior. Sekel brings the engine into the modern era with a state-of-the-art interface and AI superpowers.
                     </p>
                 </div>
 
@@ -83,10 +83,10 @@ export default function Comparison() {
                         </motion.ul>
                     </div>
 
-                    {/* Better Anki Column */}
+                    {/* Sekel Column */}
                     <div className="comparison-column primary-column glass-panel">
                         <div className="column-header">
-                            <h3 className="column-title text-gradient">Better Anki</h3>
+                            <h3 className="column-title text-gradient">Sekel</h3>
                             <p className="column-subtitle">The modern standard for super-learners.</p>
                         </div>
                         <motion.ul
@@ -96,7 +96,7 @@ export default function Comparison() {
                             whileInView="visible"
                             viewport={{ once: true, margin: "-100px" }}
                         >
-                            {betterAnkiFeatures.map((feature, i) => (
+                            {sekelFeatures.map((feature, i) => (
                                 <motion.li key={i} variants={itemVariants} className="feature-item highlighted-item">
                                     <motion.div variants={iconVariants}>
                                         <Check className="icon text-accent" size={20} />

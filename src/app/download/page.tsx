@@ -19,7 +19,7 @@ export default function DownloadPage() {
                         <Download size={48} className="text-accent pulse-icon" />
                     </div>
                     <h1 className="download-title">
-                        Get <span className="text-gradient">Better Anki</span>
+                        Get <span className="text-gradient">Sekel</span>
                     </h1>
                     <p className="download-subtitle">
                         Download the desktop application for your platform and supercharge your learning today.

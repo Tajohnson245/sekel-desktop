@@ -18,13 +18,13 @@ export default function Hero() {
                     </h1>
 
                     <p className="hero-subtitle">
-                        Better Anki combines the proven FSRS algorithm with state-of-the-art UI, instant AI card generation, and robust Image Occlusion tools to supercharge your learning.
+                        Sekel combines the proven FSRS algorithm with state-of-the-art UI, instant AI card generation, and robust Image Occlusion tools to supercharge your learning.
                     </p>
 
                     <div className="hero-actions">
                         <button className="btn btn-primary btn-large">
                             <Download size={20} />
-                            Download Better Anki
+                            Download Sekel
                         </button>
                         <a href="#features" className="btn btn-outline btn-large">
                             Explore Features

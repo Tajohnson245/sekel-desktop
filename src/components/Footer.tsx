@@ -13,7 +13,7 @@ export default function Footer() {
                     <div className="footer-brand-col">
                         <Link href="/" className="footer-brand">
                             <Layers className="footer-logo" size={24} />
-                            <span className="footer-name">Better Anki</span>
+                            <span className="footer-name">Sekel</span>
                         </Link>
                         <p className="footer-tagline">
                             The modern standard for super-learners. Learn faster, remember longer.
@@ -50,7 +50,7 @@ export default function Footer() {
                 </div>
 
                 <div className="footer-bottom">
-                    <p>&copy; {currentYear} Better Anki. All rights reserved.</p>
+                    <p>&copy; {currentYear} Sekel. All rights reserved.</p>
                 </div>
             </div>
         </footer>

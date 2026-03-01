@@ -7,7 +7,7 @@ export default function Features() {
         {
             icon: <BrainCircuit size={32} className="feature-icon" />,
             title: "State-of-the-art FSRS Algorithm",
-            description: "Stop wasting time over-reviewing easy cards. Better Anki uses the Free Spaced Repetition Scheduler (FSRS) to predict your exact memory retention with unparalleled accuracy.",
+            description: "Stop wasting time over-reviewing easy cards. Sekel uses the Free Spaced Repetition Scheduler (FSRS) to predict your exact memory retention with unparalleled accuracy.",
             link: "/features/fsrs"
         },
         {

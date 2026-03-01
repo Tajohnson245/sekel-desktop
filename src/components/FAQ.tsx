@@ -50,12 +50,12 @@ function FAQItem({ question, answer }: FAQItemProps) {
 export default function FAQ() {
     const faqs = [
         {
-            question: "Is Better Anki really better than Anki?",
-            answer: "Yes. While Anki is the pioneer of spaced repetition and has a highly custom engine, its UI, syncing, and feature pipeline are heavily dated. Better Anki wraps an even more advanced scheduling algorithm (FSRS) in a premium, modern shell with built-in AI tools, entirely circumventing the need to manage clunky add-ons."
+            question: "Is Sekel really better than Anki?",
+            answer: "Yes. While Anki is the pioneer of spaced repetition and has a highly custom engine, its UI, syncing, and feature pipeline are heavily dated. Sekel wraps an even more advanced scheduling algorithm (FSRS) in a premium, modern shell with built-in AI tools, entirely circumventing the need to manage clunky add-ons."
         },
         {
             question: "Do I have to recreate all my cards?",
-            answer: "No! Better Anki features a seamless 1-click import from your existing Anki (.apkg) decks. All your history, scheduling data, and media are preserved."
+            answer: "No! Sekel features a seamless 1-click import from your existing Anki (.apkg) decks. All your history, scheduling data, and media are preserved."
         },
         {
             question: "Is the AI card generation accurate?",
@@ -77,7 +77,7 @@ export default function FAQ() {
                 <div className="faq-header">
                     <h2 className="section-title">Frequently Asked Questions</h2>
                     <p className="section-subtitle">
-                        Everything you need to know about making the switch to Better Anki.
+                        Everything you need to know about making the switch to Sekel.
                     </p>
                 </div>
 

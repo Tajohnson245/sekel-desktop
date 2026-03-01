@@ -27,7 +27,7 @@ export default function Navbar() {
             <div className="navbar-container container">
                 <Link href="/" className="navbar-brand">
                     <Layers className="navbar-logo" size={24} />
-                    <span className="navbar-name">Better Anki</span>
+                    <span className="navbar-name">Sekel</span>
                 </Link>
 
                 <div className="navbar-links">
@@ -38,7 +38,7 @@ export default function Navbar() {
 
                 <div className="navbar-actions">
                     <Link href="/download" className="btn btn-primary">
-                        Get Better Anki
+                        Get Sekel
                     </Link>
                 </div>
             </div>

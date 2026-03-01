@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Better Anki | The Modern Spaced Repetition Standard",
-  description: "Learn faster and remember longer with Better Anki.",
+  title: "Sekel | The Modern Spaced Repetition Standard",
+  description: "Learn faster and remember longer with Sekel.",
 };
 
 export default function RootLayout({
