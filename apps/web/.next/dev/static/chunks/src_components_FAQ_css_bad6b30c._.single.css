@@ -1,0 +1,76 @@
+/* [project]/src/components/FAQ.css [app-client] (css) */
+.faq-section {
+  background-color: var(--bg-primary);
+  padding: 6rem 0;
+  position: relative;
+}
+
+.faq-header {
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto 4rem;
+}
+
+.faq-list {
+  border-radius: var(--radius-lg);
+  max-width: 800px;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.faq-item {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.faq-item:last-child {
+  border-bottom: none;
+}
+
+.faq-question {
+  text-align: left;
+  width: 100%;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+  background: none;
+  border: none;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  display: flex;
+}
+
+.faq-question:hover {
+  background-color: #ffffff0d;
+}
+
+@media (prefers-color-scheme: light) {
+  .faq-question:hover {
+    background-color: #00000005;
+  }
+}
+
+.faq-icon {
+  color: var(--text-tertiary);
+  transition: transform var(--transition-normal);
+  flex-shrink: 0;
+  margin-left: 1rem;
+}
+
+.faq-item.open .faq-icon {
+  color: var(--accent-color);
+}
+
+.faq-answer-container {
+  overflow: hidden;
+}
+
+.faq-answer {
+  color: var(--text-secondary);
+  padding: 0 1.5rem 1.5rem;
+  line-height: 1.6;
+}
+
+/*# sourceMappingURL=src_components_FAQ_css_bad6b30c._.single.css.map*/

@@ -1,0 +1,214 @@
+/* [project]/src/components/Hero.css [app-client] (css) */
+.hero {
+  align-items: center;
+  min-height: calc(100vh - 4rem);
+  padding: 4rem 0;
+  display: flex;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-background {
+  background-image: radial-gradient(circle at 50% 0%, var(--bg-tertiary) 0%, transparent 70%);
+  opacity: .5;
+  z-index: -1;
+  position: absolute;
+  inset: 0;
+}
+
+.hero-container {
+  grid-template-columns: 1fr;
+  align-items: center;
+  gap: 4rem;
+  display: grid;
+}
+
+@media (min-width: 1024px) {
+  .hero-container {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.hero-content {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1.5rem;
+  display: flex;
+}
+
+.hero-badge {
+  border-radius: var(--radius-full);
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  align-items: center;
+  gap: .5rem;
+  padding: .375rem .75rem;
+  font-size: .75rem;
+  font-weight: 600;
+  display: inline-flex;
+}
+
+.badge-pulse {
+  background-color: var(--accent-color);
+  width: 6px;
+  height: 6px;
+  box-shadow: 0 0 10px var(--accent-color);
+  border-radius: 50%;
+  animation: 2s cubic-bezier(.4, 0, .6, 1) infinite pulse;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: .5;
+  }
+}
+
+.hero-title {
+  letter-spacing: -.05em;
+  font-size: 3rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+@media (min-width: 768px) {
+  .hero-title {
+    font-size: 4rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero-title {
+    font-size: 4.5rem;
+  }
+}
+
+.hero-subtitle {
+  color: var(--text-secondary);
+  max-width: 600px;
+  font-size: 1.125rem;
+  line-height: 1.6;
+}
+
+.hero-actions {
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1rem;
+  display: flex;
+}
+
+.btn-large {
+  padding: 1rem 2rem;
+  font-size: 1rem;
+}
+
+.hero-visual {
+  perspective: 1000px;
+  width: 100%;
+  position: relative;
+}
+
+.app-mockup {
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius-lg);
+  width: 100%;
+  box-shadow: var(--shadow-lg);
+  transition: transform var(--transition-normal);
+  z-index: 10;
+  background: var(--bg-secondary);
+  flex-direction: column;
+  display: flex;
+  position: relative;
+  overflow: hidden;
+  transform: rotateY(-5deg)rotateX(5deg);
+}
+
+.app-mockup:hover {
+  transform: rotateY(0)rotateX(0);
+}
+
+.mockup-header {
+  background-color: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  align-items: center;
+  height: 2rem;
+  padding: 0 1rem;
+  display: flex;
+}
+
+.mockup-dots {
+  gap: .375rem;
+  display: flex;
+}
+
+.mockup-dots span {
+  background-color: var(--text-tertiary);
+  opacity: .5;
+  border-radius: 50%;
+  width: 8px;
+  height: 8px;
+}
+
+.mockup-body {
+  flex: 1;
+  display: flex;
+}
+
+.mockup-sidebar {
+  border-right: 1px solid var(--border-color);
+  background-color: #00000005;
+  width: 20%;
+}
+
+.mockup-content {
+  flex-direction: column;
+  flex: 1;
+  gap: 1rem;
+  padding: 1.5rem;
+  display: flex;
+}
+
+.mockup-card {
+  border-radius: var(--radius-md);
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  height: 60%;
+  box-shadow: var(--shadow-sm);
+}
+
+.mockup-stats {
+  border-radius: var(--radius-md);
+  background-color: var(--bg-tertiary);
+  opacity: .5;
+  height: 20%;
+}
+
+.glow-orb {
+  filter: blur(80px);
+  z-index: 0;
+  opacity: .4;
+  border-radius: 50%;
+  position: absolute;
+}
+
+.orb-1 {
+  background-color: var(--accent-color);
+  width: 300px;
+  height: 300px;
+  top: -10%;
+  right: -10%;
+}
+
+.orb-2 {
+  background-color: #8b5cf6;
+  width: 250px;
+  height: 250px;
+  bottom: -20%;
+  left: 20%;
+}
+
+/*# sourceMappingURL=src_components_Hero_css_bad6b30c._.single.css.map*/
