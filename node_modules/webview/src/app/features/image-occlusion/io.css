@@ -1,0 +1,223 @@
+.io-simulation-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 4rem;
+    align-items: center;
+}
+
+@media (min-width: 768px) {
+    .io-simulation-layout {
+        grid-template-columns: 1.2fr 1fr;
+    }
+}
+
+.io-editor-pane {
+    background-color: #f8fafc;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    aspect-ratio: 4/3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+@media (prefers-color-scheme: dark) {
+    .io-editor-pane {
+        background-color: #0f172a;
+    }
+}
+
+.io-upload-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 80%;
+    height: 80%;
+    border: 2px dashed var(--border-color);
+    border-radius: var(--radius-lg);
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.io-diagram-state {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+/* Faux Biology Cell Diagram */
+.cell-body {
+    position: absolute;
+    top: 50%;
+    left: 35%;
+    transform: translate(-50%, -50%);
+    width: 180px;
+    height: 220px;
+    background-color: rgba(99, 102, 241, 0.1);
+    border: 3px solid rgba(99, 102, 241, 0.5);
+    border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+}
+
+.cell-nucleus {
+    position: absolute;
+    top: 40%;
+    left: 35%;
+    width: 60px;
+    height: 60px;
+    background-color: rgba(139, 92, 246, 0.3);
+    border: 2px solid rgba(139, 92, 246, 0.6);
+    border-radius: 50%;
+}
+
+.cell-mitochondria {
+    position: absolute;
+    top: 65%;
+    left: 30%;
+    width: 40px;
+    height: 20px;
+    background-color: rgba(239, 68, 68, 0.3);
+    border: 2px solid rgba(239, 68, 68, 0.6);
+    border-radius: 10px;
+    transform: rotate(-20deg);
+}
+
+.cell-label {
+    position: absolute;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    background: var(--bg-primary);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+
+.label-1 {
+    top: 20%;
+    left: 65%;
+}
+
+.label-2 {
+    top: 50%;
+    left: 70%;
+}
+
+.label-3 {
+    top: 75%;
+    left: 60%;
+}
+
+.cell-line {
+    position: absolute;
+    height: 2px;
+    background-color: var(--text-tertiary);
+    transform-origin: left center;
+}
+
+.cl-1 {
+    top: 23%;
+    left: 40%;
+    width: 120px;
+    transform: rotate(-10deg);
+}
+
+.cl-2 {
+    top: 53%;
+    left: 35%;
+    width: 160px;
+    transform: rotate(5deg);
+}
+
+.cl-3 {
+    top: 78%;
+    left: 35%;
+    width: 120px;
+    transform: rotate(-5deg);
+}
+
+/* The Rectangular Masks */
+.io-mask {
+    position: absolute;
+    background-color: #ef4444;
+    /* Red for unseen mask */
+    border-radius: 4px;
+    opacity: 0.85;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-size: 0.875rem;
+}
+
+.sim-m1 {
+    top: 18%;
+    left: 63%;
+    width: 80px;
+    height: 32px;
+}
+
+.sim-m2 {
+    top: 48%;
+    left: 68%;
+    width: 110px;
+    height: 32px;
+}
+
+.sim-m3 {
+    top: 73%;
+    left: 58%;
+    width: 95px;
+    height: 32px;
+}
+
+/* Mask states during review mode */
+.mask-hidden {
+    background-color: #ef4444;
+    /* Red as drawn, hiding content */
+}
+
+.mask-active {
+    background-color: #3b82f6;
+    /* Blue, currently tested */
+    border: 2px solid #60a5fa;
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
+}
+
+.io-mode-selector {
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    margin-top: 1rem;
+}
+
+.mode-option {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.875rem;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+}
+
+.mode-option:last-child {
+    border-bottom: none;
+}
+
+.mode-option.selected {
+    background-color: rgba(59, 130, 246, 0.1);
+}
+
+.mode-option strong {
+    color: var(--text-primary);
+}
+
+.mode-option span {
+    color: var(--text-secondary);
+}

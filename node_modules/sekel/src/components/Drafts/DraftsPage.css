@@ -1,0 +1,219 @@
+/* ── Drafts Page ───────────────────────────────────────────────── */
+.drafts-page {
+    padding: 2rem;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.drafts-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.drafts-page-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--text-primary);
+}
+
+.drafts-page-title h2 {
+    margin: 0;
+    font-size: 1.6rem;
+    font-weight: 700;
+}
+
+.drafts-page-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.drafts-capacity {
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    transition: all 0.2s;
+}
+
+.drafts-capacity.full {
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger, #ef4444);
+    border-color: var(--danger, #ef4444);
+}
+
+.drafts-page-description {
+    margin: 0 0 2rem;
+    font-size: 0.9rem;
+}
+
+/* ── Loading ───────────────────────────────────────────────────── */
+.drafts-loading {
+    text-align: center;
+    padding: 4rem;
+    color: var(--text-muted);
+}
+
+/* ── Empty State ───────────────────────────────────────────────── */
+.drafts-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 5rem 2rem;
+    text-align: center;
+    color: var(--text-muted);
+    background: var(--bg-card);
+    border-radius: 1rem;
+    border: 2px dashed var(--border);
+}
+
+.drafts-empty h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+}
+
+.drafts-empty p {
+    margin: 0;
+    font-size: 0.9rem;
+    max-width: 320px;
+}
+
+/* ── Card Grid ─────────────────────────────────────────────────── */
+.drafts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.25rem;
+}
+
+/* ── Draft Card ────────────────────────────────────────────────── */
+.draft-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.draft-card:hover {
+    border-color: var(--primary);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.draft-card.promoted {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+.draft-card-body {
+    padding: 1.25rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.draft-card-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.draft-card-field-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+}
+
+.draft-card-field-text {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    line-height: 1.5;
+}
+
+.draft-card-divider {
+    height: 1px;
+    background: var(--border);
+}
+
+.draft-card-source {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-top: auto;
+}
+
+.draft-card-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 0.5rem 1.25rem 0.75rem;
+    border-top: 1px solid var(--border);
+}
+
+.draft-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.draft-meta-source {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+}
+
+/* ── Card Actions ──────────────────────────────────────────────── */
+.draft-card-actions {
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--border);
+    background: var(--bg-secondary);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.draft-card-deck-select {
+    width: 100%;
+    padding: 0.45rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.draft-card-deck-select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.draft-card-btns {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.draft-card-btns> :first-child {
+    flex: 1;
+}

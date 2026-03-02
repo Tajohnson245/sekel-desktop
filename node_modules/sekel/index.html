@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('sekel-theme');
+        var resolved = t === 'light' || t === 'dark'
+          ? t
+          : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.classList.add(resolved);
+      } catch (_) {}
+    })();
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co ws://localhost:*; img-src 'self' data: https:; font-src 'self' data:;" />
+  <title>Sekel</title>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/renderer.tsx"></script>
+</body>
+
+</html>
