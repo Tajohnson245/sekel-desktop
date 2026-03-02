@@ -1,6 +1,13 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
+import {
+    getSession,
+    onAuthStateChange,
+    signOut as authSignOut,
+    updatePassword as authUpdatePassword,
+    deleteAccount as authDeleteAccount,
+} from '@sekel/db';
 
 interface AuthState {
     user: User | null;
@@ -29,11 +36,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     initialize: async () => {
         try {
             set({ isLoading: true });
-            const { data: { session } } = await supabase.auth.getSession();
+            const { data: { session } } = await getSession(supabase);
             set({ session, user: session?.user ?? null });
 
-            // Listen for auth changes
-            supabase.auth.onAuthStateChange((_event, session) => {
+            onAuthStateChange(supabase, (_event, session) => {
                 set({ session, user: session?.user ?? null, isLoading: false });
             });
         } catch (err: unknown) {
@@ -45,7 +51,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     signOut: async () => {
         try {
             set({ isLoading: true });
-            const { error } = await supabase.auth.signOut();
+            const { error } = await authSignOut(supabase);
             if (error) throw error;
             set({ session: null, user: null });
         } catch (err: unknown) {
@@ -57,7 +63,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     updatePassword: async (password: string) => {
         set({ isLoading: true, error: null });
         try {
-            const { error } = await supabase.auth.updateUser({ password });
+            const { error } = await authUpdatePassword(supabase, password);
             if (error) throw error;
         } catch (err: unknown) {
             set({ error: err instanceof Error ? err.message : String(err) });
@@ -69,9 +75,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     deleteAccount: async () => {
         set({ isLoading: true, error: null });
         try {
-            const { error } = await supabase.rpc('delete_own_account');
+            const { error } = await authDeleteAccount(supabase);
             if (error) throw error;
-            await supabase.auth.signOut();
+            await authSignOut(supabase);
             set({ session: null, user: null });
         } catch (err: unknown) {
             set({ error: err instanceof Error ? err.message : String(err) });

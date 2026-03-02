@@ -1,5 +1,8 @@
 node_modules/
 
+# npm workspace — root package-lock.json is authoritative
+package-lock.json
+
 # Next.js
 .next/
 out/
