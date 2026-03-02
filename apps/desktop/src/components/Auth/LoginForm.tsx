@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from '../../../node_modules/react-i18next';
 import { supabase } from '../../lib/supabase';
+import { signIn } from '@sekel/db';
 import { Button, Input } from '../UI';
 
 export const LoginForm: React.FC = () => {
@@ -15,10 +16,7 @@ export const LoginForm: React.FC = () => {
         setLoading(true);
         setError(null);
 
-        const { error: loginError } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-        });
+        const { error: loginError } = await signIn(supabase, email, password);
 
         if (loginError) {
             setError(loginError.message);
