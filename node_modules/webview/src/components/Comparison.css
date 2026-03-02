@@ -1,0 +1,103 @@
+.comparison-section {
+    padding: 6rem 0;
+    background-color: var(--bg-secondary);
+}
+
+.comparison-header {
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto 4rem auto;
+}
+
+.comparison-table-wrapper {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+    .comparison-table-wrapper {
+        grid-template-columns: 1fr 1fr;
+        gap: 0;
+        align-items: center;
+    }
+}
+
+.comparison-column {
+    padding: 2.5rem 2rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+}
+
+.legacy-column {
+    background-color: var(--bg-primary);
+}
+
+@media (min-width: 768px) {
+    .legacy-column {
+        border-right: none;
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+
+    .primary-column {
+        transform: scale(1.05);
+        /* Make Sekel prominent */
+        z-index: 10;
+        box-shadow: var(--shadow-lg);
+        border-color: rgba(59, 130, 246, 0.3);
+        /* subtle accent border */
+    }
+}
+
+.column-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.column-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.column-subtitle {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.feature-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.feature-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.9375rem;
+}
+
+.opacity-50 {
+    opacity: 0.5;
+}
+
+.highlighted-item {
+    font-weight: 500;
+}
+
+.icon {
+    flex-shrink: 0;
+}
+
+.text-tertiary {
+    color: var(--text-tertiary);
+}
+
+.text-accent {
+    color: var(--accent-color);
+}
