@@ -1,0 +1,16 @@
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Build
+dist/
+
+# dotenv
+.env
+.env.*
+!.env.example
+
+# TypeScript
+*.tsbuildinfo
