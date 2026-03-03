@@ -1,0 +1,91 @@
+name: CI — Desktop
+
+on:
+  push:
+    branches: [main, dev]
+    paths:
+      - 'apps/desktop/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/ci-desktop.yml'
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - 'apps/desktop/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/ci-desktop.yml'
+
+jobs:
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/desktop
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: .
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Type check
+        run: npx --no tsc --noEmit
+
+  build:
+    name: Build — ${{ matrix.name }}
+    needs: lint
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: Windows
+          - os: macos-latest
+            name: macOS
+          - os: ubuntu-latest
+            name: Linux
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      # npm workspace bug: the root lock file (generated on Windows) doesn't include
+      # platform-specific optional packages like @rollup/rollup-darwin-arm64.
+      # Re-installing rollup scoped to the workspace forces npm to resolve and install
+      # the native binary for the current runner's architecture.
+      - name: Install Rollup native binary
+        run: npm install --no-save rollup
+        working-directory: apps/desktop
+
+      # Use `package` (not `make`) for CI. `make` creates platform installers (.deb,
+      # .rpm, .exe) which require system tools (fakeroot, dpkg, rpm) and are only
+      # needed for releases. `package` runs the full Vite build + Electron bundling,
+      # which is all CI needs to verify the build is healthy.
+      - name: Build
+        working-directory: apps/desktop
+        env:
+          VITE_SUPABASE_PROJECT_URL: ${{ secrets.VITE_SUPABASE_PROJECT_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: npm run package
