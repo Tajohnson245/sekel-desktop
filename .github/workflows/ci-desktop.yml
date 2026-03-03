@@ -45,14 +45,20 @@ jobs:
         run: npx --no tsc --noEmit
 
   build:
-    name: Build — ${{ matrix.os }}
+    name: Build — ${{ matrix.name }}
     needs: lint
     runs-on: ${{ matrix.os }}
 
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
+        include:
+          - os: windows-latest
+            name: Windows
+          - os: macos-latest
+            name: macOS
+          - os: ubuntu-latest
+            name: Linux
 
     steps:
       - uses: actions/checkout@v4
@@ -64,7 +70,7 @@ jobs:
 
       - name: Install Linux system dependencies
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y rpm
+        run: sudo apt-get update && sudo apt-get install -y rpm fakeroot
 
       - name: Install dependencies
         run: npm install
