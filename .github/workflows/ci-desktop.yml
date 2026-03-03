@@ -50,6 +50,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     strategy:
+      fail-fast: false
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
 
@@ -67,6 +68,14 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+
+      # npm workspace bug: the root lock file (generated on Windows) doesn't include
+      # platform-specific optional packages like @rollup/rollup-darwin-arm64.
+      # Re-installing rollup scoped to the workspace forces npm to resolve and install
+      # the native binary for the current runner's architecture.
+      - name: Install Rollup native binary
+        run: npm install --no-save rollup
+        working-directory: apps/desktop
 
       - name: Build
         working-directory: apps/desktop
