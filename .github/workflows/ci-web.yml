@@ -8,6 +8,7 @@ on:
       - 'packages/**'
       - 'package.json'
       - 'package-lock.json'
+      - 'turbo.json'
       - '.github/workflows/ci-web.yml'
   pull_request:
     branches: [main, dev]
@@ -16,15 +17,13 @@ on:
       - 'packages/**'
       - 'package.json'
       - 'package-lock.json'
+      - 'turbo.json'
       - '.github/workflows/ci-web.yml'
 
 jobs:
   web:
-    name: Web — Build & Lint
+    name: Web — Lint, Type Check & Build
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/web
 
     steps:
       - uses: actions/checkout@v4
@@ -36,10 +35,12 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-        working-directory: .
 
       - name: Lint
-        run: npm run lint
+        run: npx turbo run lint --filter=@sekel/web
+
+      - name: Type check
+        run: npx turbo run typecheck --filter=@sekel/web
 
       - name: Build
-        run: npm run build
+        run: npx turbo run build --filter=@sekel/web
