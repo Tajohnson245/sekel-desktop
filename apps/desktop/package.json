@@ -1,5 +1,5 @@
 {
-  "name": "sekel",
+  "name": "@sekel/desktop",
   "version": "1.0.0",
   "description": "Anki but better",
   "homepage": "https://github.com/Tajohnson245/sekel#readme",
@@ -15,8 +15,12 @@
   "type": "commonjs",
   "main": ".vite/build/main.js",
   "scripts": {
+    "dev": "electron-forge start",
+    "desktop": "electron-forge start",
     "start": "electron-forge start",
     "dev:renderer": "vite --config vite.renderer.config.ts",
+    "build": "electron-forge package",
+    "typecheck": "tsc --noEmit",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "lint": "eslint .",
