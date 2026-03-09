@@ -92,8 +92,7 @@ export default function PrivacyPage() {
               <li>Opt out of any non-essential communications</li>
             </ul>
             <p>
-              To exercise any of these rights, email us at{' '}
-              <a href="mailto:privacy@sekel.app">privacy@sekel.app</a>.
+              To exercise any of these rights, reach out through the waitlist form on the home page.
             </p>
           </section>
 
@@ -106,13 +105,6 @@ export default function PrivacyPage() {
             </p>
           </section>
 
-          <section className="legal-section">
-            <h2>Contact</h2>
-            <p>
-              Questions about this policy? Email{' '}
-              <a href="mailto:privacy@sekel.app">privacy@sekel.app</a>.
-            </p>
-          </section>
         </div>
       </div>
     </div>

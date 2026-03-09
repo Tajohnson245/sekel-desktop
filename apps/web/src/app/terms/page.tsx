@@ -118,13 +118,6 @@ export default function TermsPage() {
             </p>
           </section>
 
-          <section className="legal-section">
-            <h2>Contact</h2>
-            <p>
-              Questions about these terms? Email{' '}
-              <a href="mailto:legal@sekel.app">legal@sekel.app</a>.
-            </p>
-          </section>
         </div>
       </div>
     </div>

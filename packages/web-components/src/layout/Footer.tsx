@@ -67,10 +67,8 @@ export default function Footer() {
 
           {/* Company */}
           <div className="footer-links-col">
-            <h4 className="footer-heading">Company</h4>
+            <h4 className="footer-heading">Legal</h4>
             <ul className="footer-links">
-              <li><a href="#">About</a></li>
-              <li><a href="#">Blog</a></li>
               <li><Link href="/privacy">Privacy Policy</Link></li>
               <li><Link href="/terms">Terms of Service</Link></li>
             </ul>
@@ -79,10 +77,6 @@ export default function Footer() {
 
         <div className="footer-bottom">
           <span>&copy; 2026 SEKEL. All rights reserved.</span>
-          <div className="footer-bottom-links">
-            <Link href="/privacy">Privacy</Link>
-            <Link href="/terms">Terms</Link>
-          </div>
           <button
             className="theme-toggle"
             onClick={toggleTheme}
