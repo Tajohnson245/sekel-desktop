@@ -71,8 +71,8 @@ export default function Footer() {
             <ul className="footer-links">
               <li><a href="#">About</a></li>
               <li><a href="#">Blog</a></li>
-              <li><a href="#">Privacy Policy</a></li>
-              <li><a href="#">Terms of Service</a></li>
+              <li><Link href="/privacy">Privacy Policy</Link></li>
+              <li><Link href="/terms">Terms of Service</Link></li>
             </ul>
           </div>
         </div>
@@ -80,9 +80,8 @@ export default function Footer() {
         <div className="footer-bottom">
           <span>&copy; 2026 SEKEL. All rights reserved.</span>
           <div className="footer-bottom-links">
-            <a href="#">Privacy</a>
-            <a href="#">Terms</a>
-            <a href="#">Contact</a>
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/terms">Terms</Link>
           </div>
           <button
             className="theme-toggle"
