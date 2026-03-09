@@ -86,3 +86,9 @@
 .nav-cta:hover {
   background: var(--ink-muted);
 }
+
+/* Light mode — navbar flips dark to match the inverted token scheme */
+[data-theme="light"] .navbar {
+  background: rgba(17, 24, 39, 0.88);
+  border-color: rgba(255, 255, 255, 0.07);
+}
