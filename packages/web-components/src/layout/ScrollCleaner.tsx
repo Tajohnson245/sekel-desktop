@@ -36,5 +36,23 @@ export default function ScrollCleaner() {
     return () => observer.disconnect();
   }, [pathname]);
 
+  // Hero mockup parallax
+  useEffect(() => {
+    const el = document.querySelector('.mockup-container') as HTMLElement | null;
+    if (!el) return;
+    let raf: number;
+    const onScroll = () => {
+      raf = requestAnimationFrame(() => {
+        const offset = Math.min(window.scrollY * 0.06, 20);
+        el.style.transform = `translateY(${offset}px)`;
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(raf);
+    };
+  }, [pathname]);
+
   return null;
 }

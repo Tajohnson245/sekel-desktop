@@ -38,9 +38,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${dmSerifDisplay.variable} ${outfit.variable} ${dmMono.variable}`}>
+        <a href="#main-content" className="skip-link">Skip to content</a>
         <ScrollCleaner />
         <Navbar />
-        <main>
+        <main id="main-content">
           {children}
         </main>
         <Footer />

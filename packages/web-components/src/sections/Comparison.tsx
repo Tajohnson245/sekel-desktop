@@ -39,10 +39,13 @@ export default function Comparison() {
           <table className="cmp-table">
             <thead>
               <tr>
-                <th className="cmp-th">Feature</th>
-                <th className="cmp-th">Anki</th>
-                <th className="cmp-th">Quizlet</th>
-                <th className="cmp-th sekel-header">SEKEL</th>
+                <th scope="col" className="cmp-th">Feature</th>
+                <th scope="col" className="cmp-th">Anki</th>
+                <th scope="col" className="cmp-th">Quizlet</th>
+                <th scope="col" className="cmp-th sekel-header">
+                  SEKEL
+                  <span className="sekel-recommended">Recommended</span>
+                </th>
               </tr>
             </thead>
             <tbody>

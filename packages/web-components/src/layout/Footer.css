@@ -96,3 +96,28 @@
 }
 
 .footer-bottom-links a:hover { color: var(--fog); }
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: transparent;
+  border: 1px solid var(--ink-muted);
+  border-radius: 20px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--mist);
+  cursor: pointer;
+  transition: border-color 150ms ease, color 150ms ease;
+}
+
+.theme-toggle:hover {
+  border-color: var(--slate);
+  color: var(--fog);
+}
+
+.theme-toggle-icon {
+  font-size: 12px;
+  line-height: 1;
+}

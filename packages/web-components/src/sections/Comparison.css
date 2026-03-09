@@ -40,6 +40,23 @@
   color: var(--teal);
   background: rgba(43,191,164,0.05);
   border-left: 1px solid rgba(43,191,164,0.10);
+  border-top: 3px solid var(--teal);
+  vertical-align: bottom;
+}
+
+.sekel-recommended {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--teal);
+  background: var(--teal-soft);
+  border: 1px solid var(--teal-border);
+  border-radius: 20px;
+  padding: 2px 8px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  width: fit-content;
 }
 
 .cmp-row {

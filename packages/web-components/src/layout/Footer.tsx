@@ -1,7 +1,32 @@
+"use client";
+
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import './Footer.css';
 
 export default function Footer() {
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+
+  useEffect(() => {
+    const stored = localStorage.getItem('sekel-theme');
+    if (stored === 'light') {
+      setTheme('light');
+      document.documentElement.dataset.theme = 'light';
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const next = theme === 'dark' ? 'light' : 'dark';
+    setTheme(next);
+    if (next === 'light') {
+      document.documentElement.dataset.theme = 'light';
+      localStorage.setItem('sekel-theme', 'light');
+    } else {
+      delete document.documentElement.dataset.theme;
+      localStorage.setItem('sekel-theme', 'dark');
+    }
+  };
+
   return (
     <footer className="footer">
       <div className="container">
@@ -58,6 +83,14 @@ export default function Footer() {
             <a href="#">Terms</a>
             <a href="#">Contact</a>
           </div>
+          <button
+            className="theme-toggle"
+            onClick={toggleTheme}
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            <span className="theme-toggle-icon" aria-hidden="true">◐</span>
+            {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+          </button>
         </div>
       </div>
     </footer>

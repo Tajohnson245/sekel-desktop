@@ -46,11 +46,30 @@
   font-weight: 400;
   color: var(--slate);
   transition: color 150ms ease;
+  position: relative;
+  padding-bottom: 2px;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--teal);
+  border-radius: 1px;
+  transform: scaleX(0);
+  transition: transform 150ms ease;
 }
 
 .nav-link:hover,
 .nav-link.active {
   color: var(--ink);
+}
+
+.nav-link.active::after {
+  transform: scaleX(1);
 }
 
 .nav-cta {

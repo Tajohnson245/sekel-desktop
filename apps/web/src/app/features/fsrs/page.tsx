@@ -7,7 +7,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import '../feature-page.css';
 import './fsrs.css';
 
-// Simulation steps
 const steps = [
     {
         id: 1,
@@ -51,14 +50,10 @@ export default function FSRSPage() {
     const [currentStep, setCurrentStep] = useState(0);
 
     const nextStep = () => {
-        if (currentStep < steps.length - 1) {
-            setCurrentStep(prev => prev + 1);
-        }
+        if (currentStep < steps.length - 1) setCurrentStep(prev => prev + 1);
     };
 
-    const resetFlow = () => {
-        setCurrentStep(0);
-    };
+    const resetFlow = () => setCurrentStep(0);
 
     const step = steps[currentStep];
 
@@ -67,42 +62,41 @@ export default function FSRSPage() {
             <div className="container">
 
                 <Link href="/" className="back-link">
-                    <ArrowLeft size={20} />
+                    <ArrowLeft size={18} />
                     Back to home
                 </Link>
 
                 <div className="feature-hero">
-                    <div className="feature-icon-wrapper large-icon">
-                        <BrainCircuit size={48} />
+                    <div className="fp-icon-box">
+                        <BrainCircuit size={36} />
                     </div>
                     <h1 className="feature-hero-title">
-                        The <span className="text-gradient">FSRS</span> Algorithm
+                        The <em>FSRS</em> Algorithm
                     </h1>
                     <p className="feature-hero-subtitle">
                         Experience how the Free Spaced Repetition Scheduler optimizes your memory in real-time.
                     </p>
                 </div>
 
-                {/* Original Static Design */}
-                <div className="walkthrough-section glass-panel" style={{ marginBottom: '8rem' }}>
+                <div className="fp-card" style={{ marginBottom: '64px' }}>
                     <div className="walkthrough-grid">
 
                         <div className="walkthrough-text">
                             <h2>Stop guessing. Start knowing.</h2>
-                            <p>Legacy SM-2 algorithms used by older apps are rigid. They treat every card and every brain exactly the same.</p>
-                            <p>FSRS changes everything. It&apos;s an optimizer that calculates the <strong>exact mathematical probability</strong> of you remembering a card, tailoring the schedule to your unique learning curve.</p>
+                            <p>Legacy SM-2 algorithms are rigid — they treat every card and every brain exactly the same.</p>
+                            <p>FSRS changes everything. It calculates the <strong>exact mathematical probability</strong> of you remembering a card, tailoring the schedule to your unique learning curve.</p>
 
                             <ul className="benefit-list">
-                                <li><Activity className="benefit-icon text-accent" /> Reach 90% retention with 20% fewer reviews.</li>
-                                <li><Clock className="benefit-icon text-accent" /> Optimize for your specific test date.</li>
-                                <li><Zap className="benefit-icon text-accent" /> Adapt instantly to hard material vs easy material.</li>
+                                <li><Activity className="benefit-icon" /> Reach 90% retention with 20% fewer reviews.</li>
+                                <li><Clock className="benefit-icon" /> Optimize for your specific test date.</li>
+                                <li><Zap className="benefit-icon" /> Adapt instantly to hard material vs easy material.</li>
                             </ul>
                         </div>
 
-                        <div className="walkthrough-visual bg-tertiary">
+                        <div className="walkthrough-visual">
                             <div className="mockup-chart">
                                 <div className="chart-line legacy-line"></div>
-                                <div className="chart-line fsrs-line text-accent"></div>
+                                <div className="chart-line fsrs-line"></div>
                                 <div className="chart-label">Retention Probability over Time</div>
                             </div>
                         </div>
@@ -110,31 +104,26 @@ export default function FSRSPage() {
                     </div>
                 </div>
 
-                {/* Interactive Simulation Section */}
                 <div className="fsrs-simulation-header">
                     <h2>See it in action</h2>
                     <p>Step through a real-world flashcard learning scenario to see how FSRS adapts vs standard algorithms.</p>
                 </div>
 
-                <div className="fsrs-interactive-section expanded-container">
+                <div className="fsrs-interactive-section">
 
-                    {/* Main Visualizer Window */}
-                    <div className="fsrs-visualizer glass-panel">
+                    <div className="fsrs-visualizer">
 
-                        {/* Top Toolbar */}
                         <div className="fsrs-toolbar">
                             <div className="step-indicator">
                                 Step {currentStep + 1} of {steps.length}
                             </div>
                             <div className="fsrs-stats">
-                                <span className="stat-badge"><Calendar size={14} /> {step.title.split(':')[0]}</span>
-                                <span className="stat-badge highlight"><Clock size={14} /> Next: {step.interval}</span>
+                                <span className="stat-badge"><Calendar size={12} /> {step.title.split(':')[0]}</span>
+                                <span className="stat-badge highlight"><Clock size={12} /> Next: {step.interval}</span>
                             </div>
                         </div>
 
-                        {/* Content Area */}
                         <div className="fsrs-content-area">
-
                             <AnimatePresence mode="wait">
                                 <motion.div
                                     key={currentStep}
@@ -144,13 +133,10 @@ export default function FSRSPage() {
                                     transition={{ duration: 0.4 }}
                                     className="simulation-layout"
                                 >
-
-                                    {/* The Flashcard */}
                                     <div className="demo-flashcard-container">
                                         <div className="demo-flashcard front">
                                             <p>{step.cardText}</p>
                                         </div>
-                                        {/* Simulated buttons */}
                                         <div className="demo-actions">
                                             <button className="demo-btn again">Again</button>
                                             <button className="demo-btn hard">Hard</button>
@@ -169,14 +155,13 @@ export default function FSRSPage() {
                                         </div>
                                     </div>
 
-                                    {/* The Explanation */}
                                     <div className="demo-explanation">
                                         <h3>{step.title.split(': ')[1]}</h3>
                                         <p>{step.desc}</p>
 
-                                        <div className="algorithm-insight glass-panel">
+                                        <div className="algorithm-insight">
                                             <div className="insight-header">
-                                                <BrainCircuit size={16} className="text-accent" />
+                                                <BrainCircuit size={14} />
                                                 <span>FSRS Engine Output</span>
                                             </div>
                                             <div className="insight-data">
@@ -190,7 +175,7 @@ export default function FSRSPage() {
                                                 </div>
                                                 <div className="data-row highlight-row">
                                                     <span>Calculated Interval:</span>
-                                                    <strong className="text-accent">{step.interval}</strong>
+                                                    <strong>{step.interval}</strong>
                                                 </div>
                                             </div>
                                         </div>
@@ -198,17 +183,15 @@ export default function FSRSPage() {
 
                                 </motion.div>
                             </AnimatePresence>
-
                         </div>
 
-                        {/* Bottom Controls */}
                         <div className="fsrs-controls">
                             {currentStep < steps.length - 1 ? (
-                                <button className="btn btn-primary next-btn pulse-glow" onClick={nextStep}>
+                                <button className="next-btn" onClick={nextStep}>
                                     Simulate Next Review <ArrowRight size={16} />
                                 </button>
                             ) : (
-                                <button className="btn btn-secondary reset-btn" onClick={resetFlow}>
+                                <button className="reset-btn" onClick={resetFlow}>
                                     Restart Simulation <RotateCcw size={16} />
                                 </button>
                             )}

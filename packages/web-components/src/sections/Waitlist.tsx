@@ -36,9 +36,10 @@ export default function Waitlist() {
           <p className="waitlist-confirm reveal">You&apos;re on the list. We&apos;ll be in touch.</p>
         ) : (
           <form className="waitlist-form reveal reveal-delay-2" onSubmit={handleSubmit}>
+            <label htmlFor="waitlist-email" className="sr-only">Email address</label>
             <input
               type="email"
-              id="emailInput"
+              id="waitlist-email"
               className={`waitlist-input${error ? ' input-error' : ''}`}
               placeholder="your@email.edu"
               value={email}
