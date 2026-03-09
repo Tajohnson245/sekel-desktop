@@ -1,15 +1,25 @@
-import Hero from "../components/Hero";
-import Features from "../components/Features";
-import Comparison from "../components/Comparison";
-import FAQ from "../components/FAQ";
+import {
+  Hero,
+  Problem,
+  HowItWorks,
+  Features,
+  YieldSystem,
+  Blueprints,
+  Comparison,
+  Waitlist,
+} from '@sekel/web-components';
 
 export default function Home() {
   return (
     <>
       <Hero />
+      <Problem />
+      <HowItWorks />
       <Features />
+      <YieldSystem />
+      <Blueprints />
       <Comparison />
-      <FAQ />
+      <Waitlist />
     </>
   );
 }

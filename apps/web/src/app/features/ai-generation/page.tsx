@@ -8,30 +8,30 @@ export default function AIGenerationPage() {
             <div className="container">
 
                 <Link href="/" className="back-link">
-                    <ArrowLeft size={20} />
+                    <ArrowLeft size={18} />
                     Back to home
                 </Link>
 
                 <div className="feature-hero">
-                    <div className="feature-icon-wrapper large-icon">
-                        <Wand2 size={48} />
+                    <div className="fp-icon-box">
+                        <Wand2 size={36} />
                     </div>
                     <h1 className="feature-hero-title">
-                        Instant <span className="text-gradient">AI</span> Generation
+                        Instant <em>AI</em> Generation
                     </h1>
                     <p className="feature-hero-subtitle">
                         Turn any document into a high-yield study deck in seconds.
                     </p>
                 </div>
 
-                <div className="walkthrough-section glass-panel">
+                <div className="fp-card">
                     <div className="walkthrough-grid ai-grid-reverse">
 
-                        <div className="walkthrough-visual bg-tertiary">
+                        <div className="walkthrough-visual">
                             <div className="mockup-ai-upload">
                                 <div className="upload-box">
-                                    <FileText size={48} className="text-tertiary mb-4" />
-                                    <div className="upload-text">Drag & Drop PDF</div>
+                                    <FileText size={40} />
+                                    <div className="upload-text">Drag &amp; Drop PDF</div>
                                 </div>
                                 <div className="processing-bar">
                                     <div className="processing-fill"></div>
@@ -49,9 +49,9 @@ export default function AIGenerationPage() {
                             <p>Card creation is the biggest bottleneck in spaced repetition. Sekel eliminates it completely with context-aware AI.</p>
 
                             <ul className="benefit-list">
-                                <li><FileText className="benefit-icon text-accent" /> Upload PDFs, PowerPoint slides, or paste YouTube URLs.</li>
-                                <li><Cpu className="benefit-icon text-accent" /> Our Custom LLM pipeline extracts key facts and formulates perfect Q&A pairs.</li>
-                                <li><Sparkles className="benefit-icon text-accent" /> Automatically tags and organizes cards by topic.</li>
+                                <li><FileText className="benefit-icon" /> Upload PDFs, PowerPoint slides, or paste YouTube URLs.</li>
+                                <li><Cpu className="benefit-icon" /> Our custom LLM pipeline extracts key facts and formulates perfect Q&amp;A pairs.</li>
+                                <li><Sparkles className="benefit-icon" /> Automatically tags and organizes cards by topic.</li>
                             </ul>
                         </div>
 

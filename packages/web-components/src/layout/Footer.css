@@ -1,0 +1,122 @@
+.footer {
+  background: var(--ink);
+  border-top: 1px solid var(--ink-muted);
+  padding: 60px 32px 40px;
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+  margin-bottom: 48px;
+}
+
+@media (min-width: 640px) {
+  .footer-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 1024px) {
+  .footer-grid { grid-template-columns: 2fr 1fr 1fr; gap: 48px; }
+}
+
+.footer-logo-link {
+  font-family: var(--font-display);
+  font-size: 28px;
+  color: var(--white);
+  display: block;
+  margin-bottom: 12px;
+}
+
+.footer-logo-link span { color: var(--teal); }
+
+.footer-desc {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--mist);
+  line-height: 1.6;
+  max-width: 240px;
+}
+
+.footer-heading {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--mist);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  margin-bottom: 16px;
+}
+
+.footer-links {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.footer-links a,
+.footer-links li a {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--slate);
+  transition: color 150ms ease;
+}
+
+.footer-links a:hover,
+.footer-links li a:hover {
+  color: var(--white);
+}
+
+.footer-bottom {
+  border-top: 1px solid var(--ink-muted);
+  padding-top: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.footer-bottom span {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--mist);
+}
+
+.footer-bottom-links {
+  display: flex;
+  gap: 24px;
+}
+
+.footer-bottom-links a {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--mist);
+  transition: color 150ms ease;
+}
+
+.footer-bottom-links a:hover { color: var(--fog); }
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: transparent;
+  border: 1px solid var(--ink-muted);
+  border-radius: 20px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--mist);
+  cursor: pointer;
+  transition: border-color 150ms ease, color 150ms ease;
+}
+
+.theme-toggle:hover {
+  border-color: var(--slate);
+  color: var(--fog);
+}
+
+.theme-toggle svg {
+  flex-shrink: 0;
+}
