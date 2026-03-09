@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { Layers, Trash2, Plus, CheckCircle, Info } from 'lucide-react';
-import { useTranslation } from '../../../node_modules/react-i18next';
+import { useTranslation } from 'react-i18next';
 import { uploadImage } from '../../lib/storage';
 import { useDecks } from '../../hooks/useDecks';
 import { useCreateNote, useNoteTypes, useCreateNoteType } from '../../hooks/useNotes';

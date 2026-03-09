@@ -1,10 +1,6 @@
-import { useTranslation } from '../../../node_modules/react-i18next';
+import { useTranslation } from 'react-i18next';
 import { CheckCircle } from 'lucide-react';
-import { Button } from './Button';
-import { Loader } from './Loader';
-import { RetentionTrendChart } from './charts/RetentionTrendChart';
-import { RatingDistributionChart } from './charts/RatingDistributionChart';
-import { LapseStatsChart } from './charts/LapseStatsChart';
+import { Button, Loader, RetentionTrendChart, RatingDistributionChart, LapseStatsChart } from '@sekel/components';
 import { useSessionAnalytics } from '../../hooks/useSessions';
 
 interface SessionAnalyticsProps {

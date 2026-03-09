@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useTranslation } from '../../node_modules/react-i18next';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../stores/authStore';
 import { useProfileStore } from '../stores/profileStore';
 import { LogOut, User as UserIcon } from 'lucide-react';

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, Trash2, Sparkles, AlertTriangle, Pencil } from 'lucide-react';
-import { useTranslation } from '../../../node_modules/react-i18next';
+import { useTranslation } from 'react-i18next';
 import { useNotesByDeck, useDeleteNote } from '../../hooks/useNotes';
 import type { Note } from '../../lib/types';
 import { Button, Modal } from '../UI';

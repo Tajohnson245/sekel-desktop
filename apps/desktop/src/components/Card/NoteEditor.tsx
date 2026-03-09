@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 // import { X } from 'lucide-react'; // Removed unused import
-import { useTranslation } from '../../../node_modules/react-i18next';
+import { useTranslation } from 'react-i18next';
 import { useCreateNote, useUpdateNote } from '../../hooks/useNotes';
 import { Button, Modal, RichTextEditor } from '../UI';
 import type { Note } from '../../lib/types'; // Import Note type

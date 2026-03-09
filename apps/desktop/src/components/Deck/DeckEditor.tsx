@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useTranslation } from '../../../node_modules/react-i18next';
+import { useTranslation } from 'react-i18next';
 import { useCreateDeck, useUpdateDeck } from '../../hooks/useDecks';
 import type { Deck } from '../../lib/types';
 import { Button, Input, Modal } from '../UI';

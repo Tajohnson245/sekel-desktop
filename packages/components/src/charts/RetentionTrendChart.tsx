@@ -8,7 +8,11 @@ import {
     Tooltip,
     ResponsiveContainer,
 } from 'recharts';
-import type { RetentionTrendPoint } from '../../../lib/types';
+
+export interface RetentionTrendPoint {
+    reviewIndex: number;
+    retentionRate: number;
+}
 
 interface RetentionTrendChartProps {
     data: RetentionTrendPoint[];

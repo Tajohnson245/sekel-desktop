@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft, BookOpen, Trash2, Zap, Plus } from 'lucide-react';
-import { useTranslation } from '../../../node_modules/react-i18next';
+import { useTranslation } from 'react-i18next';
 import { useDeck, useDeckStats } from '../../hooks/useDecks';
 import { useNoteTypes, useCreateNoteType, useNotesByDeck, useDeleteNote } from '../../hooks/useNotes';
 import CardList from '../Card/CardList';

@@ -3,7 +3,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useProfileStore, UserProfile } from '../../stores/profileStore';
 import { useTheme } from '../ThemeProvider';
 import { User, MapPin, Edit2, Lock, Trash2, Settings } from 'lucide-react';
-import { useTranslation } from '../../../node_modules/react-i18next';
+import { useTranslation } from 'react-i18next';
 import { Modal } from '../UI/Modal';
 import { Button } from '../UI/Button';
 import { Input } from '../UI/Input';

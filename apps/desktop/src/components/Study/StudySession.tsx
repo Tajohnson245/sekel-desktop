@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
-import { useTranslation } from '../../../node_modules/react-i18next';
+import { useTranslation } from 'react-i18next';
 import { useDueCards, useAllCardsForStudy, useUpdateCard, useDeck } from '../../hooks/useDecks';
 import { useCreateSession, useCompleteSession, useInsertReview } from '../../hooks/useSessions';
 import { getSchedulingOptions } from '../../lib/fsrs';

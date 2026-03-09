@@ -1,14 +1,13 @@
 import { LayoutDashboard, BookOpen, TrendingUp, Zap } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
-import { useTranslation } from '../../../node_modules/react-i18next';
+import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
 import { useProfileStore } from '../../stores/profileStore';
 import { useDecks } from '../../hooks/useDecks';
 import { useReviewHistory, useGlobalDashboardStats } from '../../hooks/useSessions';
 import type { Deck } from '../../lib/types';
-import type { ReviewDayCount } from '../../lib/queries';
-import { Button } from '../UI';
-import ReviewHeatmap from './ReviewHeatmap';
+import { Button, ReviewHeatmap } from '@sekel/components';
+import type { ReviewDayCount } from '@sekel/components';
 import './Dashboard.css';
 
 /** Count consecutive days ending today (or yesterday) that have at least 1 review. */

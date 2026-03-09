@@ -40,7 +40,6 @@ export const Modal = ({ isOpen, onClose, title, children, footer, size = 'md' }:
         xl: 'max-w-4xl'
     };
 
-    // Fallback for size if class lookup fails (though with TS it shouldn't)
     const maxWidthClass = sizeClasses[size] || sizeClasses.md;
 
     return createPortal(
@@ -51,7 +50,7 @@ export const Modal = ({ isOpen, onClose, title, children, footer, size = 'md' }:
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="modal-title"
-                style={{ width: '100%' }} // Ensure it takes width up to max-width
+                style={{ width: '100%' }}
             >
                 <div className="modal-header">
                     <h2 id="modal-title">{title}</h2>

@@ -1,8 +1,20 @@
 import { useTranslation } from 'react-i18next';
-import type { SessionAnalytics, TopForgottenCard } from '../../../lib/types';
+
+export interface TopForgottenCard {
+    cardId: string;
+    lapseCount: number;
+    frontPreview?: string | null;
+}
+
+export interface LapseStats {
+    lapseCount: number;
+    lapseRate: number;
+    totalReviews: number;
+    topForgottenCards: TopForgottenCard[];
+}
 
 interface LapseStatsChartProps {
-    lapseStats: SessionAnalytics['lapseStats'];
+    lapseStats: LapseStats;
 }
 
 export function LapseStatsChart({ lapseStats }: LapseStatsChartProps) {
