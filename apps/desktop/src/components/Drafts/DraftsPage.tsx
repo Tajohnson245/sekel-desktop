@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Inbox, Trash2, ChevronRight, Clock, FileText } from 'lucide-react';
-import { useTranslation } from '../../../node_modules/react-i18next';
+import { useTranslation } from 'react-i18next';
 import { useDrafts, useDeleteDraft, useClearDrafts, usePromoteDraftToDeck, DRAFT_LIMIT } from '../../hooks/useDrafts';
 import { useDecks } from '../../hooks/useDecks';
 import { Button } from '../UI';

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, Trash2, X } from 'lucide-react';
-import { useTranslation } from '../../../node_modules/react-i18next';
+import { useTranslation } from 'react-i18next';
 import { useDecks, useBulkDeleteDecks } from '../../hooks/useDecks';
 import { Button, Loader, Modal } from '../UI';
 import DeckCard from './DeckCard';

@@ -1,25 +1,21 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { ReviewDayCount } from '../../lib/queries';
 
-// ─────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────
+export interface ReviewDayCount {
+    date: string;   // YYYY-MM-DD
+    count: number;
+}
 
 interface ReviewHeatmapProps {
     data: ReviewDayCount[];
 }
 
 interface DayCell {
-    date: string;       // YYYY-MM-DD
+    date: string;
     count: number;
-    weekday: number;    // 0=Sun … 6=Sat
-    weekIndex: number;  // column index
+    weekday: number;
+    weekIndex: number;
 }
-
-// ─────────────────────────────────────────────────────────────────
-// Constants
-// ─────────────────────────────────────────────────────────────────
 
 const CELL_SIZE = 13;
 const CELL_GAP = 3;
@@ -29,15 +25,10 @@ const DAYS_IN_WEEK = 7;
 const MONTH_LABEL_HEIGHT = 18;
 const DAY_LABEL_WIDTH = 28;
 
-// ─────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────
-
 function buildGrid(data: ReviewDayCount[]): { cells: DayCell[]; months: { label: string; col: number }[] } {
     const lookup = new Map(data.map(d => [d.date, d.count]));
 
     const today = new Date();
-    // Start from the Sunday of the week 51 weeks ago
     const start = new Date(today);
     start.setDate(today.getDate() - today.getDay() - (TOTAL_WEEKS - 1) * 7);
 
@@ -49,13 +40,12 @@ function buildGrid(data: ReviewDayCount[]): { cells: DayCell[]; months: { label:
     const cursor = new Date(start);
 
     while (cursor <= today) {
-        const weekday = cursor.getDay(); // 0=Sun
+        const weekday = cursor.getDay();
         const isoDate = cursor.toISOString().slice(0, 10);
         const count = lookup.get(isoDate) ?? 0;
 
         cells.push({ date: isoDate, count, weekday, weekIndex });
 
-        // Track month labels — first occurrence in each month
         const monthKey = `${cursor.getFullYear()}-${cursor.getMonth()}`;
         if (!seenMonths.has(monthKey) && weekday === 0) {
             seenMonths.add(monthKey);
@@ -65,7 +55,6 @@ function buildGrid(data: ReviewDayCount[]): { cells: DayCell[]; months: { label:
             });
         }
 
-        // Advance
         cursor.setDate(cursor.getDate() + 1);
         if (cursor.getDay() === 0) {
             weekIndex++;
@@ -84,10 +73,6 @@ function getLevel(count: number, max: number): number {
     if (ratio <= 0.75) return 3;
     return 4;
 }
-
-// ─────────────────────────────────────────────────────────────────
-// Component
-// ─────────────────────────────────────────────────────────────────
 
 export default function ReviewHeatmap({ data }: ReviewHeatmapProps) {
     const { t } = useTranslation();
@@ -125,7 +110,6 @@ export default function ReviewHeatmap({ data }: ReviewHeatmapProps) {
                     role="img"
                     aria-label={t('dashboard.review_activity')}
                 >
-                    {/* Month labels */}
                     {months.map((m, i) => (
                         <text
                             key={i}
@@ -137,7 +121,6 @@ export default function ReviewHeatmap({ data }: ReviewHeatmapProps) {
                         </text>
                     ))}
 
-                    {/* Day-of-week labels */}
                     {dayLabels.map(({ label, row }) => (
                         <text
                             key={row}
@@ -149,7 +132,6 @@ export default function ReviewHeatmap({ data }: ReviewHeatmapProps) {
                         </text>
                     ))}
 
-                    {/* Cells */}
                     {cells.map((cell) => {
                         const x = DAY_LABEL_WIDTH + cell.weekIndex * (CELL_SIZE + CELL_GAP);
                         const y = MONTH_LABEL_HEIGHT + cell.weekday * (CELL_SIZE + CELL_GAP);
@@ -183,7 +165,6 @@ export default function ReviewHeatmap({ data }: ReviewHeatmapProps) {
                 </svg>
             </div>
 
-            {/* Legend */}
             <div className="heatmap-legend">
                 <span className="heatmap-legend-label">{t('dashboard.heatmap_less')}</span>
                 {[0, 1, 2, 3, 4].map((level) => (
@@ -192,7 +173,6 @@ export default function ReviewHeatmap({ data }: ReviewHeatmapProps) {
                 <span className="heatmap-legend-label">{t('dashboard.heatmap_more')}</span>
             </div>
 
-            {/* Tooltip portal */}
             {tooltip && (
                 <div
                     className="heatmap-tooltip"

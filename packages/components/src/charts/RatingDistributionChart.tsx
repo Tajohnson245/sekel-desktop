@@ -9,7 +9,14 @@ import {
     ResponsiveContainer,
     Cell,
 } from 'recharts';
-import type { RatingDistributionItem } from '../../../lib/types';
+
+export type Rating = 'again' | 'hard' | 'good' | 'easy';
+
+export interface RatingDistributionItem {
+    rating: Rating;
+    count: number;
+    percent: number;
+}
 
 const RATING_COLORS: Record<string, string> = {
     again: 'var(--danger, #ef4444)',

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Loader, FileText, CheckCircle, AlertCircle, RefreshCw, ArrowRight, Trash2 } from 'lucide-react';
-import { useTranslation } from '../../../node_modules/react-i18next';
+import { useTranslation } from 'react-i18next';
 import DocumentUpload from './DocumentUpload';
 import AICardGenerator from './AICardGenerator';
 import { Button } from '../UI/Button';

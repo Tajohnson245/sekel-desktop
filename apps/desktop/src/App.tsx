@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ThemeProvider } from './components/ThemeProvider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LayoutDashboard, Library, FileText, Plus, Inbox, Layers } from 'lucide-react';
-import { useTranslation } from '../node_modules/react-i18next';
+import { useTranslation } from 'react-i18next';
 import Dashboard from './components/Dashboard/Dashboard';
 import DeckList from './components/Deck/DeckList';
 import DeckDetail from './components/Deck/DeckDetail';

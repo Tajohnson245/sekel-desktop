@@ -1,6 +1,6 @@
 import { useState, useRef, ReactNode } from 'react';
 import { Upload } from 'lucide-react';
-import { Trans, useTranslation } from '../../../node_modules/react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { Button, Input } from '../UI';
 
 interface DocumentUploadProps {

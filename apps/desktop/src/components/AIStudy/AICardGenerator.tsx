@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Sparkles, X, Plus, CheckCircle, Inbox } from 'lucide-react';
-import { useTranslation } from '../../../node_modules/react-i18next';
+import { useTranslation } from 'react-i18next';
 import { useGenerateCards, type GeneratedCard, type AIGenerationOptions } from '../../hooks/useAI';
 import { useSaveDraft, useDrafts, DRAFT_LIMIT } from '../../hooks/useDrafts';
 import { useCreateNote, useNoteTypes, useCreateNoteType } from '../../hooks/useNotes';
