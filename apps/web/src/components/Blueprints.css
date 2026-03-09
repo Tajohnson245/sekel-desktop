@@ -1,0 +1,92 @@
+.blueprints-section {
+  background: var(--white);
+  padding: 100px 32px;
+}
+
+.blueprints-headline {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 4vw, 52px);
+  color: var(--ink);
+  line-height: 1.1;
+  margin-bottom: 16px;
+}
+
+.blueprints-subheadline {
+  font-family: var(--font-body);
+  font-size: 17px;
+  font-weight: 300;
+  color: var(--slate);
+  max-width: 560px;
+  line-height: 1.6;
+  margin-bottom: 48px;
+}
+
+.blueprints-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .blueprints-grid { grid-template-columns: 1fr; }
+}
+
+.blueprint-card {
+  background: var(--paper);
+  border: 1px solid var(--cloud);
+  border-radius: var(--r-md);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: background 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.blueprint-card:hover {
+  background: var(--white);
+  border-color: var(--teal-border);
+  box-shadow: 0 4px 20px rgba(43,191,164,0.15);
+}
+
+.bp-org {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--mist);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 4px;
+}
+
+.bp-name {
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+
+.bp-description {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--slate);
+  line-height: 1.5;
+  margin-bottom: 10px;
+  flex: 1;
+}
+
+.bp-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.bp-tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--teal);
+  background: var(--teal-soft);
+  border: 1px solid var(--teal-border);
+  padding: 3px 8px;
+  border-radius: 20px;
+}

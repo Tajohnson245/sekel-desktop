@@ -1,23 +1,33 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
-import ScrollCleaner from '../components/ScrollCleaner';
+import { DM_Serif_Display, Outfit, DM_Mono } from "next/font/google";
+import { Navbar, Footer, ScrollCleaner } from '@sekel/web-components';
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const dmSerifDisplay = DM_Serif_Display({
+  weight: ['400'],
+  style: ['normal', 'italic'],
+  subsets: ['latin'],
+  variable: '--font-display',
+  display: 'swap',
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const outfit = Outfit({
+  weight: ['300', '400', '500', '600', '700'],
+  subsets: ['latin'],
+  variable: '--font-body',
+  display: 'swap',
+});
+
+const dmMono = DM_Mono({
+  weight: ['400', '500'],
+  subsets: ['latin'],
+  variable: '--font-mono',
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
-  title: "Sekel | The Modern Spaced Repetition Standard",
-  description: "Learn faster and remember longer with Sekel.",
+  title: "SEKEL — AI-Powered Study Prioritization for Medical Students",
+  description: "SEKEL combines spaced repetition with official exam blueprints and your personal performance data to tell you exactly which cards are worth your limited time.",
 };
 
 export default function RootLayout({
@@ -27,10 +37,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable}`} style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <body className={`${dmSerifDisplay.variable} ${outfit.variable} ${dmMono.variable}`}>
         <ScrollCleaner />
         <Navbar />
-        <main style={{ paddingTop: '4rem', flex: 1 }}>
+        <main>
           {children}
         </main>
         <Footer />
