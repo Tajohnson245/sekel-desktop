@@ -1,3 +1,4 @@
+import { Check, X } from 'lucide-react';
 import './Comparison.css';
 
 const rows = [
@@ -17,11 +18,11 @@ type CellValue = { type: string; text?: string; note?: string };
 function Cell({ val, sekel = false }: { val: CellValue; sekel?: boolean }) {
   if (val.type === 'check') return (
     <td className={`cmp-td${sekel ? ' sekel-col' : ''}`}>
-      <span className="cmp-check">✓</span>
+      <Check className="cmp-check" size={16} />
       {val.note && <span className="cmp-note">{val.note}</span>}
     </td>
   );
-  if (val.type === 'cross') return <td className={`cmp-td${sekel ? ' sekel-col' : ''}`}><span className="cmp-cross">✕</span></td>;
+  if (val.type === 'cross') return <td className={`cmp-td${sekel ? ' sekel-col' : ''}`}><X className="cmp-cross" size={14} /></td>;
   if (val.type === 'dash')  return <td className={`cmp-td${sekel ? ' sekel-col' : ''}`}><span className="cmp-muted">—</span></td>;
   if (val.type === 'amber') return <td className={`cmp-td${sekel ? ' sekel-col' : ''}`}><span className="cmp-amber">{val.text}</span></td>;
   if (val.type === 'teal')  return <td className={`cmp-td${sekel ? ' sekel-col' : ''}`}><span className="cmp-teal-text">{val.text}</span></td>;

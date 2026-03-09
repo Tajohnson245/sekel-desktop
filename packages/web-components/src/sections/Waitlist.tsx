@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from 'react';
+import { Monitor, Apple } from 'lucide-react';
 import './Waitlist.css';
 
 export default function Waitlist() {
@@ -55,8 +56,8 @@ export default function Waitlist() {
         <p className="waitlist-note reveal reveal-delay-3">No spam. No credit card. Just early access.</p>
 
         <div className="waitlist-badges reveal">
-          <span className="platform-badge">🪟 Windows</span>
-          <span className="platform-badge">🍎 macOS</span>
+          <span className="platform-badge"><Monitor size={13} /> Windows</span>
+          <span className="platform-badge"><Apple size={13} /> macOS</span>
         </div>
       </div>
     </section>

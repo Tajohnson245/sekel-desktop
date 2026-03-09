@@ -72,16 +72,19 @@
 .rose-icon {
   background: rgba(224,92,106,0.10);
   border: 1px solid rgba(224,92,106,0.20);
+  color: var(--rose);
 }
 
 .amber-icon {
   background: var(--amber-soft);
   border: 1px solid rgba(240,165,0,0.20);
+  color: var(--amber);
 }
 
 .mist-icon {
   background: rgba(139,147,168,0.10);
   border: 1px solid rgba(139,147,168,0.20);
+  color: var(--mist);
 }
 
 .problem-card-content h3 {

@@ -1,3 +1,4 @@
+import { Timer, BarChart2, BrainCircuit } from 'lucide-react';
 import './Problem.css';
 
 export default function Problem() {
@@ -21,7 +22,7 @@ export default function Problem() {
 
           <div className="problem-cards">
             <div className="problem-card reveal reveal-delay-1">
-              <div className="problem-icon rose-icon">⏱</div>
+              <div className="problem-icon rose-icon"><Timer size={20} /></div>
               <div className="problem-card-content">
                 <h3>No exam awareness</h3>
                 <p>
@@ -32,7 +33,7 @@ export default function Problem() {
             </div>
 
             <div className="problem-card reveal reveal-delay-2">
-              <div className="problem-icon amber-icon">📊</div>
+              <div className="problem-icon amber-icon"><BarChart2 size={20} /></div>
               <div className="problem-card-content">
                 <h3>No yield intelligence</h3>
                 <p>
@@ -43,7 +44,7 @@ export default function Problem() {
             </div>
 
             <div className="problem-card reveal reveal-delay-3">
-              <div className="problem-icon mist-icon">🧠</div>
+              <div className="problem-icon mist-icon"><BrainCircuit size={20} /></div>
               <div className="problem-card-content">
                 <h3>No prioritization logic</h3>
                 <p>

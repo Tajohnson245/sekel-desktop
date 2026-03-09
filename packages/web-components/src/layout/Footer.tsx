@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { Sun, Moon } from 'lucide-react';
 import Link from 'next/link';
 import './Footer.css';
 
@@ -88,7 +89,7 @@ export default function Footer() {
             onClick={toggleTheme}
             aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           >
-            <span className="theme-toggle-icon" aria-hidden="true">◐</span>
+            {theme === 'dark' ? <Sun size={12} aria-hidden="true" /> : <Moon size={12} aria-hidden="true" />}
             {theme === 'dark' ? 'Light mode' : 'Dark mode'}
           </button>
         </div>

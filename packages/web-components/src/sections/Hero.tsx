@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ArrowRight, Sparkles } from 'lucide-react';
 import './Hero.css';
 
 export default function Hero() {
@@ -27,7 +28,7 @@ export default function Hero() {
 
           <div className="hero-actions reveal reveal-delay-3">
             <Link href="#waitlist" className="hero-btn-primary">
-              Join the Waitlist <span aria-hidden="true">→</span>
+              Join the Waitlist <ArrowRight size={16} aria-hidden="true" />
             </Link>
             <Link href="#how-it-works" className="hero-btn-secondary">
               See how it works
@@ -66,7 +67,7 @@ export default function Hero() {
               {/* AI Panel */}
               <div className="ai-panel">
                 <div className="ai-header">
-                  <div className="ai-icon-box">◈</div>
+                  <div className="ai-icon-box"><Sparkles size={14} /></div>
                   <span className="ai-label">SEKEL Intelligence</span>
                 </div>
                 <p className="ai-body">

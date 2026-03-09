@@ -1,3 +1,4 @@
+import { Sparkles, Check, Zap, HardDrive, Image as ImageIcon } from 'lucide-react';
 import './Features.css';
 
 export default function Features() {
@@ -11,7 +12,7 @@ export default function Features() {
           {/* Featured card — full width */}
           <div className="feature-card-featured reveal">
             <div className="featured-left">
-              <div className="feat-icon-box">◈</div>
+              <div className="feat-icon-box"><Sparkles size={20} /></div>
               <span className="feat-label">Core Feature</span>
               <h3 className="feat-title">AI-Driven Study Prioritization</h3>
               <p className="feat-body">
@@ -20,15 +21,15 @@ export default function Features() {
                 exam — to generate a ranked study queue.
               </p>
               <ul className="feat-list">
-                <li><span className="feat-bullet">◎</span> Blueprint weights from USMLE, NBME shelf exams, and NCLEX</li>
-                <li><span className="feat-bullet">◎</span> Adapts as your performance changes and exam date approaches</li>
-                <li><span className="feat-bullet">◎</span> Every card shows its yield level so you always know why it matters</li>
+                <li><Check className="feat-bullet" size={14} /> Blueprint weights from USMLE, NBME shelf exams, and NCLEX</li>
+                <li><Check className="feat-bullet" size={14} /> Adapts as your performance changes and exam date approaches</li>
+                <li><Check className="feat-bullet" size={14} /> Every card shows its yield level so you always know why it matters</li>
               </ul>
             </div>
             <div className="featured-right">
               <div className="feat-demo-box">
                 <div className="feat-demo-header">
-                  <div className="feat-demo-icon">◈</div>
+                  <div className="feat-demo-icon"><Sparkles size={12} /></div>
                   <span className="feat-demo-label">SEKEL Intelligence · IM Shelf · 14 days</span>
                 </div>
                 <p className="feat-demo-body">
@@ -48,7 +49,7 @@ export default function Features() {
 
           {/* Standard cards */}
           <div className="feature-card reveal reveal-delay-1">
-            <div className="feat-icon-box teal-box">⚡</div>
+            <div className="feat-icon-box teal-box"><Zap size={20} /></div>
             <span className="feat-label">Algorithm</span>
             <h3 className="feat-title feat-title-dark">FSRS Scheduling</h3>
             <p className="feat-body feat-body-dark">
@@ -59,7 +60,7 @@ export default function Features() {
           </div>
 
           <div className="feature-card reveal reveal-delay-2">
-            <div className="feat-icon-box violet-box">💾</div>
+            <div className="feat-icon-box violet-box"><HardDrive size={20} /></div>
             <span className="feat-label">Architecture</span>
             <h3 className="feat-title feat-title-dark">Local-First, Always Fast</h3>
             <p className="feat-body feat-body-dark">
@@ -70,7 +71,7 @@ export default function Features() {
           </div>
 
           <div className="feature-card reveal reveal-delay-3">
-            <div className="feat-icon-box amber-box">🖼</div>
+            <div className="feat-icon-box amber-box"><ImageIcon size={20} /></div>
             <span className="feat-label">Card Types</span>
             <h3 className="feat-title feat-title-dark">Rich Cards with Images</h3>
             <p className="feat-body feat-body-dark">

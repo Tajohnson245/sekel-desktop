@@ -69,9 +69,9 @@
   margin-bottom: 4px;
 }
 
-.teal-box   { background: var(--teal-soft); border-color: var(--teal-border); }
-.violet-box { background: var(--violet-soft); border-color: rgba(124,110,245,0.22); }
-.amber-box  { background: var(--amber-soft); border-color: rgba(240,165,0,0.22); }
+.teal-box   { background: var(--teal-soft); border-color: var(--teal-border); color: var(--teal); }
+.violet-box { background: var(--violet-soft); border-color: rgba(124,110,245,0.22); color: var(--violet); }
+.amber-box  { background: var(--amber-soft); border-color: rgba(240,165,0,0.22); color: var(--amber); }
 
 .feat-label {
   font-family: var(--font-mono);

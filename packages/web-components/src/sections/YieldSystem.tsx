@@ -1,3 +1,4 @@
+import { Info } from 'lucide-react';
 import './YieldSystem.css';
 
 export default function YieldSystem() {
@@ -60,7 +61,7 @@ export default function YieldSystem() {
           </div>
 
           <div className="yield-note">
-            <span className="yield-note-icon">◎</span>
+            <Info className="yield-note-icon" size={14} />
             <p>
               Yield is calculated from <strong>official exam blueprints</strong> — real topic weightings
               published by USMLE, NBME, and NCSBN. Not guesses.
