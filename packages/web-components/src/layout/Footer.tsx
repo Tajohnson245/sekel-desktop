@@ -54,18 +54,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Exams */}
-          <div className="footer-links-col">
-            <h4 className="footer-heading">Exams</h4>
-            <ul className="footer-links">
-              <li><a href="#">USMLE Step 1</a></li>
-              <li><a href="#">USMLE Step 2 CK</a></li>
-              <li><a href="#">NBME Shelf Exams</a></li>
-              <li><a href="#">NCLEX-RN</a></li>
-            </ul>
-          </div>
-
-          {/* Company */}
+          {/* Legal */}
           <div className="footer-links-col">
             <h4 className="footer-heading">Legal</h4>
             <ul className="footer-links">
