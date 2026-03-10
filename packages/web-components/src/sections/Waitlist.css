@@ -93,6 +93,21 @@
   transform: translateY(-1px);
 }
 
+.waitlist-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.waitlist-field-error {
+  width: 100%;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--rose);
+  text-align: center;
+  margin-top: -4px;
+}
+
 .waitlist-confirm {
   font-family: var(--font-mono);
   font-size: 14px;
