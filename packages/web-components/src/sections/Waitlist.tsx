@@ -4,19 +4,44 @@ import { useState } from 'react';
 import { Monitor, Apple } from 'lucide-react';
 import './Waitlist.css';
 
+type Status = 'idle' | 'loading' | 'success' | 'error';
+
 export default function Waitlist() {
   const [email, setEmail] = useState('');
-  const [submitted, setSubmitted] = useState(false);
-  const [error, setError] = useState(false);
+  const [status, setStatus] = useState<Status>('idle');
+  const [fieldError, setFieldError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !email.includes('@')) {
-      setError(true);
+    setFieldError('');
+
+    if (!email.trim()) {
+      setFieldError('Please enter your email address.');
       return;
     }
-    setError(false);
-    setSubmitted(true);
+
+    setStatus('loading');
+
+    try {
+      const res = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      const json = await res.json();
+
+      if (res.ok) {
+        setStatus('success');
+      } else if (res.status === 400) {
+        setFieldError(json.error ?? 'Invalid email address.');
+        setStatus('idle');
+      } else {
+        setStatus('error');
+      }
+    } catch {
+      setStatus('error');
+    }
   };
 
   return (
@@ -33,24 +58,39 @@ export default function Waitlist() {
           — and to help shape what gets built next.
         </p>
 
-        {submitted ? (
-          <p className="waitlist-confirm reveal">You&apos;re on the list. We&apos;ll be in touch.</p>
-        ) : (
-          <form className="waitlist-form reveal reveal-delay-2" onSubmit={handleSubmit}>
-            <label htmlFor="waitlist-email" className="sr-only">Email address</label>
-            <input
-              type="email"
-              id="waitlist-email"
-              className={`waitlist-input${error ? ' input-error' : ''}`}
-              placeholder="your@email.edu"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                if (error) setError(false);
-              }}
-            />
-            <button type="submit" className="waitlist-btn">Join Waitlist</button>
-          </form>
+        <form className="waitlist-form reveal reveal-delay-2" onSubmit={handleSubmit} noValidate>
+          <label htmlFor="waitlist-email" className="sr-only">Email address</label>
+          <input
+            type="email"
+            id="waitlist-email"
+            className={`waitlist-input${fieldError ? ' input-error' : ''}`}
+            placeholder="your@email.edu"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (fieldError) setFieldError('');
+            }}
+            disabled={status === 'loading'}
+            aria-describedby={fieldError ? 'waitlist-error' : undefined}
+          />
+          <button type="submit" className="waitlist-btn" disabled={status === 'loading' || status === 'success'}>
+            {status === 'loading' ? 'Joining…' : status === 'success' ? 'Joined!' : 'Join Waitlist'}
+          </button>
+          {fieldError && (
+            <p id="waitlist-error" className="waitlist-field-error" role="alert">{fieldError}</p>
+          )}
+        </form>
+
+        {status === 'success' && (
+          <p className="waitlist-confirm" role="status">
+            You&apos;re on the list — check your inbox. If you don&apos;t see it, check your spam folder.
+          </p>
+        )}
+
+        {status === 'error' && (
+          <p className="waitlist-field-error" role="alert">
+            Something went wrong. Please try again.
+          </p>
         )}
 
         <p className="waitlist-note reveal reveal-delay-3">No spam. No credit card. Just early access.</p>
