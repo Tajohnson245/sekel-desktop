@@ -1,4 +1,5 @@
 import { SelectHTMLAttributes, forwardRef } from 'react';
+import './Select.css';
 
 interface SelectOption {
     label: string;

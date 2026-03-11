@@ -1,0 +1,23 @@
+@import '../components.css';
+
+/* ==========================================================================
+   Loader
+   ========================================================================== */
+
+.loader-container {
+  display:     inline-flex;
+  align-items: center;
+  gap:         var(--space-sm);
+  color:       var(--teal);
+}
+
+.loader-center {
+  justify-content: center;
+}
+
+.loader-text {
+  font-family: var(--font-body);
+  font-size:   14px;
+  color:       var(--mist);
+  line-height: 1;
+}

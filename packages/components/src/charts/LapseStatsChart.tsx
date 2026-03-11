@@ -1,3 +1,4 @@
+import './LapseStatsChart.css';
 import { useTranslation } from 'react-i18next';
 
 export interface TopForgottenCard {

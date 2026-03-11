@@ -1,0 +1,74 @@
+@import '../components.css';
+
+/* ==========================================================================
+   Input (and shared form primitives used by Select too)
+   ========================================================================== */
+
+.form-group {
+  display:        flex;
+  flex-direction: column;
+  gap:            var(--space-sm);
+}
+
+.form-label {
+  font-family: var(--font-body);
+  font-size:   13px;
+  font-weight: 500;
+  color:       var(--mist);
+  line-height: 1;
+}
+
+.form-input {
+  font-family:      var(--font-body);
+  font-size:        14px;
+  color:            var(--fog);
+  background-color: var(--ink-soft);
+  border:           1px solid var(--ink-muted);
+  border-radius:    var(--r-sm);
+  padding:          var(--space-sm) var(--space-md);
+  min-height:       38px;
+  width:            100%;
+  outline:          none;
+  transition:       border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+  resize:           vertical;
+}
+
+.form-input::placeholder {
+  color: var(--slate);
+}
+
+.form-input:hover:not(:disabled):not(.input-error) {
+  border-color: var(--slate);
+}
+
+.form-input:focus:not(.input-error) {
+  border-color: var(--teal);
+  box-shadow:   0 0 0 3px var(--teal-soft);
+}
+
+.form-input:focus-visible:not(.input-error) {
+  outline:        2px solid var(--teal);
+  outline-offset: 2px;
+}
+
+.form-input:disabled {
+  opacity: 0.5;
+  cursor:  not-allowed;
+}
+
+/* Error state */
+.form-input.input-error {
+  border-color:     var(--rose);
+  background-color: var(--rose-soft);
+}
+
+.form-input.input-error:focus {
+  box-shadow: 0 0 0 3px rgba(224, 92, 106, 0.12);
+}
+
+.form-error-text {
+  font-family: var(--font-mono);
+  font-size:   12px;
+  color:       var(--rose);
+  line-height: 1.4;
+}

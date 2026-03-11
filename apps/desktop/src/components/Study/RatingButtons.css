@@ -1,45 +1,86 @@
-/* Rating Buttons Styles */
+/* Rating Buttons — Stylescape ROSE/AMBER/TEAL/VIOLET system */
 
 .rating-buttons {
     display: flex;
-    gap: 0.75rem;
-    margin-top: 1rem;
+    gap: var(--space-md);
+    margin-top: var(--space-lg);
 }
 
 .rating-btn {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.25rem;
-    padding: 0.75rem 1.5rem;
-    background: var(--secondary);
-    border: 2px solid var(--rating-color, var(--border));
-    border-radius: var(--radius);
-    color: var(--fg);
+    gap: var(--space-xs);
+    padding: var(--space-md) var(--space-xl);
+    border: 1px solid transparent;
+    border-radius: var(--r-sm);
     cursor: pointer;
-    transition: all 0.15s;
+    font-family: var(--font-body);
+    font-weight: 500;
+    transition: background-color 0.15s, color 0.15s, border-color 0.15s;
     min-width: 80px;
 }
 
-.rating-btn:hover:not(:disabled) {
-    background: var(--rating-color);
-    color: white;
+/* Again — Rose */
+.rating-btn[data-rating="again"] {
+    background: var(--rose-soft);
+    border-color: var(--rose);
+    color: var(--rose);
+}
+.rating-btn[data-rating="again"]:hover:not(:disabled) {
+    background: var(--rose);
+    color: #fff;
+}
+
+/* Hard — Amber */
+.rating-btn[data-rating="hard"] {
+    background: var(--amber-soft);
+    border-color: var(--amber);
+    color: var(--amber);
+}
+.rating-btn[data-rating="hard"]:hover:not(:disabled) {
+    background: var(--amber);
+    color: var(--ink);
+}
+
+/* Good — Teal */
+.rating-btn[data-rating="good"] {
+    background: var(--teal-soft);
+    border-color: var(--teal);
+    color: var(--teal);
+}
+.rating-btn[data-rating="good"]:hover:not(:disabled) {
+    background: var(--teal);
+    color: var(--ink);
+}
+
+/* Easy — Violet */
+.rating-btn[data-rating="easy"] {
+    background: var(--violet-soft);
+    border-color: var(--violet);
+    color: var(--violet);
+}
+.rating-btn[data-rating="easy"]:hover:not(:disabled) {
+    background: var(--violet);
+    color: #fff;
 }
 
 .rating-btn:disabled {
-    opacity: 0.5;
+    opacity: 0.45;
     cursor: not-allowed;
 }
 
 .rating-label {
+    font-family: var(--font-body);
     font-weight: 600;
 }
 
 .rating-interval {
-    font-size: 0.75rem;
-    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    opacity: 0.8;
 }
 
 .rating-btn:hover .rating-interval {
-    color: inherit;
+    opacity: 1;
 }

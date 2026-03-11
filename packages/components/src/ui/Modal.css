@@ -1,0 +1,89 @@
+@import '../components.css';
+
+/* ==========================================================================
+   Modal
+   Sizes: sm (max-w-md) | md (max-w-lg) | lg (max-w-2xl) | xl (max-w-4xl)
+   ========================================================================== */
+
+.modal-overlay {
+  position:        fixed;
+  inset:           0;
+  z-index:         1000;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.60);
+  padding:         var(--space-lg);
+  backdrop-filter: blur(2px);
+}
+
+.modal {
+  position:         relative;
+  display:          flex;
+  flex-direction:   column;
+  background-color: var(--ink-soft);
+  border:           1px solid var(--ink-muted);
+  border-radius:    var(--r-lg);
+  box-shadow:       var(--shadow-lg);
+  max-height:       calc(100vh - var(--space-2xl) * 2);
+  overflow:         hidden;
+}
+
+/* Size variants */
+.modal.max-w-md  { max-width: 448px; }
+.modal.max-w-lg  { max-width: 640px; }
+.modal.max-w-2xl { max-width: 768px; }
+.modal.max-w-4xl { max-width: 960px; }
+
+/* Header */
+.modal-header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  padding:         var(--space-lg) var(--space-xl);
+  border-bottom:   1px solid var(--ink-muted);
+  flex-shrink:     0;
+}
+
+.modal-header h2 {
+  font-family: var(--font-body);
+  font-size:   18px;
+  font-weight: 600;
+  color:       var(--fog);
+  margin:      0;
+  line-height: 1.3;
+}
+
+/* Content */
+.modal-content {
+  padding:    var(--space-xl);
+  overflow-y: auto;
+  flex:       1 1 auto;
+}
+
+/* Footer / actions */
+.modal-actions {
+  display:         flex;
+  align-items:     center;
+  justify-content: flex-end;
+  gap:             var(--space-sm);
+  padding:         var(--space-lg) var(--space-xl);
+  border-top:      1px solid var(--ink-muted);
+  flex-shrink:     0;
+}
+
+/* Entry animation */
+@keyframes modal-in {
+  from {
+    opacity:   0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity:   1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal {
+  animation: modal-in 180ms ease forwards;
+}

@@ -1,4 +1,5 @@
 import { InputHTMLAttributes, TextareaHTMLAttributes, forwardRef } from 'react';
+import './Input.css';
 
 interface BaseInputProps {
     label?: string;

@@ -1,4 +1,5 @@
 import { Loader as LucideLoader } from 'lucide-react';
+import './Loader.css';
 
 interface LoaderProps {
     size?: number;
