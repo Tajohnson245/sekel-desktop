@@ -5,13 +5,22 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import './Navbar.css';
 
-const NAV_SECTIONS = ['how-it-works', 'features', 'blueprints', 'compare'];
+const NAV_LINKS = [
+  { id: 'how-it-works', label: 'How It Works' },
+  { id: 'features', label: 'Features' },
+  { id: 'blueprints', label: 'Exams' },
+  { id: 'compare', label: 'Compare' },
+];
+
+const NAV_SECTIONS = NAV_LINKS.map(l => l.id);
 
 export default function Navbar() {
   const pathname = usePathname();
   const [activeSection, setActiveSection] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
+    setMenuOpen(false);
     if (pathname === '/') {
       e.preventDefault();
       const el = document.getElementById(targetId);
@@ -37,6 +46,17 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  // Close mobile menu on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.navbar')) setMenuOpen(false);
+    };
+    document.addEventListener('click', handler);
+    return () => document.removeEventListener('click', handler);
+  }, [menuOpen]);
+
   return (
     <nav className="navbar">
       <div className="navbar-inner container">
@@ -45,12 +65,7 @@ export default function Navbar() {
         </Link>
 
         <div className="navbar-links">
-          {[
-            { id: 'how-it-works', label: 'How It Works' },
-            { id: 'features', label: 'Features' },
-            { id: 'blueprints', label: 'Exams' },
-            { id: 'compare', label: 'Compare' },
-          ].map(({ id, label }) => (
+          {NAV_LINKS.map(({ id, label }) => (
             <Link
               key={id}
               href={`/#${id}`}
@@ -62,7 +77,40 @@ export default function Navbar() {
           ))}
         </div>
 
-        <Link href="/#waitlist" className="nav-cta" onClick={(e) => handleNavClick(e, 'waitlist')}>
+        <div className="navbar-right">
+          <button
+            className={`nav-hamburger${menuOpen ? ' is-open' : ''}`}
+            onClick={() => setMenuOpen(o => !o)}
+            aria-label="Toggle navigation menu"
+            aria-expanded={menuOpen}
+          >
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+          </button>
+
+          <Link href="/#waitlist" className="nav-cta" onClick={(e) => handleNavClick(e, 'waitlist')}>
+            Join Waitlist
+          </Link>
+        </div>
+      </div>
+
+      <div className={`nav-mobile-menu${menuOpen ? ' nav-mobile-menu--open' : ''}`} aria-hidden={!menuOpen}>
+        {NAV_LINKS.map(({ id, label }) => (
+          <Link
+            key={id}
+            href={`/#${id}`}
+            className={`nav-mobile-link${activeSection === id ? ' active' : ''}`}
+            onClick={(e) => handleNavClick(e, id)}
+          >
+            {label}
+          </Link>
+        ))}
+        <Link
+          href="/#waitlist"
+          className="nav-mobile-cta"
+          onClick={(e) => handleNavClick(e, 'waitlist')}
+        >
           Join Waitlist
         </Link>
       </div>

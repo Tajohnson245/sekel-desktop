@@ -12,6 +12,7 @@
 
 @media (max-width: 768px) {
   .yield-inner { grid-template-columns: 1fr; gap: 48px; }
+  .yield-section { padding: 72px 20px; }
 }
 
 /* Left text */

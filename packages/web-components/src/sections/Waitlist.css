@@ -6,6 +6,12 @@
   overflow: hidden;
 }
 
+@media (max-width: 768px) {
+  .waitlist-section { padding: 80px 20px; }
+  .waitlist-subheadline { font-size: 15px; }
+  .waitlist-input { min-width: 0; }
+}
+
 .waitlist-orb {
   position: absolute;
   width: 600px; height: 600px;

@@ -44,10 +44,6 @@ export default function Hero() {
               <span className="stat-number">FSRS</span>
               <span className="stat-label">ALGORITHM</span>
             </div>
-            <div className="stat">
-              <span className="stat-number">Local</span>
-              <span className="stat-label">FIRST ARCHITECTURE</span>
-            </div>
           </div>
         </div>
 

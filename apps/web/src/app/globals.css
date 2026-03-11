@@ -107,6 +107,13 @@ button {
   padding-right: 48px;
 }
 
+@media (max-width: 767px) {
+  .container {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+}
+
 /* Section label pattern */
 .section-label {
   font-family: var(--font-mono);
