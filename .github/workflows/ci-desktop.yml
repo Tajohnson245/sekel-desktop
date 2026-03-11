@@ -1,0 +1,86 @@
+name: CI — Desktop
+
+on:
+  push:
+    branches: [main, dev]
+    paths:
+      - 'apps/desktop/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'turbo.json'
+      - '.github/workflows/ci-desktop.yml'
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - 'apps/desktop/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'turbo.json'
+      - '.github/workflows/ci-desktop.yml'
+
+jobs:
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npx turbo run lint --filter=@sekel/desktop
+
+      - name: Type check
+        run: npx turbo run typecheck --filter=@sekel/desktop
+
+  build:
+    name: Build — ${{ matrix.name }}
+    needs: lint
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: Windows
+          - os: macos-latest
+            name: macOS
+          - os: ubuntu-latest
+            name: Linux
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      # npm workspace bug: the root lock file (generated on Windows) doesn't include
+      # platform-specific optional packages like @rollup/rollup-darwin-arm64.
+      # Re-installing rollup scoped to the workspace forces npm to resolve and install
+      # the native binary for the current runner's architecture.
+      - name: Install Rollup native binary
+        run: npm install --no-save rollup
+        working-directory: apps/desktop
+
+      # `build` runs electron-forge package (not make). `make` creates platform
+      # installers requiring system tools (fakeroot, dpkg, rpm) — only needed for releases.
+      - name: Build
+        env:
+          VITE_SUPABASE_PROJECT_URL: ${{ secrets.VITE_SUPABASE_PROJECT_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: npx turbo run build --filter=@sekel/desktop

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run make)",
+      "Bash(npm --version)"
+    ]
+  }
+}
