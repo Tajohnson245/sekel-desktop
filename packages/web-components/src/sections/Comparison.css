@@ -125,4 +125,7 @@
   .cmp-table tbody tr td:nth-child(3) {
     display: none;
   }
+  .cmp-section { padding: 72px 20px; }
+  .cmp-headline { margin-bottom: 32px; }
+  .cmp-th, .cmp-td { padding: 14px 16px; }
 }

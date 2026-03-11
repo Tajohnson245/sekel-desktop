@@ -50,6 +50,8 @@
     grid-column: span 1;
     grid-template-columns: 1fr;
   }
+  .features-section { padding: 72px 20px; }
+  .features-headline { margin-bottom: 40px; }
 }
 
 .featured-left { display: flex; flex-direction: column; gap: 12px; }

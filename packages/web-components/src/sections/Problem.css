@@ -26,6 +26,8 @@
 
 @media (max-width: 768px) {
   .problem-grid { grid-template-columns: 1fr; gap: 40px; }
+  .problem-section { padding: 72px 20px; }
+  .problem-headline { margin-bottom: 40px; }
 }
 
 .problem-body {

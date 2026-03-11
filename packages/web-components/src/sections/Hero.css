@@ -468,7 +468,20 @@
 
 @media (max-width: 768px) {
   .hero { padding: 100px 0 60px; }
-  .hero-title { font-size: 36px; }
+  /* Use vw-based clamp so text scales with the viewport instead of overflowing */
+  .hero-title { font-size: clamp(24px, 6.5vw, 36px); letter-spacing: -0.5px; }
   .hero-stats { gap: 24px; flex-wrap: wrap; }
   .hero-actions { margin-bottom: 40px; }
+  /* Hide the app mockup on mobile — too wide and complex to scale gracefully */
+  .hero-right { display: none; }
+}
+
+@media (max-width: 480px) {
+  .hero { padding: 88px 0 48px; }
+  .hero-subtitle { font-size: 15px; margin-bottom: 32px; }
+  .hero-actions { gap: 12px; margin-bottom: 32px; flex-direction: column; }
+  .hero-btn-primary, .hero-btn-secondary { width: 100%; text-align: center; justify-content: center; }
+  .hero-stats { gap: 20px; }
+  .stat-number { font-size: 28px; }
+  .hero-badge { margin-bottom: 24px; }
 }

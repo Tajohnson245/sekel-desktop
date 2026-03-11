@@ -4,6 +4,10 @@
   padding: 60px 32px 40px;
 }
 
+@media (max-width: 639px) {
+  .footer { padding: 48px 20px 32px; }
+}
+
 .footer-grid {
   display: grid;
   grid-template-columns: 1fr;

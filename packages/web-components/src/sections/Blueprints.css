@@ -29,6 +29,8 @@
 
 @media (max-width: 768px) {
   .blueprints-grid { grid-template-columns: 1fr; }
+  .blueprints-section { padding: 72px 20px; }
+  .blueprints-subheadline { margin-bottom: 32px; }
 }
 
 .blueprint-card {
