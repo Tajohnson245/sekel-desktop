@@ -1,0 +1,13 @@
+@import '../components.css';
+
+/* ==========================================================================
+   Icons
+   Custom SVG icon defaults (e.g. YouTubeIcon)
+   ========================================================================== */
+
+svg.icon {
+  display:    inline-block;
+  flex-shrink: 0;
+  color:      currentColor;
+  fill:       none;
+}

@@ -1,4 +1,5 @@
 import { useEffect, ReactNode } from 'react';
+import './Modal.css';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';

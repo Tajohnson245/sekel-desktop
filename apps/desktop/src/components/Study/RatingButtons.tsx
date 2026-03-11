@@ -12,16 +12,16 @@ interface RatingButtonsProps {
 export default function RatingButtons({ options, onRate, isLoading }: RatingButtonsProps) {
     const { t } = useTranslation();
 
-    const ratings: { rating: Rating; label: string; color: string }[] = [
-        { rating: 'again', label: t('study.rating.again'), color: '#ef4444' },
-        { rating: 'hard', label: t('study.rating.hard'), color: '#f97316' },
-        { rating: 'good', label: t('study.rating.good'), color: '#22c55e' },
-        { rating: 'easy', label: t('study.rating.easy'), color: '#3b82f6' },
+    const ratings: { rating: Rating; label: string }[] = [
+        { rating: 'again', label: t('study.rating.again') },
+        { rating: 'hard',  label: t('study.rating.hard')  },
+        { rating: 'good',  label: t('study.rating.good')  },
+        { rating: 'easy',  label: t('study.rating.easy')  },
     ];
 
     return (
         <div className="rating-buttons" data-testid="rating-buttons">
-            {ratings.map(({ rating, label, color }) => {
+            {ratings.map(({ rating, label }) => {
                 const update = options[rating];
                 const interval = formatInterval(update.scheduled_days ?? 0);
 
@@ -29,11 +29,11 @@ export default function RatingButtons({ options, onRate, isLoading }: RatingButt
                     <Button
                         key={rating}
                         className="rating-btn"
-                        style={{ '--rating-color': color } as React.CSSProperties}
+                        data-rating={rating}
                         onClick={() => onRate(rating)}
                         disabled={isLoading}
                         data-testid={`rate-${rating}`}
-                        variant="secondary" // Use secondary to match checking base styles, or adjust if needed
+                        variant="ghost"
                     >
                         <span className="rating-label">{label}</span>
                         <span className="rating-interval">{interval}</span>

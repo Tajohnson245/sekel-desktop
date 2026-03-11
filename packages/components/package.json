@@ -3,6 +3,11 @@
     "version": "0.0.1",
     "main": "./src/index.ts",
     "types": "./src/index.ts",
+    "style": "./src/components.css",
+    "exports": {
+        ".": "./src/index.ts",
+        "./style": "./src/components.css"
+    },
     "peerDependencies": {
         "react": "*",
         "react-dom": "*",
