@@ -1,0 +1,63 @@
+@import '../components.css';
+@import './Input.css';
+
+/* ==========================================================================
+   Select
+   Shares .form-group, .form-label, .form-error-text with Input.css
+   ========================================================================== */
+
+.form-select {
+  font-family:      var(--font-body);
+  font-size:        14px;
+  color:            var(--fog);
+  background-color: var(--ink-soft);
+  border:           1px solid var(--ink-muted);
+  border-radius:    var(--r-sm);
+  padding:          var(--space-sm) var(--space-2xl) var(--space-sm) var(--space-md);
+  min-height:       38px;
+  width:            100%;
+  outline:          none;
+  cursor:           pointer;
+  transition:       border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+
+  /* Custom arrow */
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238B93A8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat:   no-repeat;
+  background-position: right var(--space-md) center;
+}
+
+.form-select:hover:not(:disabled):not(.input-error) {
+  border-color: var(--slate);
+}
+
+.form-select:focus:not(.input-error) {
+  border-color: var(--teal);
+  box-shadow:   0 0 0 3px var(--teal-soft);
+}
+
+.form-select:focus-visible:not(.input-error) {
+  outline:        2px solid var(--teal);
+  outline-offset: 2px;
+}
+
+.form-select:disabled {
+  opacity: 0.5;
+  cursor:  not-allowed;
+}
+
+.form-select.input-error {
+  border-color:     var(--rose);
+  background-color: var(--rose-soft);
+}
+
+.form-select.input-error:focus {
+  box-shadow: 0 0 0 3px rgba(224, 92, 106, 0.12);
+}
+
+/* Dropdown option styling (limited browser support) */
+.form-select option {
+  background-color: var(--ink-soft);
+  color:            var(--fog);
+}

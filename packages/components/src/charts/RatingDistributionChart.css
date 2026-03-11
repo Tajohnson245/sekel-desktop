@@ -1,0 +1,12 @@
+@import '../components.css';
+@import './RetentionTrendChart.css';
+
+/* ==========================================================================
+   RatingDistributionChart
+   Classes: .analytics-chart, .rating-distribution, .chart-desc
+   (.analytics-chart and .chart-desc defined in RetentionTrendChart.css)
+   ========================================================================== */
+
+.rating-distribution {
+  /* inherits .analytics-chart */
+}

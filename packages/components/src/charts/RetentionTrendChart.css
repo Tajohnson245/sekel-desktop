@@ -1,0 +1,45 @@
+@import '../components.css';
+
+/* ==========================================================================
+   RetentionTrendChart
+   Classes: .analytics-chart, .retention-trend, .chart-desc
+   (also defines shared .analytics-chart used by all charts)
+   ========================================================================== */
+
+.analytics-chart {
+  background-color: var(--ink-soft);
+  border:           1px solid var(--ink-muted);
+  border-radius:    var(--r-md);
+  padding:          var(--space-xl);
+  box-shadow:       var(--shadow-sm);
+}
+
+.analytics-chart h4 {
+  font-family:   var(--font-body);
+  font-size:     16px;
+  font-weight:   600;
+  color:         var(--fog);
+  margin:        0 0 var(--space-sm) 0;
+  line-height:   1.3;
+}
+
+.analytics-chart h5 {
+  font-family: var(--font-body);
+  font-size:   13px;
+  font-weight: 600;
+  color:       var(--mist);
+  margin:      0 0 var(--space-sm) 0;
+}
+
+.chart-desc {
+  font-family:   var(--font-mono);
+  font-size:     12px;
+  color:         var(--slate);
+  margin:        0 0 var(--space-lg) 0;
+  line-height:   1.5;
+}
+
+/* Component-specific container */
+.retention-trend {
+  /* inherits .analytics-chart */
+}

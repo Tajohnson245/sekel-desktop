@@ -1,4 +1,5 @@
 import React from 'react';
+import './Icons.css';
 
 export const YouTubeIcon = ({ size = 24, color = "currentColor", ...props }: React.SVGProps<SVGSVGElement> & { size?: number | string }) => (
     <svg
