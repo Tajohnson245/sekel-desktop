@@ -18,6 +18,7 @@ import {
     type CardWithNote,
 } from '../lib/queries';
 import type { Deck, DeckInsert, DeckUpdate, Card } from '../lib/types';
+import { useAuthStore } from '../stores/authStore';
 
 // ─────────────────────────────────────────────────────────────────
 // Query Keys
@@ -36,9 +37,11 @@ export const deckKeys = {
 // ─────────────────────────────────────────────────────────────────
 
 export function useDecks() {
+    const userId = useAuthStore((s) => s.user?.id);
     return useQuery<Deck[]>({
         queryKey: deckKeys.all,
-        queryFn: fetchDecks,
+        queryFn: () => fetchDecks(userId!),
+        enabled: !!userId,
     });
 }
 
@@ -135,7 +138,6 @@ export function useUpdateCard() {
         mutationFn: ({ cardId, updates }: { cardId: string; updates: Partial<Card> }) =>
             updateCardAfterReview(cardId, updates),
         onSuccess: () => {
-            // Invalidate all due cards queries
             queryClient.invalidateQueries({ queryKey: ['decks'] });
         },
     });

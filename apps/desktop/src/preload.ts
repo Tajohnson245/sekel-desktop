@@ -7,4 +7,54 @@ contextBridge.exposeInMainWorld('electronAPI', {
     parseDocument: (file: { name: string, buffer?: ArrayBuffer, url?: string, type: string, language?: string }) => ipcRenderer.invoke('parse-document', file),
     generateSummary: (documents: Record<string, string>, language?: string) => ipcRenderer.invoke('generate-summary', documents, language),
     getSupabaseConfig: () => ipcRenderer.invoke('get-supabase-config'),
+
+    db: {
+        // Decks
+        fetchDecks:            (userId: string) => ipcRenderer.invoke('db:fetchDecks', userId),
+        fetchDeck:             (id: string) => ipcRenderer.invoke('db:fetchDeck', id),
+        createDeck:            (deck: unknown) => ipcRenderer.invoke('db:createDeck', deck),
+        updateDeck:            (id: string, updates: unknown) => ipcRenderer.invoke('db:updateDeck', id, updates),
+        deleteDeck:            (id: string) => ipcRenderer.invoke('db:deleteDeck', id),
+        deleteDecks:           (ids: string[]) => ipcRenderer.invoke('db:deleteDecks', ids),
+        fetchDeckStats:        (deckId: string) => ipcRenderer.invoke('db:fetchDeckStats', deckId),
+        fetchAllDueCardsCount: (userId: string) => ipcRenderer.invoke('db:fetchAllDueCardsCount', userId),
+        fetchGlobalRetention:  (userId: string, days?: number) => ipcRenderer.invoke('db:fetchGlobalRetention', userId, days),
+        // Cards
+        fetchDueCards:         (deckId: string, limit?: number) => ipcRenderer.invoke('db:fetchDueCards', deckId, limit),
+        fetchAllCardsForStudy: (deckId: string, limit?: number) => ipcRenderer.invoke('db:fetchAllCardsForStudy', deckId, limit),
+        updateCardAfterReview: (cardId: string, updates: unknown) => ipcRenderer.invoke('db:updateCardAfterReview', cardId, updates),
+        createCard:            (card: unknown) => ipcRenderer.invoke('db:createCard', card),
+        fetchCardsByNote:      (noteId: string) => ipcRenderer.invoke('db:fetchCardsByNote', noteId),
+        // Notes
+        fetchNotesByDeck:      (deckId: string) => ipcRenderer.invoke('db:fetchNotesByDeck', deckId),
+        createNote:            (note: unknown) => ipcRenderer.invoke('db:createNote', note),
+        updateNote:            (id: string, updates: unknown) => ipcRenderer.invoke('db:updateNote', id, updates),
+        deleteNote:            (id: string) => ipcRenderer.invoke('db:deleteNote', id),
+        createNoteWithCards:   (note: unknown, templateCount?: number) => ipcRenderer.invoke('db:createNoteWithCards', note, templateCount),
+        // Note Types
+        fetchNoteTypes:        (userId: string) => ipcRenderer.invoke('db:fetchNoteTypes', userId),
+        createNoteType:        (noteType: unknown) => ipcRenderer.invoke('db:createNoteType', noteType),
+        // Reviews
+        insertReview:          (params: unknown) => ipcRenderer.invoke('db:insertReview', params),
+        fetchUserReviewHistory: (userId: string, days?: number) => ipcRenderer.invoke('db:fetchUserReviewHistory', userId, days),
+        // Sessions
+        createDeckSession:     (userId: string, deckId: string) => ipcRenderer.invoke('db:createDeckSession', userId, deckId),
+        completeDeckSession:   (sessionId: string) => ipcRenderer.invoke('db:completeDeckSession', sessionId),
+        fetchSessionAnalytics: (sessionId: string) => ipcRenderer.invoke('db:fetchSessionAnalytics', sessionId),
+        // Drafts
+        fetchDrafts:           (userId: string) => ipcRenderer.invoke('db:fetchDrafts', userId),
+        saveDraft:             (userId: string, draft: unknown) => ipcRenderer.invoke('db:saveDraft', userId, draft),
+        updateDraft:           (id: string, updates: unknown) => ipcRenderer.invoke('db:updateDraft', id, updates),
+        deleteDraft:           (id: string) => ipcRenderer.invoke('db:deleteDraft', id),
+        clearDrafts:           (userId: string) => ipcRenderer.invoke('db:clearDrafts', userId),
+        // Profile
+        fetchProfile:          (userId: string) => ipcRenderer.invoke('db:fetchProfile', userId),
+        upsertProfile:         (userId: string, updates: unknown) => ipcRenderer.invoke('db:upsertProfile', userId, updates),
+        // Sync
+        isFirstRun:            (userId: string) => ipcRenderer.invoke('db:isFirstRun', userId),
+        pullFromSupabase:      (url: string, anonKey: string, userId: string, accessToken: string) => ipcRenderer.invoke('db:pullFromSupabase', url, anonKey, userId, accessToken),
+        setSessionToken:       (url: string, anonKey: string, accessToken: string) => ipcRenderer.invoke('db:setSessionToken', url, anonKey, accessToken),
+        getSyncMetadata:       (key: string) => ipcRenderer.invoke('db:getSyncMetadata', key),
+        setSyncMetadata:       (key: string, value: string) => ipcRenderer.invoke('db:setSyncMetadata', key, value),
+    },
 });

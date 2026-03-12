@@ -18,14 +18,16 @@ function computeStreak(history: ReviewDayCount[]): number {
     let streak = 0;
     const cursor = new Date();
 
+    const localDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
     // Allow the streak to start from today or yesterday
-    const todayStr = cursor.toISOString().slice(0, 10);
+    const todayStr = localDate(cursor);
     if (!dateSet.has(todayStr)) {
         cursor.setDate(cursor.getDate() - 1);
     }
 
     while (true) {
-        const key = cursor.toISOString().slice(0, 10);
+        const key = localDate(cursor);
         if (!dateSet.has(key)) break;
         streak++;
         cursor.setDate(cursor.getDate() - 1);

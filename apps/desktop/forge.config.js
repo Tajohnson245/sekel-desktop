@@ -7,7 +7,7 @@ module.exports = {
     name: 'Sekel',
     executableName: 'sekel',
   },
-  rebuildConfig: {},
+  rebuildConfig: { force: true },
   makers: [
     {
       name: '@electron-forge/maker-squirrel',

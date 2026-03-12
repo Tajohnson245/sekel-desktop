@@ -13,6 +13,7 @@ import {
 import { useCreateNote, useNoteTypes, useCreateNoteType } from './useNotes';
 import { DEFAULT_NOTE_TYPES } from '../lib/types';
 import type { DraftCardInsert } from '../lib/types';
+import { useAuthStore } from '../stores/authStore';
 
 export const DRAFT_LIMIT = 5;
 
@@ -21,16 +22,19 @@ const draftKeys = {
 };
 
 export function useDrafts() {
+    const userId = useAuthStore((s) => s.user?.id);
     return useQuery({
         queryKey: draftKeys.all,
-        queryFn: fetchDrafts,
+        queryFn: () => fetchDrafts(userId!),
+        enabled: !!userId,
     });
 }
 
 export function useSaveDraft() {
     const queryClient = useQueryClient();
+    const userId = useAuthStore((s) => s.user?.id);
     return useMutation({
-        mutationFn: (draft: DraftCardInsert) => saveDraft(draft),
+        mutationFn: (draft: DraftCardInsert) => saveDraft(userId!, draft),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: draftKeys.all }),
     });
 }
@@ -54,8 +58,9 @@ export function useDeleteDraft() {
 
 export function useClearDrafts() {
     const queryClient = useQueryClient();
+    const userId = useAuthStore((s) => s.user?.id);
     return useMutation({
-        mutationFn: clearDrafts,
+        mutationFn: () => clearDrafts(userId!),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: draftKeys.all }),
     });
 }
