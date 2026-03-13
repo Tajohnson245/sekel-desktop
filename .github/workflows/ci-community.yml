@@ -1,0 +1,46 @@
+name: CI — Community
+
+on:
+  push:
+    branches: [main, dev]
+    paths:
+      - 'apps/community/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'turbo.json'
+      - '.github/workflows/ci-community.yml'
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - 'apps/community/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'turbo.json'
+      - '.github/workflows/ci-community.yml'
+
+jobs:
+  community:
+    name: Community — Lint, Type Check & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npx turbo run lint --filter=@sekel/community
+
+      - name: Type check
+        run: npx turbo run typecheck --filter=@sekel/community
+
+      - name: Build
+        run: npx turbo run build --filter=@sekel/community
