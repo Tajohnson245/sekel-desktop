@@ -1,0 +1,109 @@
+.file-drop {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.file-drop__zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 2rem 1.5rem;
+  border: 2px dashed var(--cloud);
+  border-radius: var(--r-md);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.file-drop__zone:hover,
+.file-drop--drag-over .file-drop__zone {
+  border-color: var(--teal);
+  background: var(--teal-soft);
+}
+
+.file-drop__zone:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+
+.file-drop--error .file-drop__zone {
+  border-color: var(--rose);
+}
+
+.file-drop__upload-icon {
+  color: var(--mist);
+  transition: color 0.15s;
+}
+
+.file-drop--drag-over .file-drop__upload-icon {
+  color: var(--teal);
+}
+
+.file-drop__primary {
+  font-size: 0.9375rem;
+  color: var(--slate);
+}
+
+.file-drop__primary code {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  background: var(--cloud);
+  padding: 1px 6px;
+  border-radius: var(--r-sm);
+}
+
+.file-drop__secondary {
+  font-size: 0.8125rem;
+  color: var(--mist);
+}
+
+.file-drop__input {
+  display: none;
+}
+
+/* Selected state */
+.file-drop__selected {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.75rem 1rem;
+  border: 1.5px solid var(--teal-border);
+  border-radius: var(--r-md);
+  background: var(--teal-soft-solid);
+}
+
+.file-drop__file-icon {
+  color: var(--teal);
+  flex-shrink: 0;
+}
+
+.file-drop__filename {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--slate);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-drop__remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mist);
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+
+.file-drop__remove:hover {
+  color: var(--rose);
+}
+
+.file-drop__error {
+  font-size: 0.8125rem;
+  color: var(--rose);
+}

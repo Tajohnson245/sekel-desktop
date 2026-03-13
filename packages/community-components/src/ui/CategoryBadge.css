@@ -1,0 +1,54 @@
+.category-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--teal-soft);
+  color: var(--teal);
+  white-space: nowrap;
+}
+
+/* Category-specific accent colors */
+.category-badge[data-category="Medicine"] {
+  background: var(--rose-soft);
+  color: var(--rose);
+}
+
+.category-badge[data-category="Mathematics"] {
+  background: var(--violet-soft);
+  color: var(--violet);
+}
+
+.category-badge[data-category="History"] {
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+
+.category-badge[data-category="Law"] {
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+
+.category-badge[data-category="Business"] {
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+
+.category-badge[data-category="Music"] {
+  background: var(--rose-soft);
+  color: var(--rose);
+}
+
+.category-badge[data-category="Art"] {
+  background: var(--violet-soft);
+  color: var(--violet);
+}
+
+.category-badge[data-category="Computer Science"] {
+  background: var(--violet-soft);
+  color: var(--violet);
+}
