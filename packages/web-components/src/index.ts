@@ -3,6 +3,10 @@ export { default as Footer } from './layout/Footer';
 export { default as Navbar } from './layout/Navbar';
 export { default as ScrollCleaner } from './layout/ScrollCleaner';
 
+// UI primitives — reusable across web apps
+export { default as ScrollReveal } from './ui/ScrollReveal';
+export { default as Toast } from './ui/Toast';
+
 // Sections — marketing page content
 export { default as Blueprints } from './sections/Blueprints';
 export { default as Comparison } from './sections/Comparison';
