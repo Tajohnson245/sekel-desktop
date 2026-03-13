@@ -23,6 +23,10 @@
     "web": {
       "cache": false,
       "persistent": true
+    },
+    "community": {
+      "cache": false,
+      "persistent": true
     }
   }
 }
