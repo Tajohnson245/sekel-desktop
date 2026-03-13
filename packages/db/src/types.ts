@@ -195,3 +195,24 @@ export interface DraftCard {
 }
 
 export type DraftCardInsert = Pick<DraftCard, 'front' | 'back'> & { source?: string | null };
+
+// ─────────────────────────────────────────────────────────────────
+// User Profile
+// ─────────────────────────────────────────────────────────────────
+export interface UserProfile {
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+    role: string | null;
+    medical_school: string | null;
+    degree_track: string | null;
+    exam: string | null;
+    target_date: string | null;
+    language: string;
+    avatar_url: string | null;
+    location: string | null;
+    theme_preference: 'light' | 'dark' | 'system';
+    flip_animation: boolean;
+    created_at: string;
+    updated_at: string;
+}

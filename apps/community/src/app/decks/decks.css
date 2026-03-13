@@ -1,0 +1,21 @@
+.decks-page {
+  min-height: 80vh;
+  padding: 2.5rem 0 4rem;
+}
+
+.decks-page__header {
+  margin-bottom: 1.5rem;
+}
+
+.decks-page__title {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-style: italic;
+  color: var(--ink);
+}
+
+.decks-page__sub {
+  font-size: 0.9375rem;
+  color: var(--mist);
+  margin-top: 0.25rem;
+}

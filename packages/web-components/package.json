@@ -4,6 +4,8 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "peerDependencies": {
+    "framer-motion": "*",
+    "lucide-react": "*",
     "next": "*",
     "react": "*",
     "react-dom": "*"

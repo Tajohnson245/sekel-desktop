@@ -42,7 +42,7 @@ function buildGrid(data: ReviewDayCount[]): { cells: DayCell[]; months: { label:
 
     while (cursor <= today) {
         const weekday = cursor.getDay();
-        const isoDate = cursor.toISOString().slice(0, 10);
+        const isoDate = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`;
         const count = lookup.get(isoDate) ?? 0;
 
         cells.push({ date: isoDate, count, weekday, weekIndex });

@@ -39,8 +39,18 @@ export const useAuthStore = create<AuthState>((set) => ({
             const { data: { session } } = await getSession(supabase);
             set({ session, user: session?.user ?? null });
 
-            onAuthStateChange(supabase, (_event, session) => {
+            const supabaseUrl = import.meta.env.VITE_SUPABASE_PROJECT_URL as string;
+            const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+
+            if (session) {
+                await window.electronAPI.db.setSessionToken(supabaseUrl, supabaseAnonKey, session.access_token);
+            }
+
+            onAuthStateChange(supabase, async (_event, session) => {
                 set({ session, user: session?.user ?? null, isLoading: false });
+                if (session) {
+                    await window.electronAPI.db.setSessionToken(supabaseUrl, supabaseAnonKey, session.access_token);
+                }
             });
         } catch (err: unknown) {
             set({ error: err instanceof Error ? err.message : String(err) });

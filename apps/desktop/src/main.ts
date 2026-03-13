@@ -2,9 +2,11 @@ import { app, BrowserWindow } from 'electron';
 import Store from 'electron-store';
 import path from 'node:path';
 import { createMenu } from './menu';
+import { initDatabase } from './main/db/index';
 import { setupAIHandlers } from './ipc/ai';
 import { setupAuthHandlers } from './ipc/auth';
 import { setupDocumentHandlers } from './ipc/document_parsing';
+import { setupDatabaseHandlers } from './ipc/database';
 
 // update-electron-app is a CommonJS module
 const updateElectronApp = require('update-electron-app');
@@ -48,9 +50,11 @@ const createWindow = () => {
 };
 
 app.whenReady().then(() => {
+    initDatabase();
     setupAIHandlers();
     setupAuthHandlers();
     setupDocumentHandlers();
+    setupDatabaseHandlers();
 
     // Check for updates only in production (packaged app)
     if (app.isPackaged) {
