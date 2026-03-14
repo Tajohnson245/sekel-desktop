@@ -50,11 +50,15 @@ const createWindow = () => {
 };
 
 app.whenReady().then(() => {
-    initDatabase();
-    setupAIHandlers();
-    setupAuthHandlers();
-    setupDocumentHandlers();
-    setupDatabaseHandlers();
+    try {
+        initDatabase();
+        setupAIHandlers();
+        setupAuthHandlers();
+        setupDocumentHandlers();
+        setupDatabaseHandlers();
+    } catch (err) {
+        console.error('[main] startup initialization error:', err);
+    }
 
     // Check for updates only in production (packaged app)
     if (app.isPackaged) {

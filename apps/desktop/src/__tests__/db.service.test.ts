@@ -1,0 +1,462 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import Database from 'better-sqlite3';
+import { MIGRATIONS } from '../main/db/migrations';
+
+// ── In-memory test database ────────────────────────────────────────────────────
+// service.ts calls getDb() on every operation — we mock the module so it returns
+// our per-test in-memory instance rather than the Electron app database.
+
+let testDb: Database.Database;
+
+vi.mock('../main/db/index', () => ({
+    getDb: () => testDb,
+    initDatabase: vi.fn(),
+}));
+
+// Suppress Supabase sync calls that are irrelevant to unit tests.
+vi.mock('../main/db/syncPush', () => ({
+    pushRecord: vi.fn(),
+    deleteRecord: vi.fn(),
+}));
+
+import {
+    fetchDecks,
+    fetchDeck,
+    createDeck,
+    updateDeck,
+    deleteDeck,
+    fetchDeckStats,
+    fetchGlobalRetention,
+    createNote,
+    fetchNotesByDeck,
+    createNoteType,
+    createCard,
+    insertReview,
+    createDeckSession,
+    completeDeckSession,
+    fetchSessionAnalytics,
+    fetchUserReviewHistory,
+    fetchDrafts,
+    saveDraft,
+    deleteDraft,
+    upsertProfile,
+    fetchProfile,
+    getSyncMetadata,
+    setSyncMetadata,
+} from '../main/db/service';
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function setupDb(): Database.Database {
+    const db = new Database(':memory:');
+    db.pragma('foreign_keys = ON');
+    db.exec('CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY)');
+    for (let i = 0; i < MIGRATIONS.length; i++) {
+        db.exec(MIGRATIONS[i]);
+        db.prepare('INSERT INTO schema_version (version) VALUES (?)').run(i + 1);
+    }
+    return db;
+}
+
+const USER = 'user-test-1';
+
+function seedNoteType(userId = USER) {
+    return createNoteType({
+        user_id: userId,
+        name: 'Basic',
+        fields: [{ name: 'Front' }, { name: 'Back' }],
+        card_templates: [{ name: 'Card 1', front_template: '{{Front}}', back_template: '{{Back}}' }],
+    });
+}
+
+function seedDeck(name = 'Test Deck', userId = USER) {
+    return createDeck({ user_id: userId, name, description: null, fsrs_enabled: true });
+}
+
+function seedNote(deckId: string, noteTypeId: string, userId = USER) {
+    return createNote({
+        user_id: userId,
+        deck_id: deckId,
+        note_type_id: noteTypeId,
+        fields: { Front: 'What is 2+2?', Back: '4' },
+        tags: [],
+    });
+}
+
+beforeEach(() => { testDb = setupDb(); });
+afterEach(() => { testDb.close(); });
+
+// ── Decks ─────────────────────────────────────────────────────────────────────
+
+describe('decks', () => {
+    it('createDeck persists and returns a deck', () => {
+        const deck = createDeck({ user_id: USER, name: 'Anatomy', description: 'Bones', fsrs_enabled: true });
+        expect(deck.id).toBeTruthy();
+        expect(deck.name).toBe('Anatomy');
+        expect(deck.description).toBe('Bones');
+        expect(deck.fsrs_enabled).toBe(true);
+        expect(deck.user_id).toBe(USER);
+    });
+
+    it('fetchDecks returns only decks for the given user', () => {
+        createDeck({ user_id: USER, name: 'Mine', description: null, fsrs_enabled: true });
+        createDeck({ user_id: 'other-user', name: 'Theirs', description: null, fsrs_enabled: true });
+        const decks = fetchDecks(USER);
+        expect(decks).toHaveLength(1);
+        expect(decks[0].name).toBe('Mine');
+    });
+
+    it('fetchDeck returns null for a missing id', () => {
+        expect(fetchDeck('nonexistent')).toBeNull();
+    });
+
+    it('updateDeck changes name', () => {
+        const deck = seedDeck('Old Name');
+        const updated = updateDeck(deck.id, { name: 'New Name' });
+        expect(updated.name).toBe('New Name');
+    });
+
+    it('updateDeck coerces fsrs_enabled boolean from integer storage', () => {
+        const deck = seedDeck();
+        const updated = updateDeck(deck.id, { fsrs_enabled: false });
+        expect(updated.fsrs_enabled).toBe(false);
+    });
+
+    it('deleteDeck removes the deck', () => {
+        const deck = seedDeck();
+        deleteDeck(deck.id);
+        expect(fetchDeck(deck.id)).toBeNull();
+    });
+});
+
+// ── Deck Stats ────────────────────────────────────────────────────────────────
+
+describe('fetchDeckStats', () => {
+    it('returns zero counts for an empty deck', () => {
+        const deck = seedDeck();
+        const stats = fetchDeckStats(deck.id);
+        expect(stats.totalCount).toBe(0);
+        expect(stats.newCount).toBe(0);
+        expect(stats.reviewCount).toBe(0);
+        expect(stats.learningCount).toBe(0);
+    });
+
+    it('counts a new card correctly', () => {
+        const nt = seedNoteType();
+        const deck = seedDeck();
+        const note = seedNote(deck.id, nt.id);
+        createCard({
+            user_id: USER, note_id: note.id, template_index: 0,
+            state: 'new', due: new Date().toISOString(),
+            stability: 0, difficulty: 0, elapsed_days: 0,
+            scheduled_days: 0, reps: 0, lapses: 0, last_review: null,
+        });
+        const stats = fetchDeckStats(deck.id);
+        expect(stats.totalCount).toBe(1);
+        expect(stats.newCount).toBe(1);
+        expect(stats.reviewCount).toBe(0);
+    });
+
+    it('counts a due review card in reviewCount', () => {
+        const nt = seedNoteType();
+        const deck = seedDeck();
+        const note = seedNote(deck.id, nt.id);
+        const yesterday = new Date(Date.now() - 86400000).toISOString();
+        createCard({
+            user_id: USER, note_id: note.id, template_index: 0,
+            state: 'review', due: yesterday,
+            stability: 10, difficulty: 5, elapsed_days: 5,
+            scheduled_days: 10, reps: 3, lapses: 0, last_review: yesterday,
+        });
+        const stats = fetchDeckStats(deck.id);
+        expect(stats.reviewCount).toBe(1);
+        expect(stats.newCount).toBe(0);
+    });
+
+    it('does not count a future review card in reviewCount', () => {
+        const nt = seedNoteType();
+        const deck = seedDeck();
+        const note = seedNote(deck.id, nt.id);
+        const tomorrow = new Date(Date.now() + 86400000).toISOString();
+        createCard({
+            user_id: USER, note_id: note.id, template_index: 0,
+            state: 'review', due: tomorrow,
+            stability: 10, difficulty: 5, elapsed_days: 5,
+            scheduled_days: 10, reps: 3, lapses: 0, last_review: null,
+        });
+        const stats = fetchDeckStats(deck.id);
+        expect(stats.reviewCount).toBe(0);
+    });
+});
+
+// ── Notes ─────────────────────────────────────────────────────────────────────
+
+describe('notes', () => {
+    it('createNote serializes fields and tags as JSON', () => {
+        const nt = seedNoteType();
+        const deck = seedDeck();
+        const note = createNote({
+            user_id: USER, deck_id: deck.id, note_type_id: nt.id,
+            fields: { Front: 'Q', Back: 'A' },
+            tags: ['tag1', 'tag2'],
+        });
+        expect(note.fields).toEqual({ Front: 'Q', Back: 'A' });
+        expect(note.tags).toEqual(['tag1', 'tag2']);
+    });
+
+    it('fetchNotesByDeck returns notes for the correct deck', () => {
+        const nt = seedNoteType();
+        const deck1 = seedDeck('Deck 1');
+        const deck2 = seedDeck('Deck 2');
+        createNote({ user_id: USER, deck_id: deck1.id, note_type_id: nt.id, fields: { Front: 'Q1', Back: 'A1' }, tags: [] });
+        createNote({ user_id: USER, deck_id: deck2.id, note_type_id: nt.id, fields: { Front: 'Q2', Back: 'A2' }, tags: [] });
+        const notes = fetchNotesByDeck(deck1.id);
+        expect(notes).toHaveLength(1);
+        expect(notes[0].fields).toEqual({ Front: 'Q1', Back: 'A1' });
+    });
+});
+
+// ── Note Types ────────────────────────────────────────────────────────────────
+
+describe('createNoteType', () => {
+    it('serializes and deserializes fields and card_templates', () => {
+        const nt = createNoteType({
+            user_id: USER,
+            name: 'Cloze',
+            fields: [{ name: 'Text' }],
+            card_templates: [{ name: 'Cloze', front_template: '{{cloze:Text}}', back_template: '{{cloze:Text}}' }],
+        });
+        expect(nt.fields).toEqual([{ name: 'Text' }]);
+        expect(nt.card_templates[0].name).toBe('Cloze');
+    });
+});
+
+// ── Reviews and Global Retention ─────────────────────────────────────────────
+
+describe('fetchGlobalRetention', () => {
+    it('returns null with no reviews', () => {
+        expect(fetchGlobalRetention(USER)).toBeNull();
+    });
+
+    it('returns 100 when all reviews are non-again', () => {
+        const nt = seedNoteType();
+        const deck = seedDeck();
+        const note = seedNote(deck.id, nt.id);
+        const card = createCard({
+            user_id: USER, note_id: note.id, template_index: 0,
+            state: 'review', due: new Date().toISOString(),
+            stability: 5, difficulty: 5, elapsed_days: 1,
+            scheduled_days: 5, reps: 1, lapses: 0, last_review: null,
+        });
+        const session = createDeckSession(USER, deck.id);
+        const baseReview = {
+            user_id: USER, card_id: card.id,
+            state_before: 'new' as const, stability_before: 0, difficulty_before: 0,
+            state_after: 'review' as const, stability_after: 5, difficulty_after: 5,
+            scheduled_days: 5, session_id: session.id, deck_id: deck.id, review_index: 0,
+        };
+        insertReview({ ...baseReview, rating: 'good' });
+        insertReview({ ...baseReview, rating: 'easy', review_index: 1 });
+        expect(fetchGlobalRetention(USER)).toBe(100);
+    });
+
+    it('returns 50 when half the reviews are again', () => {
+        const nt = seedNoteType();
+        const deck = seedDeck();
+        const note = seedNote(deck.id, nt.id);
+        const card = createCard({
+            user_id: USER, note_id: note.id, template_index: 0,
+            state: 'review', due: new Date().toISOString(),
+            stability: 5, difficulty: 5, elapsed_days: 1,
+            scheduled_days: 5, reps: 1, lapses: 0, last_review: null,
+        });
+        const session = createDeckSession(USER, deck.id);
+        const base = {
+            user_id: USER, card_id: card.id,
+            state_before: 'review' as const, stability_before: 5, difficulty_before: 5,
+            state_after: 'review' as const, stability_after: 5, difficulty_after: 5,
+            scheduled_days: 5, session_id: session.id, deck_id: deck.id,
+        };
+        insertReview({ ...base, rating: 'again', review_index: 0 });
+        insertReview({ ...base, rating: 'good', review_index: 1 });
+        expect(fetchGlobalRetention(USER)).toBe(50);
+    });
+});
+
+// ── Review history ────────────────────────────────────────────────────────────
+
+describe('fetchUserReviewHistory', () => {
+    it('groups reviews by date', () => {
+        const nt = seedNoteType();
+        const deck = seedDeck();
+        const note = seedNote(deck.id, nt.id);
+        const card = createCard({
+            user_id: USER, note_id: note.id, template_index: 0,
+            state: 'review', due: new Date().toISOString(),
+            stability: 5, difficulty: 5, elapsed_days: 1,
+            scheduled_days: 5, reps: 1, lapses: 0, last_review: null,
+        });
+        const session = createDeckSession(USER, deck.id);
+        const base = {
+            user_id: USER, card_id: card.id,
+            state_before: 'review' as const, stability_before: 5, difficulty_before: 5,
+            state_after: 'review' as const, stability_after: 5, difficulty_after: 5,
+            scheduled_days: 5, session_id: session.id, deck_id: deck.id,
+        };
+        insertReview({ ...base, rating: 'good', review_index: 0 });
+        insertReview({ ...base, rating: 'easy', review_index: 1 });
+
+        const history = fetchUserReviewHistory(USER, 365);
+        expect(history.length).toBe(1); // both reviews are on same day
+        expect(history[0].count).toBe(2);
+        expect(history[0].date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    });
+
+    it('returns empty array with no reviews', () => {
+        expect(fetchUserReviewHistory(USER, 365)).toEqual([]);
+    });
+});
+
+// ── Session Analytics ─────────────────────────────────────────────────────────
+
+describe('fetchSessionAnalytics', () => {
+    it('returns null for an in-progress session', () => {
+        const deck = seedDeck();
+        const session = createDeckSession(USER, deck.id);
+        expect(fetchSessionAnalytics(session.id)).toBeNull();
+    });
+
+    it('returns empty analytics for a completed session with no reviews', () => {
+        const deck = seedDeck();
+        const session = createDeckSession(USER, deck.id);
+        completeDeckSession(session.id);
+        const analytics = fetchSessionAnalytics(session.id);
+        expect(analytics).not.toBeNull();
+        expect(analytics!.retentionTrend).toEqual([]);
+        expect(analytics!.lapseStats.totalReviews).toBe(0);
+    });
+
+    it('calculates retention trend correctly', () => {
+        const nt = seedNoteType();
+        const deck = seedDeck();
+        const note = seedNote(deck.id, nt.id);
+        const card = createCard({
+            user_id: USER, note_id: note.id, template_index: 0,
+            state: 'review', due: new Date().toISOString(),
+            stability: 5, difficulty: 5, elapsed_days: 1,
+            scheduled_days: 5, reps: 1, lapses: 0, last_review: null,
+        });
+        const session = createDeckSession(USER, deck.id);
+        const base = {
+            user_id: USER, card_id: card.id,
+            state_before: 'review' as const, stability_before: 5, difficulty_before: 5,
+            state_after: 'review' as const, stability_after: 5, difficulty_after: 5,
+            scheduled_days: 5, session_id: session.id, deck_id: deck.id,
+        };
+        insertReview({ ...base, rating: 'good', review_index: 0 });
+        insertReview({ ...base, rating: 'again', review_index: 1 });
+        completeDeckSession(session.id);
+
+        const analytics = fetchSessionAnalytics(session.id);
+        expect(analytics!.lapseStats.totalReviews).toBe(2);
+        expect(analytics!.lapseStats.lapseCount).toBe(1);
+        expect(analytics!.lapseStats.lapseRate).toBe(50);
+        expect(analytics!.retentionTrend).toHaveLength(2);
+        // After first good review: 1/1 = 1.0
+        expect(analytics!.retentionTrend[0].retentionRate).toBe(1);
+        // After second again: 1/2 = 0.5
+        expect(analytics!.retentionTrend[1].retentionRate).toBe(0.5);
+    });
+
+    it('rating distribution sums to totalReviews', () => {
+        const nt = seedNoteType();
+        const deck = seedDeck();
+        const note = seedNote(deck.id, nt.id);
+        const card = createCard({
+            user_id: USER, note_id: note.id, template_index: 0,
+            state: 'review', due: new Date().toISOString(),
+            stability: 5, difficulty: 5, elapsed_days: 1,
+            scheduled_days: 5, reps: 1, lapses: 0, last_review: null,
+        });
+        const session = createDeckSession(USER, deck.id);
+        const base = {
+            user_id: USER, card_id: card.id,
+            state_before: 'review' as const, stability_before: 5, difficulty_before: 5,
+            state_after: 'review' as const, stability_after: 5, difficulty_after: 5,
+            scheduled_days: 5, session_id: session.id, deck_id: deck.id,
+        };
+        insertReview({ ...base, rating: 'again', review_index: 0 });
+        insertReview({ ...base, rating: 'hard', review_index: 1 });
+        insertReview({ ...base, rating: 'good', review_index: 2 });
+        insertReview({ ...base, rating: 'easy', review_index: 3 });
+        completeDeckSession(session.id);
+
+        const analytics = fetchSessionAnalytics(session.id);
+        const totalFromDist = analytics!.ratingDistribution.reduce((sum, r) => sum + r.count, 0);
+        expect(totalFromDist).toBe(4);
+    });
+});
+
+// ── Drafts ────────────────────────────────────────────────────────────────────
+
+describe('drafts', () => {
+    it('saveDraft and fetchDrafts round-trips', () => {
+        saveDraft(USER, { front: 'What is ATP?', back: 'Energy currency' });
+        const drafts = fetchDrafts(USER);
+        expect(drafts).toHaveLength(1);
+        expect(drafts[0].front).toBe('What is ATP?');
+        expect(drafts[0].back).toBe('Energy currency');
+    });
+
+    it('deleteDraft removes the draft', () => {
+        const draft = saveDraft(USER, { front: 'Q', back: 'A' });
+        deleteDraft(draft.id);
+        expect(fetchDrafts(USER)).toHaveLength(0);
+    });
+});
+
+// ── User Profiles ──────────────────────────────────────────────────────────────
+
+describe('upsertProfile', () => {
+    it('creates a profile on first upsert', () => {
+        const profile = upsertProfile(USER, { first_name: 'Ada' });
+        expect(profile.id).toBe(USER);
+        expect(profile.first_name).toBe('Ada');
+    });
+
+    it('updates an existing profile', () => {
+        upsertProfile(USER, { first_name: 'Ada' });
+        const updated = upsertProfile(USER, { first_name: 'Grace' });
+        expect(updated.first_name).toBe('Grace');
+    });
+
+    it('coerces flip_animation boolean from integer', () => {
+        const profile = upsertProfile(USER, { flip_animation: false });
+        expect(profile.flip_animation).toBe(false);
+        const profile2 = upsertProfile(USER, { flip_animation: true });
+        expect(profile2.flip_animation).toBe(true);
+    });
+
+    it('fetchProfile returns null for unknown user', () => {
+        expect(fetchProfile('nobody')).toBeNull();
+    });
+});
+
+// ── Sync Metadata ──────────────────────────────────────────────────────────────
+
+describe('sync metadata', () => {
+    it('setSyncMetadata and getSyncMetadata round-trips', () => {
+        setSyncMetadata('last_sync_at', '2025-01-01T00:00:00Z');
+        expect(getSyncMetadata('last_sync_at')).toBe('2025-01-01T00:00:00Z');
+    });
+
+    it('returns null for missing key', () => {
+        expect(getSyncMetadata('nonexistent')).toBeNull();
+    });
+
+    it('upserts on repeat call', () => {
+        setSyncMetadata('key', 'v1');
+        setSyncMetadata('key', 'v2');
+        expect(getSyncMetadata('key')).toBe('v2');
+    });
+});
