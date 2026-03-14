@@ -19,7 +19,6 @@ test('main window is visible', async ({ window }) => {
 });
 
 test('window has expected dimensions', async ({ app }) => {
-    const win = await app.firstWindow();
     const size = await app.evaluate(({ BrowserWindow }) => {
         const w = BrowserWindow.getAllWindows()[0];
         return w.getSize();
