@@ -86,6 +86,17 @@
   opacity: 0.88;
 }
 
+.deck-detail__download--locked {
+  background: var(--cloud);
+  color: var(--slate);
+}
+
+.deck-detail__download--locked:hover {
+  opacity: 1;
+  background: var(--mist);
+  color: var(--ink);
+}
+
 /* Section */
 .deck-detail__section {
   display: flex;

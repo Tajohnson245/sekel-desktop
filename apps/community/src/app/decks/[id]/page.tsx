@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
-import { DeckDetail } from "@sekel/community-components";
 import { mockDecks } from "@/lib/mock-data";
+import DeckDetailWrapper from "../../../components/DeckDetailWrapper";
 import "../detail.css";
 
 interface DeckDetailPageProps {
@@ -18,7 +18,7 @@ export default async function DeckDetailPage({ params }: DeckDetailPageProps) {
   return (
     <div className="detail-page">
       <div className="container">
-        <DeckDetail deck={deck} />
+        <DeckDetailWrapper deck={deck} />
       </div>
     </div>
   );

@@ -1,0 +1,222 @@
+.auth-page {
+  min-height: calc(100vh - 64px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--paper);
+  border: 1px solid var(--cloud);
+  border-radius: var(--r-lg);
+  padding: 2.5rem 2rem;
+}
+
+.auth-card__eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--teal);
+}
+
+.auth-card__title {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  color: var(--ink);
+  margin: 0.25rem 0 0.5rem;
+  line-height: 1.1;
+}
+
+.auth-card__subtitle {
+  font-size: 0.9375rem;
+  color: var(--slate);
+  margin-bottom: 1.75rem;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.auth-form__error-banner {
+  padding: 0.625rem 0.875rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: var(--r-sm);
+  font-size: 0.875rem;
+  color: #ef4444;
+}
+
+.auth-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.auth-form__label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.auth-form__input {
+  padding: 0.625rem 0.875rem;
+  background: var(--base);
+  border: 1px solid var(--cloud);
+  border-radius: var(--r-sm);
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  color: var(--ink);
+  transition: border-color 0.15s;
+  outline: none;
+}
+
+.auth-form__input:focus {
+  border-color: var(--teal);
+}
+
+.auth-form__input--error {
+  border-color: #ef4444;
+}
+
+.auth-form__submit {
+  margin-top: 0.5rem;
+  padding: 0.6875rem 1rem;
+  background: var(--teal);
+  color: var(--white);
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border-radius: var(--r-sm);
+  transition: opacity 0.15s;
+}
+
+.auth-form__submit:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+.auth-form__submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.auth-card__footer {
+  margin-top: 1.5rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--slate);
+}
+
+.auth-card__link {
+  color: var(--teal);
+  font-weight: 500;
+}
+
+.auth-card__link:hover {
+  text-decoration: underline;
+}
+
+/* Success banner */
+.auth-form__success-banner {
+  padding: 0.625rem 0.875rem;
+  background: rgba(20, 184, 166, 0.1);
+  border: 1px solid rgba(20, 184, 166, 0.25);
+  border-radius: var(--r-sm);
+  font-size: 0.875rem;
+  color: var(--teal);
+}
+
+/* Account page layout */
+.account-page {
+  min-height: calc(100vh - 64px);
+  padding: 3rem 1rem;
+}
+
+.account-sections {
+  max-width: 960px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+.account-sections .auth-card {
+  align-self: start;
+}
+
+@media (min-width: 640px) {
+  .account-sections {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .account-info {
+    grid-column: 1 / -1;
+  }
+}
+
+.account-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.account-info__email {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.account-sign-out {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-top: 0.75rem;
+  padding: 0.4375rem 0.875rem;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--slate);
+  border: 1px solid var(--cloud);
+  border-radius: var(--r-sm);
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.account-sign-out:hover {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.account-preferences {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 640px) {
+  .account-preferences {
+    grid-column: auto;
+  }
+}
+
+.account-theme-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--slate);
+  border: 1px solid var(--cloud);
+  border-radius: var(--r-sm);
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.account-theme-btn:hover {
+  color: var(--ink);
+  border-color: var(--teal);
+}
