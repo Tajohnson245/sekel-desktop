@@ -25,7 +25,12 @@ export const test = base.extend<Fixtures>({
         const mainJsPath = join(__dirname, '../.vite/build/main.js');
 
         const app = await electron.launch({
-            args: [mainJsPath],
+            args: [
+                // GitHub Actions runners don't have the SUID sandbox configured.
+                // --no-sandbox is required for Electron to launch on Linux CI.
+                ...(process.env.CI ? ['--no-sandbox'] : []),
+                mainJsPath,
+            ],
             env: {
                 ...process.env,
                 NODE_ENV: 'test',
