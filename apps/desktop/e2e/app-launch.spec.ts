@@ -8,9 +8,10 @@ import { test, expect } from './fixtures';
  * before any feature-level E2E tests run.
  */
 
-test('app launches without crashing', async ({ app }) => {
-    const windows = app.windows();
-    expect(windows.length).toBeGreaterThanOrEqual(1);
+test('app launches without crashing', async ({ window }) => {
+    // window fixture calls firstWindow(), which waits for BrowserWindow creation.
+    // If we reach this line, the process launched and a window was created.
+    expect(window).toBeTruthy();
 });
 
 test('main window is visible', async ({ window }) => {
