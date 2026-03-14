@@ -1,7 +1,19 @@
+"use client";
+
+import { useEffect } from "react";
 import Link from "next/link";
 import "./Footer.css";
 
 export default function Footer() {
+  useEffect(() => {
+    const stored = localStorage.getItem("sekel-community-theme");
+    if (stored === "light") {
+      document.documentElement.dataset.theme = "light";
+    } else {
+      delete document.documentElement.dataset.theme;
+    }
+  }, []);
+
   return (
     <footer className="community-footer">
       <div className="container community-footer__inner">

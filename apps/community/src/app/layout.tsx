@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { DM_Serif_Display, Outfit, DM_Mono } from "next/font/google";
-import { CommunityNavbar, CommunityFooter } from "@sekel/community-components";
+import { CommunityFooter } from "@sekel/community-components";
+import { AuthProvider } from "../context/AuthContext";
+import NavbarWrapper from "../components/NavbarWrapper";
 import "./globals.css";
 
 const dmSerifDisplay = DM_Serif_Display({
@@ -41,14 +43,16 @@ export default function RootLayout({
       <body
         className={`${dmSerifDisplay.variable} ${outfit.variable} ${dmMono.variable}`}
       >
-        <a href="#main-content" className="skip-link">
-          Skip to content
-        </a>
-        <CommunityNavbar />
-        <main id="main-content" style={{ paddingTop: "64px" }}>
-          {children}
-        </main>
-        <CommunityFooter />
+        <AuthProvider>
+          <a href="#main-content" className="skip-link">
+            Skip to content
+          </a>
+          <NavbarWrapper />
+          <main id="main-content" style={{ paddingTop: "64px" }}>
+            {children}
+          </main>
+          <CommunityFooter />
+        </AuthProvider>
       </body>
     </html>
   );

@@ -1,46 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Sun, Moon, Menu, X, BookOpen } from "lucide-react";
+import { Menu, X, LogIn } from "lucide-react";
+import type { User } from "@supabase/supabase-js";
 import "./Navbar.css";
 
-export default function Navbar() {
+interface NavbarProps {
+  user?: User | null;
+  onSignOut?: () => void;
+}
+
+export default function Navbar({ user }: NavbarProps) {
   const pathname = usePathname();
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [menuOpen, setMenuOpen] = useState(false);
 
-  useEffect(() => {
-    const stored = localStorage.getItem("sekel-community-theme");
-    if (stored === "light") {
-      setTheme("light");
-      document.documentElement.dataset.theme = "light";
-    }
-  }, []);
-
-  // Close mobile menu on route change
-  useEffect(() => {
-    setMenuOpen(false);
-  }, [pathname]);
-
-  const toggleTheme = () => {
-    const next = theme === "dark" ? "light" : "dark";
-    setTheme(next);
-    if (next === "light") {
-      document.documentElement.dataset.theme = "light";
-      localStorage.setItem("sekel-community-theme", "light");
-    } else {
-      delete document.documentElement.dataset.theme;
-      localStorage.setItem("sekel-community-theme", "dark");
-    }
-  };
-
-  const navLinks = [
+  const baseLinks = [
     { href: "/", label: "Home" },
     { href: "/decks", label: "Browse Decks" },
-    { href: "/add", label: "Add Deck" },
   ];
+
+  const userEmail = user?.email ?? "";
+  const userInitial = userEmail.charAt(0).toUpperCase();
 
   return (
     <header className="community-navbar">
@@ -51,7 +33,7 @@ export default function Navbar() {
         </Link>
 
         <nav className="community-navbar__links" aria-label="Main navigation">
-          {navLinks.map((link) => (
+          {baseLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -60,25 +42,32 @@ export default function Navbar() {
               {link.label}
             </Link>
           ))}
+          {user && (
+            <Link
+              href="/add"
+              className={`community-navbar__link${pathname === "/add" ? " community-navbar__link--active" : ""}`}
+            >
+              Add Deck
+            </Link>
+          )}
         </nav>
 
         <div className="community-navbar__actions">
-          <button
-            className="community-navbar__icon-btn"
-            onClick={toggleTheme}
-            aria-label={theme === "dark" ? "Switch to dark mode" : "Switch to light mode"}
-          >
-            {theme === "dark" ? (
-              <Moon size={18} aria-hidden="true" />
-            ) : (
-              <Sun size={18} aria-hidden="true" />
-            )}
-          </button>
-
-          <Link href="/add" className="community-navbar__cta">
-            <BookOpen size={15} aria-hidden="true" />
-            Add Deck
-          </Link>
+          {user ? (
+            <Link href="/account" className="community-navbar__avatar" title={userEmail} aria-label={`Account settings for ${userEmail}`}>
+              {userInitial}
+            </Link>
+          ) : (
+            <>
+              <Link href="/login" className="community-navbar__auth-link">
+                <LogIn size={15} aria-hidden="true" />
+                Log in
+              </Link>
+              <Link href="/signup" className="community-navbar__cta">
+                Sign up
+              </Link>
+            </>
+          )}
 
           <button
             className="community-navbar__hamburger"
@@ -94,7 +83,7 @@ export default function Navbar() {
       {/* Mobile menu */}
       {menuOpen && (
         <nav className="community-navbar__mobile-menu" aria-label="Mobile navigation">
-          {navLinks.map((link) => (
+          {baseLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -103,6 +92,19 @@ export default function Navbar() {
               {link.label}
             </Link>
           ))}
+          <div className="community-navbar__mobile-auth">
+            {user ? (
+              <>
+                <Link href="/add" className="community-navbar__mobile-link">Add Deck</Link>
+                <Link href="/account" className="community-navbar__mobile-link">Account</Link>
+              </>
+            ) : (
+              <>
+                <Link href="/login" className="community-navbar__mobile-link">Log in</Link>
+                <Link href="/signup" className="community-navbar__mobile-link">Sign up</Link>
+              </>
+            )}
+          </div>
         </nav>
       )}
     </header>
