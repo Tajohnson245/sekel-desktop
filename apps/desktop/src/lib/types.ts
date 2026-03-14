@@ -21,7 +21,9 @@ export interface Deck {
     user_id: string;
     name: string;
     description: string | null;
-    fsrs_enabled: boolean;
+    algorithm: 'fsrs' | 'sm2';
+    parent_id: string | null;
+    anki_id: number | null;
     created_at: string;
     updated_at: string;
 }

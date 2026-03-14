@@ -26,6 +26,14 @@ export const MIGRATIONS: string[] = [
         created_at   TEXT NOT NULL,
         updated_at   TEXT NOT NULL
     );
+    `,
+    // Migration 002 — deck enhancements: algorithm, parent_id, anki_id
+    `
+    ALTER TABLE decks ADD COLUMN algorithm TEXT NOT NULL DEFAULT 'fsrs';
+    UPDATE decks SET algorithm = CASE WHEN fsrs_enabled = 1 THEN 'fsrs' ELSE 'sm2' END;
+    ALTER TABLE decks DROP COLUMN fsrs_enabled;
+    ALTER TABLE decks ADD COLUMN parent_id TEXT REFERENCES decks(id);
+    ALTER TABLE decks ADD COLUMN anki_id INTEGER;
     CREATE INDEX IF NOT EXISTS idx_decks_user_id ON decks(user_id);
 
     CREATE TABLE IF NOT EXISTS notes (

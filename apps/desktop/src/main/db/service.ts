@@ -32,10 +32,7 @@ function s(value: unknown): string {
 // ── Row mappers ───────────────────────────────────────────────────────────────
 
 function mapDeck(row: Record<string, unknown>): Deck {
-    return {
-        ...(row as unknown as Deck),
-        fsrs_enabled: Boolean(row.fsrs_enabled),
-    };
+    return row as unknown as Deck;
 }
 
 function mapNoteType(row: Record<string, unknown>): NoteType {
@@ -88,11 +85,11 @@ export function createDeck(deck: DeckInsert): Deck {
     const now = new Date().toISOString();
     const id = randomUUID();
     getDb().prepare(`
-        INSERT INTO decks (id, user_id, name, description, fsrs_enabled, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(id, deck.user_id, deck.name, deck.description ?? null, deck.fsrs_enabled ? 1 : 0, now, now);
+        INSERT INTO decks (id, user_id, name, description, algorithm, parent_id, anki_id, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, deck.user_id, deck.name, deck.description ?? null, deck.algorithm ?? 'fsrs', deck.parent_id ?? null, deck.anki_id ?? null, now, now);
     const result = fetchDeck(id)!;
-    pushRecord('decks', { ...result, fsrs_enabled: result.fsrs_enabled } as unknown as Record<string, unknown>);
+    pushRecord('decks', result as unknown as Record<string, unknown>);
     return result;
 }
 
@@ -103,7 +100,9 @@ export function updateDeck(id: string, updates: DeckUpdate): Deck {
 
     if (updates.name !== undefined) { sets.push('name = ?'); values.push(updates.name); }
     if (updates.description !== undefined) { sets.push('description = ?'); values.push(updates.description); }
-    if (updates.fsrs_enabled !== undefined) { sets.push('fsrs_enabled = ?'); values.push(updates.fsrs_enabled ? 1 : 0); }
+    if (updates.algorithm !== undefined) { sets.push('algorithm = ?'); values.push(updates.algorithm); }
+    if (updates.parent_id !== undefined) { sets.push('parent_id = ?'); values.push(updates.parent_id); }
+    if (updates.anki_id !== undefined) { sets.push('anki_id = ?'); values.push(updates.anki_id); }
 
     values.push(id);
     getDb().prepare(`UPDATE decks SET ${sets.join(', ')} WHERE id = ?`).run(...values);
@@ -696,9 +695,9 @@ export function bulkUpsertAll(data: {
         }
 
         for (const d of data.decks) {
-            db.prepare(`INSERT OR REPLACE INTO decks (id, user_id, name, description, fsrs_enabled, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            `).run(d.id, d.user_id, d.name, d.description ?? null, d.fsrs_enabled ? 1 : 0, d.created_at, d.updated_at);
+            db.prepare(`INSERT OR REPLACE INTO decks (id, user_id, name, description, algorithm, parent_id, anki_id, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `).run(d.id, d.user_id, d.name, d.description ?? null, d.algorithm ?? 'fsrs', d.parent_id ?? null, d.anki_id ?? null, d.created_at, d.updated_at);
         }
 
         for (const n of data.notes) {

@@ -80,7 +80,7 @@ export const UserProfilePage: React.FC = () => {
     useEffect(() => {
         if (decks.length > 0) {
             const enabledIds = new Set(
-                decks.filter(d => d.fsrs_enabled ?? true).map(d => d.id)
+                decks.filter(d => d.algorithm === 'fsrs').map(d => d.id)
             );
             setFsrsEnabledDeckIds(enabledIds);
         }
@@ -105,7 +105,7 @@ export const UserProfilePage: React.FC = () => {
                 decks.map(deck =>
                     updateDeck.mutateAsync({
                         id: deck.id,
-                        updates: { fsrs_enabled: fsrsEnabledDeckIds.has(deck.id) },
+                        updates: { algorithm: fsrsEnabledDeckIds.has(deck.id) ? 'fsrs' : 'sm2' },
                     })
                 )
             );

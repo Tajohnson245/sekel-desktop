@@ -70,7 +70,7 @@ function seedNoteType(userId = USER) {
 }
 
 function seedDeck(name = 'Test Deck', userId = USER) {
-    return createDeck({ user_id: userId, name, description: null, fsrs_enabled: true });
+    return createDeck({ user_id: userId, name, description: null, algorithm: 'fsrs', parent_id: null, anki_id: null });
 }
 
 function seedNote(deckId: string, noteTypeId: string, userId = USER) {
@@ -90,17 +90,17 @@ afterEach(() => { testDb.close(); });
 
 describe('decks', () => {
     it('createDeck persists and returns a deck', () => {
-        const deck = createDeck({ user_id: USER, name: 'Anatomy', description: 'Bones', fsrs_enabled: true });
+        const deck = createDeck({ user_id: USER, name: 'Anatomy', description: 'Bones', algorithm: 'fsrs', parent_id: null, anki_id: null });
         expect(deck.id).toBeTruthy();
         expect(deck.name).toBe('Anatomy');
         expect(deck.description).toBe('Bones');
-        expect(deck.fsrs_enabled).toBe(true);
+        expect(deck.algorithm).toBe('fsrs');
         expect(deck.user_id).toBe(USER);
     });
 
     it('fetchDecks returns only decks for the given user', () => {
-        createDeck({ user_id: USER, name: 'Mine', description: null, fsrs_enabled: true });
-        createDeck({ user_id: 'other-user', name: 'Theirs', description: null, fsrs_enabled: true });
+        createDeck({ user_id: USER, name: 'Mine', description: null, algorithm: 'fsrs', parent_id: null, anki_id: null });
+        createDeck({ user_id: 'other-user', name: 'Theirs', description: null, algorithm: 'fsrs', parent_id: null, anki_id: null });
         const decks = fetchDecks(USER);
         expect(decks).toHaveLength(1);
         expect(decks[0].name).toBe('Mine');
@@ -116,10 +116,10 @@ describe('decks', () => {
         expect(updated.name).toBe('New Name');
     });
 
-    it('updateDeck coerces fsrs_enabled boolean from integer storage', () => {
+    it('updateDeck persists algorithm change', () => {
         const deck = seedDeck();
-        const updated = updateDeck(deck.id, { fsrs_enabled: false });
-        expect(updated.fsrs_enabled).toBe(false);
+        const updated = updateDeck(deck.id, { algorithm: 'sm2' });
+        expect(updated.algorithm).toBe('sm2');
     });
 
     it('deleteDeck removes the deck', () => {
