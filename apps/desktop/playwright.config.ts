@@ -1,58 +1,36 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
     testDir: './e2e',
-    fullyParallel: true,
-    // Fail the build on CI if you accidentally left test.only in the source code.
+    timeout: 60_000,
+
+    // CRITICAL: Must be 1 for Electron — multiple Electron windows on the
+    // same display server will fail. Do not increase this.
+    workers: 1,
+    fullyParallel: false,
+
     forbidOnly: !!process.env.CI,
-    // Retry on CI only.
-    retries: process.env.CI ? 8 : 0,
-    // Opt out of parallel tests on CI.
-    workers: process.env.CI ? 8 : undefined,
-    // Reporter to use. CI: blob (can be merged later) or html. Local: html.
-    reporter: 'html',
 
-    // global timeout
-    timeout: 30 * 1000,
-    expect: {
-        // Maximum time expect() should wait for the condition to be met.
-        timeout: 5000,
-    },
+    // Fewer retries than the original browser config — 2 is sufficient.
+    retries: process.env.CI ? 2 : 0,
 
-    use: {
-        // Base URL to use in actions like `await page.goto('/')`.
-        baseURL: 'http://localhost:5173',
-
-        // Collect trace when retrying the failed test.
-        trace: 'on-first-retry',
-
-        // Capture screenshot after each test failure.
-        screenshot: 'only-on-failure',
-
-        // Keep video only on failure.
-        video: 'retain-on-failure',
-
-        // deterministic options
-        timezoneId: 'UTC',
-        locale: 'en-US',
-        viewport: { width: 1280, height: 720 },
-
-        actionTimeout: 10 * 1000,
-    },
-
-    /* Configure projects for major browsers */
-    projects: [
-        {
-            name: 'chromium',
-            use: { ...devices['Desktop Chrome'] },
-        },
+    reporter: [
+        ['html', { outputFolder: 'playwright-report' }],
+        ['list'],
     ],
 
-    /* Run your local dev server before starting the tests */
-    webServer: {
-        command: 'npm run dev:renderer',
-        url: 'http://localhost:5173',
-        reuseExistingServer: !process.env.CI,
-        timeout: 120 * 1000,
+    use: {
+        // Videos kept only on failure — useful for debugging CI without storing everything.
+        video: { mode: 'retain-on-failure', dir: 'test-videos' },
+        screenshot: 'only-on-failure',
+        trace: 'on-first-retry',
+        actionTimeout: 15_000,
     },
+
+    // No webServer or projects block — Electron tests launch the app
+    // directly via _electron.launch() in e2e/fixtures.ts.
+    //
+    // IMPORTANT: The app must be pre-built before running E2E tests.
+    // Run `npx turbo run build --filter=@sekel/desktop` first to ensure
+    // .vite/build/main.js exists.
 });
