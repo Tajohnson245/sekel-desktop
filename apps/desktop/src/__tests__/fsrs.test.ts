@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
     scheduleCard,
     getSchedulingOptions,
@@ -173,9 +173,14 @@ describe('getSchedulingOptions', () => {
 
 describe('scheduleCard', () => {
     it('returns the same result as getSchedulingOptions for the given rating', () => {
-        const card = makeNewCard();
-        const options = getSchedulingOptions(card);
-        expect(scheduleCard(card, 'good')).toEqual(options.good);
+        vi.useFakeTimers();
+        try {
+            const card = makeNewCard();
+            const options = getSchedulingOptions(card);
+            expect(scheduleCard(card, 'good')).toEqual(options.good);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it('incrementing reps on good/easy rating from a new card', () => {
