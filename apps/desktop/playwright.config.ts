@@ -21,7 +21,7 @@ export default defineConfig({
 
     use: {
         // Videos kept only on failure — useful for debugging CI without storing everything.
-        video: { mode: 'retain-on-failure', dir: 'test-videos' },
+        video: 'retain-on-failure',
         screenshot: 'only-on-failure',
         trace: 'on-first-retry',
         actionTimeout: 15_000,
