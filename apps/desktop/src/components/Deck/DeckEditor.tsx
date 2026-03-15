@@ -44,7 +44,9 @@ export default function DeckEditor({ deck, userId, onClose, onSuccess }: DeckEdi
                     user_id: userId,
                     name: name.trim(),
                     description: description.trim() || null,
-                    fsrs_enabled: true,
+                    algorithm: 'fsrs',
+                    parent_id: null,
+                    anki_id: null,
                 });
             }
 
