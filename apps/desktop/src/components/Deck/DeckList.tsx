@@ -4,7 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { useDecks, useBulkDeleteDecks } from '../../hooks/useDecks';
 import { Button, Loader, Modal } from '../UI';
 import DeckCard from './DeckCard';
+import ImportAnkiButton from './ImportAnkiButton';
 import type { Deck } from '../../lib/types';
+import type { ApkgImportResult } from '../../types/electron';
 
 interface DeckListProps {
     onSelectDeck: (deckId: string) => void;
@@ -78,6 +80,11 @@ export default function DeckList({ onSelectDeck, onCreateDeck }: DeckListProps) 
                             >
                                 {t('decks.delete_decks')}
                             </Button>
+                            <ImportAnkiButton
+                                onSuccess={(result: ApkgImportResult) => {
+                                    console.log('[import] .apkg processed:', result.format, result.tempDir);
+                                }}
+                            />
                             <Button
                                 variant="primary"
                                 onClick={onCreateDeck}

@@ -337,5 +337,9 @@
         "delete_rect": "删除矩形",
         "change_image": "更换图片",
         "remove_image": "删除图片"
+    },
+    "import": {
+        "importAnkiDeck": "Import Anki Deck",
+        "errorGeneric": "An error occurred during import. Please try again."
     }
 }

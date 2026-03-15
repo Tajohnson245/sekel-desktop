@@ -8,6 +8,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     generateSummary: (documents: Record<string, string>, language?: string) => ipcRenderer.invoke('generate-summary', documents, language),
     getSupabaseConfig: () => ipcRenderer.invoke('get-supabase-config'),
 
+    import: {
+        selectFile: () => ipcRenderer.invoke('import:select-file'),
+        processApkg: (filePath: string) => ipcRenderer.invoke('import:process-apkg', filePath),
+    },
+
     db: {
         // Decks
         fetchDecks:            (userId: string) => ipcRenderer.invoke('db:fetchDecks', userId),

@@ -337,5 +337,9 @@
         "delete_rect": "Supprimer le rectangle",
         "change_image": "Changer l'Image",
         "remove_image": "Supprimer l'Image"
+    },
+    "import": {
+        "importAnkiDeck": "Import Anki Deck",
+        "errorGeneric": "An error occurred during import. Please try again."
     }
 }
