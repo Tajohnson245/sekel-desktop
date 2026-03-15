@@ -14,6 +14,8 @@ function makeNewCard(overrides: Partial<Card> = {}): Card {
     return {
         id: 'card-1',
         user_id: 'user-1',
+        anki_id: null,
+        ease_factor: null,
         note_id: 'note-1',
         template_index: 0,
         state: 'new',
