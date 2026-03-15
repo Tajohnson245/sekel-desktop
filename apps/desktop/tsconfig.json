@@ -46,6 +46,9 @@
     "DESKTOP/.vite/build/main.js",
     "DESKTOP/.vite/build/preload.js",
     "renderer.js",
-    "forge.config.js"
+    "forge.config.js",
+    "vite.main.config.ts",
+    "vite.preload.config.ts",
+    "vite.renderer.config.ts"
   ]
 }

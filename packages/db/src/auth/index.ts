@@ -27,6 +27,10 @@ export function updatePassword(client: SupabaseClient, password: string) {
     return client.auth.updateUser({ password });
 }
 
+export function updateEmail(client: SupabaseClient, email: string) {
+    return client.auth.updateUser({ email });
+}
+
 export function deleteAccount(client: SupabaseClient) {
     return client.rpc('delete_own_account');
 }

@@ -40,7 +40,7 @@ export default function StudySession({ deckId, userId, mode = 'due', onBack }: S
     const currentCard: CardWithNote | undefined = cards[currentIndex];
     const isComplete = currentIndex >= cards.length && cards.length > 0;
     const isEmpty = cards.length === 0 && !isLoading;
-    const fsrsEnabled = deck?.fsrs_enabled ?? true;
+    const fsrsEnabled = deck?.algorithm === 'fsrs';
 
     useEffect(() => {
         setCurrentIndex(0);

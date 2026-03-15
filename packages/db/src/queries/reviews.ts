@@ -16,6 +16,9 @@ export interface InsertReviewParams {
     difficulty_after: number;
     scheduled_days: number;
     review_duration_ms?: number | null;
+    interval_before?: number | null;
+    ease_factor_after?: number | null;
+    review_type?: number | null;
 }
 
 export interface ReviewDayCount {
@@ -42,6 +45,9 @@ export async function insertReview(client: SupabaseClient, params: InsertReviewP
             session_id: params.session_id,
             deck_id: params.deck_id,
             review_index: params.review_index,
+            interval_before: params.interval_before ?? null,
+            ease_factor_after: params.ease_factor_after ?? null,
+            review_type: params.review_type ?? null,
         } as ReviewInsert)
         .select()
         .single();

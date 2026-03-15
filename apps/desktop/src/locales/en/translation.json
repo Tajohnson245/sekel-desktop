@@ -87,7 +87,7 @@
         "study_now": "Study Now",
         "review_all": "Review All",
         "cram_mode": "Cram Mode",
-        "fsrs_enabled": "FSRS Enabled",
+        "algorithm": "Algorithm",
         "mode_flashcard": "Flashcards",
         "delete": "Delete",
         "loading": "Loading decks...",
@@ -339,5 +339,9 @@
         "delete_rect": "Delete rectangle",
         "change_image": "Change Image",
         "remove_image": "Remove Image"
+    },
+    "import": {
+        "importAnkiDeck": "Import Anki Deck",
+        "errorGeneric": "An error occurred during import. Please try again."
     }
 }

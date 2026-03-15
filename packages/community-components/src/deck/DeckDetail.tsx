@@ -12,9 +12,10 @@ import "./DeckDetail.css";
 
 interface DeckDetailProps {
   deck: Deck;
+  isAuthenticated?: boolean;
 }
 
-export default function DeckDetail({ deck }: DeckDetailProps) {
+export default function DeckDetail({ deck, isAuthenticated }: DeckDetailProps) {
   return (
     <div className="deck-detail">
       {/* Back link */}
@@ -44,16 +45,27 @@ export default function DeckDetail({ deck }: DeckDetailProps) {
             <StarRating rating={deck.rating} ratingCount={deck.ratingCount} size="md" />
           </div>
 
-          <a
-            href="#"
-            className="deck-detail__download"
-            onClick={(e) => e.preventDefault()}
-            aria-label="Download deck as .apkg file (coming soon)"
-            title="Download .apkg"
-          >
-            <Download size={16} aria-hidden="true" />
-            Download .apkg
-          </a>
+          {isAuthenticated ? (
+            <a
+              href="#"
+              className="deck-detail__download"
+              onClick={(e) => e.preventDefault()}
+              aria-label="Download deck as .apkg file (coming soon)"
+              title="Download .apkg"
+            >
+              <Download size={16} aria-hidden="true" />
+              Download .apkg
+            </a>
+          ) : (
+            <Link
+              href={`/login?redirect=/decks/${deck.id}`}
+              className="deck-detail__download deck-detail__download--locked"
+              aria-label="Log in to download this deck"
+            >
+              <Download size={16} aria-hidden="true" />
+              Log in to download
+            </Link>
+          )}
         </div>
       </div>
 

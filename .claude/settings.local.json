@@ -2,7 +2,32 @@
   "permissions": {
     "allow": [
       "Bash(npm run make)",
-      "Bash(npm --version)"
+      "Bash(npm --version)",
+      "Bash(git -C \"c:/Users/tajoh/Git/sekel\" push origin main)",
+      "Bash(git -C \"c:/Users/tajoh/Git/sekel\" push origin v1.2.0)",
+      "Bash(git -C \"c:/Users/tajoh/Git/sekel\" push origin release/v1.2.0)",
+      "Bash(xargs ls:*)",
+      "Bash(grep -E '\\\\.\\(css|json|md\\)$')",
+      "Bash(find /c/Users/tajoh/Git/sekel -maxdepth 2 -type f \\\\\\(-name *.css -o -name *design* -o -name *tokens* -o -name *branding* \\\\\\))",
+      "Bash(find /c/Users/tajoh/Git/sekel/apps -maxdepth 3 -type f -name *.css)",
+      "Bash(find /c/Users/tajoh/Git/sekel -type f \\\\\\(-name *.css -o -name tailwind.config.* -o -name design.* \\\\\\))",
+      "Bash(grep -E '\\\\.\\(json|css|md\\)$|^d.*design|^d.*style|^d.*docs|^d.*theme')",
+      "Bash(git checkout:*)",
+      "Bash(git pull:*)",
+      "Bash(npm run:*)",
+      "Bash(git push:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git fetch:*)",
+      "Bash(git tag:*)",
+      "Bash(git merge:*)",
+      "Bash(grep -r \"sqlite\\\\|better-sqlite3\\\\|sql\\\\.js\" /c/Users/tajoh/Git/sekel --exclude-dir=node_modules --include=*.ts --include=*.tsx --include=*.json)",
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx vite:*)",
+      "Bash(npx @electron/rebuild -f -w better-sqlite3)",
+      "Bash(git -C c:/Users/tajoh/Git/sekel log --oneline --all)",
+      "Bash(git -C c:/Users/tajoh/Git/sekel show HEAD~5:apps/desktop/src/stores/profileStore.ts)"
     ]
   }
 }

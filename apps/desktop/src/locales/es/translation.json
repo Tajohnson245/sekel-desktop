@@ -87,7 +87,7 @@
         "study_now": "Estudiar Ahora",
         "review_all": "Repasar Todo",
         "cram_mode": "Modo Intensivo",
-        "fsrs_enabled": "FSRS Activado",
+        "algorithm": "Algoritmo",
         "mode_flashcard": "Fichas",
         "delete": "Eliminar",
         "loading": "Cargando mazos...",
@@ -337,5 +337,9 @@
         "delete_rect": "Eliminar rectángulo",
         "change_image": "Cambiar Imagen",
         "remove_image": "Eliminar Imagen"
+    },
+    "import": {
+        "importAnkiDeck": "Import Anki Deck",
+        "errorGeneric": "An error occurred during import. Please try again."
     }
 }
