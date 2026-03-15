@@ -164,6 +164,23 @@ export interface Review {
 export type ReviewInsert = Omit<Review, 'id' | 'created_at' | 'interval_before' | 'ease_factor_after' | 'review_type'> & { interval_before?: number | null; ease_factor_after?: number | null; review_type?: number | null };
 
 // ─────────────────────────────────────────────────────────────────
+// Media (imported from .apkg)
+// ─────────────────────────────────────────────────────────────────
+export interface Media {
+    id: string;
+    user_id: string;
+    filename: string;
+    file_path: string;
+    file_hash: string;
+    file_size: number | null;
+    mime_type: string | null;
+    created_at: string;
+}
+
+export type MediaInsert = Omit<Media, 'id' | 'created_at'>;
+export type MediaUpdate = Partial<Omit<Media, 'id' | 'user_id' | 'created_at'>>;
+
+// ─────────────────────────────────────────────────────────────────
 // Session Analytics (payload for post-session charts)
 // ─────────────────────────────────────────────────────────────────
 export interface RetentionTrendPoint {

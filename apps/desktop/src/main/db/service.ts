@@ -7,6 +7,7 @@ import type {
     NoteType, NoteTypeInsert,
     Card, CardInsert,
     Review,
+    Media, MediaInsert,
     DeckSession,
     DraftCard, DraftCardInsert,
     UserProfile,
@@ -566,6 +567,23 @@ export function fetchSessionAnalytics(sessionId: string): SessionAnalytics | nul
             topForgottenCards,
         },
     };
+}
+
+// ── Media ─────────────────────────────────────────────────────────────────────
+
+export function createMedia(media: MediaInsert): Media {
+    const now = new Date().toISOString();
+    const id = randomUUID();
+    getDb().prepare(`
+        INSERT INTO media (id, user_id, filename, file_path, file_hash, file_size, mime_type, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, media.user_id, media.filename, media.file_path, media.file_hash, media.file_size ?? null, media.mime_type ?? null, now);
+    return getDb().prepare('SELECT * FROM media WHERE id = ?').get(id) as Media;
+}
+
+export function fetchMediaByFilename(userId: string, filename: string): Media | null {
+    const row = getDb().prepare('SELECT * FROM media WHERE user_id = ? AND filename = ?').get(userId, filename) as Media | undefined;
+    return row ?? null;
 }
 
 // ── Drafts ────────────────────────────────────────────────────────────────────
