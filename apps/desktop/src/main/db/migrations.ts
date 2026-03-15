@@ -146,4 +146,9 @@ export const MIGRATIONS: string[] = [
     ALTER TABLE notes ADD COLUMN anki_guid TEXT;
     CREATE UNIQUE INDEX IF NOT EXISTS idx_notes_anki_guid ON notes(anki_guid) WHERE anki_guid IS NOT NULL;
     `,
+    // Migration 004 — note_type enhancements: anki_id
+    `
+    ALTER TABLE note_types ADD COLUMN anki_id INTEGER;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_note_types_anki_id ON note_types(user_id, anki_id) WHERE anki_id IS NOT NULL;
+    `,
 ];

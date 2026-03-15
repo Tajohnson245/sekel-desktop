@@ -47,6 +47,7 @@ export interface CardTemplate {
 export interface NoteType {
     id: string;
     user_id: string;
+    anki_id: number | null;
     name: string;
     fields: FieldDefinition[];
     card_templates: CardTemplate[];
@@ -54,7 +55,7 @@ export interface NoteType {
     updated_at: string;
 }
 
-export type NoteTypeInsert = Omit<NoteType, 'id' | 'created_at' | 'updated_at'>;
+export type NoteTypeInsert = Omit<NoteType, 'id' | 'created_at' | 'updated_at' | 'anki_id'> & { anki_id?: number | null };
 export type NoteTypeUpdate = Partial<Omit<NoteType, 'id' | 'user_id' | 'created_at' | 'updated_at'>>;
 
 // ─────────────────────────────────────────────────────────────────
@@ -189,7 +190,7 @@ export interface SessionAnalytics {
 // ─────────────────────────────────────────────────────────────────
 // Default Note Types (pre-populated for new users)
 // ─────────────────────────────────────────────────────────────────
-export const DEFAULT_NOTE_TYPES: Omit<NoteType, 'id' | 'user_id' | 'created_at' | 'updated_at'>[] = [
+export const DEFAULT_NOTE_TYPES: Omit<NoteType, 'id' | 'user_id' | 'anki_id' |'created_at' | 'updated_at'>[] = [
     {
         name: 'Basic',
         fields: [{ name: 'Front' }, { name: 'Back' }],

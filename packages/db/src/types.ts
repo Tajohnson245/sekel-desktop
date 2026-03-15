@@ -47,6 +47,7 @@ export interface CardTemplate {
 export interface NoteType {
     id: string;
     user_id: string;
+    anki_id: number | null;
     name: string;
     fields: FieldDefinition[];
     card_templates: CardTemplate[];
@@ -54,7 +55,7 @@ export interface NoteType {
     updated_at: string;
 }
 
-export type NoteTypeInsert = Omit<NoteType, 'id' | 'created_at' | 'updated_at'>;
+export type NoteTypeInsert = Omit<NoteType, 'id' | 'created_at' | 'updated_at' | 'anki_id'> & { anki_id?: number | null };
 export type NoteTypeUpdate = Partial<Omit<NoteType, 'id' | 'user_id' | 'created_at' | 'updated_at'>>;
 
 // ─────────────────────────────────────────────────────────────────
