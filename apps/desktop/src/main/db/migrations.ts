@@ -140,4 +140,10 @@ export const MIGRATIONS: string[] = [
         value TEXT NOT NULL
     );
     `,
+    // Migration 003 — note enhancements: anki_id, anki_guid
+    `
+    ALTER TABLE notes ADD COLUMN anki_id INTEGER;
+    ALTER TABLE notes ADD COLUMN anki_guid TEXT;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_notes_anki_guid ON notes(anki_guid) WHERE anki_guid IS NOT NULL;
+    `,
 ];

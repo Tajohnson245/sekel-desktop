@@ -67,6 +67,8 @@ export interface Note {
     note_type_id: string;
     fields: Record<string, string>;
     tags: string[];
+    anki_id: number | null;
+    anki_guid: string | null;
     created_at: string;
     updated_at: string;
 }

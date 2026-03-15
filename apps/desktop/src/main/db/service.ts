@@ -194,6 +194,8 @@ function buildCardWithNote(row: CardWithNoteRow): CardWithNote {
         note_type_id: row.note_type_id as string,
         fields: j(row.note_fields),
         tags: j(row.note_tags),
+        anki_id: (row.anki_id as number | null) ?? null,
+        anki_guid: (row.anki_guid as string | null) ?? null,
         created_at: row.note_created_at as string,
         updated_at: row.note_updated_at as string,
         note_type: noteType,
@@ -701,9 +703,9 @@ export function bulkUpsertAll(data: {
         }
 
         for (const n of data.notes) {
-            db.prepare(`INSERT OR REPLACE INTO notes (id, user_id, deck_id, note_type_id, fields, tags, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            `).run(n.id, n.user_id, n.deck_id, n.note_type_id, s(n.fields), s(n.tags), n.created_at, n.updated_at);
+            db.prepare(`INSERT OR REPLACE INTO notes (id, user_id, deck_id, note_type_id, fields, tags, anki_id, anki_guid, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `).run(n.id, n.user_id, n.deck_id, n.note_type_id, s(n.fields), s(n.tags), n.anki_id ?? null, n.anki_guid ?? null, n.created_at, n.updated_at);
         }
 
         for (const c of data.cards) {
