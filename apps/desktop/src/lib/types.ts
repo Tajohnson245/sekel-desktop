@@ -73,7 +73,7 @@ export interface Note {
     updated_at: string;
 }
 
-export type NoteInsert = Omit<Note, 'id' | 'created_at' | 'updated_at'>;
+export type NoteInsert = Omit<Note, 'id' | 'created_at' | 'updated_at' | 'anki_id' | 'anki_guid'> & { anki_id?: number | null; anki_guid?: string | null };
 export type NoteUpdate = Partial<Omit<Note, 'id' | 'user_id' | 'created_at' | 'updated_at'>>;
 
 // ─────────────────────────────────────────────────────────────────
