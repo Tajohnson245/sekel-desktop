@@ -163,4 +163,19 @@ export const MIGRATIONS: string[] = [
     ALTER TABLE reviews ADD COLUMN ease_factor_after INTEGER;
     ALTER TABLE reviews ADD COLUMN review_type INTEGER;
     `,
+    // Migration 007 — media table for .apkg imported files
+    `
+    CREATE TABLE IF NOT EXISTS media (
+        id         TEXT PRIMARY KEY,
+        user_id    TEXT NOT NULL,
+        filename   TEXT NOT NULL,
+        file_path  TEXT NOT NULL,
+        file_hash  TEXT NOT NULL,
+        file_size  INTEGER,
+        mime_type  TEXT,
+        created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_media_user_filename ON media(user_id, filename);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_media_user_file_hash ON media(user_id, file_hash);
+    `,
 ];
