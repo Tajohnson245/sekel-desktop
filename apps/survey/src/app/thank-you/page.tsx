@@ -1,3 +1,4 @@
+import Link from "next/link";
 import "./page.css";
 
 export default function ThankYouPage() {
@@ -13,7 +14,7 @@ export default function ThankYouPage() {
         <p className="thank-you__sub">
           If you left your email, we&apos;ll reach out when the beta is ready.
         </p>
-        <a href="/" className="thank-you__home-link">← Back to home</a>
+        <Link href="/" className="thank-you__home-link">← Back to home</Link>
       </div>
     </div>
   );

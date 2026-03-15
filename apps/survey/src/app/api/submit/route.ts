@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { profile, tools, wishlist } = parsed.data;
-  const db = createServerClient();
+  const db = await createServerClient();
 
   // 1. Insert respondent
   const { data: respondent, error: respondentError } = await db

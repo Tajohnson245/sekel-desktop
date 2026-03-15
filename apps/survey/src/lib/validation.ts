@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { YEAR_OPTIONS, EXAM_OPTIONS, FREQUENCY_OPTIONS, TOOL_OPTIONS } from "./constants";
+import { YEAR_OPTIONS, EXAM_OPTIONS, FREQUENCY_OPTIONS } from "./constants";
 
 export const profileSchema = z.object({
   name: z.string().optional(),
