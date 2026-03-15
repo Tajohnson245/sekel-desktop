@@ -181,6 +181,7 @@ function buildCardWithNote(row: CardWithNoteRow): CardWithNote {
     const noteType: NoteType = {
         id: row.nt_id as string,
         user_id: row.user_id as string,
+        anki_id: (row.nt_anki_id as number | null) ?? null,
         name: row.nt_name as string,
         fields: j(row.nt_fields),
         card_templates: j(row.nt_templates),
@@ -403,9 +404,9 @@ export function createNoteType(noteType: NoteTypeInsert): NoteType {
     const now = new Date().toISOString();
     const id = randomUUID();
     getDb().prepare(`
-        INSERT INTO note_types (id, user_id, name, fields, card_templates, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(id, noteType.user_id, noteType.name, s(noteType.fields), s(noteType.card_templates), now, now);
+        INSERT INTO note_types (id, user_id, name, fields, card_templates, anki_id, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, noteType.user_id, noteType.name, s(noteType.fields), s(noteType.card_templates), noteType.anki_id ?? null, now, now);
     const row = getDb().prepare('SELECT * FROM note_types WHERE id = ?').get(id) as Record<string, unknown>;
     const result = mapNoteType(row);
     pushRecord('note_types', result as unknown as Record<string, unknown>);
@@ -691,9 +692,9 @@ export function bulkUpsertAll(data: {
         }
 
         for (const nt of data.noteTypes) {
-            db.prepare(`INSERT OR REPLACE INTO note_types (id, user_id, name, fields, card_templates, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            `).run(nt.id, nt.user_id, nt.name, s(nt.fields), s(nt.card_templates), nt.created_at, nt.updated_at);
+            db.prepare(`INSERT OR REPLACE INTO note_types (id, user_id, name, fields, card_templates, anki_id, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `).run(nt.id, nt.user_id, nt.name, s(nt.fields), s(nt.card_templates), nt.anki_id ?? null, nt.created_at, nt.updated_at);
         }
 
         for (const d of data.decks) {

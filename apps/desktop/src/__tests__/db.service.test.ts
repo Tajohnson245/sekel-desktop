@@ -229,6 +229,44 @@ describe('createNoteType', () => {
         expect(nt.fields).toEqual([{ name: 'Text' }]);
         expect(nt.card_templates[0].name).toBe('Cloze');
     });
+
+    it('creates a note type without anki_id (backward compat)', () => {
+        const nt = seedNoteType();
+        expect(nt.anki_id).toBeNull();
+    });
+
+    it('creates a note type with anki_id', () => {
+        const nt = createNoteType({
+            user_id: USER,
+            name: 'Basic',
+            fields: [{ name: 'Front' }, { name: 'Back' }],
+            card_templates: [{ name: 'Card 1', front_template: '{{Front}}', back_template: '{{Back}}' }],
+            anki_id: 1234567890,
+        });
+        expect(nt.anki_id).toBe(1234567890);
+    });
+
+    it('allows multiple note types with anki_id = null for the same user', () => {
+        seedNoteType();
+        expect(() => seedNoteType()).not.toThrow();
+    });
+
+    it('rejects two note types with the same user_id and anki_id', () => {
+        createNoteType({
+            user_id: USER,
+            name: 'Basic',
+            fields: [{ name: 'Front' }, { name: 'Back' }],
+            card_templates: [{ name: 'Card 1', front_template: '{{Front}}', back_template: '{{Back}}' }],
+            anki_id: 111,
+        });
+        expect(() => createNoteType({
+            user_id: USER,
+            name: 'Basic Duplicate',
+            fields: [{ name: 'Front' }, { name: 'Back' }],
+            card_templates: [{ name: 'Card 1', front_template: '{{Front}}', back_template: '{{Back}}' }],
+            anki_id: 111,
+        })).toThrow();
+    });
 });
 
 // ── Reviews and Global Retention ─────────────────────────────────────────────
