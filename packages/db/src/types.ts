@@ -83,6 +83,8 @@ export type NoteUpdate = Partial<Omit<Note, 'id' | 'user_id' | 'created_at' | 'u
 export interface Card {
     id: string;
     user_id: string;
+    anki_id: number | null;
+    ease_factor: number | null;
     note_id: string;
     template_index: number;
 
@@ -101,7 +103,7 @@ export interface Card {
     updated_at: string;
 }
 
-export type CardInsert = Omit<Card, 'id' | 'created_at' | 'updated_at'>;
+export type CardInsert = Omit<Card, 'id' | 'created_at' | 'updated_at' | 'anki_id' | 'ease_factor'> & { anki_id?: number | null; ease_factor?: number | null };
 export type CardUpdate = Partial<Omit<Card, 'id' | 'user_id' | 'note_id' | 'template_index' | 'created_at' | 'updated_at'>>;
 
 // ─────────────────────────────────────────────────────────────────
@@ -151,10 +153,15 @@ export interface Review {
     deck_id: string | null;
     review_index: number | null;
 
+    // anki import metadata
+    interval_before: number | null;
+    ease_factor_after: number | null;
+    review_type: number | null;
+
     created_at: string;
 }
 
-export type ReviewInsert = Omit<Review, 'id' | 'created_at'>;
+export type ReviewInsert = Omit<Review, 'id' | 'created_at' | 'interval_before' | 'ease_factor_after' | 'review_type'> & { interval_before?: number | null; ease_factor_after?: number | null; review_type?: number | null };
 
 // ─────────────────────────────────────────────────────────────────
 // Session Analytics (payload for post-session charts)

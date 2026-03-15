@@ -151,4 +151,16 @@ export const MIGRATIONS: string[] = [
     ALTER TABLE note_types ADD COLUMN anki_id INTEGER;
     CREATE UNIQUE INDEX IF NOT EXISTS idx_note_types_anki_id ON note_types(user_id, anki_id) WHERE anki_id IS NOT NULL;
     `,
+    // Migration 005 — card enhancements: anki_id, ease_factor
+    `
+    ALTER TABLE cards ADD COLUMN anki_id INTEGER;
+    ALTER TABLE cards ADD COLUMN ease_factor INTEGER;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_cards_anki_id ON cards(user_id, anki_id) WHERE anki_id IS NOT NULL;
+    `,
+    // Migration 006 — review enhancements: interval_before, ease_factor_after, review_type
+    `
+    ALTER TABLE reviews ADD COLUMN interval_before INTEGER;
+    ALTER TABLE reviews ADD COLUMN ease_factor_after INTEGER;
+    ALTER TABLE reviews ADD COLUMN review_type INTEGER;
+    `,
 ];
