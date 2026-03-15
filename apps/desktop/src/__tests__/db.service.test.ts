@@ -269,6 +269,109 @@ describe('createNoteType', () => {
     });
 });
 
+// ── Cards ─────────────────────────────────────────────────────────────────────
+
+describe('createCard', () => {
+    function seedCard(overrides: { anki_id?: number | null; ease_factor?: number | null } = {}) {
+        const nt = seedNoteType();
+        const deck = seedDeck();
+        const note = seedNote(deck.id, nt.id);
+        return createCard({
+            user_id: USER, note_id: note.id, template_index: 0,
+            state: 'new', due: new Date().toISOString(),
+            stability: 0, difficulty: 0, elapsed_days: 0,
+            scheduled_days: 0, reps: 0, lapses: 0, last_review: null,
+            ...overrides,
+        });
+    }
+
+    it('creates a card without anki_id and ease_factor (backward compat)', () => {
+        const card = seedCard();
+        expect(card.anki_id).toBeNull();
+        expect(card.ease_factor).toBeNull();
+    });
+
+    it('creates a card with anki_id and ease_factor populated', () => {
+        const card = seedCard({ anki_id: 9876543210, ease_factor: 2500 });
+        expect(card.anki_id).toBe(9876543210);
+        expect(card.ease_factor).toBe(2500);
+    });
+
+    it('allows multiple cards with anki_id = null for the same user', () => {
+        seedCard();
+        expect(() => seedCard()).not.toThrow();
+    });
+
+    it('rejects two cards with the same user_id and anki_id', () => {
+        seedCard({ anki_id: 111 });
+        expect(() => seedCard({ anki_id: 111 })).toThrow();
+    });
+
+    it('accepts typical SM-2 ease_factor values', () => {
+        expect(seedCard({ ease_factor: 1300 }).ease_factor).toBe(1300);
+        expect(seedCard({ ease_factor: 2500 }).ease_factor).toBe(2500);
+        expect(seedCard({ ease_factor: 3100 }).ease_factor).toBe(3100);
+    });
+});
+
+// ── Reviews ───────────────────────────────────────────────────────────────────
+
+describe('insertReview', () => {
+    function seedReview(overrides: { interval_before?: number | null; ease_factor_after?: number | null; review_type?: number | null } = {}) {
+        const nt = seedNoteType();
+        const deck = seedDeck();
+        const note = seedNote(deck.id, nt.id);
+        const card = createCard({
+            user_id: USER, note_id: note.id, template_index: 0,
+            state: 'review', due: new Date().toISOString(),
+            stability: 5, difficulty: 5, elapsed_days: 1,
+            scheduled_days: 5, reps: 1, lapses: 0, last_review: null,
+        });
+        const session = createDeckSession(USER, deck.id);
+        return insertReview({
+            user_id: USER, card_id: card.id, rating: 'good',
+            state_before: 'review', stability_before: 5, difficulty_before: 5,
+            state_after: 'review', stability_after: 6, difficulty_after: 5,
+            scheduled_days: 7, session_id: session.id, deck_id: deck.id, review_index: 0,
+            ...overrides,
+        });
+    }
+
+    it('creates a review without import fields (backward compat)', () => {
+        const r = seedReview();
+        expect(r.interval_before).toBeNull();
+        expect(r.ease_factor_after).toBeNull();
+        expect(r.review_type).toBeNull();
+    });
+
+    it('creates a review with all three import fields populated', () => {
+        const r = seedReview({ interval_before: 7, ease_factor_after: 2500, review_type: 1 });
+        expect(r.interval_before).toBe(7);
+        expect(r.ease_factor_after).toBe(2500);
+        expect(r.review_type).toBe(1);
+    });
+
+    it('accepts typical interval_before day values', () => {
+        expect(seedReview({ interval_before: 1 }).interval_before).toBe(1);
+        expect(seedReview({ interval_before: 7 }).interval_before).toBe(7);
+        expect(seedReview({ interval_before: 30 }).interval_before).toBe(30);
+        expect(seedReview({ interval_before: 365 }).interval_before).toBe(365);
+    });
+
+    it('accepts typical SM-2 ease_factor_after values', () => {
+        expect(seedReview({ ease_factor_after: 1300 }).ease_factor_after).toBe(1300);
+        expect(seedReview({ ease_factor_after: 2500 }).ease_factor_after).toBe(2500);
+        expect(seedReview({ ease_factor_after: 3100 }).ease_factor_after).toBe(3100);
+    });
+
+    it('accepts review_type values 0 through 3', () => {
+        expect(seedReview({ review_type: 0 }).review_type).toBe(0);
+        expect(seedReview({ review_type: 1 }).review_type).toBe(1);
+        expect(seedReview({ review_type: 2 }).review_type).toBe(2);
+        expect(seedReview({ review_type: 3 }).review_type).toBe(3);
+    });
+});
+
 // ── Reviews and Global Retention ─────────────────────────────────────────────
 
 describe('fetchGlobalRetention', () => {

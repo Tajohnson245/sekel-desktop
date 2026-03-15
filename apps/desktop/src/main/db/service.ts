@@ -204,6 +204,9 @@ function buildCardWithNote(row: CardWithNoteRow): CardWithNote {
     return {
         id: row.id as string,
         user_id: row.user_id as string,
+        anki_id: (row.anki_id as number | null) ?? null,
+        ease_factor: (row.ease_factor as number | null) ?? null,
+
         note_id: row.note_id as string,
         template_index: row.template_index as number,
         state: row.state as Card['state'],
@@ -302,13 +305,13 @@ export function createCard(card: CardInsert): Card {
     getDb().prepare(`
         INSERT INTO cards (id, user_id, note_id, template_index, state, due,
             stability, difficulty, elapsed_days, scheduled_days, reps, lapses,
-            last_review, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            last_review, anki_id, ease_factor, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
         id, card.user_id, card.note_id, card.template_index,
         card.state, card.due, card.stability, card.difficulty,
         card.elapsed_days, card.scheduled_days, card.reps, card.lapses,
-        card.last_review ?? null, now, now,
+        card.last_review ?? null, card.anki_id ?? null, card.ease_factor ?? null, now, now,
     );
     const result = fetchCardById(id)!;
     pushRecord('cards', result as unknown as Record<string, unknown>);
@@ -422,14 +425,16 @@ export function insertReview(params: InsertReviewParams): Review {
         INSERT INTO reviews (id, user_id, card_id, rating, review_time, review_duration_ms,
             state_before, stability_before, difficulty_before,
             state_after, stability_after, difficulty_after,
-            scheduled_days, session_id, deck_id, review_index, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            scheduled_days, session_id, deck_id, review_index,
+            interval_before, ease_factor_after, review_type, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
         id, params.user_id, params.card_id, params.rating, now,
         params.review_duration_ms ?? null,
         params.state_before, params.stability_before, params.difficulty_before,
         params.state_after, params.stability_after, params.difficulty_after,
         params.scheduled_days, params.session_id, params.deck_id, params.review_index,
+        params.interval_before ?? null, params.ease_factor_after ?? null, params.review_type ?? null,
         now,
     );
     const result = getDb().prepare('SELECT * FROM reviews WHERE id = ?').get(id) as Review;
@@ -712,11 +717,11 @@ export function bulkUpsertAll(data: {
         for (const c of data.cards) {
             db.prepare(`INSERT OR REPLACE INTO cards
                 (id, user_id, note_id, template_index, state, due, stability, difficulty,
-                 elapsed_days, scheduled_days, reps, lapses, last_review, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 elapsed_days, scheduled_days, reps, lapses, last_review, anki_id, ease_factor, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `).run(c.id, c.user_id, c.note_id, c.template_index, c.state, c.due,
                 c.stability, c.difficulty, c.elapsed_days, c.scheduled_days,
-                c.reps, c.lapses, c.last_review ?? null, c.created_at, c.updated_at);
+                c.reps, c.lapses, c.last_review ?? null, c.anki_id ?? null, c.ease_factor ?? null, c.created_at, c.updated_at);
         }
 
         for (const r of data.reviews) {
@@ -724,14 +729,17 @@ export function bulkUpsertAll(data: {
                 (id, user_id, card_id, rating, review_time, review_duration_ms,
                  state_before, stability_before, difficulty_before,
                  state_after, stability_after, difficulty_after,
-                 scheduled_days, session_id, deck_id, review_index, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 scheduled_days, session_id, deck_id, review_index,
+                 interval_before, ease_factor_after, review_type, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `).run(r.id, r.user_id, r.card_id, r.rating, r.review_time,
                 r.review_duration_ms ?? null,
                 r.state_before, r.stability_before, r.difficulty_before,
                 r.state_after, r.stability_after, r.difficulty_after,
                 r.scheduled_days, r.session_id ?? null, r.deck_id ?? null,
-                r.review_index ?? null, r.created_at);
+                r.review_index ?? null,
+                r.interval_before ?? null, r.ease_factor_after ?? null, r.review_type ?? null,
+                r.created_at);
         }
 
         for (const s of data.sessions) {
