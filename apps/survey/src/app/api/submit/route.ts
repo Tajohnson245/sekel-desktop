@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { createServerClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 
 const profileSchema = z.object({
   name: z.string().optional(),
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { profile, tools, wishlist } = parsed.data;
-  const db = await createServerClient();
+  const db = createServiceClient();
 
   // 1. Insert respondent
   const { data: respondent, error: respondentError } = await db
