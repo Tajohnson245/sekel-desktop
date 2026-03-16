@@ -10,6 +10,22 @@ import type {
     InsertReviewParams, ReviewDayCount,
 } from '@sekel/db';
 
+export type AnkiFormat = 'legacy2' | 'legacy1';
+
+export interface ApkgImportResult {
+    format: AnkiFormat;
+    dbFilePath: string;
+    mediaMap: Record<string, string>;
+    mediaFilePaths: string[];
+    warnings: string[];
+    tempDir: string;
+}
+
+export interface ElectronImport {
+    selectFile: () => Promise<string | null>;
+    processApkg: (filePath: string) => Promise<ApkgImportResult>;
+}
+
 export interface GeneratedCard {
     front: string;
     back: string;
@@ -77,6 +93,7 @@ interface ElectronAPI {
     parseDocument: (file: { name: string, buffer?: ArrayBuffer, url?: string, type: string, language?: string }) => Promise<{ filename: string, content: string }>;
     generateSummary: (documents: Record<string, string>, language?: string) => Promise<string>;
     getSupabaseConfig: () => Promise<{ url: string; anonKey: string }>;
+    import: ElectronImport;
     db: ElectronDB;
 }
 

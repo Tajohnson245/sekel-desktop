@@ -55,6 +55,7 @@
 .community-footer__copy {
   font-size: 0.8125rem;
   color: var(--mist);
+  margin-left: auto;
 }
 
 @media (max-width: 640px) {
@@ -65,6 +66,10 @@
   }
 
   .community-footer__links {
+    margin-left: 0;
+  }
+
+  .community-footer__copy {
     margin-left: 0;
   }
 }

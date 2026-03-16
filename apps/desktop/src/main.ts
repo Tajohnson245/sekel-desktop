@@ -7,6 +7,8 @@ import { setupAIHandlers } from './ipc/ai';
 import { setupAuthHandlers } from './ipc/auth';
 import { setupDocumentHandlers } from './ipc/document_parsing';
 import { setupDatabaseHandlers } from './ipc/database';
+import { setupImportHandlers } from './ipc/import';
+import { cleanupStaleTempDirs } from './main/import/tempCleanup';
 
 // update-electron-app is a CommonJS module
 const updateElectronApp = require('update-electron-app');
@@ -50,11 +52,17 @@ const createWindow = () => {
 };
 
 app.whenReady().then(() => {
-    initDatabase();
-    setupAIHandlers();
-    setupAuthHandlers();
-    setupDocumentHandlers();
-    setupDatabaseHandlers();
+    try {
+        initDatabase();
+        setupAIHandlers();
+        setupAuthHandlers();
+        setupDocumentHandlers();
+        setupDatabaseHandlers();
+        setupImportHandlers();
+        cleanupStaleTempDirs(); // fire-and-forget stale temp dir cleanup
+    } catch (err) {
+        console.error('[main] startup initialization error:', err);
+    }
 
     // Check for updates only in production (packaged app)
     if (app.isPackaged) {

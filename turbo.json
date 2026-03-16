@@ -16,11 +16,19 @@
     "test": {
       "cache": false
     },
+    "test:unit": {
+      "cache": true,
+      "inputs": ["src/**/*.ts", "src/**/*.tsx", "vitest.config.ts"]
+    },
     "desktop": {
       "cache": false,
       "persistent": true
     },
     "web": {
+      "cache": false,
+      "persistent": true
+    },
+    "survey": {
       "cache": false,
       "persistent": true
     }

@@ -87,7 +87,7 @@
         "study_now": "Jetzt Lernen",
         "review_all": "Alle Wiederholen",
         "cram_mode": "Büffel-Modus",
-        "fsrs_enabled": "FSRS Aktiviert",
+        "algorithm": "Algorithmus",
         "mode_flashcard": "Karteikarten",
         "delete": "Löschen",
         "loading": "Lade Stapel...",
@@ -337,5 +337,9 @@
         "delete_rect": "Rechteck löschen",
         "change_image": "Bild ändern",
         "remove_image": "Bild entfernen"
+    },
+    "import": {
+        "importAnkiDeck": "Import Anki Deck",
+        "errorGeneric": "An error occurred during import. Please try again."
     }
 }

@@ -88,7 +88,7 @@ export default function DeckDetail({ deckId, userId, onBack, onStudy, onNavigate
 
     const totalCards = stats?.totalCount ?? 0;
     const dueCards = (stats?.newCount ?? 0) + (stats?.learningCount ?? 0) + (stats?.reviewCount ?? 0);
-    const fsrsEnabled = deck.fsrs_enabled ?? true;
+    const fsrsEnabled = deck.algorithm === 'fsrs';
 
     // Demo deck name/description translation (when DB has English seed values)
     const displayDeckName = deck.name === 'Testing Deck' ? t('decks.demo_deck_name') : deck.name;

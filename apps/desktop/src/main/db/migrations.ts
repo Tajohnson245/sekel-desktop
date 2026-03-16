@@ -26,6 +26,14 @@ export const MIGRATIONS: string[] = [
         created_at   TEXT NOT NULL,
         updated_at   TEXT NOT NULL
     );
+    `,
+    // Migration 002 — deck enhancements: algorithm, parent_id, anki_id
+    `
+    ALTER TABLE decks ADD COLUMN algorithm TEXT NOT NULL DEFAULT 'fsrs';
+    UPDATE decks SET algorithm = CASE WHEN fsrs_enabled = 1 THEN 'fsrs' ELSE 'sm2' END;
+    ALTER TABLE decks DROP COLUMN fsrs_enabled;
+    ALTER TABLE decks ADD COLUMN parent_id TEXT REFERENCES decks(id);
+    ALTER TABLE decks ADD COLUMN anki_id INTEGER;
     CREATE INDEX IF NOT EXISTS idx_decks_user_id ON decks(user_id);
 
     CREATE TABLE IF NOT EXISTS notes (
@@ -131,5 +139,43 @@ export const MIGRATIONS: string[] = [
         key   TEXT PRIMARY KEY,
         value TEXT NOT NULL
     );
+    `,
+    // Migration 003 — note enhancements: anki_id, anki_guid
+    `
+    ALTER TABLE notes ADD COLUMN anki_id INTEGER;
+    ALTER TABLE notes ADD COLUMN anki_guid TEXT;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_notes_anki_guid ON notes(anki_guid) WHERE anki_guid IS NOT NULL;
+    `,
+    // Migration 004 — note_type enhancements: anki_id
+    `
+    ALTER TABLE note_types ADD COLUMN anki_id INTEGER;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_note_types_anki_id ON note_types(user_id, anki_id) WHERE anki_id IS NOT NULL;
+    `,
+    // Migration 005 — card enhancements: anki_id, ease_factor
+    `
+    ALTER TABLE cards ADD COLUMN anki_id INTEGER;
+    ALTER TABLE cards ADD COLUMN ease_factor INTEGER;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_cards_anki_id ON cards(user_id, anki_id) WHERE anki_id IS NOT NULL;
+    `,
+    // Migration 006 — review enhancements: interval_before, ease_factor_after, review_type
+    `
+    ALTER TABLE reviews ADD COLUMN interval_before INTEGER;
+    ALTER TABLE reviews ADD COLUMN ease_factor_after INTEGER;
+    ALTER TABLE reviews ADD COLUMN review_type INTEGER;
+    `,
+    // Migration 007 — media table for .apkg imported files
+    `
+    CREATE TABLE IF NOT EXISTS media (
+        id         TEXT PRIMARY KEY,
+        user_id    TEXT NOT NULL,
+        filename   TEXT NOT NULL,
+        file_path  TEXT NOT NULL,
+        file_hash  TEXT NOT NULL,
+        file_size  INTEGER,
+        mime_type  TEXT,
+        created_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_media_user_filename ON media(user_id, filename);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_media_user_file_hash ON media(user_id, file_hash);
     `,
 ];

@@ -24,6 +24,11 @@ export { default as DeckStats } from './deck/DeckStats';
 export { default as FlipCard } from './deck/FlipCard';
 export { default as SkeletonCard } from './deck/SkeletonCard';
 
+// Auth
+export { default as LoginForm } from './auth/LoginForm';
+export { default as SignupForm } from './auth/SignupForm';
+export { default as AccountForm } from './auth/AccountForm';
+
 // Search
 export { default as SearchBar } from './search/SearchBar';
 export { default as SearchFilters } from './search/SearchFilters';

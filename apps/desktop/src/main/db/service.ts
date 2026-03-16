@@ -7,6 +7,7 @@ import type {
     NoteType, NoteTypeInsert,
     Card, CardInsert,
     Review,
+    Media, MediaInsert,
     DeckSession,
     DraftCard, DraftCardInsert,
     UserProfile,
@@ -32,10 +33,7 @@ function s(value: unknown): string {
 // ── Row mappers ───────────────────────────────────────────────────────────────
 
 function mapDeck(row: Record<string, unknown>): Deck {
-    return {
-        ...(row as unknown as Deck),
-        fsrs_enabled: Boolean(row.fsrs_enabled),
-    };
+    return row as unknown as Deck;
 }
 
 function mapNoteType(row: Record<string, unknown>): NoteType {
@@ -88,11 +86,11 @@ export function createDeck(deck: DeckInsert): Deck {
     const now = new Date().toISOString();
     const id = randomUUID();
     getDb().prepare(`
-        INSERT INTO decks (id, user_id, name, description, fsrs_enabled, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(id, deck.user_id, deck.name, deck.description ?? null, deck.fsrs_enabled ? 1 : 0, now, now);
+        INSERT INTO decks (id, user_id, name, description, algorithm, parent_id, anki_id, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, deck.user_id, deck.name, deck.description ?? null, deck.algorithm ?? 'fsrs', deck.parent_id ?? null, deck.anki_id ?? null, now, now);
     const result = fetchDeck(id)!;
-    pushRecord('decks', { ...result, fsrs_enabled: result.fsrs_enabled } as unknown as Record<string, unknown>);
+    pushRecord('decks', result as unknown as Record<string, unknown>);
     return result;
 }
 
@@ -103,7 +101,9 @@ export function updateDeck(id: string, updates: DeckUpdate): Deck {
 
     if (updates.name !== undefined) { sets.push('name = ?'); values.push(updates.name); }
     if (updates.description !== undefined) { sets.push('description = ?'); values.push(updates.description); }
-    if (updates.fsrs_enabled !== undefined) { sets.push('fsrs_enabled = ?'); values.push(updates.fsrs_enabled ? 1 : 0); }
+    if (updates.algorithm !== undefined) { sets.push('algorithm = ?'); values.push(updates.algorithm); }
+    if (updates.parent_id !== undefined) { sets.push('parent_id = ?'); values.push(updates.parent_id); }
+    if (updates.anki_id !== undefined) { sets.push('anki_id = ?'); values.push(updates.anki_id); }
 
     values.push(id);
     getDb().prepare(`UPDATE decks SET ${sets.join(', ')} WHERE id = ?`).run(...values);
@@ -182,6 +182,7 @@ function buildCardWithNote(row: CardWithNoteRow): CardWithNote {
     const noteType: NoteType = {
         id: row.nt_id as string,
         user_id: row.user_id as string,
+        anki_id: (row.nt_anki_id as number | null) ?? null,
         name: row.nt_name as string,
         fields: j(row.nt_fields),
         card_templates: j(row.nt_templates),
@@ -195,6 +196,8 @@ function buildCardWithNote(row: CardWithNoteRow): CardWithNote {
         note_type_id: row.note_type_id as string,
         fields: j(row.note_fields),
         tags: j(row.note_tags),
+        anki_id: (row.anki_id as number | null) ?? null,
+        anki_guid: (row.anki_guid as string | null) ?? null,
         created_at: row.note_created_at as string,
         updated_at: row.note_updated_at as string,
         note_type: noteType,
@@ -202,6 +205,9 @@ function buildCardWithNote(row: CardWithNoteRow): CardWithNote {
     return {
         id: row.id as string,
         user_id: row.user_id as string,
+        anki_id: (row.anki_id as number | null) ?? null,
+        ease_factor: (row.ease_factor as number | null) ?? null,
+
         note_id: row.note_id as string,
         template_index: row.template_index as number,
         state: row.state as Card['state'],
@@ -300,13 +306,13 @@ export function createCard(card: CardInsert): Card {
     getDb().prepare(`
         INSERT INTO cards (id, user_id, note_id, template_index, state, due,
             stability, difficulty, elapsed_days, scheduled_days, reps, lapses,
-            last_review, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            last_review, anki_id, ease_factor, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
         id, card.user_id, card.note_id, card.template_index,
         card.state, card.due, card.stability, card.difficulty,
         card.elapsed_days, card.scheduled_days, card.reps, card.lapses,
-        card.last_review ?? null, now, now,
+        card.last_review ?? null, card.anki_id ?? null, card.ease_factor ?? null, now, now,
     );
     const result = fetchCardById(id)!;
     pushRecord('cards', result as unknown as Record<string, unknown>);
@@ -402,9 +408,9 @@ export function createNoteType(noteType: NoteTypeInsert): NoteType {
     const now = new Date().toISOString();
     const id = randomUUID();
     getDb().prepare(`
-        INSERT INTO note_types (id, user_id, name, fields, card_templates, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(id, noteType.user_id, noteType.name, s(noteType.fields), s(noteType.card_templates), now, now);
+        INSERT INTO note_types (id, user_id, name, fields, card_templates, anki_id, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, noteType.user_id, noteType.name, s(noteType.fields), s(noteType.card_templates), noteType.anki_id ?? null, now, now);
     const row = getDb().prepare('SELECT * FROM note_types WHERE id = ?').get(id) as Record<string, unknown>;
     const result = mapNoteType(row);
     pushRecord('note_types', result as unknown as Record<string, unknown>);
@@ -420,14 +426,16 @@ export function insertReview(params: InsertReviewParams): Review {
         INSERT INTO reviews (id, user_id, card_id, rating, review_time, review_duration_ms,
             state_before, stability_before, difficulty_before,
             state_after, stability_after, difficulty_after,
-            scheduled_days, session_id, deck_id, review_index, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            scheduled_days, session_id, deck_id, review_index,
+            interval_before, ease_factor_after, review_type, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
         id, params.user_id, params.card_id, params.rating, now,
         params.review_duration_ms ?? null,
         params.state_before, params.stability_before, params.difficulty_before,
         params.state_after, params.stability_after, params.difficulty_after,
         params.scheduled_days, params.session_id, params.deck_id, params.review_index,
+        params.interval_before ?? null, params.ease_factor_after ?? null, params.review_type ?? null,
         now,
     );
     const result = getDb().prepare('SELECT * FROM reviews WHERE id = ?').get(id) as Review;
@@ -561,6 +569,23 @@ export function fetchSessionAnalytics(sessionId: string): SessionAnalytics | nul
     };
 }
 
+// ── Media ─────────────────────────────────────────────────────────────────────
+
+export function createMedia(media: MediaInsert): Media {
+    const now = new Date().toISOString();
+    const id = randomUUID();
+    getDb().prepare(`
+        INSERT INTO media (id, user_id, filename, file_path, file_hash, file_size, mime_type, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, media.user_id, media.filename, media.file_path, media.file_hash, media.file_size ?? null, media.mime_type ?? null, now);
+    return getDb().prepare('SELECT * FROM media WHERE id = ?').get(id) as Media;
+}
+
+export function fetchMediaByFilename(userId: string, filename: string): Media | null {
+    const row = getDb().prepare('SELECT * FROM media WHERE user_id = ? AND filename = ?').get(userId, filename) as Media | undefined;
+    return row ?? null;
+}
+
 // ── Drafts ────────────────────────────────────────────────────────────────────
 
 export function fetchDrafts(userId: string): DraftCard[] {
@@ -690,31 +715,31 @@ export function bulkUpsertAll(data: {
         }
 
         for (const nt of data.noteTypes) {
-            db.prepare(`INSERT OR REPLACE INTO note_types (id, user_id, name, fields, card_templates, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            `).run(nt.id, nt.user_id, nt.name, s(nt.fields), s(nt.card_templates), nt.created_at, nt.updated_at);
+            db.prepare(`INSERT OR REPLACE INTO note_types (id, user_id, name, fields, card_templates, anki_id, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `).run(nt.id, nt.user_id, nt.name, s(nt.fields), s(nt.card_templates), nt.anki_id ?? null, nt.created_at, nt.updated_at);
         }
 
         for (const d of data.decks) {
-            db.prepare(`INSERT OR REPLACE INTO decks (id, user_id, name, description, fsrs_enabled, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            `).run(d.id, d.user_id, d.name, d.description ?? null, d.fsrs_enabled ? 1 : 0, d.created_at, d.updated_at);
+            db.prepare(`INSERT OR REPLACE INTO decks (id, user_id, name, description, algorithm, parent_id, anki_id, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `).run(d.id, d.user_id, d.name, d.description ?? null, d.algorithm ?? 'fsrs', d.parent_id ?? null, d.anki_id ?? null, d.created_at, d.updated_at);
         }
 
         for (const n of data.notes) {
-            db.prepare(`INSERT OR REPLACE INTO notes (id, user_id, deck_id, note_type_id, fields, tags, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            `).run(n.id, n.user_id, n.deck_id, n.note_type_id, s(n.fields), s(n.tags), n.created_at, n.updated_at);
+            db.prepare(`INSERT OR REPLACE INTO notes (id, user_id, deck_id, note_type_id, fields, tags, anki_id, anki_guid, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `).run(n.id, n.user_id, n.deck_id, n.note_type_id, s(n.fields), s(n.tags), n.anki_id ?? null, n.anki_guid ?? null, n.created_at, n.updated_at);
         }
 
         for (const c of data.cards) {
             db.prepare(`INSERT OR REPLACE INTO cards
                 (id, user_id, note_id, template_index, state, due, stability, difficulty,
-                 elapsed_days, scheduled_days, reps, lapses, last_review, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 elapsed_days, scheduled_days, reps, lapses, last_review, anki_id, ease_factor, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `).run(c.id, c.user_id, c.note_id, c.template_index, c.state, c.due,
                 c.stability, c.difficulty, c.elapsed_days, c.scheduled_days,
-                c.reps, c.lapses, c.last_review ?? null, c.created_at, c.updated_at);
+                c.reps, c.lapses, c.last_review ?? null, c.anki_id ?? null, c.ease_factor ?? null, c.created_at, c.updated_at);
         }
 
         for (const r of data.reviews) {
@@ -722,14 +747,17 @@ export function bulkUpsertAll(data: {
                 (id, user_id, card_id, rating, review_time, review_duration_ms,
                  state_before, stability_before, difficulty_before,
                  state_after, stability_after, difficulty_after,
-                 scheduled_days, session_id, deck_id, review_index, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 scheduled_days, session_id, deck_id, review_index,
+                 interval_before, ease_factor_after, review_type, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `).run(r.id, r.user_id, r.card_id, r.rating, r.review_time,
                 r.review_duration_ms ?? null,
                 r.state_before, r.stability_before, r.difficulty_before,
                 r.state_after, r.stability_after, r.difficulty_after,
                 r.scheduled_days, r.session_id ?? null, r.deck_id ?? null,
-                r.review_index ?? null, r.created_at);
+                r.review_index ?? null,
+                r.interval_before ?? null, r.ease_factor_after ?? null, r.review_type ?? null,
+                r.created_at);
         }
 
         for (const s of data.sessions) {

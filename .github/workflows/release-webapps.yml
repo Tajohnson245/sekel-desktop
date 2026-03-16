@@ -1,0 +1,58 @@
+name: Release (Web Apps)
+
+on:
+  push:
+    tags:
+      - 'web/v*.*.*'
+      - 'community/v*.*.*'
+
+jobs:
+  web:
+    name: Web — Lint, Type Check & Build
+    if: startsWith(github.ref, 'refs/tags/web/')
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npx turbo run lint --filter=@sekel/web
+
+      - name: Type check
+        run: npx turbo run typecheck --filter=@sekel/web
+
+      - name: Build
+        run: npx turbo run build --filter=@sekel/web
+
+  community:
+    name: Community — Lint, Type Check & Build
+    if: startsWith(github.ref, 'refs/tags/community/')
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npx turbo run lint --filter=@sekel/community
+
+      - name: Type check
+        run: npx turbo run typecheck --filter=@sekel/community
+
+      - name: Build
+        run: npx turbo run build --filter=@sekel/community

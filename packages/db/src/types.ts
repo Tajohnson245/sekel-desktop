@@ -21,7 +21,9 @@ export interface Deck {
     user_id: string;
     name: string;
     description: string | null;
-    fsrs_enabled: boolean;
+    algorithm: 'fsrs' | 'sm2';
+    parent_id: string | null;
+    anki_id: number | null;
     created_at: string;
     updated_at: string;
 }
@@ -45,6 +47,7 @@ export interface CardTemplate {
 export interface NoteType {
     id: string;
     user_id: string;
+    anki_id: number | null;
     name: string;
     fields: FieldDefinition[];
     card_templates: CardTemplate[];
@@ -52,7 +55,7 @@ export interface NoteType {
     updated_at: string;
 }
 
-export type NoteTypeInsert = Omit<NoteType, 'id' | 'created_at' | 'updated_at'>;
+export type NoteTypeInsert = Omit<NoteType, 'id' | 'created_at' | 'updated_at' | 'anki_id'> & { anki_id?: number | null };
 export type NoteTypeUpdate = Partial<Omit<NoteType, 'id' | 'user_id' | 'created_at' | 'updated_at'>>;
 
 // ─────────────────────────────────────────────────────────────────
@@ -65,11 +68,13 @@ export interface Note {
     note_type_id: string;
     fields: Record<string, string>;
     tags: string[];
+    anki_id: number | null;
+    anki_guid: string | null;
     created_at: string;
     updated_at: string;
 }
 
-export type NoteInsert = Omit<Note, 'id' | 'created_at' | 'updated_at'>;
+export type NoteInsert = Omit<Note, 'id' | 'created_at' | 'updated_at' | 'anki_id' | 'anki_guid'> & { anki_id?: number | null; anki_guid?: string | null };
 export type NoteUpdate = Partial<Omit<Note, 'id' | 'user_id' | 'created_at' | 'updated_at'>>;
 
 // ─────────────────────────────────────────────────────────────────
@@ -78,6 +83,8 @@ export type NoteUpdate = Partial<Omit<Note, 'id' | 'user_id' | 'created_at' | 'u
 export interface Card {
     id: string;
     user_id: string;
+    anki_id: number | null;
+    ease_factor: number | null;
     note_id: string;
     template_index: number;
 
@@ -96,7 +103,7 @@ export interface Card {
     updated_at: string;
 }
 
-export type CardInsert = Omit<Card, 'id' | 'created_at' | 'updated_at'>;
+export type CardInsert = Omit<Card, 'id' | 'created_at' | 'updated_at' | 'anki_id' | 'ease_factor'> & { anki_id?: number | null; ease_factor?: number | null };
 export type CardUpdate = Partial<Omit<Card, 'id' | 'user_id' | 'note_id' | 'template_index' | 'created_at' | 'updated_at'>>;
 
 // ─────────────────────────────────────────────────────────────────
@@ -146,10 +153,32 @@ export interface Review {
     deck_id: string | null;
     review_index: number | null;
 
+    // anki import metadata
+    interval_before: number | null;
+    ease_factor_after: number | null;
+    review_type: number | null;
+
     created_at: string;
 }
 
-export type ReviewInsert = Omit<Review, 'id' | 'created_at'>;
+export type ReviewInsert = Omit<Review, 'id' | 'created_at' | 'interval_before' | 'ease_factor_after' | 'review_type'> & { interval_before?: number | null; ease_factor_after?: number | null; review_type?: number | null };
+
+// ─────────────────────────────────────────────────────────────────
+// Media (imported from .apkg)
+// ─────────────────────────────────────────────────────────────────
+export interface Media {
+    id: string;
+    user_id: string;
+    filename: string;
+    file_path: string;
+    file_hash: string;
+    file_size: number | null;
+    mime_type: string | null;
+    created_at: string;
+}
+
+export type MediaInsert = Omit<Media, 'id' | 'created_at'>;
+export type MediaUpdate = Partial<Omit<Media, 'id' | 'user_id' | 'created_at'>>;
 
 // ─────────────────────────────────────────────────────────────────
 // Session Analytics (payload for post-session charts)
