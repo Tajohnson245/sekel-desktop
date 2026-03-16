@@ -22,7 +22,7 @@ jobs:
       - node/install-packages:
           pkg-manager: npm
       - run:
-          command: npm run build
+          command: npx turbo run build --filter=!@sekel/desktop
       - run:
           name: Create the ~/artifacts directory if it doesn't exist
           command: mkdir -p ~/artifacts
