@@ -9,8 +9,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getSupabaseConfig: () => ipcRenderer.invoke('get-supabase-config'),
 
     import: {
-        selectFile: () => ipcRenderer.invoke('import:select-file'),
-        processApkg: (filePath: string) => ipcRenderer.invoke('import:process-apkg', filePath),
+        selectFile:    () => ipcRenderer.invoke('import:select-file'),
+        processApkg:   (filePath: string) => ipcRenderer.invoke('import:process-apkg', filePath),
+        getSummary:    (args: { dbFilePath: string; mediaMap: Record<string, string>; mediaFilePaths: string[]; userId: string; tempDir: string }) =>
+                           ipcRenderer.invoke('import:get-summary', args),
+        confirmImport: (payload: unknown) => ipcRenderer.invoke('import:confirm', payload),
     },
 
     db: {

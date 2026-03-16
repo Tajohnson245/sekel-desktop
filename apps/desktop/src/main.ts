@@ -54,15 +54,19 @@ const createWindow = () => {
 app.whenReady().then(() => {
     try {
         initDatabase();
-        setupAIHandlers();
-        setupAuthHandlers();
-        setupDocumentHandlers();
-        setupDatabaseHandlers();
-        setupImportHandlers();
-        cleanupStaleTempDirs(); // fire-and-forget stale temp dir cleanup
     } catch (err) {
-        console.error('[main] startup initialization error:', err);
+        console.error('[main] database initialization failed — app will run without DB:', err);
     }
+
+    // Register IPC handlers unconditionally so the renderer always has targets
+    // to invoke. If the DB failed to initialize, individual handlers will throw
+    // "Database not initialized" instead of the opaque "No handler registered".
+    try { setupAIHandlers(); } catch (err) { console.error('[main] AI handler setup failed:', err); }
+    try { setupAuthHandlers(); } catch (err) { console.error('[main] auth handler setup failed:', err); }
+    try { setupDocumentHandlers(); } catch (err) { console.error('[main] document handler setup failed:', err); }
+    try { setupDatabaseHandlers(); } catch (err) { console.error('[main] database handler setup failed:', err); }
+    try { setupImportHandlers(); } catch (err) { console.error('[main] import handler setup failed:', err); }
+    cleanupStaleTempDirs(); // fire-and-forget stale temp dir cleanup
 
     // Check for updates only in production (packaged app)
     if (app.isPackaged) {

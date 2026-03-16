@@ -16,7 +16,9 @@
         "deleting": "Eliminando...",
         "empty": "(vacío)",
         "next": "Siguiente",
-        "user": "Usuario"
+        "user": "Usuario",
+        "expand": "Expandir",
+        "collapse": "Contraer"
     },
     "nav": {
         "dashboard": "Tablero",
@@ -342,7 +344,38 @@
         "remove_image": "Eliminar Imagen"
     },
     "import": {
-        "importAnkiDeck": "Import Anki Deck",
-        "errorGeneric": "An error occurred during import. Please try again."
+        "importAnkiDeck": "Importar Anki Deck",
+        "errorGeneric": "Ocurrió un error durante la importación. Por favor, inténtalo de nuevo.",
+        "errorNotLoggedIn": "Debes iniciar sesión para importar un mazo.",
+        "modalTitle": "Importar Anki Deck",
+        "conflictBadge": "existe",
+        "summary": {
+            "decks": "Mazos",
+            "noteTypes": "Tipos de nota",
+            "notes": "Notas",
+            "cards": "Tarjetas",
+            "reviews": "Repasos",
+            "images": "Imágenes",
+            "audio": "Archivos de audio"
+        },
+        "deckOptions": {
+            "deck": "Mazo",
+            "scheduling": "Programación",
+            "keepProgress": "Mantener progreso",
+            "startFresh": "Empezar de nuevo",
+            "algorithm": "Algoritmo",
+            "fsrs": "FSRS (recomendado)",
+            "sm2": "SM-2",
+            "conflict": "Conflicto",
+            "skip": "Omitir",
+            "overwrite": "Sobrescribir",
+            "merge": "Combinar"
+        },
+        "conflictWarning": "{{count}} mazo(s) ya existen en Sekel",
+        "overwriteConfirm": "Sobrescribir reemplazará todas las tarjetas y repasos en \"{{name}}\". Esto no se puede deshacer.",
+        "confirmOverwrite": "Confirmar sobrescritura",
+        "importButton": "Importar {{count}} Mazo(s)",
+        "atLeastOne": "Selecciona al menos un mazo para importar.",
+        "warnings": "{{count}} advertencia(s)"
     }
 }

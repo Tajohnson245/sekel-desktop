@@ -16,7 +16,9 @@
         "deleting": "删除中...",
         "empty": "（空）",
         "next": "下一步",
-        "user": "用户"
+        "user": "用户",
+        "expand": "展开",
+        "collapse": "收起"
     },
     "nav": {
         "dashboard": "仪表板",
@@ -342,7 +344,38 @@
         "remove_image": "删除图片"
     },
     "import": {
-        "importAnkiDeck": "Import Anki Deck",
-        "errorGeneric": "An error occurred during import. Please try again."
+        "importAnkiDeck": "导入 Anki 牌组",
+        "errorGeneric": "导入时发生错误，请重试。",
+        "errorNotLoggedIn": "您必须登录才能导入牌组。",
+        "modalTitle": "导入 Anki 牌组",
+        "conflictBadge": "已存在",
+        "summary": {
+            "decks": "牌组",
+            "noteTypes": "笔记类型",
+            "notes": "笔记",
+            "cards": "卡片",
+            "reviews": "复习记录",
+            "images": "图片",
+            "audio": "音频文件"
+        },
+        "deckOptions": {
+            "deck": "牌组",
+            "scheduling": "调度",
+            "keepProgress": "保留进度",
+            "startFresh": "重新开始",
+            "algorithm": "算法",
+            "fsrs": "FSRS（推荐）",
+            "sm2": "SM-2",
+            "conflict": "冲突",
+            "skip": "跳过",
+            "overwrite": "覆盖",
+            "merge": "合并"
+        },
+        "conflictWarning": "{{count}} 个牌组已存在于 Sekel 中",
+        "overwriteConfirm": "覆盖将替换「{{name}}」中的所有卡片和复习记录，此操作无法撤销。",
+        "confirmOverwrite": "确认覆盖",
+        "importButton": "导入 {{count}} 个牌组",
+        "atLeastOne": "请至少选择一个牌组进行导入。",
+        "warnings": "{{count}} 条警告"
     }
 }

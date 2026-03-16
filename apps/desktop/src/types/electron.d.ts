@@ -12,6 +12,53 @@ import type {
 
 export type AnkiFormat = 'legacy2' | 'legacy1';
 
+// ── Import Options (renderer-visible copies of main/import/types.ts) ──────────
+
+export interface ImportSummaryDeck {
+    ankiDeckId: number;
+    name: string;
+    nameComponents: string[];
+    hasConflict: boolean;
+    existingDeckId?: string;
+}
+
+export interface ImportSummary {
+    deckCount: number;
+    noteTypeCount: number;
+    noteCount: number;
+    cardCount: number;
+    reviewLogCount: number;
+    mediaImageCount: number;
+    mediaAudioCount: number;
+    decks: ImportSummaryDeck[];
+    noteTypeNames: string[];
+    warnings: string[];
+}
+
+export interface ImportOptionsDeck {
+    ankiDeckId: number;
+    deckName: string;
+    selected: boolean;
+    scheduling: 'keep' | 'fresh';
+    algorithm: 'fsrs' | 'sm2';
+    conflict: 'skip' | 'overwrite' | 'merge' | null;
+}
+
+export interface ImportOptionsPayload {
+    decks: ImportOptionsDeck[];
+    mediaMap: Record<string, string>;
+    mediaFilePaths: string[];
+    tempDir: string;
+    userId: string;
+}
+
+export interface ImportResult {
+    decksCreated: number;
+    decksSkipped: number;
+    notesInserted: number;
+    cardsInserted: number;
+}
+
 export interface ApkgImportResult {
     format: AnkiFormat;
     dbFilePath: string;
@@ -24,6 +71,14 @@ export interface ApkgImportResult {
 export interface ElectronImport {
     selectFile: () => Promise<string | null>;
     processApkg: (filePath: string) => Promise<ApkgImportResult>;
+    getSummary: (args: {
+        dbFilePath: string;
+        mediaMap: Record<string, string>;
+        mediaFilePaths: string[];
+        userId: string;
+        tempDir: string;
+    }) => Promise<ImportSummary>;
+    confirmImport: (payload: ImportOptionsPayload) => Promise<ImportResult>;
 }
 
 export interface DocumentOverview {
