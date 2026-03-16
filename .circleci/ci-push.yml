@@ -11,14 +11,24 @@ executors:
   linux-20:
     docker:
       - image: cimg/node:20.18
+  windows-exec:
+    machine:
+      image: windows-server-2022-gui:current
+      resource_class: windows.medium
+    shell: bash.exe
   macos-exec:
     macos:
       xcode: 15.4.0
     resource_class: macos.m1.medium.gen1
 
-commands:
-  install-deps:
+jobs:
+
+  # ── Desktop ──────────────────────────────────────────────────────────
+
+  desktop-lint-typecheck:
+    executor: linux-22
     steps:
+      - checkout
       - restore_cache:
           keys:
             - npm-deps-{{ checksum "package-lock.json" }}
@@ -30,15 +40,6 @@ commands:
           key: npm-deps-{{ checksum "package-lock.json" }}
           paths:
             - ~/.npm
-
-jobs:
-
-  # ── Desktop: lint + typecheck (all branches) ─────────────────────────────
-  desktop-lint-typecheck:
-    executor: linux-22
-    steps:
-      - checkout
-      - install-deps
       - run:
           name: Lint
           command: npx turbo run lint --filter=@sekel/desktop
@@ -46,14 +47,23 @@ jobs:
           name: Type check
           command: npx turbo run typecheck --filter=@sekel/desktop
 
-  # ── Desktop: unit tests (all branches) ───────────────────────────────────
   desktop-unit-tests:
     executor: linux-22
     steps:
       - checkout
-      - install-deps
+      - restore_cache:
+          keys:
+            - npm-deps-{{ checksum "package-lock.json" }}
+            - npm-deps-
       - run:
-          name: Rebuild better-sqlite3
+          name: Install dependencies
+          command: npm ci
+      - save_cache:
+          key: npm-deps-{{ checksum "package-lock.json" }}
+          paths:
+            - ~/.npm
+      - run:
+          name: Rebuild better-sqlite3 for Node
           command: npm rebuild better-sqlite3
       - run:
           name: Install Rollup native binary
@@ -66,12 +76,21 @@ jobs:
           name: Component tests
           command: npx turbo run test --filter=@sekel/components
 
-  # ── Desktop: platform builds (main + dev only) ───────────────────────────
   desktop-build-linux:
     executor: linux-22
     steps:
       - checkout
-      - install-deps
+      - restore_cache:
+          keys:
+            - npm-deps-{{ checksum "package-lock.json" }}
+            - npm-deps-
+      - run:
+          name: Install dependencies
+          command: npm install
+      - save_cache:
+          key: npm-deps-{{ checksum "package-lock.json" }}
+          paths:
+            - ~/.npm
       - run:
           name: Install Rollup native binary
           command: npm install --no-save rollup
@@ -81,9 +100,7 @@ jobs:
           command: npx turbo run build --filter=@sekel/desktop
 
   desktop-build-windows:
-    executor:
-      name: win/default
-      size: medium
+    executor: windows-exec
     steps:
       - checkout
       - node/install:
@@ -116,12 +133,24 @@ jobs:
           name: Build
           command: npx turbo run build --filter=@sekel/desktop
 
-  # ── Web (all branches) ───────────────────────────────────────────────────
+  # ── Web ──────────────────────────────────────────────────────────────
+
   web-ci:
-    executor: linux-20
+    docker:
+      - image: cimg/node:20.18
     steps:
       - checkout
-      - install-deps
+      - restore_cache:
+          keys:
+            - npm-deps-{{ checksum "package-lock.json" }}
+            - npm-deps-
+      - run:
+          name: Install dependencies
+          command: npm ci
+      - save_cache:
+          key: npm-deps-{{ checksum "package-lock.json" }}
+          paths:
+            - ~/.npm
       - run:
           name: Lint
           command: npx turbo run lint --filter=@sekel/web
@@ -132,12 +161,24 @@ jobs:
           name: Build
           command: npx turbo run build --filter=@sekel/web
 
-  # ── Community (all branches) ─────────────────────────────────────────────
+  # ── Community ────────────────────────────────────────────────────────
+
   community-ci:
-    executor: linux-20
+    docker:
+      - image: cimg/node:20.18
     steps:
       - checkout
-      - install-deps
+      - restore_cache:
+          keys:
+            - npm-deps-{{ checksum "package-lock.json" }}
+            - npm-deps-
+      - run:
+          name: Install dependencies
+          command: npm ci
+      - save_cache:
+          key: npm-deps-{{ checksum "package-lock.json" }}
+          paths:
+            - ~/.npm
       - run:
           name: Lint
           command: npx turbo run lint --filter=@sekel/community
@@ -148,15 +189,27 @@ jobs:
           name: Build
           command: npx turbo run build --filter=@sekel/community
 
-  # ── Survey (all branches) ────────────────────────────────────────────────
+  # ── Survey ───────────────────────────────────────────────────────────
+
   survey-ci:
-    executor: linux-20
+    docker:
+      - image: cimg/node:20.18
     environment:
       NEXT_PUBLIC_APP_URL: http://localhost:3002
       ADMIN_EMAILS: ci@sekel.io
     steps:
       - checkout
-      - install-deps
+      - restore_cache:
+          keys:
+            - npm-deps-{{ checksum "package-lock.json" }}
+            - npm-deps-
+      - run:
+          name: Install dependencies
+          command: npm ci
+      - save_cache:
+          key: npm-deps-{{ checksum "package-lock.json" }}
+          paths:
+            - ~/.npm
       - run:
           name: Lint
           command: npx turbo run lint --filter=@sekel/survey
@@ -168,33 +221,31 @@ jobs:
           command: npx turbo run build --filter=@sekel/survey
 
 workflows:
-  ci:
+
+  ci-desktop-push:
     jobs:
-      # Runs on every branch — fast feedback for PRs
       - desktop-lint-typecheck
       - desktop-unit-tests:
           requires:
             - desktop-lint-typecheck
-      - web-ci
-      - community-ci
-      - survey-ci
-
-      # Platform builds — main and dev only (expensive, release-gating)
       - desktop-build-linux:
           requires:
-            - desktop-unit-tests
-          filters:
-            branches:
-              only: [main, dev]
+            - desktop-lint-typecheck
       - desktop-build-windows:
           requires:
-            - desktop-unit-tests
-          filters:
-            branches:
-              only: [main, dev]
+            - desktop-lint-typecheck
       - desktop-build-macos:
           requires:
-            - desktop-unit-tests
-          filters:
-            branches:
-              only: [main, dev]
+            - desktop-lint-typecheck
+
+  ci-web-push:
+    jobs:
+      - web-ci
+
+  ci-community-push:
+    jobs:
+      - community-ci
+
+  ci-survey-push:
+    jobs:
+      - survey-ci
