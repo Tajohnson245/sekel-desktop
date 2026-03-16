@@ -7,7 +7,7 @@ import type { ProfileData } from "../types";
 
 const YEAR_OPTIONS = [
   "MS1","MS2","MS3","MS4",
-  "DO-1","DO-2","DO-3","DO-4",
+  "OMS1","OMS2","OMS3","OMS4",
   "IMG","PGY-1","PGY-2","Other",
 ];
 
@@ -19,21 +19,17 @@ const EXAM_OPTIONS = [
 ];
 
 const COMMON_SCHOOLS = [
-  "Harvard Medical School",
-  "Johns Hopkins School of Medicine",
-  "Stanford University School of Medicine",
-  "UCSF School of Medicine",
-  "University of Michigan Medical School",
-  "Duke University School of Medicine",
-  "Yale School of Medicine",
-  "Columbia University Vagelos College of P&S",
-  "University of Pennsylvania Perelman School of Medicine",
-  "Washington University School of Medicine",
-  "NYU Grossman School of Medicine",
-  "Mayo Clinic Alix School of Medicine",
-  "University of Chicago Pritzker School of Medicine",
-  "Vanderbilt University School of Medicine",
-  "Emory University School of Medicine",
+  // MD Programs
+  "Case Western Reserve University School of Medicine",
+  "The Ohio State University College of Medicine",
+  "University of Cincinnati College of Medicine",
+  "University of Toledo College of Medicine and Life Sciences",
+  "Northeast Ohio Medical University (NEOMED)",
+  "Wright State University Boonshoft School of Medicine",
+  // DO Programs
+  "Ohio University Heritage College of Osteopathic Medicine",
+  "Lake Erie College of Osteopathic Medicine — Bradenton (Sylvania)",
+  "Mercy Health — St. Vincent Medical Center (DO)",
 ];
 
 const COMMON_SPECIALTIES = [
