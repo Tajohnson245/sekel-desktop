@@ -196,3 +196,151 @@
     padding-top: 1.5rem;
     border-top: 1px solid var(--border);
 }
+
+/* ── Review: two-panel split ─────────────────────── */
+.review-split-container {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    grid-template-rows: 1fr auto;
+    grid-template-areas:
+        "sidebar main"
+        "footer  footer";
+    max-width: 1000px;
+    margin: 0 auto;
+    width: 100%;
+    background: var(--secondary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    min-height: 520px;
+}
+
+/* Sidebar */
+.review-sidebar {
+    grid-area: sidebar;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: var(--space-lg) 0;
+}
+
+.review-sidebar__heading {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--mist);
+    padding: 0 var(--space-lg) var(--space-sm);
+}
+
+.review-sidebar__list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0 var(--space-sm);
+}
+
+/* SectionItem */
+.section-item {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    width: 100%;
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--r-sm);
+    background: transparent;
+    border: none;
+    text-align: left;
+    color: var(--mist);
+    font-family: var(--font-body);
+    font-size: 0.8125rem;
+    transition: background 0.15s, color 0.15s;
+}
+
+.section-item:hover {
+    background: var(--teal-soft);
+    color: var(--primary);
+}
+
+.section-item__number {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    min-width: 16px;
+    opacity: 0.6;
+    padding-top: 2px;
+}
+
+.section-item__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--ink-muted);
+    flex-shrink: 0;
+    margin-top: 5px;
+    transition: background 0.15s;
+}
+
+.section-item:hover .section-item__dot {
+    background: var(--primary);
+}
+
+
+.section-item__label {
+    flex: 1;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.4;
+}
+
+/* Main content panel */
+.review-main {
+    grid-area: main;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+    padding: var(--space-xl);
+    overflow-y: auto;
+}
+
+.review-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+}
+
+.review-summary-label {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--mist);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin: 0;
+}
+
+.review-summary-readonly {
+    flex: 1;
+    padding: var(--space-lg);
+    border-radius: var(--r-sm);
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    overflow-y: auto;
+    min-height: 300px;
+}
+
+/* Footer */
+.review-footer {
+    grid-area: footer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-lg) var(--space-xl);
+    border-top: 1px solid var(--border);
+}

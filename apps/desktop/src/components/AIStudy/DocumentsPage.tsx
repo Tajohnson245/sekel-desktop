@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import DocumentUpload from './DocumentUpload';
 import AICardGenerator from './AICardGenerator';
 import { Button } from '../UI/Button';
+import { MetaChip } from '../UI/MetaChip';
 import { YouTubeIcon } from '../UI/Icons';
 import { parseFile, parseYoutube } from '../../lib/documentParser';
 import './DocumentsPage.css';
@@ -26,6 +27,21 @@ interface ParsedFile {
     originalFile?: File; // Only for files
     url?: string;        // Only for YouTube
     thumbnail?: string;  // Only for YouTube
+}
+
+interface SectionItemProps {
+    index: number;
+    label: string;
+}
+
+function SectionItem({ index, label }: SectionItemProps) {
+    return (
+        <div className="section-item">
+            <span className="section-item__number">{index + 1}</span>
+            <span className="section-item__dot" />
+            <span className="section-item__label">{label}</span>
+        </div>
+    );
 }
 
 export default function DocumentsPage({ userId, initialDeckId, onUnfinishedWorkChange }: DocumentsPageProps) {
@@ -280,35 +296,36 @@ export default function DocumentsPage({ userId, initialDeckId, onUnfinishedWorkC
             )}
 
             {step === 'review' && (
-                <div className="summary-review-section">
-                    <h3>{t('ai.review_title')}</h3>
-                    <p className="description">
-                        {t('ai.review_desc')}
-                    </p>
+                <div className="review-split-container">
+                    <aside className="review-sidebar">
+                        <p className="review-sidebar__heading">{t('ai.sections_label')}</p>
+                        <div className="review-sidebar__list">
+                            {summaryTopics.map((topic, i) => (
+                                <SectionItem
+                                    key={i}
+                                    index={i}
+                                    label={topic}
+                                />
+                            ))}
+                        </div>
+                    </aside>
 
-                    {summaryTopics.length > 0 && (
-                        <ul style={{ margin: '0 0 12px', paddingLeft: '20px', color: 'var(--text-muted, #666)', fontSize: '14px' }}>
-                            {summaryTopics.map((topic, i) => <li key={i}>{topic}</li>)}
-                        </ul>
-                    )}
-
-                    <div className="summary-editor">
-                        <textarea
-                            value={summaryText}
-                            onChange={(e) => setSummaryText(e.target.value)}
-                            rows={15}
-                            className="summary-textarea"
-                            style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', fontFamily: 'monospace' }}
-                        />
+                    <div className="review-main">
+                        <div className="review-meta-row">
+                            <MetaChip label={t('ai.chip_sections')} value={summaryTopics.length} />
+                            <MetaChip label={t('ai.chip_cards')} value={`~${estimatedCardCount}`} />
+                        </div>
+                        <p className="review-summary-label">{t('ai.review_title')}</p>
+                        <div className="review-summary-readonly">{summaryText}</div>
                     </div>
 
-                    <div className="review-actions" style={{ marginTop: '20px', display: 'flex', justifyContent: 'space-between' }}>
-                        <button className="btn btn-secondary" onClick={handleRestart} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <RefreshCw size={16} /> {t('ai.reupload')}
-                        </button>
-                        <button className="btn btn-primary" onClick={handleConfirmSummary} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            {t('ai.confirm_generate')} <ArrowRight size={16} />
-                        </button>
+                    <div className="review-footer">
+                        <Button variant="secondary" onClick={handleRestart} icon={<RefreshCw size={16} />}>
+                            {t('ai.reupload')}
+                        </Button>
+                        <Button variant="primary" onClick={handleConfirmSummary} icon={<ArrowRight size={16} />}>
+                            {t('ai.confirm_generate')}
+                        </Button>
                     </div>
                 </div>
             )}

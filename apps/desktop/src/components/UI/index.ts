@@ -6,6 +6,8 @@ export { Modal } from '@sekel/components';
 export { Loader } from '@sekel/components';
 export { YouTubeIcon } from '@sekel/components';
 
+export { MetaChip } from '@sekel/components';
+
 // Desktop-only UI (stay local)
 export * from './ImageUpload';
 export * from './SessionAnalytics';
