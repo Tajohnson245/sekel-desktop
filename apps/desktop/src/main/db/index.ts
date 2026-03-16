@@ -7,7 +7,7 @@ let db: Database.Database;
 
 export function initDatabase(): Database.Database {
     const dbPath = path.join(app.getPath('userData'), 'sekel.db');
-    db = new Database(dbPath);
+    db = new Database(dbPath, { timeout: 5000 });
 
     db.pragma('journal_mode = WAL');
     db.pragma('foreign_keys = ON');

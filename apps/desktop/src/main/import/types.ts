@@ -167,3 +167,54 @@ export interface AnkiCollection {
     /** Non-fatal warnings, e.g. orphaned cards or notes with unknown model ids. */
     warnings: string[];
 }
+
+// ── Import Options Types ──────────────────────────────────────────────────────
+// These are used for Phase 4 (user prompts) and consumed by Phase 6 (insertion).
+
+export interface ImportSummaryDeck {
+    ankiDeckId: number;
+    name: string;
+    nameComponents: string[];
+    hasConflict: boolean;
+    /** SEKEL deck UUID if a conflict was found. */
+    existingDeckId?: string;
+}
+
+/** Renderer-facing summary sent via IPC. Fully JSON-serializable (no Maps). */
+export interface ImportSummary {
+    deckCount: number;
+    noteTypeCount: number;
+    noteCount: number;
+    cardCount: number;
+    reviewLogCount: number;
+    mediaImageCount: number;
+    mediaAudioCount: number;
+    decks: ImportSummaryDeck[];
+    noteTypeNames: string[];
+    warnings: string[];
+}
+
+export interface ImportOptionsDeck {
+    ankiDeckId: number;
+    deckName: string;
+    selected: boolean;
+    scheduling: 'keep' | 'fresh';
+    algorithm: 'fsrs' | 'sm2';
+    conflict: 'skip' | 'overwrite' | 'merge' | null;
+}
+
+/** Sent renderer → main via import:confirm. Never includes AnkiCollection (not serializable). */
+export interface ImportOptionsPayload {
+    decks: ImportOptionsDeck[];
+    mediaMap: Record<string, string>;
+    mediaFilePaths: string[];
+    /** tempDir from ApkgImportResult — used as cache key for AnkiCollection lookup. */
+    tempDir: string;
+    /** Sekel user id — needed by Phase 6 to write to the correct user's rows. */
+    userId: string;
+}
+
+/** Full options object used by Phase 6 after main process enriches ImportOptionsPayload. */
+export interface ImportOptions extends ImportOptionsPayload {
+    parsedData: AnkiCollection;
+}

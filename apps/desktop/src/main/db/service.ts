@@ -124,6 +124,15 @@ export function deleteDecks(ids: string[]): void {
     for (const id of ids) deleteRecord('decks', id);
 }
 
+export function fetchDecksByAnkiIds(userId: string, ankiIds: number[]): Deck[] {
+    if (ankiIds.length === 0) return [];
+    const placeholders = ankiIds.map(() => '?').join(', ');
+    const rows = getDb()
+        .prepare(`SELECT * FROM decks WHERE user_id = ? AND anki_id IN (${placeholders})`)
+        .all(userId, ...ankiIds) as Record<string, unknown>[];
+    return rows.map(mapDeck);
+}
+
 export function fetchDeckStats(deckId: string): DeckStats {
     const now = new Date().toISOString();
     const db = getDb();

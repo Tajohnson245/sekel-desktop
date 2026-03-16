@@ -16,7 +16,9 @@
         "deleting": "Löschen...",
         "empty": "(leer)",
         "next": "Weiter",
-        "user": "Benutzer"
+        "user": "Benutzer",
+        "expand": "Erweitern",
+        "collapse": "Einklappen"
     },
     "nav": {
         "dashboard": "Dashboard",
@@ -342,7 +344,38 @@
         "remove_image": "Bild entfernen"
     },
     "import": {
-        "importAnkiDeck": "Import Anki Deck",
-        "errorGeneric": "An error occurred during import. Please try again."
+        "importAnkiDeck": "Anki-Deck importieren",
+        "errorGeneric": "Beim Import ist ein Fehler aufgetreten. Bitte versuche es erneut.",
+        "errorNotLoggedIn": "Du musst angemeldet sein, um ein Deck zu importieren.",
+        "modalTitle": "Anki-Deck importieren",
+        "conflictBadge": "vorhanden",
+        "summary": {
+            "decks": "Decks",
+            "noteTypes": "Kartentypen",
+            "notes": "Notizen",
+            "cards": "Karten",
+            "reviews": "Wiederholungen",
+            "images": "Bilder",
+            "audio": "Audiodateien"
+        },
+        "deckOptions": {
+            "deck": "Deck",
+            "scheduling": "Planung",
+            "keepProgress": "Fortschritt behalten",
+            "startFresh": "Neu beginnen",
+            "algorithm": "Algorithmus",
+            "fsrs": "FSRS (empfohlen)",
+            "sm2": "SM-2",
+            "conflict": "Konflikt",
+            "skip": "Überspringen",
+            "overwrite": "Überschreiben",
+            "merge": "Zusammenführen"
+        },
+        "conflictWarning": "{{count}} Deck(s) existieren bereits in Sekel",
+        "overwriteConfirm": "Beim Überschreiben werden alle Karten und Wiederholungen in \"{{name}}\" ersetzt. Dies kann nicht rückgängig gemacht werden.",
+        "confirmOverwrite": "Überschreiben bestätigen",
+        "importButton": "{{count}} Deck(s) importieren",
+        "atLeastOne": "Wähle mindestens ein Deck zum Importieren aus.",
+        "warnings": "{{count}} Warnung(en)"
     }
 }

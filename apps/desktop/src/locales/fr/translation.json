@@ -16,7 +16,9 @@
         "deleting": "Suppression...",
         "empty": "(vide)",
         "next": "Suivant",
-        "user": "Utilisateur"
+        "user": "Utilisateur",
+        "expand": "Développer",
+        "collapse": "Réduire"
     },
     "nav": {
         "dashboard": "Tableau de bord",
@@ -342,7 +344,38 @@
         "remove_image": "Supprimer l'Image"
     },
     "import": {
-        "importAnkiDeck": "Import Anki Deck",
-        "errorGeneric": "An error occurred during import. Please try again."
+        "importAnkiDeck": "Importer un Anki Deck",
+        "errorGeneric": "Une erreur s'est produite lors de l'importation. Veuillez réessayer.",
+        "errorNotLoggedIn": "Vous devez être connecté pour importer un paquet.",
+        "modalTitle": "Importer un Anki Deck",
+        "conflictBadge": "existe",
+        "summary": {
+            "decks": "Paquets",
+            "noteTypes": "Types de notes",
+            "notes": "Notes",
+            "cards": "Cartes",
+            "reviews": "Révisions",
+            "images": "Images",
+            "audio": "Fichiers audio"
+        },
+        "deckOptions": {
+            "deck": "Paquet",
+            "scheduling": "Planification",
+            "keepProgress": "Conserver la progression",
+            "startFresh": "Recommencer à zéro",
+            "algorithm": "Algorithme",
+            "fsrs": "FSRS (recommandé)",
+            "sm2": "SM-2",
+            "conflict": "Conflit",
+            "skip": "Ignorer",
+            "overwrite": "Écraser",
+            "merge": "Fusionner"
+        },
+        "conflictWarning": "{{count}} paquet(s) existent déjà dans Sekel",
+        "overwriteConfirm": "Écraser remplacera toutes les cartes et révisions dans \"{{name}}\". Cette action est irréversible.",
+        "confirmOverwrite": "Confirmer l'écrasement",
+        "importButton": "Importer {{count}} paquet(s)",
+        "atLeastOne": "Sélectionnez au moins un paquet à importer.",
+        "warnings": "{{count}} avertissement(s)"
     }
 }

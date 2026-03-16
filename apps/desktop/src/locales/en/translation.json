@@ -16,7 +16,9 @@
         "deleting": "Deleting...",
         "empty": "(empty)",
         "next": "Next",
-        "user": "User"
+        "user": "User",
+        "expand": "Expand",
+        "collapse": "Collapse"
     },
     "nav": {
         "dashboard": "Dashboard",
@@ -345,6 +347,37 @@
     },
     "import": {
         "importAnkiDeck": "Import Anki Deck",
-        "errorGeneric": "An error occurred during import. Please try again."
+        "errorGeneric": "An error occurred during import. Please try again.",
+        "errorNotLoggedIn": "You must be logged in to import a deck.",
+        "modalTitle": "Import Anki Deck",
+        "conflictBadge": "exists",
+        "summary": {
+            "decks": "Decks",
+            "noteTypes": "Note Types",
+            "notes": "Notes",
+            "cards": "Cards",
+            "reviews": "Reviews",
+            "images": "Images",
+            "audio": "Audio Files"
+        },
+        "deckOptions": {
+            "deck": "Deck",
+            "scheduling": "Scheduling",
+            "keepProgress": "Keep progress",
+            "startFresh": "Start fresh",
+            "algorithm": "Algorithm",
+            "fsrs": "FSRS (recommended)",
+            "sm2": "SM-2",
+            "conflict": "Conflict",
+            "skip": "Skip",
+            "overwrite": "Overwrite",
+            "merge": "Merge"
+        },
+        "conflictWarning": "{{count}} deck(s) already exist in Sekel",
+        "overwriteConfirm": "Overwriting will replace all cards and reviews in \"{{name}}\". This cannot be undone.",
+        "confirmOverwrite": "Confirm Overwrite",
+        "importButton": "Import {{count}} Deck(s)",
+        "atLeastOne": "Select at least one deck to import.",
+        "warnings": "{{count}} warning(s)"
     }
 }
