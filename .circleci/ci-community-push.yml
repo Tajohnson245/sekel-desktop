@@ -1,0 +1,44 @@
+version: 2.1
+
+jobs:
+  community-ci:
+    docker:
+      - image: cimg/node:20.18
+    steps:
+      - checkout
+
+      - restore_cache:
+          keys:
+            - npm-deps-{{ checksum "package-lock.json" }}
+            - npm-deps-
+
+      - run:
+          name: Install dependencies
+          command: npm ci
+
+      - save_cache:
+          key: npm-deps-{{ checksum "package-lock.json" }}
+          paths:
+            - ~/.npm
+
+      - run:
+          name: Lint
+          command: npx turbo run lint --filter=@sekel/community
+
+      - run:
+          name: Type check
+          command: npx turbo run typecheck --filter=@sekel/community
+
+      - run:
+          name: Build
+          command: npx turbo run build --filter=@sekel/community
+
+workflows:
+  ci-community-push:
+    jobs:
+      - community-ci:
+          filters:
+            branches:
+              only:
+                - main
+                - dev
