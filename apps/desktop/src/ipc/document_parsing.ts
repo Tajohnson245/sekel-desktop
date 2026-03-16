@@ -211,7 +211,7 @@ function extractValuesByKey(obj: any, key: string): string[] {
 // Summarize a single document's content
 export async function summarizeDocumentContent(filename: string, content: string, language: string = 'English'): Promise<string> {
     const response = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: "gpt-4.1-mini",
         messages: [
             {
                 role: "system",
@@ -252,36 +252,47 @@ async function parseYoutubeVideo(url: string): Promise<{ title: string, text: st
     }
 }
 
-// Generate a global summary across all parsed documents
-export async function generateGlobalSummary(documents: Record<string, string>, language: string = 'English'): Promise<string> {
+// Generate a structured overview across all parsed documents (Stage 1)
+export async function generateGlobalSummary(documents: Record<string, string>, language: string = 'English'): Promise<{ summary: string; topics: string[]; estimatedCardCount: number }> {
     const combinedContent = Object.entries(documents).map(([name, content]) => {
         return `--- File: ${name} ---\n\n${content}\n\n`;
     }).join("\n\n");
 
     const response = await openai.chat.completions.create({
-        model: "gpt-4o",
+        model: "gpt-4.1-mini",
         messages: [
             {
                 role: "system",
-                content: `You are a study assistant. Analyze the provided documents.
-                
-                Produce a structured summary with:
-                1. **Documents Processed**: List files.
-                2. **Main Topic & Key Concepts**: Per document.
-                3. **Cross-Document Themes**: Connections between files.
-                4. **Flashcard Potential**: Estimate count of possible cards (e.g. "Approx 15 definitions found").
-                5. **Notes**: Mention any unclear sections.
+                content: `You are a study assistant analyzing documents for flashcard generation.
 
-                Format as human readable PLAIN TEXT without markdown formatting (no #, **, _, etc.). Use standard indentation for levels of hierarchy. Include clear section titles.
-                Output summary in ${language}.`
+Given the documents below, produce a brief overview with:
+1. A 2-3 sentence summary of what the documents cover
+2. A list of the main topics found (max 8 items)
+3. An estimated number of high-quality flashcards these documents can support
+
+Be concise. Do not add commentary or suggestions. Output summary in ${language}.
+
+Return JSON only. No preamble, no explanation.
+
+{ "summary": "...", "topics": ["...", "..."], "estimatedCardCount": 42 }`
             },
             {
                 role: "user",
                 content: combinedContent
             }
-        ]
+        ],
+        response_format: { type: 'json_object' },
     });
 
-    const rawContent = response.choices[0].message.content || "";
-    return stripMarkdown(rawContent);
+    const rawContent = response.choices[0].message.content || "{}";
+    try {
+        const parsed = JSON.parse(rawContent);
+        return {
+            summary: parsed.summary || rawContent,
+            topics: Array.isArray(parsed.topics) ? parsed.topics : [],
+            estimatedCardCount: typeof parsed.estimatedCardCount === 'number' ? parsed.estimatedCardCount : 5,
+        };
+    } catch {
+        return { summary: rawContent, topics: [], estimatedCardCount: 5 };
+    }
 }
