@@ -5,7 +5,8 @@ on:
     branches: [main, dev]
     paths:
       - 'apps/desktop/**'
-      - 'packages/**'
+      - 'packages/components/**'
+      - 'packages/db/**'
       - 'package.json'
       - 'package-lock.json'
       - 'turbo.json'
@@ -14,7 +15,8 @@ on:
     branches: [main, dev]
     paths:
       - 'apps/desktop/**'
-      - 'packages/**'
+      - 'packages/components/**'
+      - 'packages/db/**'
       - 'package.json'
       - 'package-lock.json'
       - 'turbo.json'
