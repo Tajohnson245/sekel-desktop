@@ -15,10 +15,11 @@ interface AICardGeneratorProps {
     onComplete: () => void;
     initialDeckId?: string;
     contextSummary?: string;
+    estimatedCardCount?: number;
     onCardCountChange?: (count: number) => void;
 }
 
-export default function AICardGenerator({ extractedText, contextSummary, userId, onComplete, initialDeckId, onCardCountChange }: AICardGeneratorProps) {
+export default function AICardGenerator({ extractedText, contextSummary, estimatedCardCount, userId, onComplete, initialDeckId, onCardCountChange }: AICardGeneratorProps) {
     const { t, i18n } = useTranslation();
     // Data hooks
     const { data: decks = [] } = useDecks();
@@ -32,7 +33,7 @@ export default function AICardGenerator({ extractedText, contextSummary, userId,
     // State management
     const [cards, setCards] = useState<(GeneratedCard & { frontImage?: string; backImage?: string })[]>([]);
     const [selectedDeckId, setSelectedDeckId] = useState<string>(initialDeckId || '');
-    const [cardCount, setCardCount] = useState(5);
+    const [cardCount, setCardCount] = useState(estimatedCardCount ?? 5);
     const [successMessage, setSuccessMessage] = useState<string>('');
     const [showDeckEditor, setShowDeckEditor] = useState(false);
     const [isGen, setIsGen] = useState(false);
@@ -219,7 +220,7 @@ export default function AICardGenerator({ extractedText, contextSummary, userId,
                     type="number"
                     label={t('ai.cards_to_generate')}
                     min={1}
-                    max={20}
+                    max={Math.max(estimatedCardCount ?? 20, 20)}
                     value={cardCount}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCardCount(Number(e.target.value))}
                 />

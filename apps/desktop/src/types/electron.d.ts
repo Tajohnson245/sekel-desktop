@@ -26,6 +26,12 @@ export interface ElectronImport {
     processApkg: (filePath: string) => Promise<ApkgImportResult>;
 }
 
+export interface DocumentOverview {
+    summary: string;
+    topics: string[];
+    estimatedCardCount: number;
+}
+
 export interface GeneratedCard {
     front: string;
     back: string;
@@ -91,7 +97,7 @@ interface ElectronAPI {
     generateCards: (text: string, count?: number, language?: string, options?: AIGenerationOptions) => Promise<GeneratedCard[]>;
     generateCardsFromContext: (summary: string, content: string, count: number, language?: string, options?: AIGenerationOptions) => Promise<GeneratedCard[]>;
     parseDocument: (file: { name: string, buffer?: ArrayBuffer, url?: string, type: string, language?: string }) => Promise<{ filename: string, content: string }>;
-    generateSummary: (documents: Record<string, string>, language?: string) => Promise<string>;
+    generateSummary: (documents: Record<string, string>, language?: string) => Promise<DocumentOverview>;
     getSupabaseConfig: () => Promise<{ url: string; anonKey: string }>;
     import: ElectronImport;
     db: ElectronDB;

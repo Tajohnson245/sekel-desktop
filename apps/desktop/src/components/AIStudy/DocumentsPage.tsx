@@ -31,7 +31,9 @@ interface ParsedFile {
 export default function DocumentsPage({ userId, initialDeckId, onUnfinishedWorkChange }: DocumentsPageProps) {
     const { t, i18n } = useTranslation();
     const [files, setFiles] = useState<ParsedFile[]>([]);
-    const [summary, setSummary] = useState<string>('');
+    const [summaryText, setSummaryText] = useState<string>('');
+    const [summaryTopics, setSummaryTopics] = useState<string[]>([]);
+    const [estimatedCardCount, setEstimatedCardCount] = useState<number>(5);
     const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
     const [step, setStep] = useState<'upload' | 'review' | 'generate'>('upload');
     const [fullContextContent, setFullContextContent] = useState<string>('');
@@ -147,9 +149,11 @@ export default function DocumentsPage({ userId, initialDeckId, onUnfinishedWorkC
                 .join('\n\n');
             setFullContextContent(combinedContent);
 
-            const summaryResult = await window.electronAPI.generateSummary(documentsObj, i18n.language);
+            const overview = await window.electronAPI.generateSummary(documentsObj, i18n.language);
 
-            setSummary(summaryResult);
+            setSummaryText(overview.summary);
+            setSummaryTopics(overview.topics);
+            setEstimatedCardCount(overview.estimatedCardCount);
             setStep('review');
         } catch (error) {
             console.error("Error generating summary:", error);
@@ -165,7 +169,9 @@ export default function DocumentsPage({ userId, initialDeckId, onUnfinishedWorkC
 
     const handleRestart = () => {
         setFiles([]);
-        setSummary('');
+        setSummaryText('');
+        setSummaryTopics([]);
+        setEstimatedCardCount(5);
         setStep('upload');
         setFullContextContent('');
     };
@@ -174,7 +180,8 @@ export default function DocumentsPage({ userId, initialDeckId, onUnfinishedWorkC
         return (
             <AICardGenerator
                 extractedText={fullContextContent}
-                contextSummary={summary}
+                contextSummary={summaryText}
+                estimatedCardCount={estimatedCardCount}
                 userId={userId}
                 onComplete={handleRestart}
                 initialDeckId={initialDeckId}
@@ -279,10 +286,16 @@ export default function DocumentsPage({ userId, initialDeckId, onUnfinishedWorkC
                         {t('ai.review_desc')}
                     </p>
 
+                    {summaryTopics.length > 0 && (
+                        <ul style={{ margin: '0 0 12px', paddingLeft: '20px', color: 'var(--text-muted, #666)', fontSize: '14px' }}>
+                            {summaryTopics.map((topic, i) => <li key={i}>{topic}</li>)}
+                        </ul>
+                    )}
+
                     <div className="summary-editor">
                         <textarea
-                            value={summary}
-                            onChange={(e) => setSummary(e.target.value)}
+                            value={summaryText}
+                            onChange={(e) => setSummaryText(e.target.value)}
                             rows={15}
                             className="summary-textarea"
                             style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', fontFamily: 'monospace' }}
