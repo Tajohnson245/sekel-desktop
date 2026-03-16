@@ -218,3 +218,18 @@ export interface ImportOptionsPayload {
 export interface ImportOptions extends ImportOptionsPayload {
     parsedData: AnkiCollection;
 }
+
+// ── Phase 5: Media Extraction ─────────────────────────────────────────────────
+
+import type { Media } from '@sekel/db';
+
+export interface MediaExtractionResult {
+    /** Files newly copied to permanent storage and inserted into the media table. */
+    extracted: number;
+    /** Files skipped because the same user already has a record with the same hash. */
+    skipped: number;
+    /** Non-fatal issues (e.g. numbered file missing from archive). */
+    warnings: string[];
+    /** All media records (both new and deduplicated) touched during this extraction. */
+    mediaRecords: Media[];
+}

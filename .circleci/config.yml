@@ -86,8 +86,14 @@ jobs:
       size: medium
     steps:
       - checkout
-      - node/install:
-          node-version: '22'
+      - run:
+          name: Install Node.js 22
+          command: |
+            nvm install 22
+            nvm use 22
+            node --version
+            npm --version
+          shell: powershell.exe
       - run:
           name: Install dependencies
           command: npm install

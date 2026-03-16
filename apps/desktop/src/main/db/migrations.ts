@@ -178,4 +178,8 @@ export const MIGRATIONS: string[] = [
     CREATE INDEX IF NOT EXISTS idx_media_user_filename ON media(user_id, filename);
     CREATE UNIQUE INDEX IF NOT EXISTS idx_media_user_file_hash ON media(user_id, file_hash);
     `,
+    // Migration 008 — media import_id for batch tracking and cleanup
+    `
+    ALTER TABLE media ADD COLUMN import_id TEXT;
+    `,
 ];

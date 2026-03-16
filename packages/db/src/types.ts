@@ -174,6 +174,7 @@ export interface Media {
     file_hash: string;
     file_size: number | null;
     mime_type: string | null;
+    import_id?: string | null;
     created_at: string;
 }
 

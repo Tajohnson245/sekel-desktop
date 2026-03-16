@@ -57,6 +57,9 @@ export interface ImportResult {
     decksSkipped: number;
     notesInserted: number;
     cardsInserted: number;
+    mediaExtracted: number;
+    mediaSkipped: number;
+    mediaWarnings: string[];
 }
 
 export interface ApkgImportResult {
