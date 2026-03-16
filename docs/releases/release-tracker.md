@@ -1,0 +1,77 @@
+# Release Tracker
+
+Authoritative log of all per-app releases in the Sekel monorepo.
+Update this file as part of every release (Step 3 of the release checklist).
+
+---
+
+## Tag Format Reference
+
+| App | Tag Format | Release CI Workflow |
+|-----|-----------|-------------------|
+| desktop | `desktop/vX.X.X` | `.github/workflows/release.yml` |
+| survey | `survey/vX.X.X` | `.github/workflows/release-survey.yml` |
+| web | `web/vX.X.X` | _(workflow not yet created)_ |
+| community | `community/vX.X.X` | _(workflow not yet created)_ |
+
+> **Legacy note:** Global tags `v1.0.0–v1.4.0` predate per-app tagging and map to the desktop app. New desktop releases use `desktop/vX.X.X`.
+
+---
+
+## Desktop (`apps/desktop`)
+
+Current stable: **v1.4.0** (legacy tag `v1.4.0`)
+Next release tag: `desktop/v1.5.0`
+
+| Version | Date | Tag | Key Changes |
+|---------|------|-----|-------------|
+| v1.4.0 | 2026-03-13 | `v1.4.0` | Added community app, SQLite local-first architecture, Anki import file handling (.apkg), DB migrations for decks/notes/cards/reviews/media |
+| v1.3.0 | 2026-03-11 | `v1.3.0` | Stylescape CSS added to shared components, desktop UI alignment |
+| v1.2.0 | 2026-03-10 | `v1.2.0` | Mobile-responsive marketing site, Resend email integration |
+| v1.1.0 | 2026-03-10 | `v1.1.0` | GitHub workflows skill, codebase cleanup |
+| v1.0.0 | 2026-02-27 | `v1.0.0` | Initial release — Electron desktop app with Supabase auth |
+
+---
+
+## Survey (`apps/survey`)
+
+Current stable: **unreleased** (package.json: `0.1.0`)
+Next release tag: `survey/v1.0.0`
+
+| Version | Date | Tag | Key Changes |
+|---------|------|-----|-------------|
+| _(unreleased)_ | — | — | Initial scaffold: 4-step public survey, admin dashboard with Supabase auth, `@sekel/survey-components` package, Docker support, CI/CD |
+
+---
+
+## Web (`apps/web`)
+
+Current stable: **unreleased** (package.json: `1.4.0`)
+Next release tag: `web/v1.0.0`
+
+| Version | Date | Tag | Key Changes |
+|---------|------|-----|-------------|
+| _(unreleased)_ | — | — | Marketing site, previously versioned under global desktop tags |
+
+---
+
+## Community (`apps/community`)
+
+Current stable: **unreleased** (package.json: `0.1.0`)
+Next release tag: `community/v1.0.0`
+
+| Version | Date | Tag | Key Changes |
+|---------|------|-----|-------------|
+| _(unreleased)_ | — | — | Community deck hub app (SEKEL-013) |
+
+---
+
+## How to Update This File
+
+When cutting a release, add a new row to the relevant app table:
+
+```markdown
+| v1.5.0 | 2026-MM-DD | `desktop/v1.5.0` | Brief summary of key changes |
+```
+
+Update "Current stable" and "Next release tag" at the top of the section.
