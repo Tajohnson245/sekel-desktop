@@ -7,11 +7,12 @@ orbs:
 executors:
   linux:
     docker:
-      - image: cimg/node:20.18
+      - image: cimg/node:22.13
   windows-exec:
     machine:
       image: windows-server-2022-gui:current
-      shell: bash.exe
+      resource_class: windows.medium
+    shell: bash.exe
   macos-exec:
     macos:
       xcode: 15.4.0
@@ -67,6 +68,11 @@ jobs:
       - run:
           name: Rebuild better-sqlite3 for Node
           command: npm rebuild better-sqlite3
+
+      - run:
+          name: Install Rollup native binary
+          command: npm install --no-save rollup
+          working_directory: apps/desktop
 
       - run:
           name: Unit tests (desktop)
