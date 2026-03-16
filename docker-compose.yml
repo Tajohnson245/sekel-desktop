@@ -3,22 +3,54 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
-      args:
-        TURBO_TEAM: ${TURBO_TEAM}
-        TURBO_TOKEN: ${TURBO_TOKEN}
+    volumes:
+      - .:/app
+      - web_nm:/app/node_modules
     ports:
       - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - WATCHPACK_POLLING=true
     env_file:
-      - apps/web/.env
-    restart: unless-stopped
+      - path: ./apps/web/.env.local
+        required: false
+    command: npm run dev -w @sekel/web
 
   community:
     build:
       context: .
       dockerfile: apps/community/Dockerfile
-      args:
-        TURBO_TEAM: ${TURBO_TEAM}
-        TURBO_TOKEN: ${TURBO_TOKEN}
+    volumes:
+      - .:/app
+      - community_nm:/app/node_modules
     ports:
       - "3001:3001"
-    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - WATCHPACK_POLLING=true
+    env_file:
+      - path: ./apps/community/.env.local
+        required: false
+    command: npm run dev -w @sekel/community
+
+  survey:
+    build:
+      context: .
+      dockerfile: apps/survey/Dockerfile
+    volumes:
+      - .:/app
+      - survey_nm:/app/node_modules
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=development
+      - WATCHPACK_POLLING=true
+    env_file:
+      - path: ./apps/survey/.env.local
+        required: false
+    command: npm run dev -w @sekel/survey
+
+volumes:
+  web_nm:
+  community_nm:
+  survey_nm:

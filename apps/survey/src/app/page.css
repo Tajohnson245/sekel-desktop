@@ -1,0 +1,114 @@
+.home__hero {
+  background-color: var(--ink);
+  padding: 5rem 1.5rem 4rem;
+}
+
+.home__hero-inner {
+  max-width: 680px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.home__eyebrow {
+  display: inline-block;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--teal);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 1rem;
+  background-color: rgba(43, 191, 164, 0.1);
+  border: 1px solid rgba(43, 191, 164, 0.2);
+  border-radius: 9999px;
+  padding: 0.25rem 0.875rem;
+}
+
+.home__title {
+  font-family: var(--font-serif);
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--white);
+  line-height: 1.15;
+  margin-bottom: 1.25rem;
+}
+
+.home__subtitle {
+  font-size: 1.0625rem;
+  color: var(--fog);
+  line-height: 1.65;
+  margin-bottom: 2rem;
+}
+
+.home__cta {
+  display: inline-block;
+  background-color: var(--teal);
+  color: var(--white);
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 0.875rem 2rem;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background-color 150ms ease, box-shadow 150ms ease;
+  box-shadow: 0 2px 8px rgba(43, 191, 164, 0.3);
+}
+
+.home__cta:hover {
+  background-color: var(--teal-dark);
+  box-shadow: 0 4px 16px rgba(43, 191, 164, 0.4);
+  color: var(--white);
+}
+
+.home__cta-note {
+  margin-top: 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--mist);
+}
+
+.home__features {
+  padding: 4rem 1.5rem;
+  background-color: var(--paper);
+}
+
+.home__feature-grid {
+  max-width: 860px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+.home__feature-card {
+  background-color: var(--white);
+  border: 1px solid var(--cloud);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.home__feature-icon {
+  font-size: 1.75rem;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.home__feature-card h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 0.5rem;
+}
+
+.home__feature-card p {
+  font-size: 0.875rem;
+  color: var(--slate);
+  line-height: 1.55;
+}
+
+@media (max-width: 640px) {
+  .home__title {
+    font-size: 1.875rem;
+  }
+
+  .home__feature-grid {
+    grid-template-columns: 1fr;
+  }
+}
