@@ -1,8 +1,10 @@
 import { ipcMain, dialog } from 'electron';
+import { randomUUID } from 'node:crypto';
 import { processApkgFile } from '../main/import/apkg';
 import { parseAnkiDatabase } from '../main/import/parser';
 import { buildImportSummary } from '../main/import/summaryBuilder';
 import { executeImport } from '../main/import/insertionEngine';
+import { extractMedia } from '../main/import/media';
 import { fetchDecksByAnkiIds } from '../main/db/service';
 import type {
     AnkiCollection,
@@ -76,10 +78,32 @@ export function setupImportHandlers(): void {
             }
             // Consume the cache entry — this is the only place collection is used
             collectionCache.delete(payload.tempDir);
-            return executeImport(
+
+            const importId = randomUUID();
+
+            // Phase 5: copy media files to permanent storage and insert media records
+            const mediaResult = await extractMedia(
+                payload.tempDir,
+                payload.mediaMap,
+                payload.userId,
+                importId,
+            );
+            if (mediaResult.warnings.length > 0) {
+                console.warn('[import] Media extraction warnings:', mediaResult.warnings);
+            }
+
+            // Phase 6: insert decks, notes, and cards
+            const insertResult = executeImport(
                 { ...payload, parsedData: collection },
                 payload.userId,
             );
+
+            return {
+                ...insertResult,
+                mediaExtracted: mediaResult.extracted,
+                mediaSkipped: mediaResult.skipped,
+                mediaWarnings: mediaResult.warnings,
+            };
         },
     );
 }
