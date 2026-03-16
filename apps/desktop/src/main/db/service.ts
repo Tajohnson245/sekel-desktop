@@ -426,7 +426,7 @@ export function createNoteType(noteType: NoteTypeInsert): NoteType {
 
 // ── Reviews ───────────────────────────────────────────────────────────────────
 
-export async function insertReview(params: InsertReviewParams): Promise<Review> {
+export function insertReview(params: InsertReviewParams): Review {
     const now = new Date().toISOString();
     const id = randomUUID();
     getDb().prepare(`
@@ -446,7 +446,7 @@ export async function insertReview(params: InsertReviewParams): Promise<Review> 
         now,
     );
     const result = getDb().prepare('SELECT * FROM reviews WHERE id = ?').get(id) as Review;
-    await pushRecordAsync('reviews', result as unknown as Record<string, unknown>);
+    pushRecord('reviews', result as unknown as Record<string, unknown>);
     return result;
 }
 
