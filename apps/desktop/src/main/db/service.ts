@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { getDb } from './index';
-import { pushRecord, deleteRecord } from './syncPush';
+import { pushRecord, pushRecordAsync, deleteRecord } from './syncPush';
 import type {
     Deck, DeckInsert, DeckUpdate,
     Note, NoteInsert, NoteUpdate,
@@ -272,7 +272,7 @@ export function fetchAllCardsForStudy(deckId: string, limit = 50): CardWithNote[
     return rows.map(buildCardWithNote);
 }
 
-export function updateCardAfterReview(cardId: string, updates: Partial<Card>): Card {
+export async function updateCardAfterReview(cardId: string, updates: Partial<Card>): Promise<Card> {
     const now = new Date().toISOString();
     const fields = ['updated_at'];
     const values: unknown[] = [now];
@@ -291,7 +291,7 @@ export function updateCardAfterReview(cardId: string, updates: Partial<Card>): C
     values.push(cardId);
     getDb().prepare(`UPDATE cards SET ${fields.map((f, i) => (i === 0 ? 'updated_at = ?' : f)).join(', ')} WHERE id = ?`).run(...values);
     const result = fetchCardById(cardId)!;
-    pushRecord('cards', result as unknown as Record<string, unknown>);
+    await pushRecordAsync('cards', result as unknown as Record<string, unknown>);
     return result;
 }
 
@@ -300,7 +300,7 @@ function fetchCardById(id: string): Card | null {
     return row ? mapCard(row) : null;
 }
 
-export function createCard(card: CardInsert): Card {
+export function createCard(card: CardInsert, skipSync = false): Card {
     const now = new Date().toISOString();
     const id = randomUUID();
     getDb().prepare(`
@@ -315,7 +315,7 @@ export function createCard(card: CardInsert): Card {
         card.last_review ?? null, card.anki_id ?? null, card.ease_factor ?? null, now, now,
     );
     const result = fetchCardById(id)!;
-    pushRecord('cards', result as unknown as Record<string, unknown>);
+    if (!skipSync) pushRecord('cards', result as unknown as Record<string, unknown>);
     return result;
 }
 
@@ -331,7 +331,7 @@ export function fetchNotesByDeck(deckId: string): Note[] {
     return rows.map(mapNote);
 }
 
-export function createNote(note: NoteInsert): Note {
+export function createNote(note: NoteInsert, skipSync = false): Note {
     const now = new Date().toISOString();
     const id = randomUUID();
     getDb().prepare(`
@@ -339,7 +339,7 @@ export function createNote(note: NoteInsert): Note {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(id, note.user_id, note.deck_id, note.note_type_id, s(note.fields), s(note.tags), now, now);
     const result = fetchNoteById(id)!;
-    pushRecord('notes', { ...result, fields: result.fields, tags: result.tags } as unknown as Record<string, unknown>);
+    if (!skipSync) pushRecord('notes', { ...result, fields: result.fields, tags: result.tags } as unknown as Record<string, unknown>);
     return result;
 }
 
@@ -370,11 +370,11 @@ export function deleteNote(id: string): void {
     deleteRecord('notes', id);
 }
 
-export function createNoteWithCards(note: NoteInsert, templateCount = 1): { note: Note; cards: Card[] } {
+export async function createNoteWithCards(note: NoteInsert, templateCount = 1): Promise<{ note: Note; cards: Card[] }> {
     const createdNote = { note: null as unknown as Note, cards: [] as Card[] };
 
     const tx = getDb().transaction(() => {
-        createdNote.note = createNote(note);
+        createdNote.note = createNote(note, true);
         for (let i = 0; i < templateCount; i++) {
             const card = createCard({
                 user_id: note.user_id,
@@ -389,11 +389,18 @@ export function createNoteWithCards(note: NoteInsert, templateCount = 1): { note
                 reps: 0,
                 lapses: 0,
                 last_review: null,
-            });
+            }, true);
             createdNote.cards.push(card);
         }
     });
     tx();
+
+    // Push note before cards to satisfy the cards_note_id_fkey FK constraint
+    await pushRecordAsync('notes', { ...createdNote.note, fields: createdNote.note.fields, tags: createdNote.note.tags } as unknown as Record<string, unknown>);
+    for (const card of createdNote.cards) {
+        await pushRecordAsync('cards', card as unknown as Record<string, unknown>);
+    }
+
     return createdNote;
 }
 
@@ -419,7 +426,7 @@ export function createNoteType(noteType: NoteTypeInsert): NoteType {
 
 // ── Reviews ───────────────────────────────────────────────────────────────────
 
-export function insertReview(params: InsertReviewParams): Review {
+export async function insertReview(params: InsertReviewParams): Promise<Review> {
     const now = new Date().toISOString();
     const id = randomUUID();
     getDb().prepare(`
@@ -439,7 +446,7 @@ export function insertReview(params: InsertReviewParams): Review {
         now,
     );
     const result = getDb().prepare('SELECT * FROM reviews WHERE id = ?').get(id) as Review;
-    pushRecord('reviews', result as unknown as Record<string, unknown>);
+    await pushRecordAsync('reviews', result as unknown as Record<string, unknown>);
     return result;
 }
 

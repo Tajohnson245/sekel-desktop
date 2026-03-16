@@ -19,6 +19,12 @@ export function pushRecord(table: string, record: Record<string, unknown>): void
         });
 }
 
+export async function pushRecordAsync(table: string, record: Record<string, unknown>): Promise<void> {
+    if (!supabaseClient) return;
+    const { error } = await supabaseClient.from(table).upsert(record, { onConflict: 'id' });
+    if (error) console.warn(`[Sync] Failed to push to ${table}:`, error.message);
+}
+
 export function deleteRecord(table: string, id: string): void {
     if (!supabaseClient) return;
     supabaseClient
