@@ -5,6 +5,9 @@ on:
     tags:
       - 'survey/v*.*.*'
 
+permissions:
+  contents: write
+
 jobs:
   release:
     name: Build & Release Survey
