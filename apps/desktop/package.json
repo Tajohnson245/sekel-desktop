@@ -34,6 +34,7 @@
     "test:e2e:ui": "npx playwright test --ui",
     "publish": "electron-forge publish",
     "pretest": "npm rebuild better-sqlite3",
+    "posttest": "npx @electron/rebuild -f -w better-sqlite3",
     "db:push": "npx supabase db push",
     "db:reset": "npx supabase db reset",
     "db:migrate": "npx supabase migration up"
