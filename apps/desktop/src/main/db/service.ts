@@ -459,11 +459,7 @@ export function insertReview(params: InsertReviewParams): Review {
         now,
     );
     const result = getDb().prepare('SELECT * FROM reviews WHERE id = ?').get(id) as Review;
-    // Skip Supabase sync for reviews of Anki-imported cards — the parent cards don't exist in Supabase
-    const card = getDb().prepare('SELECT anki_id FROM cards WHERE id = ?').get(params.card_id) as { anki_id: number | null } | undefined;
-    if (!card?.anki_id) {
-        pushRecord('reviews', result as unknown as Record<string, unknown>);
-    }
+    pushRecord('reviews', result as unknown as Record<string, unknown>);
     return result;
 }
 
