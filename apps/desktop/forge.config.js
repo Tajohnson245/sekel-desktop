@@ -1,7 +1,30 @@
+const path = require('path');
 const { FusesPlugin } = require('@electron-forge/plugin-fuses');
 const { FuseV1Options, FuseVersion } = require('@electron/fuses');
 
+// Monorepo root — better-sqlite3 is hoisted here by npm workspaces.
+// @electron/rebuild must target this directory, not apps/desktop/node_modules.
+const MONOREPO_ROOT = path.join(__dirname, '..', '..');
+
 module.exports = {
+  hooks: {
+    // Runs before every `electron-forge start`. Rebuilds better-sqlite3 for the
+    // correct Electron NMV. Uses execSync so output is visible and failures are fatal.
+    // CWD is the monorepo root so the hoisted node_modules/better-sqlite3 is found.
+    preStart: async () => {
+      const { execSync } = require('child_process');
+      const electronVersion = require(path.join(__dirname, 'node_modules', 'electron', 'package.json')).version;
+      // Absolute path to the CLI installed in apps/desktop (.cmd on Windows)
+      const ext = process.platform === 'win32' ? '.cmd' : '';
+      const rebuildBin = path.join(__dirname, 'node_modules', '.bin', `electron-rebuild${ext}`);
+      console.log(`[forge] Rebuilding better-sqlite3 for Electron ${electronVersion} (NMV fix)...`);
+      execSync(
+        `"${rebuildBin}" -f -w better-sqlite3 -v ${electronVersion}`,
+        { stdio: 'inherit', cwd: MONOREPO_ROOT }
+      );
+      console.log('[forge] better-sqlite3 rebuild complete');
+    },
+  },
   packagerConfig: {
     asar: true,
     name: 'Sekel',

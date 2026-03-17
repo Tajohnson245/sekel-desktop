@@ -16,7 +16,6 @@
   "main": ".vite/build/main.js",
   "scripts": {
     "dev": "electron-forge start",
-    "predev": "npx @electron/rebuild -f -w better-sqlite3",
     "desktop": "electron-forge start",
     "start": "electron-forge start",
     "dev:renderer": "vite --config vite.renderer.config.ts",
