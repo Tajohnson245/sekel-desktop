@@ -57,6 +57,7 @@ export interface ImportResult {
     decksSkipped: number;
     notesInserted: number;
     cardsInserted: number;
+    reviewsInserted: number;
     mediaExtracted: number;
     mediaSkipped: number;
     mediaWarnings: string[];
