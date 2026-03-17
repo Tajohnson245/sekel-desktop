@@ -14,6 +14,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
         getSummary:    (args: { dbFilePath: string; mediaMap: Record<string, string>; mediaFilePaths: string[]; userId: string; tempDir: string }) =>
                            ipcRenderer.invoke('import:get-summary', args),
         confirmImport: (payload: unknown) => ipcRenderer.invoke('import:confirm', payload),
+        cancel:        (tempDir: string) => ipcRenderer.invoke('import:cancel', tempDir),
+        onImportProgress: (cb: (progress: unknown) => void) => {
+            const listener = (_event: unknown, progress: unknown) => cb(progress);
+            ipcRenderer.on('import:progress', listener);
+            return () => ipcRenderer.removeListener('import:progress', listener);
+        },
     },
 
     db: {
