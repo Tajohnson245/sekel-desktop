@@ -248,6 +248,7 @@ const CARD_WITH_NOTE_SQL = `
         n.created_at AS note_created_at,
         n.updated_at AS note_updated_at,
         nt.id          AS nt_id,
+        nt.anki_id     AS nt_anki_id,
         nt.name        AS nt_name,
         nt.fields      AS nt_fields,
         nt.card_templates AS nt_templates,
