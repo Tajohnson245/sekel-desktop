@@ -11,6 +11,7 @@ import type { Rating, CardUpdate } from '../../lib/types';
 import { DEFAULT_NOTE_TYPES } from '../../lib/types';
 import type { CardWithNote } from '../../lib/queries';
 import { ChevronRight } from 'lucide-react';
+import { renderAnkiTemplate } from '../../lib/mediaResolver';
 
 interface StudySessionProps {
     deckId: string;
@@ -203,11 +204,17 @@ export default function StudySession({ deckId, userId, mode = 'due', onBack }: S
         return noteType?.card_templates?.[templateIndex];
     })();
 
+    const isAnkiCard = noteType?.anki_id != null;
+
     const frontContent = resolvedTemplate
-        ? renderCardContent(resolvedTemplate.front_template, fields)
+        ? (isAnkiCard
+            ? renderAnkiTemplate(resolvedTemplate.front_template, fields, userId)
+            : renderCardContent(resolvedTemplate.front_template, fields))
         : 'No template';
     const backContent = resolvedTemplate
-        ? renderCardContent(resolvedTemplate.back_template, fields)
+        ? (isAnkiCard
+            ? renderAnkiTemplate(resolvedTemplate.back_template, fields, userId, frontContent)
+            : renderCardContent(resolvedTemplate.back_template, fields))
         : 'No template';
 
     return (
