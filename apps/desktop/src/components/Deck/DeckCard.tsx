@@ -1,6 +1,9 @@
-import { Library, Clock, Sparkles } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Library, Clock, Sparkles, Pencil } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Deck } from '../../lib/types';
+import { useUpdateDeck } from '../../hooks/useDecks';
+import './DeckCard.css';
 
 interface DeckCardProps {
     deck: Deck;
@@ -18,6 +21,11 @@ export default function DeckCard({
     onToggleSelect
 }: DeckCardProps) {
     const { t } = useTranslation();
+    const updateDeck = useUpdateDeck();
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    const [isRenaming, setIsRenaming] = useState(false);
+    const [renameValue, setRenameValue] = useState('');
 
     const handleCardClick = (e: React.MouseEvent) => {
         if (isDeleteMode) {
@@ -26,6 +34,21 @@ export default function DeckCard({
         } else {
             onClick();
         }
+    };
+
+    const handleStartRename = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setRenameValue(deck.name);
+        setIsRenaming(true);
+        setTimeout(() => inputRef.current?.select(), 0);
+    };
+
+    const handleCommitRename = async () => {
+        const trimmed = renameValue.trim();
+        if (trimmed && trimmed !== deck.name) {
+            await updateDeck.mutateAsync({ id: deck.id, updates: { name: trimmed } });
+        }
+        setIsRenaming(false);
     };
 
     // Demo deck name/description translation (when DB has English seed values)
@@ -53,7 +76,34 @@ export default function DeckCard({
                     <div className="deck-icon">
                         <Library size={20} />
                     </div>
-                    <h3 className="deck-title">{displayDeckName}</h3>
+                    {isRenaming ? (
+                        <input
+                            ref={inputRef}
+                            className="deck-card-rename-input"
+                            value={renameValue}
+                            onChange={e => setRenameValue(e.target.value)}
+                            onBlur={handleCommitRename}
+                            onKeyDown={e => {
+                                if (e.key === 'Enter') handleCommitRename();
+                                if (e.key === 'Escape') setIsRenaming(false);
+                            }}
+                            onClick={e => e.stopPropagation()}
+                            autoFocus
+                        />
+                    ) : (
+                        <h3 className="deck-title">
+                            {displayDeckName}
+                            {!isDeleteMode && (
+                                <button
+                                    className="deck-card-rename-btn"
+                                    onClick={handleStartRename}
+                                    title="Rename deck"
+                                >
+                                    <Pencil size={12} />
+                                </button>
+                            )}
+                        </h3>
+                    )}
                 </div>
 
                 <p className="deck-description">
