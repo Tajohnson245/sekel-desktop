@@ -150,11 +150,11 @@ export default function CardList({ deckId, onAddCard, onGenerateAI, onEdit }: Ca
                                         <>
                                             <div className="card-front">
                                                 <span className="card-label">{t('card.front')}</span>
-                                                <p>{formatContent(note.fields.Front)}</p>
+                                                <p>{formatContent(note.fields.Front ?? Object.values(note.fields)[0] ?? '')}</p>
                                             </div>
                                             <div className="card-back">
                                                 <span className="card-label">{t('card.back')}</span>
-                                                <p>{formatContent(note.fields.Back)}</p>
+                                                <p>{formatContent(note.fields.Back ?? Object.values(note.fields)[1] ?? '')}</p>
                                             </div>
                                         </>
                                     )}

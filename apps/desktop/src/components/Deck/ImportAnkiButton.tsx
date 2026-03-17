@@ -1,102 +1,163 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Upload } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../UI';
 import ImportOptionsModal from '../Import/ImportOptionsModal';
+import ImportProgressModal from '../Import/ImportProgressModal';
+import ImportSuccessModal from '../Import/ImportSuccessModal';
+import ImportErrorModal from '../Import/ImportErrorModal';
 import { useAuthStore } from '../../stores/authStore';
-import type { ApkgImportResult, ImportSummary, ImportOptionsPayload, ImportResult } from '../../types/electron';
+import type {
+    ApkgImportResult,
+    ImportSummary,
+    ImportOptionsPayload,
+    ImportOptionsDeck,
+    ImportResult,
+    ImportProgress,
+    ImportStage,
+} from '../../types/electron';
+
+type Phase =
+    | { name: 'idle' }
+    | { name: 'loading' }
+    | { name: 'options'; apkgResult: ApkgImportResult; summary: ImportSummary }
+    | { name: 'progress'; progress: ImportProgress; tempDir: string; isCancelling: boolean }
+    | { name: 'success'; result: ImportResult; deckOptions: ImportOptionsDeck[] }
+    | { name: 'error'; error: Error; failedStage?: ImportStage };
 
 interface ImportAnkiButtonProps {
     onSuccess: (result: ImportResult) => void;
+    onNavigateToDeck?: () => void;
 }
 
-export default function ImportAnkiButton({ onSuccess }: ImportAnkiButtonProps) {
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-    const [apkgResult, setApkgResult] = useState<ApkgImportResult | null>(null);
-    const [summary, setSummary] = useState<ImportSummary | null>(null);
-    const [showModal, setShowModal] = useState(false);
+export default function ImportAnkiButton({ onSuccess, onNavigateToDeck }: ImportAnkiButtonProps) {
+    const [phase, setPhase] = useState<Phase>({ name: 'idle' });
     const { t } = useTranslation();
     const user = useAuthStore(s => s.user);
 
+    // Track the current failed stage for the error modal
+    const lastStageRef = useRef<ImportStage | undefined>(undefined);
+
+    // Subscribe to progress events while in 'progress' phase
+    useEffect(() => {
+        if (phase.name !== 'progress') return;
+
+        const unsubscribe = window.electronAPI.import.onImportProgress((progress: ImportProgress) => {
+            lastStageRef.current = progress.stage;
+            setPhase(prev =>
+                prev.name === 'progress'
+                    ? { ...prev, progress }
+                    : prev,
+            );
+        });
+
+        return unsubscribe;
+    }, [phase.name]);
+
     const handleClick = async () => {
-        setIsLoading(true);
-        setError(null);
+        if (!user) return;
+        setPhase({ name: 'loading' });
+        lastStageRef.current = undefined;
 
         try {
-            if (!user) {
-                setError(t('import.errorNotLoggedIn'));
+            const filePath = await window.electronAPI.import.selectFile();
+            if (filePath === null) {
+                setPhase({ name: 'idle' });
                 return;
             }
 
-            const filePath = await window.electronAPI.import.selectFile();
-            if (filePath === null) return; // user cancelled dialog
-
-            const result = await window.electronAPI.import.processApkg(filePath);
-            setApkgResult(result);
-
-            const importSummary = await window.electronAPI.import.getSummary({
-                dbFilePath: result.dbFilePath,
-                mediaMap: result.mediaMap,
-                mediaFilePaths: result.mediaFilePaths,
+            const apkgResult = await window.electronAPI.import.processApkg(filePath);
+            const summary = await window.electronAPI.import.getSummary({
+                dbFilePath: apkgResult.dbFilePath,
+                mediaMap: apkgResult.mediaMap,
+                mediaFilePaths: apkgResult.mediaFilePaths,
                 userId: user.id,
-                tempDir: result.tempDir,
+                tempDir: apkgResult.tempDir,
             });
-            setSummary(importSummary);
-            setShowModal(true);
+            setPhase({ name: 'options', apkgResult, summary });
         } catch (err) {
-            const message = err instanceof Error ? err.message : t('import.errorGeneric');
-            setError(message);
-        } finally {
-            setIsLoading(false);
+            setPhase({ name: 'error', error: err instanceof Error ? err : new Error(t('import.errorGeneric')) });
         }
     };
 
     const handleConfirm = async (payload: Omit<ImportOptionsPayload, 'userId'>) => {
+        const deckOptions: ImportOptionsDeck[] = payload.decks;
+        const fullPayload: ImportOptionsPayload = { ...payload, userId: user!.id };
+        setPhase({
+            name: 'progress',
+            progress: { stage: 'extracting-media', percent: 5 },
+            tempDir: payload.tempDir,
+            isCancelling: false,
+        });
+        lastStageRef.current = 'extracting-media';
+
         try {
-            const result = await window.electronAPI.import.confirmImport({
-                ...payload,
-                userId: user!.id,
-            });
-            setShowModal(false);
-            setSummary(null);
-            setApkgResult(null);
+            const result = await window.electronAPI.import.confirmImport(fullPayload);
+            setPhase({ name: 'success', result, deckOptions });
             onSuccess(result);
         } catch (err) {
-            const message = err instanceof Error ? err.message : t('import.errorGeneric');
-            setError(message);
-            setShowModal(false);
+            const error = err instanceof Error ? err : new Error(t('import.errorGeneric'));
+            setPhase({ name: 'error', error, failedStage: lastStageRef.current });
         }
     };
 
     const handleCancel = () => {
-        setShowModal(false);
-        setSummary(null);
-        setApkgResult(null);
-        // tempDir cleanup is deferred to cleanupStaleTempDirs() on next app start
+        if (phase.name !== 'progress') return;
+        window.electronAPI.import.cancel(phase.tempDir);
+        setPhase(prev => prev.name === 'progress' ? { ...prev, isCancelling: true } : prev);
     };
+
+    const handleOptionsCancel = () => setPhase({ name: 'idle' });
+    const handleClose = () => setPhase({ name: 'idle' });
+    const handleRetry = () => setPhase({ name: 'idle' });
 
     return (
         <div className="import-anki-button-wrapper">
             <Button
                 variant="secondary"
                 icon={<Upload size={16} />}
-                isLoading={isLoading}
+                isLoading={phase.name === 'loading'}
                 onClick={handleClick}
+                disabled={phase.name !== 'idle' && phase.name !== 'loading'}
             >
                 {t('import.importAnkiDeck')}
             </Button>
-            {error && <p className="import-anki-error">{error}</p>}
 
-            {showModal && summary && apkgResult && (
+            {phase.name === 'options' && (
                 <ImportOptionsModal
-                    isOpen={showModal}
-                    summary={summary}
-                    mediaMap={apkgResult.mediaMap}
-                    mediaFilePaths={apkgResult.mediaFilePaths}
-                    tempDir={apkgResult.tempDir}
+                    isOpen
+                    summary={phase.summary}
+                    mediaMap={phase.apkgResult.mediaMap}
+                    mediaFilePaths={phase.apkgResult.mediaFilePaths}
+                    tempDir={phase.apkgResult.tempDir}
                     onConfirm={handleConfirm}
+                    onCancel={handleOptionsCancel}
+                />
+            )}
+
+            {phase.name === 'progress' && (
+                <ImportProgressModal
+                    progress={phase.progress}
+                    isCancelling={phase.isCancelling}
                     onCancel={handleCancel}
+                />
+            )}
+
+            {phase.name === 'success' && (
+                <ImportSuccessModal
+                    result={phase.result}
+                    deckOptions={phase.deckOptions}
+                    onGoToDeck={onNavigateToDeck}
+                    onClose={handleClose}
+                />
+            )}
+
+            {phase.name === 'error' && (
+                <ImportErrorModal
+                    error={phase.error}
+                    failedStage={phase.failedStage}
+                    onRetry={handleRetry}
+                    onClose={handleClose}
                 />
             )}
         </div>

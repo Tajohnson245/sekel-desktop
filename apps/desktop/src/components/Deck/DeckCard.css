@@ -1,0 +1,35 @@
+.deck-card-rename-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: 2px 4px;
+    margin-left: 6px;
+    border-radius: 4px;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s;
+    vertical-align: middle;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.deck-title:hover .deck-card-rename-btn {
+    opacity: 1;
+}
+
+.deck-card-rename-btn:hover {
+    color: var(--text-primary);
+}
+
+.deck-card-rename-input {
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: inherit;
+    background: var(--bg-secondary);
+    border: 1px solid var(--primary-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    padding: 2px 8px;
+    outline: none;
+    width: 100%;
+}

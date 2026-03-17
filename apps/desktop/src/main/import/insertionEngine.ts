@@ -18,6 +18,7 @@ import type {
     ImportOptions,
     ImportOptionsDeck,
     AnkiCard,
+    AnkiReviewLog,
 } from './types';
 
 // Anki stores review-card due dates as "days since 2006-01-01 UTC"
@@ -28,10 +29,11 @@ export interface ImportResult {
     decksSkipped: number;
     notesInserted: number;
     cardsInserted: number;
+    reviewsInserted: number;
 }
 
 export function executeImport(options: ImportOptions, userId: string): ImportResult {
-    const result: ImportResult = { decksCreated: 0, decksSkipped: 0, notesInserted: 0, cardsInserted: 0 };
+    const result: ImportResult = { decksCreated: 0, decksSkipped: 0, notesInserted: 0, cardsInserted: 0, reviewsInserted: 0 };
     const { parsedData, decks: deckOptions } = options;
 
     const selectedOptions = new Map(
@@ -85,6 +87,21 @@ export function executeImport(options: ImportOptions, userId: string): ImportRes
         "DELETE FROM cards WHERE note_id IN (SELECT id FROM notes WHERE deck_id = ?)",
     );
     const deleteNotes = db.prepare('DELETE FROM notes WHERE deck_id = ?');
+    const insertReviewLog = db.prepare(`
+        INSERT INTO reviews
+            (id, user_id, card_id, rating, review_time, review_duration_ms,
+             state_before, stability_before, difficulty_before,
+             state_after, stability_after, difficulty_after,
+             scheduled_days, session_id, deck_id, review_index,
+             interval_before, ease_factor_after, review_type, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    // Maps built during card insertion for use when inserting review logs
+    const ankiCardIdToSekelCardId = new Map<number, string>();
+    const ankiCardIdToSekelDeckId = new Map<number, string>();
+    // Tracks which anki deck ids used 'keep' scheduling (only those get review logs)
+    const keepSchedulingDeckIds = new Set<number>();
 
     const tx = db.transaction(() => {
         for (const ankiDeckId of sortedDeckIds) {
@@ -130,6 +147,7 @@ export function executeImport(options: ImportOptions, userId: string): ImportRes
             }
 
             nameToSekelId.set(ankiDeck.name, sekelDeckId);
+            if (opt.scheduling === 'keep') keepSchedulingDeckIds.add(ankiDeckId);
 
             // All Anki cards belonging to this deck
             const ankiCards = parsedData.cards.filter(c => c.did === ankiDeckId);
@@ -207,14 +225,54 @@ export function executeImport(options: ImportOptions, userId: string): ImportRes
                         scheduledDays,
                         ankiCard.reps,
                         ankiCard.lapses,
-                        null,                // last_review (not tracked per-card in Anki revlog in this phase)
+                        null,                // last_review
                         ankiCard.id,         // anki_id
                         easeFactor,
                         now,
                         now,
                     );
                     result.cardsInserted++;
+                    ankiCardIdToSekelCardId.set(ankiCard.id, cardId);
+                    ankiCardIdToSekelDeckId.set(ankiCard.id, sekelDeckId);
                 }
+            }
+        }
+
+        // Insert Anki review logs for all cards that used 'keep' scheduling
+        if (keepSchedulingDeckIds.size > 0) {
+            const createdAt = new Date().toISOString();
+            for (const revlog of parsedData.revlog) {
+                const sekelCardId = ankiCardIdToSekelCardId.get(revlog.cid);
+                if (!sekelCardId) continue; // card was not imported (different deck or deselected)
+
+                const deckId = ankiCardIdToSekelDeckId.get(revlog.cid)!;
+                // Determine which anki deck this card belongs to — skip if 'fresh' scheduling
+                const ankiCard = parsedData.cards.find(c => c.id === revlog.cid);
+                if (!ankiCard || !keepSchedulingDeckIds.has(ankiCard.did)) continue;
+
+                insertReviewLog.run(
+                    randomUUID(),
+                    userId,
+                    sekelCardId,
+                    mapAnkiEaseToRating(revlog.ease),
+                    new Date(revlog.id).toISOString(),      // review_time (revlog.id is Unix ms)
+                    revlog.time,                             // review_duration_ms
+                    mapRevlogStateBefore(revlog),            // state_before
+                    Math.max(0, revlog.lastIvl),             // stability_before ≈ lastIvl
+                    mapFactorToDifficulty(revlog.factor),    // difficulty_before
+                    mapRevlogStateAfter(revlog.type),        // state_after
+                    Math.max(0, revlog.ivl),                 // stability_after ≈ ivl
+                    mapFactorToDifficulty(revlog.factor),    // difficulty_after
+                    Math.max(0, revlog.ivl),                 // scheduled_days
+                    null,                                    // session_id
+                    deckId,                                  // deck_id
+                    null,                                    // review_index
+                    Math.max(0, revlog.lastIvl),             // interval_before
+                    revlog.factor > 0 ? revlog.factor / 1000 : null, // ease_factor_after (SM-2 ratio)
+                    revlog.type,                             // review_type (0=learn,1=review,2=relearn,3=filtered)
+                    createdAt,
+                );
+                result.reviewsInserted++;
             }
         }
     });
@@ -279,6 +337,47 @@ function mapAnkiState(type: number): CardState {
         case 3: return 'relearning';
         default: return 'new';
     }
+}
+
+// ── Review log helpers ────────────────────────────────────────────────────────
+
+/** Maps Anki ease (1–4) to Sekel rating string. */
+function mapAnkiEaseToRating(ease: number): string {
+    switch (ease) {
+        case 1: return 'again';
+        case 2: return 'hard';
+        case 3: return 'good';
+        case 4: return 'easy';
+        default: return 'good';
+    }
+}
+
+/**
+ * Approximates state_before from the revlog entry.
+ * Anki doesn't store state_before directly; we infer it from lastIvl.
+ * lastIvl = 0 means the card was new before this review.
+ */
+function mapRevlogStateBefore(revlog: AnkiReviewLog): string {
+    if (revlog.lastIvl === 0) return 'new';
+    if (revlog.lastIvl < 0) return 'learning'; // negative ivl = learning step in seconds
+    return 'review';
+}
+
+/** Maps Anki review type (0–3) to Sekel state_after. */
+function mapRevlogStateAfter(type: number): string {
+    switch (type) {
+        case 0: return 'learning';
+        case 1: return 'review';
+        case 2: return 'relearning';
+        case 3: return 'review'; // filtered deck reviews
+        default: return 'review';
+    }
+}
+
+/** Maps Anki ease factor to FSRS difficulty (0–10 scale). */
+function mapFactorToDifficulty(factor: number): number {
+    if (factor === 0) return 5; // default difficulty when factor is unknown
+    return Math.max(0, Math.min(10, (3500 - factor) / 200));
 }
 
 function computeDue(ankiCard: AnkiCard, now: string): string {

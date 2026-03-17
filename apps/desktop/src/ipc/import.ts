@@ -1,23 +1,35 @@
-import { ipcMain, dialog } from 'electron';
+import { ipcMain, dialog, WebContents } from 'electron';
 import { randomUUID } from 'node:crypto';
+import { getDb } from '../main/db/index';
 import { processApkgFile } from '../main/import/apkg';
 import { parseAnkiDatabase } from '../main/import/parser';
 import { buildImportSummary } from '../main/import/summaryBuilder';
 import { executeImport } from '../main/import/insertionEngine';
 import { extractMedia } from '../main/import/media';
+import { removeTempDir } from '../main/import/tempCleanup';
 import { fetchDecksByAnkiIds } from '../main/db/service';
 import type {
     AnkiCollection,
     ImportSummary,
     ImportOptionsPayload,
 } from '../main/import/types';
-import type { ImportResult } from '../types/electron';
+import { CancelledError } from '../main/import/types';
+import type { ImportProgress, ImportResult } from '../types/electron';
 
 // In-memory cache: tempDir → AnkiCollection.
 // Populated by import:get-summary and consumed by import:confirm.
-// Entries linger until import:confirm fires or the app restarts (stale entries
-// are harmless; cleanupStaleTempDirs handles the disk side on next launch).
 const collectionCache = new Map<string, AnkiCollection>();
+
+// Cancellation flags: tempDir → cancelled. Set by import:cancel handler.
+const cancellationFlags = new Map<string, boolean>();
+
+function sendProgress(sender: WebContents, progress: ImportProgress): void {
+    if (!sender.isDestroyed()) sender.send('import:progress', progress);
+}
+
+function checkCancelled(tempDir: string): void {
+    if (cancellationFlags.get(tempDir)) throw new CancelledError();
+}
 
 export function setupImportHandlers(): void {
     // Opens native file dialog filtered to .apkg — returns selected path or null if cancelled
@@ -50,11 +62,8 @@ export function setupImportHandlers(): void {
             },
         ): Promise<ImportSummary> => {
             const collection = await parseAnkiDatabase(args.dbFilePath);
-
-            // Cache the collection keyed by tempDir for retrieval in import:confirm
             collectionCache.set(args.tempDir, collection);
 
-            // Conflict detection: find SEKEL decks that share an anki_id with this import
             const ankiDeckIds = Array.from(collection.decks.values())
                 .filter(d => d.id !== 1)
                 .map(d => d.id);
@@ -64,11 +73,16 @@ export function setupImportHandlers(): void {
         },
     );
 
-    // Receives ImportOptionsPayload from the renderer, enriches it with the cached
-    // AnkiCollection, runs Phase 6 insertion, and returns counts to the renderer.
+    // Cancels an in-progress import for a given tempDir.
+    ipcMain.handle('import:cancel', (_event, tempDir: string) => {
+        cancellationFlags.set(tempDir, true);
+    });
+
+    // Receives ImportOptionsPayload from the renderer, runs Phases 5 & 6,
+    // emits progress events, and returns counts. Cleans up temp dir in finally.
     ipcMain.handle(
         'import:confirm',
-        async (_event, payload: ImportOptionsPayload): Promise<ImportResult> => {
+        async (event, payload: ImportOptionsPayload): Promise<ImportResult> => {
             const collection = collectionCache.get(payload.tempDir);
             if (!collection) {
                 throw new Error(
@@ -76,33 +90,69 @@ export function setupImportHandlers(): void {
                     'Was import:get-summary called first?',
                 );
             }
-            // Consume the cache entry — this is the only place collection is used
             collectionCache.delete(payload.tempDir);
+            cancellationFlags.set(payload.tempDir, false);
 
             const importId = randomUUID();
+            const mediaCount = Object.keys(payload.mediaMap).length;
 
-            // Phase 5: copy media files to permanent storage and insert media records
-            const mediaResult = await extractMedia(
-                payload.tempDir,
-                payload.mediaMap,
-                payload.userId,
-                importId,
-            );
-            if (mediaResult.warnings.length > 0) {
-                console.warn('[import] Media extraction warnings:', mediaResult.warnings);
+            let mediaResult: Awaited<ReturnType<typeof extractMedia>> | null = null;
+            let insertResult: ReturnType<typeof executeImport> | null = null;
+
+            try {
+                // Phase 5: media extraction
+                checkCancelled(payload.tempDir);
+                sendProgress(event.sender, {
+                    stage: 'extracting-media',
+                    detail: mediaCount > 0 ? `Extracting ${mediaCount} media file${mediaCount !== 1 ? 's' : ''}` : undefined,
+                    percent: 10,
+                });
+
+                mediaResult = await extractMedia(
+                    payload.tempDir,
+                    payload.mediaMap,
+                    payload.userId,
+                    importId,
+                );
+                if (mediaResult.warnings.length > 0) {
+                    console.warn('[import] Media extraction warnings:', mediaResult.warnings);
+                }
+
+                // Phase 6: data insertion
+                checkCancelled(payload.tempDir);
+                sendProgress(event.sender, { stage: 'inserting-decks', percent: 30 });
+
+                insertResult = executeImport(
+                    { ...payload, parsedData: collection },
+                    payload.userId,
+                );
+
+                sendProgress(event.sender, {
+                    stage: 'cleaning-up',
+                    percent: 95,
+                });
+            } catch (err) {
+                // Roll back any media records inserted under this importId
+                if (importId) {
+                    try {
+                        getDb().prepare('DELETE FROM media WHERE import_id = ?').run(importId);
+                    } catch (cleanupErr) {
+                        console.warn('[import] Failed to clean up media records:', cleanupErr);
+                    }
+                }
+                throw err;
+            } finally {
+                cancellationFlags.delete(payload.tempDir);
+                await removeTempDir(payload.tempDir);
             }
 
-            // Phase 6: insert decks, notes, and cards
-            const insertResult = executeImport(
-                { ...payload, parsedData: collection },
-                payload.userId,
-            );
+            sendProgress(event.sender, { stage: 'complete', percent: 100 });
 
             return {
-                ...insertResult,
-                mediaExtracted: mediaResult.extracted,
-                mediaSkipped: mediaResult.skipped,
-                mediaWarnings: mediaResult.warnings,
+                ...insertResult!,
+                mediaExtracted: mediaResult!.extracted,
+                mediaSkipped: mediaResult!.skipped,
+                mediaWarnings: mediaResult!.warnings,
             };
         },
     );

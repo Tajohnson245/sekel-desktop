@@ -57,6 +57,7 @@ export interface ImportResult {
     decksSkipped: number;
     notesInserted: number;
     cardsInserted: number;
+    reviewsInserted: number;
     mediaExtracted: number;
     mediaSkipped: number;
     mediaWarnings: string[];
@@ -71,6 +72,24 @@ export interface ApkgImportResult {
     tempDir: string;
 }
 
+export type ImportStage =
+    | 'extracting-media'
+    | 'inserting-decks'
+    | 'inserting-note-types'
+    | 'inserting-notes'
+    | 'inserting-cards'
+    | 'inserting-reviews'
+    | 'cleaning-up'
+    | 'complete';
+
+export interface ImportProgress {
+    stage: ImportStage;
+    /** Optional detail line, e.g. "Extracting 12 media files" */
+    detail?: string;
+    /** 0–100 estimate */
+    percent: number;
+}
+
 export interface ElectronImport {
     selectFile: () => Promise<string | null>;
     processApkg: (filePath: string) => Promise<ApkgImportResult>;
@@ -82,6 +101,8 @@ export interface ElectronImport {
         tempDir: string;
     }) => Promise<ImportSummary>;
     confirmImport: (payload: ImportOptionsPayload) => Promise<ImportResult>;
+    cancel: (tempDir: string) => void;
+    onImportProgress: (cb: (progress: ImportProgress) => void) => () => void;
 }
 
 export interface DocumentOverview {

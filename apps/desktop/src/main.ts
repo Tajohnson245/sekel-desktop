@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, protocol, net } from 'electron';
 import Store from 'electron-store';
 import path from 'node:path';
 import { createMenu } from './menu';
@@ -9,6 +9,13 @@ import { setupDocumentHandlers } from './ipc/document_parsing';
 import { setupDatabaseHandlers } from './ipc/database';
 import { setupImportHandlers } from './ipc/import';
 import { cleanupStaleTempDirs } from './main/import/tempCleanup';
+import { fetchMediaByFilename } from './main/db/service';
+
+// Register sekel-media:// as a privileged scheme before app is ready.
+// This must be called synchronously before app.whenReady().
+protocol.registerSchemesAsPrivileged([
+    { scheme: 'sekel-media', privileges: { secure: true, supportFetchAPI: true, corsEnabled: true } },
+]);
 
 // update-electron-app is a CommonJS module
 const updateElectronApp = require('update-electron-app');
@@ -57,6 +64,26 @@ app.whenReady().then(() => {
     } catch (err) {
         console.error('[main] database initialization failed — app will run without DB:', err);
     }
+
+    // Handle sekel-media://{userId}/{filename} — serves imported media files from disk.
+    // URL format: sekel-media://user-id/original-filename.jpg
+    protocol.handle('sekel-media', (request) => {
+        try {
+            const url = new URL(request.url);
+            const userId = decodeURIComponent(url.hostname);
+            const filename = decodeURIComponent(url.pathname.slice(1)); // strip leading "/"
+            const record = fetchMediaByFilename(userId, filename);
+            if (!record) {
+                return new Response(null, { status: 404 });
+            }
+            // Convert Windows backslashes to forward slashes for file:// URL
+            const fileUrl = 'file:///' + record.file_path.replace(/\\/g, '/');
+            return net.fetch(fileUrl);
+        } catch (err) {
+            console.warn('[sekel-media] failed to serve:', request.url, err);
+            return new Response(null, { status: 500 });
+        }
+    });
 
     // Register IPC handlers unconditionally so the renderer always has targets
     // to invoke. If the DB failed to initialize, individual handlers will throw

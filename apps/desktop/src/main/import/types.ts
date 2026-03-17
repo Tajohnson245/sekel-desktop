@@ -59,6 +59,14 @@ export class ValidationError extends Error {
     }
 }
 
+/** Thrown when the user cancels an in-progress import. */
+export class CancelledError extends Error {
+    constructor() {
+        super('Import cancelled by user.');
+        this.name = 'CancelledError';
+    }
+}
+
 // ── Anki Parsed Data Types ────────────────────────────────────────────────────
 // These represent Anki's raw data model as read from the SQLite database.
 // They are NOT SEKEL database types — Phase 4 maps these into SEKEL's schema.
