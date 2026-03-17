@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '../UI';
 import type { ImportProgress, ImportStage } from '../../types/electron';
