@@ -301,7 +301,10 @@ export async function updateCardAfterReview(cardId: string, updates: Partial<Car
     values.push(cardId);
     getDb().prepare(`UPDATE cards SET ${fields.map((f, i) => (i === 0 ? 'updated_at = ?' : f)).join(', ')} WHERE id = ?`).run(...values);
     const result = fetchCardById(cardId)!;
-    await pushRecordAsync('cards', result as unknown as Record<string, unknown>);
+    // Skip Supabase sync for Anki-imported cards — their parent notes don't exist in Supabase
+    if (!result.anki_id) {
+        await pushRecordAsync('cards', result as unknown as Record<string, unknown>);
+    }
     return result;
 }
 
