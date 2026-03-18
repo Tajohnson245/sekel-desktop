@@ -143,6 +143,27 @@ This prevents Vite from pre-bundling the workspace package (which would cache ol
 
 `apps/desktop/forge.config.js` has `rebuildConfig: { force: true }` so `better-sqlite3` is rebuilt against the correct Electron Node ABI during packaging.
 
+**NMV mismatch fix (monorepo):** In an npm workspace, `better-sqlite3` is hoisted to the root `node_modules`. Running `@electron/rebuild` from `apps/desktop` only scans `apps/desktop/node_modules` and finds nothing — the root binary is never rebuilt. This causes a Node Module Version (NMV) mismatch at runtime (system Node NMV 137 vs Electron 40 NMV 143).
+
+The permanent fix is a `hooks.preStart` in `forge.config.js` that runs before every `electron-forge start`:
+
+```js
+hooks: {
+  preStart: async () => {
+    const { execSync } = require('child_process');
+    const electronVersion = require(path.join(__dirname, 'node_modules', 'electron', 'package.json')).version;
+    const ext = process.platform === 'win32' ? '.cmd' : '';
+    const rebuildBin = path.join(__dirname, 'node_modules', '.bin', `electron-rebuild${ext}`);
+    execSync(`"${rebuildBin}" -f -w better-sqlite3 -v ${electronVersion}`, {
+      stdio: 'inherit',
+      cwd: MONOREPO_ROOT  // path.join(__dirname, '..', '..')
+    });
+  }
+}
+```
+
+This targets the monorepo root, uses the `.cmd` binary on Windows, and prints output so failures are visible. It runs automatically on every dev start — no manual `npm rebuild` needed.
+
 ---
 
 ## Supabase Table Requirements
