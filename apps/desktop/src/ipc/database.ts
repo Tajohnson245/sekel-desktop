@@ -40,6 +40,9 @@ export function setupDatabaseHandlers(): void {
     ipcMain.handle('db:fetchAllCardsForStudy', (_e, deckId: string, limit?: number) =>
         dbService.fetchAllCardsForStudy(deckId, limit));
 
+    ipcMain.handle('db:fetchAllCardsForDeck', (_e, deckId: string) =>
+        dbService.fetchAllCardsForDeck(deckId));
+
     ipcMain.handle('db:updateCardAfterReview', (_e, cardId: string, updates) =>
         dbService.updateCardAfterReview(cardId, updates));
 

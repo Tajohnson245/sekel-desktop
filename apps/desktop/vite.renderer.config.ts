@@ -8,6 +8,7 @@ export default defineConfig({
         dedupe: ['react', 'react-dom', 'react-i18next', 'lucide-react', 'recharts'],
         alias: {
             '@sekel/components': path.resolve(__dirname, '../../packages/components/src/index.ts'),
+            '@sekel/db': path.resolve(__dirname, '../../packages/db/src/index.ts'),
         },
     },
 });

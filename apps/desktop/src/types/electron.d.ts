@@ -135,6 +135,7 @@ interface ElectronDB {
     // Cards
     fetchDueCards:         (deckId: string, limit?: number) => Promise<CardWithNote[]>;
     fetchAllCardsForStudy: (deckId: string, limit?: number) => Promise<CardWithNote[]>;
+    fetchAllCardsForDeck:  (deckId: string) => Promise<CardWithNote[]>;
     updateCardAfterReview: (cardId: string, updates: Partial<Card>) => Promise<Card>;
     createCard:            (card: CardInsert) => Promise<Card>;
     fetchCardsByNote:      (noteId: string) => Promise<Card[]>;

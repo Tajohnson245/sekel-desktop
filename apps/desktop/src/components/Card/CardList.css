@@ -63,6 +63,22 @@
     word-break: break-word;
 }
 
+.card-front p img,
+.card-back p img {
+    max-height: 80px;
+    max-width: 100%;
+    width: auto;
+    object-fit: contain;
+    border-radius: var(--radius);
+    display: block;
+    margin-top: 0.25rem;
+}
+
+/* Strip the <hr> Anki injects between FrontSide and Back in list view */
+.card-back p hr {
+    display: none;
+}
+
 .card-item-actions {
     display: flex;
     align-items: center;

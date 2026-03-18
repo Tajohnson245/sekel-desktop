@@ -54,6 +54,7 @@ export function useCreateNote() {
             queryClient.invalidateQueries({ queryKey: noteKeys.byDeck(variables.note.deck_id) });
             queryClient.invalidateQueries({ queryKey: deckKeys.stats(variables.note.deck_id) });
             queryClient.invalidateQueries({ queryKey: deckKeys.dueCards(variables.note.deck_id) });
+            queryClient.invalidateQueries({ queryKey: deckKeys.cards(variables.note.deck_id) });
         },
     });
 }
@@ -79,6 +80,7 @@ export function useDeleteNote() {
             queryClient.invalidateQueries({ queryKey: noteKeys.byDeck(variables.deckId) });
             queryClient.invalidateQueries({ queryKey: deckKeys.stats(variables.deckId) });
             queryClient.invalidateQueries({ queryKey: deckKeys.dueCards(variables.deckId) });
+            queryClient.invalidateQueries({ queryKey: deckKeys.cards(variables.deckId) });
         },
     });
 }

@@ -35,6 +35,7 @@ export const fetchGlobalRetention = (userId: string, days?: number) => db().fetc
 // ── Cards ────────────────────────────────────────────────────────────────────
 export const fetchDueCards = (deckId: string, limit?: number) => db().fetchDueCards(deckId, limit);
 export const fetchAllCardsForStudy = (deckId: string, limit?: number) => db().fetchAllCardsForStudy(deckId, limit);
+export const fetchAllCardsForDeck = (deckId: string) => db().fetchAllCardsForDeck(deckId);
 export const updateCardAfterReview = (cardId: string, updates: Partial<Card>) => db().updateCardAfterReview(cardId, updates);
 export const createCard = (card: CardInsert) => db().createCard(card);
 export const fetchCardsByNote = (noteId: string) => db().fetchCardsByNote(noteId);

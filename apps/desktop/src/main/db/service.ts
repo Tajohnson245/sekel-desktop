@@ -266,6 +266,15 @@ export function fetchAllCardsForStudy(deckId: string, limit = 50): CardWithNote[
     return rows.map(buildCardWithNote);
 }
 
+export function fetchAllCardsForDeck(deckId: string): CardWithNote[] {
+    const rows = getDb().prepare(`
+        ${CARD_WITH_NOTE_SQL}
+        WHERE n.deck_id = ?
+        ORDER BY n.created_at ASC, c.template_index ASC
+    `).all(deckId) as CardWithNoteRow[];
+    return rows.map(buildCardWithNote);
+}
+
 export function updateCardAfterReview(cardId: string, updates: Partial<Card>): Card {
     const now = new Date().toISOString();
     const fields = ['updated_at'];
