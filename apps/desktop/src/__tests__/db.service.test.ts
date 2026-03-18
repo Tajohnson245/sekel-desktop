@@ -13,12 +13,6 @@ vi.mock('../main/db/index', () => ({
     initDatabase: vi.fn(),
 }));
 
-// Suppress Supabase sync calls that are irrelevant to unit tests.
-vi.mock('../main/db/syncPush', () => ({
-    pushRecord: vi.fn(),
-    deleteRecord: vi.fn(),
-}));
-
 import {
     fetchDecks,
     fetchDeck,
@@ -39,10 +33,6 @@ import {
     fetchDrafts,
     saveDraft,
     deleteDraft,
-    upsertProfile,
-    fetchProfile,
-    getSyncMetadata,
-    setSyncMetadata,
 } from '../main/db/service';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -556,48 +546,3 @@ describe('drafts', () => {
     });
 });
 
-// ── User Profiles ──────────────────────────────────────────────────────────────
-
-describe('upsertProfile', () => {
-    it('creates a profile on first upsert', () => {
-        const profile = upsertProfile(USER, { first_name: 'Ada' });
-        expect(profile.id).toBe(USER);
-        expect(profile.first_name).toBe('Ada');
-    });
-
-    it('updates an existing profile', () => {
-        upsertProfile(USER, { first_name: 'Ada' });
-        const updated = upsertProfile(USER, { first_name: 'Grace' });
-        expect(updated.first_name).toBe('Grace');
-    });
-
-    it('coerces flip_animation boolean from integer', () => {
-        const profile = upsertProfile(USER, { flip_animation: false });
-        expect(profile.flip_animation).toBe(false);
-        const profile2 = upsertProfile(USER, { flip_animation: true });
-        expect(profile2.flip_animation).toBe(true);
-    });
-
-    it('fetchProfile returns null for unknown user', () => {
-        expect(fetchProfile('nobody')).toBeNull();
-    });
-});
-
-// ── Sync Metadata ──────────────────────────────────────────────────────────────
-
-describe('sync metadata', () => {
-    it('setSyncMetadata and getSyncMetadata round-trips', () => {
-        setSyncMetadata('last_sync_at', '2025-01-01T00:00:00Z');
-        expect(getSyncMetadata('last_sync_at')).toBe('2025-01-01T00:00:00Z');
-    });
-
-    it('returns null for missing key', () => {
-        expect(getSyncMetadata('nonexistent')).toBeNull();
-    });
-
-    it('upserts on repeat call', () => {
-        setSyncMetadata('key', 'v1');
-        setSyncMetadata('key', 'v2');
-        expect(getSyncMetadata('key')).toBe('v2');
-    });
-});

@@ -1,10 +1,13 @@
-# SQLite Local-First Architecture — Implementation Notes
+# SQLite Local-First Architecture
+> Implementation notes for the Sekel desktop app's local SQLite database — schema, data access layer, IPC bridge, and media handling.
+
+---
 
 ## Overview
 
-The Sekel desktop app (Electron) uses SQLite as its primary data store. All reads and writes go to a local SQLite database (`sekel.db`) stored in the OS user data folder. Supabase (cloud PostgreSQL) acts as an asynchronous cloud backup only — it is never queried at runtime for normal app operations.
+The Sekel desktop app uses SQLite as the sole database for all flashcard data. All reads and writes go to a local SQLite file (`sekel.db`) stored in the OS user data folder. Supabase is used exclusively for authentication and user profiles — it is never queried for decks, cards, notes, reviews, or any other flashcard data.
 
-On first login, all existing user data is pulled from Supabase into SQLite. After that, every local write is pushed to Supabase in the background (fire-and-forget).
+There is no sync layer. The app is fully offline-capable for all study features.
 
 ---
 
@@ -13,9 +16,7 @@ On first login, all existing user data is pulled from Supabase into SQLite. Afte
 ```
 React Component
   ↓
-TanStack Query hook           (unchanged)
-  ↓
-lib/queries.ts                (IPC shim — signatures preserved)
+TanStack Query hook
   ↓
 window.electronAPI.db.*       (contextBridge, renderer → main)
   ↓
@@ -23,10 +24,10 @@ ipcMain.handle('db:*')        (apps/desktop/src/ipc/database.ts)
   ↓
 main/db/service.ts            (better-sqlite3, synchronous)
   ↓
-sekel.db  (app.getPath('userData')/sekel.db)   ← source of truth
+sekel.db  ({app.getPath('userData')}/sekel.db)   ← sole source of truth
 
-Background write path:
-  service.ts write → syncPush.pushRecord(table, record) → supabase.upsert()
+User profile path (Supabase only):
+  profileStore.ts → fetchUserProfile / upsertUserProfile (@sekel/db) → Supabase REST
 ```
 
 ---
@@ -38,89 +39,76 @@ Background write path:
 | `apps/desktop/src/main/db/index.ts` | Opens the SQLite file, sets WAL + FK pragmas, runs migrations |
 | `apps/desktop/src/main/db/migrations.ts` | Ordered SQL migration strings; `schema_version` table tracks applied migrations |
 | `apps/desktop/src/main/db/service.ts` | All SQLite query/write functions (better-sqlite3 synchronous API) |
-| `apps/desktop/src/main/db/sync.ts` | Initial full pull from Supabase on first run |
-| `apps/desktop/src/main/db/syncPush.ts` | Fire-and-forget push to Supabase after each local write |
-| `apps/desktop/src/ipc/database.ts` | IPC handler registration (`db:*` channels) |
+| `apps/desktop/src/ipc/database.ts` | IPC handler registration (`db:*` channels) including `db:saveMediaFile` |
 | `apps/desktop/src/preload.ts` | contextBridge — exposes `window.electronAPI.db.*` to renderer |
 | `apps/desktop/src/types/electron.d.ts` | TypeScript types for the entire `db` API surface |
-| `apps/desktop/src/lib/queries.ts` | Renderer-side shim — calls IPC instead of Supabase directly |
-| `apps/desktop/src/lib/draftQueries.ts` | Same as queries.ts but for card drafts |
-| `apps/desktop/src/stores/authStore.ts` | After login, calls `db:setSessionToken` to init the push client |
-| `apps/desktop/src/stores/profileStore.ts` | Replaced Supabase calls with `window.electronAPI.db.fetchProfile/upsertProfile` |
-| `apps/desktop/src/components/Auth/ProtectedRoute.tsx` | Triggers initial sync on first login; shows loading screen during sync |
+| `apps/desktop/src/stores/profileStore.ts` | Calls Supabase directly for user profile reads/writes |
+| `apps/desktop/src/stores/authStore.ts` | Manages Supabase auth session; no IPC involvement post-login |
+| `apps/desktop/src/components/Auth/ProtectedRoute.tsx` | Guards app behind auth check; renders immediately once session resolves |
+| `apps/desktop/src/lib/storage.ts` | Saves card images to local media dir via `db:saveMediaFile` IPC |
+| `packages/db/src/queries/user_profiles.ts` | Supabase query functions for `user_profiles` table |
 
 ---
 
-## SQLite Schema (Migration 001)
+## SQLite Schema
 
-8 data tables + 1 metadata table:
+8 data tables tracked by version-controlled migrations in `migrations.ts`:
 
 - `note_types` — id, user_id, name, fields (JSON TEXT), card_templates (JSON TEXT), timestamps
-- `decks` — id, user_id, name, description, fsrs_enabled (0/1), timestamps
-- `notes` — id, user_id, deck_id (FK→decks CASCADE), note_type_id (FK→note_types), fields (JSON TEXT), tags (JSON TEXT), timestamps
-- `cards` — id, user_id, note_id (FK→notes CASCADE), template_index, full FSRS state (state, due, stability, difficulty, elapsed_days, scheduled_days, reps, lapses, last_review), timestamps
-- `reviews` — id, user_id, card_id (FK→cards CASCADE), rating, review_time, duration_ms, before/after FSRS snapshots, session_id, deck_id, review_index, created_at
-- `deck_sessions` — id, user_id, deck_id (FK→decks CASCADE), status, started_at, completed_at, created_at
+- `decks` — id, user_id, name, description, algorithm (`fsrs`|`sm2`), parent_id (FK→decks), anki_id, timestamps
+- `notes` — id, user_id, deck_id (FK→decks), note_type_id (FK→note_types), fields (JSON TEXT), tags (JSON TEXT), anki_id, anki_guid, timestamps
+- `cards` — id, user_id, note_id (FK→notes), template_index, full FSRS state (state, due, stability, difficulty, elapsed_days, scheduled_days, reps, lapses, last_review), anki_id, ease_factor, timestamps
+- `reviews` — id, user_id, card_id (FK→cards), rating, review_time, duration_ms, before/after FSRS snapshots, session_id, deck_id, review_index, anki import fields, created_at
+- `deck_sessions` — id, user_id, deck_id (FK→decks), status, started_at, completed_at, created_at
 - `card_drafts` — id, user_id, front, back, source, created_at
-- `user_profiles` — id, full_name, username, bio, avatar_url, location, theme_preference, flip_animation, language, timestamps
-- `sync_metadata` — key TEXT PK, value TEXT (stores `user_id` and `last_sync_at`)
+- `media` — id, user_id, filename, file_path (absolute local path), file_hash (SHA1), file_size, mime_type, import_id, created_at
 
 JSON columns (`fields`, `tags`, `card_templates`) are stored as `TEXT` and serialized/deserialized only at the `service.ts` boundary.
 
-Indexes on all FK columns, `user_id` columns, `cards.due`, and `reviews.review_time`.
+Migrations are append-only — never edit an existing migration entry.
 
 ---
 
-## Initial Sync Flow
+## What Stays on Supabase
 
-Triggered in `ProtectedRoute.tsx` after login:
-
-1. Call `window.electronAPI.db.isFirstRun(user.id)`
-   - Returns `true` if `sync_metadata` has no `last_sync_at`, or if a different `user_id` is stored
-2. If first run: show "Syncing your data..." loading screen, call `pullFromSupabase`
-3. `pullFromSupabase` (runs in main process):
-   - Creates an **authenticated** Supabase client using `Authorization: Bearer <access_token>` header (required to bypass RLS)
-   - Fetches all 8 tables in parallel via `Promise.all`
-   - Writes everything atomically to SQLite via `bulkUpsertAll` wrapped in a `db.transaction()`
-   - Sets `sync_metadata.user_id` and `sync_metadata.last_sync_at`
-4. Loading screen dismissed, app renders normally
+| Concern | How it's accessed |
+|---------|------------------|
+| auth.users (login, signup, session) | `@sekel/db` auth functions → Supabase Auth |
+| user_profiles (profile CRUD) | `fetchUserProfile` / `upsertUserProfile` in `packages/db/src/queries/user_profiles.ts`, called from `profileStore.ts` in the renderer |
+| Avatar uploads | Supabase Storage `avatars` bucket, called from `profileStore.ts` |
+| respondents, study_tools, survey_responses | Research/survey tables — not part of the app runtime |
 
 ---
 
-## Background Sync Push
+## Media Handling
 
-After every local SQLite write in `service.ts`, `syncPush.pushRecord(table, record)` is called as a fire-and-forget side effect:
+Card images are stored locally, not in cloud storage.
 
-- Uses an authenticated Supabase client initialized at login via `db:setSessionToken`
-- Calls `supabase.from(table).upsert(record, { onConflict: 'id' })`
-- Errors are logged but do not affect the local write
-- Conflict resolution: last-write-wins via `updated_at`. SQLite is always authoritative.
+**Import pipeline** (`apps/desktop/src/main/import/media.ts`):
+- Extracts media files from `.apkg` archives to `{userData}/media/{sha1}{ext}`
+- Deduplicates by SHA1 hash via `fetchMediaByHash`
+- Records each file in the `media` SQLite table with its absolute `file_path`
 
-For deletes: `syncPush.deleteRecord(table, id)` calls `supabase.from(table).delete().eq('id', id)`.
+**Manual uploads** (editor components → `lib/storage.ts`):
+- File buffer is sent to the main process via `db:saveMediaFile` IPC
+- Same SHA1 deduplication logic applies
+- File saved to `{userData}/media/{sha1}{ext}`, media record inserted
+
+**Serving**: `sekel-media://{userId}/{filename}` — the Electron main process registers this protocol in `main.ts`. It looks up `filename` in the `media` table to get `file_path`, then serves the file from disk via `net.fetch`.
 
 ---
 
-## Initial Sync Render Gating
+## ProtectedRoute
 
-`ProtectedRoute` must block children from rendering until `syncDone` is `true`. If children render before the sync check completes, TanStack Query fires immediately against an empty SQLite DB, caches empty results, and does not refetch after sync finishes.
+`ProtectedRoute` (previously the sync gate) now only guards for auth state:
 
-Correct render guard:
 ```tsx
-if (!syncDone || isSyncing) {
-    return <loading screen>;
-}
+if (isLoading) return <spinner>;
+if (!user)     return <AuthPage />;
 return <>{children}</>;
 ```
 
-The loading screen shows "Loading..." while `isFirstRun` is being checked (fast IPC call), then "Syncing your data..." while `pullFromSupabase` runs (network-bound). Children only mount after the DB is fully populated.
-
----
-
-## Env Var Handling
-
-`VITE_SUPABASE_PROJECT_URL` and `VITE_SUPABASE_ANON_KEY` are **renderer-only** — Vite inlines them into the renderer bundle via `import.meta.env`. They are `undefined` in the Electron main process via `process.env`.
-
-All code that needs these values reads them via `import.meta.env` in the renderer (authStore, ProtectedRoute). They are passed to the main process as IPC arguments, not read from environment there.
+There is no initial sync, no loading screen for data fetching, and no dependency on network state at startup.
 
 ---
 
@@ -137,54 +125,21 @@ resolve: {
 }
 ```
 
-This prevents Vite from pre-bundling the workspace package (which would cache old source) while still allowing Vite to handle transitive CJS dependencies (recharts → lodash). Using `optimizeDeps.exclude` alone breaks CJS transitive deps.
+This prevents Vite from pre-bundling the workspace package (which caches old source) while still allowing Vite to handle transitive CJS dependencies (recharts → lodash).
 
 `apps/desktop/vite.main.config.ts` externalizes `better-sqlite3` so Vite does not attempt to bundle the native `.node` binary.
 
 `apps/desktop/forge.config.js` has `rebuildConfig: { force: true }` so `better-sqlite3` is rebuilt against the correct Electron Node ABI during packaging.
 
-**NMV mismatch fix (monorepo):** In an npm workspace, `better-sqlite3` is hoisted to the root `node_modules`. Running `@electron/rebuild` from `apps/desktop` only scans `apps/desktop/node_modules` and finds nothing — the root binary is never rebuilt. This causes a Node Module Version (NMV) mismatch at runtime (system Node NMV 137 vs Electron 40 NMV 143).
+**NMV mismatch fix (monorepo):** In an npm workspace, `better-sqlite3` is hoisted to the root `node_modules`. Running `@electron/rebuild` from `apps/desktop` only scans `apps/desktop/node_modules` and misses the root binary, causing a Node Module Version mismatch at runtime.
 
-The permanent fix is a `hooks.preStart` in `forge.config.js` that runs before every `electron-forge start`:
-
-```js
-hooks: {
-  preStart: async () => {
-    const { execSync } = require('child_process');
-    const electronVersion = require(path.join(__dirname, 'node_modules', 'electron', 'package.json')).version;
-    const ext = process.platform === 'win32' ? '.cmd' : '';
-    const rebuildBin = path.join(__dirname, 'node_modules', '.bin', `electron-rebuild${ext}`);
-    execSync(`"${rebuildBin}" -f -w better-sqlite3 -v ${electronVersion}`, {
-      stdio: 'inherit',
-      cwd: MONOREPO_ROOT  // path.join(__dirname, '..', '..')
-    });
-  }
-}
-```
-
-This targets the monorepo root, uses the `.cmd` binary on Windows, and prints output so failures are visible. It runs automatically on every dev start — no manual `npm rebuild` needed.
+The fix is a `hooks.preStart` in `forge.config.js` that runs `electron-rebuild` from the monorepo root before every `electron-forge start`. This runs automatically on every dev start — no manual `npm rebuild` needed.
 
 ---
 
-## Supabase Table Requirements
+## Date Handling
 
-The `user_profiles` table requires these columns (not present by default in older schema versions):
-
-```sql
-ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT;
-ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS location TEXT;
-ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS theme_preference TEXT NOT NULL DEFAULT 'system';
-ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS flip_animation BOOLEAN NOT NULL DEFAULT true;
-ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS language TEXT NOT NULL DEFAULT 'en';
-```
-
-After adding columns, reload the PostgREST schema cache: Supabase Dashboard → Settings → API → "Reload schema cache", or run `NOTIFY pgrst, 'reload schema';`.
-
----
-
-## Date Handling Note
-
-All date keys (e.g., for review heatmap, streak computation) use local date components instead of `toISOString()`:
+All date keys (review heatmap, streak computation) use local date components, not `toISOString()`:
 
 ```ts
 const localDate = (d: Date) =>
@@ -193,4 +148,4 @@ const localDate = (d: Date) =>
 
 `toISOString()` returns UTC — on DST transition days this diverges from local date and produces duplicate or missing date keys.
 
-Affected files: `ReviewHeatmap.tsx` (packages/components and apps/desktop), `Dashboard.tsx` (`computeStreak`), `service.ts` (`fetchUserReviewHistory`).
+Affected files: `ReviewHeatmap.tsx`, `Dashboard.tsx` (`computeStreak`), `service.ts` (`fetchUserReviewHistory`).

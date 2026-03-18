@@ -1,7 +1,8 @@
-import { ipcMain } from 'electron';
+import { app, ipcMain } from 'electron';
+import { createHash } from 'node:crypto';
+import { mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 import * as dbService from '../main/db/service';
-import * as syncService from '../main/db/sync';
-import * as syncPush from '../main/db/syncPush';
 
 export function setupDatabaseHandlers(): void {
     // ── Decks ──────────────────────────────────────────────────────────────────
@@ -104,26 +105,38 @@ export function setupDatabaseHandlers(): void {
     ipcMain.handle('db:clearDrafts', (_e, userId: string) =>
         dbService.clearDrafts(userId));
 
-    // ── User Profiles ──────────────────────────────────────────────────────────
-    ipcMain.handle('db:fetchProfile', (_e, userId: string) =>
-        dbService.fetchProfile(userId));
+    // ── Media ──────────────────────────────────────────────────────────────────
+    ipcMain.handle('db:saveMediaFile', async (_e, params: {
+        buffer: ArrayBuffer;
+        filename: string;
+        userId: string;
+        mimeType: string;
+    }) => {
+        const { buffer, filename, userId, mimeType } = params;
+        const buf = Buffer.from(buffer);
+        const sha1 = createHash('sha1').update(buf).digest('hex');
 
-    ipcMain.handle('db:upsertProfile', (_e, userId: string, updates) =>
-        dbService.upsertProfile(userId, updates));
+        const existing = dbService.fetchMediaByHash(userId, sha1);
+        if (existing) {
+            return `sekel-media://${encodeURIComponent(userId)}/${encodeURIComponent(existing.filename)}`;
+        }
 
-    // ── Sync ───────────────────────────────────────────────────────────────────
-    ipcMain.handle('db:isFirstRun', (_e, userId: string) =>
-        syncService.isFirstRun(userId));
+        const mediaDir = path.join(app.getPath('userData'), 'media');
+        await mkdir(mediaDir, { recursive: true });
 
-    ipcMain.handle('db:pullFromSupabase', async (_e, supabaseUrl: string, supabaseKey: string, userId: string, accessToken: string) =>
-        syncService.pullFromSupabase(supabaseUrl, supabaseKey, userId, accessToken));
+        const ext = path.extname(filename);
+        const destPath = path.join(mediaDir, sha1 + ext);
+        await writeFile(destPath, buf);
 
-    ipcMain.handle('db:setSessionToken', (_e, url: string, anonKey: string, accessToken: string) =>
-        syncPush.initSyncClient(url, anonKey, accessToken));
+        dbService.createMedia({
+            user_id: userId,
+            filename,
+            file_path: destPath,
+            file_hash: sha1,
+            file_size: buf.length,
+            mime_type: mimeType,
+        });
 
-    ipcMain.handle('db:getSyncMetadata', (_e, key: string) =>
-        dbService.getSyncMetadata(key));
-
-    ipcMain.handle('db:setSyncMetadata', (_e, key: string, value: string) =>
-        dbService.setSyncMetadata(key, value));
+        return `sekel-media://${encodeURIComponent(userId)}/${encodeURIComponent(filename)}`;
+    });
 }
