@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto';
 import { getDb } from './index';
-import { pushRecord, pushRecordAsync, deleteRecord } from './syncPush';
 import type {
     Deck, DeckInsert, DeckUpdate,
     Note, NoteInsert, NoteUpdate,
@@ -10,7 +9,6 @@ import type {
     Media, MediaInsert,
     DeckSession,
     DraftCard, DraftCardInsert,
-    UserProfile,
     SessionAnalytics,
     Rating,
 } from '@sekel/db';
@@ -56,16 +54,8 @@ function mapCard(row: Record<string, unknown>): Card {
     return row as unknown as Card;
 }
 
-
 function mapDraft(row: Record<string, unknown>): DraftCard {
     return row as unknown as DraftCard;
-}
-
-function mapProfile(row: Record<string, unknown>): UserProfile {
-    return {
-        ...(row as unknown as UserProfile),
-        flip_animation: Boolean(row.flip_animation),
-    };
 }
 
 // ── Decks ─────────────────────────────────────────────────────────────────────
@@ -89,9 +79,7 @@ export function createDeck(deck: DeckInsert): Deck {
         INSERT INTO decks (id, user_id, name, description, algorithm, parent_id, anki_id, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(id, deck.user_id, deck.name, deck.description ?? null, deck.algorithm ?? 'fsrs', deck.parent_id ?? null, deck.anki_id ?? null, now, now);
-    const result = fetchDeck(id)!;
-    pushRecord('decks', result as unknown as Record<string, unknown>);
-    return result;
+    return fetchDeck(id)!;
 }
 
 export function updateDeck(id: string, updates: DeckUpdate): Deck {
@@ -107,21 +95,17 @@ export function updateDeck(id: string, updates: DeckUpdate): Deck {
 
     values.push(id);
     getDb().prepare(`UPDATE decks SET ${sets.join(', ')} WHERE id = ?`).run(...values);
-    const result = fetchDeck(id)!;
-    pushRecord('decks', result as unknown as Record<string, unknown>);
-    return result;
+    return fetchDeck(id)!;
 }
 
 export function deleteDeck(id: string): void {
     getDb().prepare('DELETE FROM decks WHERE id = ?').run(id);
-    deleteRecord('decks', id);
 }
 
 export function deleteDecks(ids: string[]): void {
     if (ids.length === 0) return;
     const placeholders = ids.map(() => '?').join(', ');
     getDb().prepare(`DELETE FROM decks WHERE id IN (${placeholders})`).run(...ids);
-    for (const id of ids) deleteRecord('decks', id);
 }
 
 export function fetchDecksByAnkiIds(userId: string, ankiIds: number[]): Deck[] {
@@ -282,7 +266,7 @@ export function fetchAllCardsForStudy(deckId: string, limit = 50): CardWithNote[
     return rows.map(buildCardWithNote);
 }
 
-export async function updateCardAfterReview(cardId: string, updates: Partial<Card>): Promise<Card> {
+export function updateCardAfterReview(cardId: string, updates: Partial<Card>): Card {
     const now = new Date().toISOString();
     const fields = ['updated_at'];
     const values: unknown[] = [now];
@@ -300,12 +284,7 @@ export async function updateCardAfterReview(cardId: string, updates: Partial<Car
 
     values.push(cardId);
     getDb().prepare(`UPDATE cards SET ${fields.map((f, i) => (i === 0 ? 'updated_at = ?' : f)).join(', ')} WHERE id = ?`).run(...values);
-    const result = fetchCardById(cardId)!;
-    // Skip Supabase sync for Anki-imported cards — their parent notes don't exist in Supabase
-    if (!result.anki_id) {
-        await pushRecordAsync('cards', result as unknown as Record<string, unknown>);
-    }
-    return result;
+    return fetchCardById(cardId)!;
 }
 
 function fetchCardById(id: string): Card | null {
@@ -313,7 +292,7 @@ function fetchCardById(id: string): Card | null {
     return row ? mapCard(row) : null;
 }
 
-export function createCard(card: CardInsert, skipSync = false): Card {
+export function createCard(card: CardInsert): Card {
     const now = new Date().toISOString();
     const id = randomUUID();
     getDb().prepare(`
@@ -327,9 +306,7 @@ export function createCard(card: CardInsert, skipSync = false): Card {
         card.elapsed_days, card.scheduled_days, card.reps, card.lapses,
         card.last_review ?? null, card.anki_id ?? null, card.ease_factor ?? null, now, now,
     );
-    const result = fetchCardById(id)!;
-    if (!skipSync) pushRecord('cards', result as unknown as Record<string, unknown>);
-    return result;
+    return fetchCardById(id)!;
 }
 
 export function fetchCardsByNote(noteId: string): Card[] {
@@ -344,16 +321,14 @@ export function fetchNotesByDeck(deckId: string): Note[] {
     return rows.map(mapNote);
 }
 
-export function createNote(note: NoteInsert, skipSync = false): Note {
+export function createNote(note: NoteInsert): Note {
     const now = new Date().toISOString();
     const id = randomUUID();
     getDb().prepare(`
         INSERT INTO notes (id, user_id, deck_id, note_type_id, fields, tags, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(id, note.user_id, note.deck_id, note.note_type_id, s(note.fields), s(note.tags), now, now);
-    const result = fetchNoteById(id)!;
-    if (!skipSync) pushRecord('notes', { ...result, fields: result.fields, tags: result.tags } as unknown as Record<string, unknown>);
-    return result;
+    return fetchNoteById(id)!;
 }
 
 function fetchNoteById(id: string): Note | null {
@@ -373,25 +348,22 @@ export function updateNote(id: string, updates: NoteUpdate): Note {
 
     values.push(id);
     getDb().prepare(`UPDATE notes SET ${sets.join(', ')} WHERE id = ?`).run(...values);
-    const result = fetchNoteById(id)!;
-    pushRecord('notes', result as unknown as Record<string, unknown>);
-    return result;
+    return fetchNoteById(id)!;
 }
 
 export function deleteNote(id: string): void {
     getDb().prepare('DELETE FROM notes WHERE id = ?').run(id);
-    deleteRecord('notes', id);
 }
 
-export async function createNoteWithCards(note: NoteInsert, templateCount = 1): Promise<{ note: Note; cards: Card[] }> {
-    const createdNote = { note: null as unknown as Note, cards: [] as Card[] };
+export function createNoteWithCards(note: NoteInsert, templateCount = 1): { note: Note; cards: Card[] } {
+    const result = { note: null as unknown as Note, cards: [] as Card[] };
 
     const tx = getDb().transaction(() => {
-        createdNote.note = createNote(note, true);
+        result.note = createNote(note);
         for (let i = 0; i < templateCount; i++) {
-            const card = createCard({
+            result.cards.push(createCard({
                 user_id: note.user_id,
-                note_id: createdNote.note.id,
+                note_id: result.note.id,
                 template_index: i,
                 state: 'new',
                 due: new Date().toISOString(),
@@ -402,19 +374,12 @@ export async function createNoteWithCards(note: NoteInsert, templateCount = 1): 
                 reps: 0,
                 lapses: 0,
                 last_review: null,
-            }, true);
-            createdNote.cards.push(card);
+            }));
         }
     });
     tx();
 
-    // Push note before cards to satisfy the cards_note_id_fkey FK constraint
-    await pushRecordAsync('notes', { ...createdNote.note, fields: createdNote.note.fields, tags: createdNote.note.tags } as unknown as Record<string, unknown>);
-    for (const card of createdNote.cards) {
-        await pushRecordAsync('cards', card as unknown as Record<string, unknown>);
-    }
-
-    return createdNote;
+    return result;
 }
 
 // ── Note Types ────────────────────────────────────────────────────────────────
@@ -432,9 +397,7 @@ export function createNoteType(noteType: NoteTypeInsert): NoteType {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(id, noteType.user_id, noteType.name, s(noteType.fields), s(noteType.card_templates), noteType.anki_id ?? null, now, now);
     const row = getDb().prepare('SELECT * FROM note_types WHERE id = ?').get(id) as Record<string, unknown>;
-    const result = mapNoteType(row);
-    pushRecord('note_types', result as unknown as Record<string, unknown>);
-    return result;
+    return mapNoteType(row);
 }
 
 // ── Reviews ───────────────────────────────────────────────────────────────────
@@ -458,9 +421,7 @@ export function insertReview(params: InsertReviewParams): Review {
         params.interval_before ?? null, params.ease_factor_after ?? null, params.review_type ?? null,
         now,
     );
-    const result = getDb().prepare('SELECT * FROM reviews WHERE id = ?').get(id) as Review;
-    pushRecord('reviews', result as unknown as Record<string, unknown>);
-    return result;
+    return getDb().prepare('SELECT * FROM reviews WHERE id = ?').get(id) as Review;
 }
 
 export function fetchUserReviewHistory(userId: string, days = 365): ReviewDayCount[] {
@@ -492,9 +453,7 @@ export function createDeckSession(userId: string, deckId: string): DeckSession {
         INSERT INTO deck_sessions (id, user_id, deck_id, status, started_at, completed_at, created_at)
         VALUES (?, ?, ?, 'in_progress', ?, NULL, ?)
     `).run(id, userId, deckId, now, now);
-    const session = getDb().prepare('SELECT * FROM deck_sessions WHERE id = ?').get(id) as DeckSession;
-    pushRecord('deck_sessions', session as unknown as Record<string, unknown>);
-    return session;
+    return getDb().prepare('SELECT * FROM deck_sessions WHERE id = ?').get(id) as DeckSession;
 }
 
 export function completeDeckSession(sessionId: string): DeckSession {
@@ -502,9 +461,7 @@ export function completeDeckSession(sessionId: string): DeckSession {
     getDb().prepare(`
         UPDATE deck_sessions SET status = 'completed', completed_at = ? WHERE id = ?
     `).run(now, sessionId);
-    const session = getDb().prepare('SELECT * FROM deck_sessions WHERE id = ?').get(sessionId) as DeckSession;
-    pushRecord('deck_sessions', session as unknown as Record<string, unknown>);
-    return session;
+    return getDb().prepare('SELECT * FROM deck_sessions WHERE id = ?').get(sessionId) as DeckSession;
 }
 
 export function fetchSessionAnalytics(sessionId: string): SessionAnalytics | null {
@@ -532,21 +489,18 @@ export function fetchSessionAnalytics(sessionId: string): SessionAnalytics | nul
     const totalReviews = reviews.length;
     const againCount = reviews.filter(r => r.rating === 'again').length;
 
-    // Retention trend
     let correctSoFar = 0;
     const retentionTrend = reviews.map((r, i) => {
         if (r.rating === 'good' || r.rating === 'easy' || r.rating === 'hard') correctSoFar++;
         return { reviewIndex: i + 1, retentionRate: Math.round((correctSoFar / (i + 1)) * 1000) / 1000 };
     });
 
-    // Rating distribution
     const ratingOrder: Rating[] = ['again', 'hard', 'good', 'easy'];
     const ratingDistribution = ratingOrder.map(rating => {
         const count = reviews.filter(r => r.rating === rating).length;
         return { rating, count, percent: totalReviews > 0 ? (count / totalReviews) * 100 : 0 };
     });
 
-    // Top forgotten cards
     const cardAgainCounts = new Map<string, number>();
     for (const r of reviews) {
         if (r.rating === 'again') cardAgainCounts.set(r.card_id, (cardAgainCounts.get(r.card_id) ?? 0) + 1);
@@ -625,9 +579,7 @@ export function saveDraft(userId: string, draft: DraftCardInsert): DraftCard {
         INSERT INTO card_drafts (id, user_id, front, back, source, created_at)
         VALUES (?, ?, ?, ?, ?, ?)
     `).run(id, userId, draft.front, draft.back, draft.source ?? null, now);
-    const result = getDb().prepare('SELECT * FROM card_drafts WHERE id = ?').get(id) as DraftCard;
-    pushRecord('card_drafts', result as unknown as Record<string, unknown>);
-    return result;
+    return getDb().prepare('SELECT * FROM card_drafts WHERE id = ?').get(id) as DraftCard;
 }
 
 export function updateDraft(id: string, updates: Partial<Pick<DraftCard, 'front' | 'back'>>): DraftCard {
@@ -638,168 +590,13 @@ export function updateDraft(id: string, updates: Partial<Pick<DraftCard, 'front'
     if (sets.length === 0) return getDb().prepare('SELECT * FROM card_drafts WHERE id = ?').get(id) as DraftCard;
     values.push(id);
     getDb().prepare(`UPDATE card_drafts SET ${sets.join(', ')} WHERE id = ?`).run(...values);
-    const result = getDb().prepare('SELECT * FROM card_drafts WHERE id = ?').get(id) as DraftCard;
-    pushRecord('card_drafts', result as unknown as Record<string, unknown>);
-    return result;
+    return getDb().prepare('SELECT * FROM card_drafts WHERE id = ?').get(id) as DraftCard;
 }
 
 export function deleteDraft(id: string): void {
     getDb().prepare('DELETE FROM card_drafts WHERE id = ?').run(id);
-    deleteRecord('card_drafts', id);
 }
 
 export function clearDrafts(userId: string): void {
     getDb().prepare('DELETE FROM card_drafts WHERE user_id = ?').run(userId);
-}
-
-// ── User Profiles ─────────────────────────────────────────────────────────────
-
-export function fetchProfile(userId: string): UserProfile | null {
-    const row = getDb().prepare('SELECT * FROM user_profiles WHERE id = ?').get(userId) as Record<string, unknown> | undefined;
-    return row ? mapProfile(row) : null;
-}
-
-export function upsertProfile(userId: string, updates: Partial<UserProfile>): UserProfile {
-    const now = new Date().toISOString();
-    const existing = fetchProfile(userId);
-
-    if (!existing) {
-        getDb().prepare(`
-            INSERT INTO user_profiles (id, first_name, last_name, role, medical_school, degree_track,
-                exam, target_date, language, avatar_url, location, theme_preference, flip_animation,
-                created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(
-            userId,
-            updates.first_name ?? null, updates.last_name ?? null, updates.role ?? null,
-            updates.medical_school ?? null, updates.degree_track ?? null, updates.exam ?? null,
-            updates.target_date ?? null, updates.language ?? 'en', updates.avatar_url ?? null,
-            updates.location ?? null, updates.theme_preference ?? 'system',
-            updates.flip_animation !== undefined ? (updates.flip_animation ? 1 : 0) : 1,
-            now, now,
-        );
-    } else {
-        const sets: string[] = ['updated_at = ?'];
-        const values: unknown[] = [now];
-        const fields: (keyof UserProfile)[] = [
-            'first_name', 'last_name', 'role', 'medical_school', 'degree_track',
-            'exam', 'target_date', 'language', 'avatar_url', 'location',
-            'theme_preference',
-        ];
-        for (const field of fields) {
-            if (field in updates) { sets.push(`${field} = ?`); values.push(updates[field] ?? null); }
-        }
-        if ('flip_animation' in updates) {
-            sets.push('flip_animation = ?');
-            values.push(updates.flip_animation ? 1 : 0);
-        }
-        values.push(userId);
-        getDb().prepare(`UPDATE user_profiles SET ${sets.join(', ')} WHERE id = ?`).run(...values);
-    }
-
-    const result = fetchProfile(userId)!;
-    pushRecord('user_profiles', result as unknown as Record<string, unknown>);
-    return result;
-}
-
-// ── Sync Metadata ─────────────────────────────────────────────────────────────
-
-export function getSyncMetadata(key: string): string | null {
-    const row = getDb().prepare('SELECT value FROM sync_metadata WHERE key = ?').get(key) as { value: string } | undefined;
-    return row?.value ?? null;
-}
-
-export function setSyncMetadata(key: string, value: string): void {
-    getDb().prepare('INSERT OR REPLACE INTO sync_metadata (key, value) VALUES (?, ?)').run(key, value);
-}
-
-// ── Bulk insert (used by sync.ts) ─────────────────────────────────────────────
-
-export function bulkUpsertAll(data: {
-    profiles: UserProfile[];
-    noteTypes: NoteType[];
-    decks: Deck[];
-    notes: Note[];
-    cards: Card[];
-    reviews: Review[];
-    sessions: DeckSession[];
-    drafts: DraftCard[];
-}, userId: string): void {
-    const db = getDb();
-
-    const tx = db.transaction(() => {
-        for (const p of data.profiles) {
-            db.prepare(`INSERT OR REPLACE INTO user_profiles
-                (id, first_name, last_name, role, medical_school, degree_track, exam, target_date,
-                 language, avatar_url, location, theme_preference, flip_animation, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `).run(p.id, p.first_name ?? null, p.last_name ?? null, p.role ?? null,
-                p.medical_school ?? null, p.degree_track ?? null, p.exam ?? null,
-                p.target_date ?? null, p.language, p.avatar_url ?? null, p.location ?? null,
-                p.theme_preference, p.flip_animation ? 1 : 0, p.created_at, p.updated_at);
-        }
-
-        for (const nt of data.noteTypes) {
-            db.prepare(`INSERT OR REPLACE INTO note_types (id, user_id, name, fields, card_templates, anki_id, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            `).run(nt.id, nt.user_id, nt.name, s(nt.fields), s(nt.card_templates), nt.anki_id ?? null, nt.created_at, nt.updated_at);
-        }
-
-        for (const d of data.decks) {
-            db.prepare(`INSERT OR REPLACE INTO decks (id, user_id, name, description, algorithm, parent_id, anki_id, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `).run(d.id, d.user_id, d.name, d.description ?? null, d.algorithm ?? 'fsrs', d.parent_id ?? null, d.anki_id ?? null, d.created_at, d.updated_at);
-        }
-
-        for (const n of data.notes) {
-            db.prepare(`INSERT OR REPLACE INTO notes (id, user_id, deck_id, note_type_id, fields, tags, anki_id, anki_guid, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `).run(n.id, n.user_id, n.deck_id, n.note_type_id, s(n.fields), s(n.tags), n.anki_id ?? null, n.anki_guid ?? null, n.created_at, n.updated_at);
-        }
-
-        for (const c of data.cards) {
-            db.prepare(`INSERT OR REPLACE INTO cards
-                (id, user_id, note_id, template_index, state, due, stability, difficulty,
-                 elapsed_days, scheduled_days, reps, lapses, last_review, anki_id, ease_factor, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `).run(c.id, c.user_id, c.note_id, c.template_index, c.state, c.due,
-                c.stability, c.difficulty, c.elapsed_days, c.scheduled_days,
-                c.reps, c.lapses, c.last_review ?? null, c.anki_id ?? null, c.ease_factor ?? null, c.created_at, c.updated_at);
-        }
-
-        for (const r of data.reviews) {
-            db.prepare(`INSERT OR REPLACE INTO reviews
-                (id, user_id, card_id, rating, review_time, review_duration_ms,
-                 state_before, stability_before, difficulty_before,
-                 state_after, stability_after, difficulty_after,
-                 scheduled_days, session_id, deck_id, review_index,
-                 interval_before, ease_factor_after, review_type, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `).run(r.id, r.user_id, r.card_id, r.rating, r.review_time,
-                r.review_duration_ms ?? null,
-                r.state_before, r.stability_before, r.difficulty_before,
-                r.state_after, r.stability_after, r.difficulty_after,
-                r.scheduled_days, r.session_id ?? null, r.deck_id ?? null,
-                r.review_index ?? null,
-                r.interval_before ?? null, r.ease_factor_after ?? null, r.review_type ?? null,
-                r.created_at);
-        }
-
-        for (const s of data.sessions) {
-            db.prepare(`INSERT OR REPLACE INTO deck_sessions (id, user_id, deck_id, status, started_at, completed_at, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            `).run(s.id, s.user_id, s.deck_id, s.status, s.started_at, s.completed_at ?? null, s.created_at);
-        }
-
-        for (const dr of data.drafts) {
-            db.prepare(`INSERT OR REPLACE INTO card_drafts (id, user_id, front, back, source, created_at)
-                VALUES (?, ?, ?, ?, ?, ?)
-            `).run(dr.id, dr.user_id, dr.front, dr.back, dr.source ?? null, dr.created_at);
-        }
-
-        setSyncMetadata('user_id', userId);
-        setSyncMetadata('last_sync_at', new Date().toISOString());
-    });
-
-    tx();
 }

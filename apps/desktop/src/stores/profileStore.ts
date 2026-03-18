@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
+import { fetchUserProfile, upsertUserProfile } from '@sekel/db';
 import type { UserProfile } from '@sekel/db';
 
 export type { UserProfile };
@@ -22,8 +23,8 @@ export const useProfileStore = create<ProfileState>((set) => ({
     fetchProfile: async (userId: string) => {
         set({ isLoading: true, error: null });
         try {
-            const data = await window.electronAPI.db.fetchProfile(userId);
-            set({ profile: data as UserProfile | null });
+            const data = await fetchUserProfile(supabase, userId);
+            set({ profile: data });
         } catch (err: unknown) {
             set({ error: err instanceof Error ? err.message : String(err) });
         } finally {
@@ -34,8 +35,8 @@ export const useProfileStore = create<ProfileState>((set) => ({
     updateProfile: async (userId: string, updates: Partial<UserProfile>) => {
         set({ isLoading: true, error: null });
         try {
-            const data = await window.electronAPI.db.upsertProfile(userId, updates);
-            set({ profile: data as UserProfile });
+            const data = await upsertUserProfile(supabase, userId, updates);
+            set({ profile: data });
         } catch (err: unknown) {
             set({ error: err instanceof Error ? err.message : String(err) });
             throw err;
@@ -47,8 +48,8 @@ export const useProfileStore = create<ProfileState>((set) => ({
     upsertProfile: async (userId: string, updates: Partial<UserProfile>) => {
         set({ isLoading: true, error: null });
         try {
-            const data = await window.electronAPI.db.upsertProfile(userId, updates);
-            set({ profile: data as UserProfile });
+            const data = await upsertUserProfile(supabase, userId, updates);
+            set({ profile: data });
         } catch (err: unknown) {
             set({ error: err instanceof Error ? err.message : String(err) });
             throw err;
@@ -63,7 +64,6 @@ export const useProfileStore = create<ProfileState>((set) => ({
             const fileExt = file.name.split('.').pop();
             const fileName = `${userId}-${Math.random()}.${fileExt}`;
 
-            // Avatar file storage stays on Supabase Storage (file blobs are cloud-only)
             const { error: uploadError } = await supabase.storage
                 .from('avatars')
                 .upload(fileName, file);
@@ -75,10 +75,8 @@ export const useProfileStore = create<ProfileState>((set) => ({
                 .getPublicUrl(fileName);
 
             const avatarUrl = data.publicUrl;
-
-            // Persist the URL to SQLite (and sync push will update Supabase row)
-            const updatedProfile = await window.electronAPI.db.upsertProfile(userId, { avatar_url: avatarUrl });
-            set({ profile: updatedProfile as UserProfile });
+            const updatedProfile = await upsertUserProfile(supabase, userId, { avatar_url: avatarUrl });
+            set({ profile: updatedProfile });
             return avatarUrl;
         } catch (err: unknown) {
             set({ error: err instanceof Error ? err.message : String(err) });

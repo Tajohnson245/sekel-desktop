@@ -6,7 +6,6 @@ import type {
     Review,
     DeckSession, SessionAnalytics,
     DraftCard, DraftCardInsert,
-    UserProfile,
     InsertReviewParams, ReviewDayCount,
 } from '@sekel/db';
 
@@ -161,15 +160,8 @@ interface ElectronDB {
     updateDraft:           (id: string, updates: Partial<Pick<DraftCard, 'front' | 'back'>>) => Promise<DraftCard>;
     deleteDraft:           (id: string) => Promise<void>;
     clearDrafts:           (userId: string) => Promise<void>;
-    // Profile
-    fetchProfile:          (userId: string) => Promise<UserProfile | null>;
-    upsertProfile:         (userId: string, updates: Partial<UserProfile>) => Promise<UserProfile>;
-    // Sync
-    isFirstRun:            (userId: string) => Promise<boolean>;
-    pullFromSupabase:      (url: string, anonKey: string, userId: string, accessToken: string) => Promise<void>;
-    setSessionToken:       (url: string, anonKey: string, accessToken: string) => Promise<void>;
-    getSyncMetadata:       (key: string) => Promise<string | null>;
-    setSyncMetadata:       (key: string, value: string) => Promise<void>;
+    // Media
+    saveMediaFile:         (params: { buffer: ArrayBuffer; filename: string; userId: string; mimeType: string }) => Promise<string>;
 }
 
 interface ElectronAPI {

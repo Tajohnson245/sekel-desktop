@@ -61,14 +61,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         updateDraft:           (id: string, updates: unknown) => ipcRenderer.invoke('db:updateDraft', id, updates),
         deleteDraft:           (id: string) => ipcRenderer.invoke('db:deleteDraft', id),
         clearDrafts:           (userId: string) => ipcRenderer.invoke('db:clearDrafts', userId),
-        // Profile
-        fetchProfile:          (userId: string) => ipcRenderer.invoke('db:fetchProfile', userId),
-        upsertProfile:         (userId: string, updates: unknown) => ipcRenderer.invoke('db:upsertProfile', userId, updates),
-        // Sync
-        isFirstRun:            (userId: string) => ipcRenderer.invoke('db:isFirstRun', userId),
-        pullFromSupabase:      (url: string, anonKey: string, userId: string, accessToken: string) => ipcRenderer.invoke('db:pullFromSupabase', url, anonKey, userId, accessToken),
-        setSessionToken:       (url: string, anonKey: string, accessToken: string) => ipcRenderer.invoke('db:setSessionToken', url, anonKey, accessToken),
-        getSyncMetadata:       (key: string) => ipcRenderer.invoke('db:getSyncMetadata', key),
-        setSyncMetadata:       (key: string, value: string) => ipcRenderer.invoke('db:setSyncMetadata', key, value),
+        // Media
+        saveMediaFile:         (params: { buffer: ArrayBuffer; filename: string; userId: string; mimeType: string }) =>
+                                   ipcRenderer.invoke('db:saveMediaFile', params),
     },
 });
