@@ -13,6 +13,7 @@ export default tseslint.config(
             'playwright-report/**',
             'test-results/**',
             '*.config.*',
+            'scripts/**',
             'forge.config.js',
             'renderer.js',
             'main.js',
