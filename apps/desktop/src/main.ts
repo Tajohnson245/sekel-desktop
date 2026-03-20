@@ -17,11 +17,7 @@ protocol.registerSchemesAsPrivileged([
     { scheme: 'sekel-media', privileges: { secure: true, supportFetchAPI: true, corsEnabled: true } },
 ]);
 
-// update-electron-app is a CommonJS module
-const updateElectronApp = require('update-electron-app');
-
-declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
-declare const MAIN_WINDOW_VITE_NAME: string;
+import { updateElectronApp } from 'update-electron-app';
 
 const createWindow = () => {
     const store = new Store();
@@ -37,8 +33,9 @@ const createWindow = () => {
         height: windowState.height,
         x: windowState.x,
         y: windowState.y,
+        icon: path.join(__dirname, '..', '..', 'assets', 'sekel_logo_draft copy.ico'),
         webPreferences: {
-            preload: path.join(__dirname, 'preload.js'),
+            preload: path.join(__dirname, '../preload/preload.js'),
         },
     });
 
@@ -48,10 +45,10 @@ const createWindow = () => {
         store.set('windowState', bounds);
     });
 
-    if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-        mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
+    if (process.env.ELECTRON_RENDERER_URL) {
+        mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL);
     } else {
-        mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
+        mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
     }
 
     createMenu();
