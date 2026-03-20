@@ -13,6 +13,7 @@ import {
     fetchDeckStats,
     fetchDueCards,
     fetchAllCardsForStudy,
+    fetchAllCardsForDeck,
     updateCardAfterReview,
     type DeckStats,
     type CardWithNote,
@@ -30,6 +31,7 @@ export const deckKeys = {
     stats: (id: string) => ['decks', id, 'stats'] as const,
     dueCards: (id: string) => ['decks', id, 'due-cards'] as const,
     allCards: (id: string) => ['decks', id, 'all-cards'] as const,
+    cards: (id: string) => ['decks', id, 'cards'] as const,
 };
 
 // ─────────────────────────────────────────────────────────────────
@@ -73,6 +75,14 @@ export function useAllCardsForStudy(deckId: string | null) {
     return useQuery<CardWithNote[]>({
         queryKey: deckKeys.allCards(deckId ?? ''),
         queryFn: () => fetchAllCardsForStudy(deckId!),
+        enabled: !!deckId,
+    });
+}
+
+export function useCardsByDeck(deckId: string | null) {
+    return useQuery<CardWithNote[]>({
+        queryKey: deckKeys.cards(deckId ?? ''),
+        queryFn: () => fetchAllCardsForDeck(deckId!),
         enabled: !!deckId,
     });
 }

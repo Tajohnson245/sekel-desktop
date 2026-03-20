@@ -36,6 +36,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         // Cards
         fetchDueCards:         (deckId: string, limit?: number) => ipcRenderer.invoke('db:fetchDueCards', deckId, limit),
         fetchAllCardsForStudy: (deckId: string, limit?: number) => ipcRenderer.invoke('db:fetchAllCardsForStudy', deckId, limit),
+        fetchAllCardsForDeck:  (deckId: string) => ipcRenderer.invoke('db:fetchAllCardsForDeck', deckId),
         updateCardAfterReview: (cardId: string, updates: unknown) => ipcRenderer.invoke('db:updateCardAfterReview', cardId, updates),
         createCard:            (card: unknown) => ipcRenderer.invoke('db:createCard', card),
         fetchCardsByNote:      (noteId: string) => ipcRenderer.invoke('db:fetchCardsByNote', noteId),

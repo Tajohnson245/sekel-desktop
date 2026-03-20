@@ -54,7 +54,7 @@ jobs:
       - install-deps
       - run:
           name: Rebuild better-sqlite3
-          command: npm rebuild better-sqlite3
+          command: npm rebuild better-sqlite3 --build-from-source
       - run:
           name: Install Rollup native binary
           command: npm install --no-save rollup

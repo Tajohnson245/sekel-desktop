@@ -6,29 +6,97 @@ const { FuseV1Options, FuseVersion } = require('@electron/fuses');
 // @electron/rebuild must target this directory, not apps/desktop/node_modules.
 const MONOREPO_ROOT = path.join(__dirname, '..', '..');
 
+function rebuildSqlite() {
+  const { execSync } = require('child_process');
+  const electronVersion = require(path.join(__dirname, 'node_modules', 'electron', 'package.json')).version;
+  const ext = process.platform === 'win32' ? '.cmd' : '';
+  const rebuildBin = path.join(__dirname, 'node_modules', '.bin', `electron-rebuild${ext}`);
+  console.log(`[forge] Rebuilding better-sqlite3 for Electron ${electronVersion}...`);
+  execSync(
+    `"${rebuildBin}" -f -w better-sqlite3 -v ${electronVersion}`,
+    { stdio: 'inherit', cwd: MONOREPO_ROOT }
+  );
+  console.log('[forge] better-sqlite3 rebuild complete');
+}
+
 module.exports = {
   hooks: {
-    // Runs before every `electron-forge start`. Rebuilds better-sqlite3 for the
-    // correct Electron NMV. Uses execSync so output is visible and failures are fatal.
-    // CWD is the monorepo root so the hoisted node_modules/better-sqlite3 is found.
-    preStart: async () => {
-      const { execSync } = require('child_process');
-      const electronVersion = require(path.join(__dirname, 'node_modules', 'electron', 'package.json')).version;
-      // Absolute path to the CLI installed in apps/desktop (.cmd on Windows)
-      const ext = process.platform === 'win32' ? '.cmd' : '';
-      const rebuildBin = path.join(__dirname, 'node_modules', '.bin', `electron-rebuild${ext}`);
-      console.log(`[forge] Rebuilding better-sqlite3 for Electron ${electronVersion} (NMV fix)...`);
-      execSync(
-        `"${rebuildBin}" -f -w better-sqlite3 -v ${electronVersion}`,
-        { stdio: 'inherit', cwd: MONOREPO_ROOT }
-      );
-      console.log('[forge] better-sqlite3 rebuild complete');
-    },
+    prePackage: async () => rebuildSqlite(),
   },
   packagerConfig: {
-    asar: true,
+    asar: { unpack: '**/*.node' },
+    prune: false,
     name: 'Sekel',
     executableName: 'sekel',
+    icon: path.join(__dirname, 'assets', 'sekel_logo'),
+    // The packager doesn't copy node_modules in a monorepo workspace setup.
+    // Walk the full production dependency tree and copy each package from
+    // wherever npm placed it (local node_modules or hoisted to monorepo root).
+    afterCopy: [
+      (buildPath, _electronVersion, _platform, _arch, callback) => {
+        try {
+          const fs = require('fs');
+          const buildNM = path.join(buildPath, 'node_modules');
+          const localNM = path.join(__dirname, 'node_modules');
+          const rootNM  = path.join(MONOREPO_ROOT, 'node_modules');
+          const visited = new Set();
+
+          // Resolve the real source for a package: prefer local, but if it's
+          // a symlink/junction (hoisted by npm workspaces), use the root copy.
+          function findSrc(depName) {
+            const localPath = path.join(localNM, depName);
+            const rootPath  = path.join(rootNM, depName);
+            if (fs.existsSync(localPath)) {
+              try {
+                if (fs.lstatSync(localPath).isSymbolicLink()) {
+                  return fs.existsSync(rootPath) ? rootPath : null;
+                }
+              } catch (_) {}
+              return localPath;
+            }
+            return fs.existsSync(rootPath) ? rootPath : null;
+          }
+
+          // Recursively copy a package and all of its runtime dependencies.
+          function copyDep(depName) {
+            if (visited.has(depName) || depName === 'electron') return;
+            visited.add(depName);
+
+            const dest = path.join(buildNM, depName);
+            if (!fs.existsSync(dest)) {
+              const src = findSrc(depName);
+              if (!src) return;
+              console.log(`[forge] Copying ${depName}...`);
+              fs.cpSync(src, dest, { recursive: true, force: true });
+            }
+
+            const pkgJsonPath = path.join(dest, 'package.json');
+            if (!fs.existsSync(pkgJsonPath)) return;
+            try {
+              const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'));
+              for (const dep of Object.keys(pkgJson.dependencies || {})) copyDep(dep);
+            } catch (_) {}
+          }
+
+          // Seed with the desktop's declared production dependencies.
+          console.log('[forge] Resolving production dependency tree...');
+          const desktopPkg = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+          for (const dep of Object.keys(desktopPkg.dependencies || {})) copyDep(dep);
+
+          // Always overwrite better-sqlite3 with the freshly rebuilt native binary.
+          const bs3Src = path.join(rootNM, 'better-sqlite3');
+          const bs3Dest = path.join(buildNM, 'better-sqlite3');
+          if (fs.existsSync(bs3Src)) {
+            console.log('[forge] Overwriting better-sqlite3 with rebuilt binary...');
+            fs.cpSync(bs3Src, bs3Dest, { recursive: true, force: true });
+          }
+
+          callback();
+        } catch (err) {
+          callback(err);
+        }
+      },
+    ],
   },
   rebuildConfig: { force: true },
   makers: [
@@ -50,29 +118,6 @@ module.exports = {
     },
   ],
   plugins: [
-    {
-      name: '@electron-forge/plugin-vite',
-      config: {
-        build: [
-          {
-            entry: 'src/main.ts',
-            config: 'vite.main.config.ts',
-            target: 'main',
-          },
-          {
-            entry: 'src/preload.ts',
-            config: 'vite.preload.config.ts',
-            target: 'preload',
-          },
-        ],
-        renderer: [
-          {
-            name: 'main_window',
-            config: 'vite.renderer.config.ts',
-          },
-        ],
-      },
-    },
     {
       name: '@electron-forge/plugin-auto-unpack-natives',
       config: {},

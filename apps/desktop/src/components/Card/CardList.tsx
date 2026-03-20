@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { Plus, Trash2, Sparkles, AlertTriangle, Pencil } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useNotesByDeck, useDeleteNote } from '../../hooks/useNotes';
+import { useCardsByDeck } from '../../hooks/useDecks';
+import { useDeleteNote } from '../../hooks/useNotes';
+import { useAuthStore } from '../../stores/authStore';
+import { renderAnkiTemplate } from '../../lib/mediaResolver';
+import type { CardWithNote } from '../../lib/queries';
 import type { Note } from '../../lib/types';
 import { Button, Modal } from '../UI';
 
@@ -14,14 +18,28 @@ interface CardListProps {
 
 export default function CardList({ deckId, onAddCard, onGenerateAI, onEdit }: CardListProps) {
     const { t } = useTranslation();
-    const { data: notes = [], isLoading, error } = useNotesByDeck(deckId);
+    const userId = useAuthStore((s) => s.user?.id ?? '');
+    const { data: cards = [], isLoading, error } = useCardsByDeck(deckId);
     const deleteNote = useDeleteNote();
-    const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+    const [pendingDeleteNoteId, setPendingDeleteNoteId] = useState<string | null>(null);
 
     const handleDeleteConfirm = async () => {
-        if (!pendingDeleteId) return;
-        await deleteNote.mutateAsync({ id: pendingDeleteId, deckId });
-        setPendingDeleteId(null);
+        if (!pendingDeleteNoteId) return;
+        await deleteNote.mutateAsync({ id: pendingDeleteNoteId, deckId });
+        setPendingDeleteNoteId(null);
+    };
+
+    const renderSide = (template: string, fields: Record<string, string>, isAnki: boolean, isBack = false): string => {
+        if (isAnki) {
+            // Pass '' for frontHtml on back so {{FrontSide}} is stripped (we show front separately)
+            return renderAnkiTemplate(template, fields, userId, isBack ? '' : undefined);
+        }
+        let content = template;
+        Object.entries(fields).forEach(([key, value]) => {
+            content = content.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+        });
+        content = content.replace(/\{\{(?!c\d+::)[^}]+\}\}/g, '');
+        return content;
     };
 
     if (isLoading) {
@@ -32,43 +50,16 @@ export default function CardList({ deckId, onAddCard, onGenerateAI, onEdit }: Ca
         return <div className="error">{t('common.error')}</div>;
     }
 
-    const formatContent = (content: string) => {
-        if (!content) return t('common.empty');
-
-        // Check for images
-        const hasImage = content.includes('<img');
-
-        // Strip HTML tags for clean text preview
-        const cleanText = content
-            .replace(/<[^>]+>/g, '')
-            .replace(/&nbsp;/g, ' ')
-            .replace(/&#39;/g, "'")
-            .replace(/&quot;/g, '"')
-            .replace(/&amp;/g, '&')
-            .trim();
-
-        return (
-            <>
-                {cleanText}
-                {hasImage && (
-                    <span className="text-muted" style={{ fontSize: '0.85em', marginLeft: '8px', fontStyle: 'italic' }}>
-                        {t('card.one_image_added')}
-                    </span>
-                )}
-            </>
-        );
-    };
-
     return (
         <div className="card-list">
             <Modal
-                isOpen={!!pendingDeleteId}
-                onClose={() => setPendingDeleteId(null)}
+                isOpen={!!pendingDeleteNoteId}
+                onClose={() => setPendingDeleteNoteId(null)}
                 title={t('modals.delete_card_title')}
                 size="sm"
                 footer={
                     <>
-                        <Button variant="secondary" onClick={() => setPendingDeleteId(null)}>
+                        <Button variant="secondary" onClick={() => setPendingDeleteNoteId(null)}>
                             {t('common.cancel')}
                         </Button>
                         <Button
@@ -90,7 +81,7 @@ export default function CardList({ deckId, onAddCard, onGenerateAI, onEdit }: Ca
                 </div>
             </Modal>
 
-            {notes.length === 0 ? (
+            {cards.length === 0 ? (
                 <div className="empty-state" data-testid="empty-cards">
                     <div className="empty-icon">📝</div>
                     <h4>{t('card.no_cards')}</h4>
@@ -114,11 +105,13 @@ export default function CardList({ deckId, onAddCard, onGenerateAI, onEdit }: Ca
                 </div>
             ) : (
                 <div className="cards-grid" data-testid="cards-grid">
-                    {notes.map((note: Note) => {
-                        const isOcclusion = !!note.fields.Image && !!note.fields.Rectangles;
+                    {cards.map((card: CardWithNote) => {
+                        const isOcclusion = !!card.note.fields.Image && !!card.note.fields.Rectangles;
+                        const isAnki = card.note.note_type.anki_id !== null;
+                        const template = card.note.note_type.card_templates[card.template_index];
 
                         return (
-                            <div key={note.id} className="card-item" data-testid={`card-${note.id}`}>
+                            <div key={card.id} className="card-item" data-testid={`card-${card.id}`}>
                                 <div className="card-item-content">
                                     {isOcclusion ? (
                                         <>
@@ -126,22 +119,22 @@ export default function CardList({ deckId, onAddCard, onGenerateAI, onEdit }: Ca
                                                 <span className="card-label">{t('card.front')}</span>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                                     <img
-                                                        src={note.fields.Image}
+                                                        src={card.note.fields.Image}
                                                         alt="Occlusion"
                                                         style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 'var(--radius)', flexShrink: 0 }}
                                                     />
                                                     <span style={{ fontSize: '0.9em' }}>
-                                                        {note.fields.Front?.trim()
-                                                            ? <span dangerouslySetInnerHTML={{ __html: note.fields.Front }} />
-                                                            : <span className="text-muted" style={{ fontStyle: 'italic', fontSize: '0.85em' }}>{t('occlusion.title')} #{(parseInt(note.fields.ActiveIndex, 10) || 0) + 1}</span>
+                                                        {card.note.fields.Front?.trim()
+                                                            ? <span dangerouslySetInnerHTML={{ __html: card.note.fields.Front }} />
+                                                            : <span className="text-muted" style={{ fontStyle: 'italic', fontSize: '0.85em' }}>{t('occlusion.title')} #{(parseInt(card.note.fields.ActiveIndex, 10) || 0) + 1}</span>
                                                         }
                                                     </span>
                                                 </div>
                                             </div>
                                             <div className="card-back">
                                                 <span className="card-label">{t('card.back')}</span>
-                                                {note.fields.Back?.trim()
-                                                    ? <p style={{ margin: 0 }} dangerouslySetInnerHTML={{ __html: note.fields.Back }} />
+                                                {card.note.fields.Back?.trim()
+                                                    ? <p style={{ margin: 0 }} dangerouslySetInnerHTML={{ __html: card.note.fields.Back }} />
                                                     : <span className="text-muted" style={{ fontSize: '0.85em', fontStyle: 'italic' }}>{t('occlusion.title')}</span>
                                                 }
                                             </div>
@@ -150,11 +143,11 @@ export default function CardList({ deckId, onAddCard, onGenerateAI, onEdit }: Ca
                                         <>
                                             <div className="card-front">
                                                 <span className="card-label">{t('card.front')}</span>
-                                                <p>{formatContent(note.fields.Front ?? Object.values(note.fields)[0] ?? '')}</p>
+                                                <p dangerouslySetInnerHTML={{ __html: renderSide(template?.front_template ?? '{{Front}}', card.note.fields, isAnki) }} />
                                             </div>
                                             <div className="card-back">
                                                 <span className="card-label">{t('card.back')}</span>
-                                                <p>{formatContent(note.fields.Back ?? Object.values(note.fields)[1] ?? '')}</p>
+                                                <p dangerouslySetInnerHTML={{ __html: renderSide(template?.back_template ?? '{{Back}}', card.note.fields, isAnki, true) }} />
                                             </div>
                                         </>
                                     )}
@@ -163,20 +156,20 @@ export default function CardList({ deckId, onAddCard, onGenerateAI, onEdit }: Ca
                                     {onEdit && (
                                         <Button
                                             variant="icon"
-                                            onClick={() => onEdit(note)}
+                                            onClick={() => onEdit(card.note)}
                                             aria-label={t('card.edit_card')}
                                             title={t('card.edit_card')}
-                                            data-testid={`edit-card-${note.id}`}
+                                            data-testid={`edit-card-${card.id}`}
                                             icon={<Pencil size={16} />}
                                         />
                                     )}
                                     <Button
                                         variant="icon"
                                         className="btn-danger"
-                                        onClick={() => setPendingDeleteId(note.id)}
+                                        onClick={() => setPendingDeleteNoteId(card.note.id)}
                                         aria-label={t('card.delete_card')}
                                         title={t('card.delete_card')}
-                                        data-testid={`delete-card-${note.id}`}
+                                        data-testid={`delete-card-${card.id}`}
                                         icon={<Trash2 size={16} />}
                                     />
                                 </div>
