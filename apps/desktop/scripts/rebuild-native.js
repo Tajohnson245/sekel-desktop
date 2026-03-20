@@ -1,6 +1,14 @@
 // Rebuild better-sqlite3 against Electron's Node.js headers.
 // Electron bundles its own Node.js (e.g. v24 / ABI 143) which differs from
 // the system Node.js. Native modules must be compiled against Electron's ABI.
+//
+// Skipped in CI — unit tests run under plain Node.js, not Electron,
+// so they need the system-native binary (compiled by npm install).
+if (process.env.CI) {
+  console.log('CI detected — skipping Electron-targeted rebuild');
+  process.exit(0);
+}
+
 const path = require('path');
 const { execSync } = require('child_process');
 
