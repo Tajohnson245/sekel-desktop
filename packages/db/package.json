@@ -1,9 +1,9 @@
 {
-    "name": "@sekel/db",
-    "version": "0.0.1",
-    "main": "./src/index.ts",
-    "types": "./src/index.ts",
-    "dependencies": {
-        "@supabase/supabase-js": "^2.98.0"
-    }
+  "name": "@sekel/db",
+  "version": "1.4.0",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.98.0"
+  }
 }

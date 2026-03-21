@@ -24,6 +24,20 @@ jobs:
           node-version: '20'
           cache: npm
 
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#desktop/v}" >> $GITHUB_OUTPUT
+
+      - name: Validate version matches version.json
+        run: |
+          EXPECTED=$(node -p "require('./scripts/version.json').desktop")
+          TAG_VERSION=${{ steps.version.outputs.version }}
+          if [ "$EXPECTED" != "$TAG_VERSION" ]; then
+            echo "ERROR: Tag version ($TAG_VERSION) does not match version.json ($EXPECTED)"
+            exit 1
+          fi
+          node scripts/bump.js --check
+
       - name: Install dependencies
         run: npm ci
 

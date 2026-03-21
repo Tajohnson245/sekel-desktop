@@ -1,0 +1,22 @@
+name: Version Check
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/version.json'
+      - '**/package.json'
+
+jobs:
+  check:
+    name: Validate package versions
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Check versions match
+        run: node scripts/bump.js --check

@@ -1,6 +1,6 @@
 {
   "name": "@sekel/survey",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "private": true,
   "scripts": {
     "survey": "next dev --port 3002",
@@ -11,9 +11,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@sekel/db": "*",
-    "@sekel/survey-components": "*",
-    "@sekel/web-components": "*",
+    "@sekel/db": "*1.4.0",
+    "@sekel/survey-components": "*0.1.2",
+    "@sekel/web-components": "*1.4.0",
     "@supabase/ssr": "^0.9.0",
     "@supabase/supabase-js": "^2.98.0",
     "lucide-react": "^0.575.0",
