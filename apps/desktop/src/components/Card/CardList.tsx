@@ -6,14 +6,14 @@ import { useDeleteNote } from '../../hooks/useNotes';
 import { useAuthStore } from '../../stores/authStore';
 import { renderAnkiTemplate } from '../../lib/mediaResolver';
 import type { CardWithNote } from '../../lib/queries';
-import type { Note } from '../../lib/types';
+import type { JoinedNote } from '@sekel/db';
 import { Button, Modal } from '../UI';
 
 interface CardListProps {
     deckId: string;
     onAddCard: () => void;
     onGenerateAI?: () => void;
-    onEdit?: (note: Note) => void;
+    onEdit?: (note: JoinedNote) => void;
 }
 
 export default function CardList({ deckId, onAddCard, onGenerateAI, onEdit }: CardListProps) {

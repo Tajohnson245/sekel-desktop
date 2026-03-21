@@ -54,7 +54,7 @@ export default function StudySession({ deckId, userId, mode = 'due', onBack }: S
             createSession
                 .mutateAsync({ userId, deckId })
                 .then((session) => setSessionId(session.id))
-                .catch(() => { });
+                .catch((err) => console.error('Failed to create study session:', err));
         }
     }, [cards.length, isLoading, userId, deckId, sessionId]);
 
@@ -85,13 +85,12 @@ export default function StudySession({ deckId, userId, mode = 'due', onBack }: S
         });
 
         if (sessionId && userId) {
-            const deckIdFromNote = currentCard.note?.deck_id ?? deckId;
             await insertReview.mutateAsync({
                 user_id: userId,
                 card_id: currentCard.id,
                 rating,
                 session_id: sessionId,
-                deck_id: deckIdFromNote,
+                deck_id: deckId,
                 review_index: reviewedCount + 1,
                 state_before: currentCard.state,
                 stability_before: currentCard.stability,

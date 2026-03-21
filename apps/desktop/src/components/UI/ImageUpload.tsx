@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { Image as ImageIcon, Loader2, Trash2 } from 'lucide-react';
 import { uploadImage } from '../../lib/storage';
-import { Button } from './Button';
+import { Button } from '@sekel/components';
 import './ImageUpload.css';
 
 interface ImageUploadProps {

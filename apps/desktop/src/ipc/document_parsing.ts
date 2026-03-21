@@ -25,7 +25,6 @@ export const setupDocumentHandlers = () => {
         try {
             const language = file.language || 'English';
             if (file.type === 'youtube' && file.url) {
-                console.log(`Parsing YouTube video: ${file.url}`);
                 const { title, text } = await parseYoutubeVideo(file.url);
                 const summary = await summarizeDocumentContent(title, text, language);
                 return {
@@ -33,8 +32,6 @@ export const setupDocumentHandlers = () => {
                     content: summary
                 };
             }
-
-            console.log(`Parsing document: ${file.name} (${file.type})`);
 
             if (!file.buffer) {
                 throw new Error("File buffer is missing for non-YouTube file");

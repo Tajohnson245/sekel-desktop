@@ -78,18 +78,6 @@ export default function DraftsPage({ userId }: DraftsPageProps) {
             </div>
 
             <p className="drafts-page-description text-muted">
-                {/* Note: This specific long string might need a new key or generic explanation */}
-                {/* For now I'll check if I have a key for this or just use a generic one or create one */}
-                {/* drafts.empty_hint is close but this is the page description. I'll add a new key implicitly or just use empty_hint if appropriate? 
-                    Actually, let's just leave it hardcoded or add a specific key. 
-                    The English translation file had: "empty_hint": "Generate cards and click \"Save to Draft\" to store them here."
-                    This paragraph says: "Saved AI-generated cards waiting to be added to a deck. Up to 5 drafts allowed."
-                    I should add a key "drafts.description" to both files. 
-                    For now, I will use a hardcoded string or better, add "drafts.description" to the JSON edit in next step.
-                    Actually I can just add it to the JSON file edit above if I catch it in time, but I already sent that tool call.
-                    I will add 'drafts.page_description' to the JSON files in a subsequent step.
-                    For now I will use t('drafts.page_description') and ensure I add it.
-                 */}
                 {t('drafts.page_description', { limit: DRAFT_LIMIT })}
             </p>
 

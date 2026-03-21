@@ -1,5 +1,4 @@
-import { Modal } from '../UI/Modal';
-import { Button } from '../UI';
+import { Modal, Button } from '../UI';
 import type { ImportResult, ImportOptionsDeck } from '../../types/electron';
 
 interface ImportSuccessModalProps {

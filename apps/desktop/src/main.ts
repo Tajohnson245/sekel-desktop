@@ -52,7 +52,9 @@ const createWindow = () => {
     }
 
     createMenu();
-    mainWindow.webContents.openDevTools();
+    if (!app.isPackaged) {
+        mainWindow.webContents.openDevTools();
+    }
 };
 
 app.whenReady().then(() => {
@@ -90,7 +92,7 @@ app.whenReady().then(() => {
     try { setupDocumentHandlers(); } catch (err) { console.error('[main] document handler setup failed:', err); }
     try { setupDatabaseHandlers(); } catch (err) { console.error('[main] database handler setup failed:', err); }
     try { setupImportHandlers(); } catch (err) { console.error('[main] import handler setup failed:', err); }
-    cleanupStaleTempDirs(); // fire-and-forget stale temp dir cleanup
+    cleanupStaleTempDirs().catch((err) => console.error('[main] temp cleanup failed:', err));
 
     // Check for updates only in production (packaged app)
     if (app.isPackaged) {
