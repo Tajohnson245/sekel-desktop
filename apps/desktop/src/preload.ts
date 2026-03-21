@@ -22,6 +22,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
         },
     },
 
+    notify: {
+        configure: (config: { userId: string; enabled: boolean; reminderTimes: string[] }) =>
+            ipcRenderer.invoke('notify:configure', config),
+        streak: (userId: string) => ipcRenderer.invoke('notify:streak', userId),
+    },
+
     db: {
         // Decks
         fetchDecks:            (userId: string) => ipcRenderer.invoke('db:fetchDecks', userId),

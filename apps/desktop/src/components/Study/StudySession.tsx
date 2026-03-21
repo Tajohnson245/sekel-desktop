@@ -104,6 +104,7 @@ export default function StudySession({ deckId, userId, mode = 'due', onBack }: S
 
         if (isLastCard && sessionId) {
             await completeSession.mutateAsync(sessionId);
+            window.electronAPI?.notify.streak(userId);
         }
 
         setReviewedCount((prev) => prev + 1);

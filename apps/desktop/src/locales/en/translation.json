@@ -13,6 +13,7 @@
         "create": "Create",
         "new": "New",
         "actions": "Actions",
+        "remove": "Remove",
         "deleting": "Deleting...",
         "empty": "(empty)",
         "next": "Next",
@@ -203,6 +204,10 @@
         "card_style_desc": "Display questions and answers inside a styled card. When off, content is shown inline like classic Anki.",
         "flip_animation": "Card Flip Animation",
         "flip_animation_desc": "Show 3D flip animation when revealing a card",
+        "notifications": "Study Reminders",
+        "notifications_desc": "Get notified when you have cards due for review",
+        "reminder_times": "Reminder Times",
+        "add_reminder": "Add reminder",
         "data_management": "Data Management",
         "import_anki_desc": "Import your Anki decks (.apkg files) including cards, media, and scheduling data."
     },

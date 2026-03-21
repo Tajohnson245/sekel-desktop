@@ -165,12 +165,18 @@ interface ElectronDB {
     saveMediaFile:         (params: { buffer: ArrayBuffer; filename: string; userId: string; mimeType: string }) => Promise<string>;
 }
 
+interface ElectronNotify {
+    configure: (config: { userId: string; enabled: boolean; reminderTimes: string[] }) => Promise<void>;
+    streak: (userId: string) => Promise<number>;
+}
+
 interface ElectronAPI {
     generateCards: (text: string, count?: number, language?: string, options?: AIGenerationOptions) => Promise<GeneratedCard[]>;
     generateCardsFromContext: (summary: string, content: string, count: number, language?: string, options?: AIGenerationOptions) => Promise<GeneratedCard[]>;
     parseDocument: (file: { name: string, buffer?: ArrayBuffer, url?: string, type: string, language?: string }) => Promise<{ filename: string, content: string }>;
     generateSummary: (documents: Record<string, string>, language?: string) => Promise<DocumentOverview>;
     getSupabaseConfig: () => Promise<{ url: string; anonKey: string }>;
+    notify: ElectronNotify;
     import: ElectronImport;
     db: ElectronDB;
 }

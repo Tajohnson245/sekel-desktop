@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '../../stores/authStore';
 import { useProfileStore, UserProfile } from '../../stores/profileStore';
 import { useTheme } from '../ThemeProvider';
-import { User, MapPin, Edit2, Lock, Trash2, Upload } from 'lucide-react';
+import { User, MapPin, Edit2, Lock, Trash2, Upload, Bell, Plus, X } from 'lucide-react';
 import ImportAnkiButton from '../Deck/ImportAnkiButton';
 
 import { useTranslation } from 'react-i18next';
@@ -523,6 +523,151 @@ export const UserProfilePage: React.FC = () => {
                                 }} />
                             </button>
                         </div>
+                    </div>
+
+                    {/* Notification Reminders */}
+                    <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                            <div>
+                                <label className="field-label">
+                                    <Bell size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+                                    {t('profile.notifications')}
+                                </label>
+                                <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0.2rem 0 0' }}>
+                                    {t('profile.notifications_desc')}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                role="switch"
+                                aria-checked={profile?.notifications_enabled ?? false}
+                                onClick={() => {
+                                    const next = !(profile?.notifications_enabled ?? false);
+                                    if (user?.id) {
+                                        upsertProfile(user.id, { notifications_enabled: next });
+                                        window.electronAPI?.notify.configure({
+                                            userId: user.id,
+                                            enabled: next,
+                                            reminderTimes: profile?.reminder_times ?? [],
+                                        });
+                                    }
+                                }}
+                                style={{
+                                    flexShrink: 0,
+                                    width: '44px',
+                                    height: '24px',
+                                    borderRadius: '12px',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    background: (profile?.notifications_enabled ?? false) ? 'var(--primary)' : 'var(--border)',
+                                    position: 'relative',
+                                    transition: 'background 0.2s ease',
+                                    padding: 0,
+                                }}
+                            >
+                                <span style={{
+                                    position: 'absolute',
+                                    top: '3px',
+                                    left: (profile?.notifications_enabled ?? false) ? '23px' : '3px',
+                                    width: '18px',
+                                    height: '18px',
+                                    borderRadius: '50%',
+                                    background: '#fff',
+                                    transition: 'left 0.2s ease',
+                                    boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                                }} />
+                            </button>
+                        </div>
+
+                        {(profile?.notifications_enabled ?? false) && (
+                            <div style={{ marginTop: '0.75rem' }}>
+                                <label className="field-label" style={{ fontSize: '0.85rem', marginBottom: '0.5rem', display: 'block' }}>
+                                    {t('profile.reminder_times')}
+                                </label>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                    {(profile?.reminder_times ?? []).map((time, idx) => (
+                                        <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <input
+                                                type="time"
+                                                value={time}
+                                                onChange={(e) => {
+                                                    const times = [...(profile?.reminder_times ?? [])];
+                                                    times[idx] = e.target.value;
+                                                    if (user?.id) {
+                                                        upsertProfile(user.id, { reminder_times: times });
+                                                        window.electronAPI?.notify.configure({
+                                                            userId: user.id,
+                                                            enabled: true,
+                                                            reminderTimes: times,
+                                                        });
+                                                    }
+                                                }}
+                                                className="field-input"
+                                                style={{ width: '140px' }}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const times = (profile?.reminder_times ?? []).filter((_, i) => i !== idx);
+                                                    if (user?.id) {
+                                                        upsertProfile(user.id, { reminder_times: times });
+                                                        window.electronAPI?.notify.configure({
+                                                            userId: user.id,
+                                                            enabled: true,
+                                                            reminderTimes: times,
+                                                        });
+                                                    }
+                                                }}
+                                                style={{
+                                                    background: 'none',
+                                                    border: 'none',
+                                                    cursor: 'pointer',
+                                                    color: 'var(--text-muted)',
+                                                    padding: '4px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                }}
+                                                aria-label={t('common.remove')}
+                                            >
+                                                <X size={16} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                    {(profile?.reminder_times ?? []).length < 5 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const times = [...(profile?.reminder_times ?? []), '09:00'];
+                                                if (user?.id) {
+                                                    upsertProfile(user.id, { reminder_times: times });
+                                                    window.electronAPI?.notify.configure({
+                                                        userId: user.id,
+                                                        enabled: true,
+                                                        reminderTimes: times,
+                                                    });
+                                                }
+                                            }}
+                                            style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '4px',
+                                                background: 'none',
+                                                border: '1px dashed var(--border)',
+                                                borderRadius: '6px',
+                                                padding: '6px 12px',
+                                                cursor: 'pointer',
+                                                color: 'var(--text-muted)',
+                                                fontSize: '0.85rem',
+                                                width: 'fit-content',
+                                            }}
+                                        >
+                                            <Plus size={14} />
+                                            {t('profile.add_reminder')}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* FSRS Scheduling */}
