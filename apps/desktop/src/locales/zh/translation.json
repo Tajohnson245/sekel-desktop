@@ -18,7 +18,8 @@
         "next": "下一步",
         "user": "用户",
         "expand": "展开",
-        "collapse": "收起"
+        "collapse": "收起",
+        "remove": "移除"
     },
     "nav": {
         "dashboard": "仪表板",
@@ -196,7 +197,13 @@
         "delete_account_confirm": "您确定要删除账户吗？此操作无法撤销。",
         "change_photo": "更改照片",
         "upload_photo": "上传照片",
-        "remove_photo": "移除照片"
+        "remove_photo": "移除照片",
+        "notifications": "学习提醒",
+        "notifications_desc": "当有卡片需要复习时收到通知",
+        "reminder_times": "提醒时间",
+        "add_reminder": "添加提醒",
+        "data_management": "数据管理",
+        "import_anki_desc": "导入你的 Anki 牌组（.apkg 文件），包括卡片、媒体和排程数据。"
     },
     "verification": {
         "complete": "验证完成",

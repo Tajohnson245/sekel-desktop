@@ -18,7 +18,8 @@
         "next": "Siguiente",
         "user": "Usuario",
         "expand": "Expandir",
-        "collapse": "Contraer"
+        "collapse": "Contraer",
+        "remove": "Eliminar"
     },
     "nav": {
         "dashboard": "Tablero",
@@ -237,7 +238,13 @@
         "delete_account_confirm": "Are you absolutely sure you want to delete your account? This action cannot be undone.",
         "change_photo": "Cambiar foto",
         "upload_photo": "Subir foto",
-        "remove_photo": "Eliminar foto"
+        "remove_photo": "Eliminar foto",
+        "notifications": "Recordatorios de Estudio",
+        "notifications_desc": "Recibe notificaciones cuando tengas tarjetas pendientes de repasar",
+        "reminder_times": "Horarios de Recordatorio",
+        "add_reminder": "Agregar recordatorio",
+        "data_management": "Gestión de Datos",
+        "import_anki_desc": "Importa tus mazos de Anki (archivos .apkg) incluyendo tarjetas, multimedia y datos de programación."
     },
     "verification": {
         "complete": "Verificación Completa",

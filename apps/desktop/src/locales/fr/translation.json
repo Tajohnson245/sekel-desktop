@@ -18,7 +18,8 @@
         "next": "Suivant",
         "user": "Utilisateur",
         "expand": "Développer",
-        "collapse": "Réduire"
+        "collapse": "Réduire",
+        "remove": "Supprimer"
     },
     "nav": {
         "dashboard": "Tableau de bord",
@@ -196,7 +197,13 @@
         "delete_account_confirm": "Êtes-vous absolument sûr de vouloir supprimer votre compte ? Cette action est irréversible.",
         "change_photo": "Changer la photo",
         "upload_photo": "Télécharger la photo",
-        "remove_photo": "Supprimer la photo"
+        "remove_photo": "Supprimer la photo",
+        "notifications": "Rappels d'étude",
+        "notifications_desc": "Recevez des notifications lorsque des cartes sont à réviser",
+        "reminder_times": "Horaires de rappel",
+        "add_reminder": "Ajouter un rappel",
+        "data_management": "Gestion des données",
+        "import_anki_desc": "Importez vos paquets Anki (fichiers .apkg) avec les cartes, médias et données de planification."
     },
     "verification": {
         "complete": "Vérification Complète",
