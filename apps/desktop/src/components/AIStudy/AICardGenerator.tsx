@@ -7,7 +7,7 @@ import { useCreateNote, useNoteTypes, useCreateNoteType } from '../../hooks/useN
 import { useDecks } from '../../hooks/useDecks';
 import { DEFAULT_NOTE_TYPES } from '../../lib/types';
 import DeckEditor from '../Deck/DeckEditor';
-import { Button, Input, Select, ImageUpload } from '../UI';
+import { Button, Input, Select, ImageUpload, useToast } from '../UI';
 
 interface AICardGeneratorProps {
     extractedText: string;
@@ -21,6 +21,7 @@ interface AICardGeneratorProps {
 
 export default function AICardGenerator({ extractedText, contextSummary, estimatedCardCount, userId, onComplete, initialDeckId, onCardCountChange }: AICardGeneratorProps) {
     const { t, i18n } = useTranslation();
+    const { showToast } = useToast();
     // Data hooks
     const { data: decks = [] } = useDecks();
     const { data: noteTypes = [] } = useNoteTypes(userId);
@@ -86,9 +87,8 @@ export default function AICardGenerator({ extractedText, contextSummary, estimat
 
             setCards(result);
             setHasGenerated(true);
-        } catch (error) {
-            console.error('Failed to generate cards:', error);
-            setSuccessMessage(t('ai.error_generating'));
+        } catch (_error) {
+            showToast(t('errors.generate_cards'), 'error');
         } finally {
             setIsGen(false);
         }
@@ -149,9 +149,8 @@ export default function AICardGenerator({ extractedText, contextSummary, estimat
                 templateCount: 1,
             });
             setCards(prev => prev.filter((_, i) => i !== index));
-        } catch (error) {
-            console.error('Failed to add card:', error);
-            setSuccessMessage(t('ai.error_adding'));
+        } catch (_error) {
+            showToast(t('errors.add_card'), 'error');
         }
     };
 
@@ -178,8 +177,8 @@ export default function AICardGenerator({ extractedText, contextSummary, estimat
                     templateCount: 1,
                 });
                 addedCount++;
-            } catch (error) {
-                console.error('Failed to add card:', error);
+            } catch (_error) {
+                showToast(t('errors.add_card'), 'error');
             }
         }
 

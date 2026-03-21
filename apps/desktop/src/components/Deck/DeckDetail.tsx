@@ -5,7 +5,7 @@ import { useDeck, useDeckStats } from '../../hooks/useDecks';
 import { useNoteTypes, useCreateNoteType, useNotesByDeck, useDeleteNote } from '../../hooks/useNotes';
 import CardList from '../Card/CardList';
 import NoteEditor from '../Card/NoteEditor';
-import { Button } from '../UI';
+import { Button, useToast } from '../UI';
 import { DEFAULT_NOTE_TYPES } from '../../lib/types';
 import './DeckDetail.css';
 
@@ -25,6 +25,7 @@ export default function DeckDetail({ deckId, userId, onBack, onStudy, onNavigate
     const createNoteType = useCreateNoteType();
     const deleteNote = useDeleteNote();
     const { t } = useTranslation();
+    const { showToast } = useToast();
 
     const [showNoteEditor, setShowNoteEditor] = useState(false);
     const [editingNote, setEditingNote] = useState<import('@sekel/db').JoinedNote | null>(null);
@@ -61,8 +62,8 @@ export default function DeckDetail({ deckId, userId, onBack, onStudy, onNavigate
                 await deleteNote.mutateAsync({ id: note.id, deckId });
             }
             setShowDeleteConfirm(false);
-        } catch (error) {
-            console.error('Failed to delete cards:', error);
+        } catch (_error) {
+            showToast(t('errors.delete_cards'), 'error');
         } finally {
             setIsDeleting(false);
         }

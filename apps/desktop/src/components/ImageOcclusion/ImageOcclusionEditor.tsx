@@ -6,7 +6,7 @@ import { useDecks } from '../../hooks/useDecks';
 import { useCreateNote, useNoteTypes, useCreateNoteType } from '../../hooks/useNotes';
 import { DEFAULT_NOTE_TYPES } from '../../lib/types';
 import DeckEditor from '../Deck/DeckEditor';
-import { Button, Select } from '../UI';
+import { Button, Select, useToast } from '../UI';
 import './ImageOcclusionEditor.css';
 
 // ─────────────────────────────────────────────────────────────────
@@ -30,6 +30,7 @@ interface ImageOcclusionEditorProps {
 
 export default function ImageOcclusionEditor({ userId }: ImageOcclusionEditorProps) {
     const { t } = useTranslation();
+    const { showToast } = useToast();
 
     // Hooks
     const { data: decks = [] } = useDecks();
@@ -73,8 +74,8 @@ export default function ImageOcclusionEditor({ userId }: ImageOcclusionEditorPro
             setImageUrl(url);
             setRects([]);
             setSuccessMessage('');
-        } catch (error) {
-            console.error('Failed to upload image:', error);
+        } catch (_error) {
+            showToast(t('errors.upload_image'), 'error');
         } finally {
             setIsUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
@@ -189,8 +190,8 @@ export default function ImageOcclusionEditor({ userId }: ImageOcclusionEditorPro
             setRects([]);
             setFront('');
             setBack('');
-        } catch (error) {
-            console.error('Failed to generate occlusion cards:', error);
+        } catch (_error) {
+            showToast(t('errors.occlusion_generate'), 'error');
         } finally {
             setIsGenerating(false);
         }

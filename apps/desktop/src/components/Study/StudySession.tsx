@@ -6,7 +6,7 @@ import { useCreateSession, useCompleteSession, useInsertReview } from '../../hoo
 import { getSchedulingOptions } from '../../lib/fsrs';
 import CardViewer from '../Card/CardViewer';
 import RatingButtons from './RatingButtons';
-import { Button, SessionAnalytics } from '../UI';
+import { Button, SessionAnalytics, useToast } from '../UI';
 import type { Rating, CardUpdate } from '../../lib/types';
 import { DEFAULT_NOTE_TYPES } from '../../lib/types';
 import type { CardWithNote } from '../../lib/queries';
@@ -31,6 +31,7 @@ export default function StudySession({ deckId, userId, mode = 'due', onBack }: S
     const completeSession = useCompleteSession();
     const insertReview = useInsertReview();
     const { t } = useTranslation();
+    const { showToast } = useToast();
 
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isRevealed, setIsRevealed] = useState(false);
@@ -54,7 +55,7 @@ export default function StudySession({ deckId, userId, mode = 'due', onBack }: S
             createSession
                 .mutateAsync({ userId, deckId })
                 .then((session) => setSessionId(session.id))
-                .catch((err) => console.error('Failed to create study session:', err));
+                .catch(() => showToast(t('errors.session_create'), 'error'));
         }
     }, [cards.length, isLoading, userId, deckId, sessionId]);
 
@@ -210,12 +211,12 @@ export default function StudySession({ deckId, userId, mode = 'due', onBack }: S
         ? (isAnkiCard
             ? renderAnkiTemplate(resolvedTemplate.front_template, fields, userId)
             : renderCardContent(resolvedTemplate.front_template, fields))
-        : 'No template';
+        : t('study.no_template');
     const backContent = resolvedTemplate
         ? (isAnkiCard
             ? renderAnkiTemplate(resolvedTemplate.back_template, fields, userId, frontContent)
             : renderCardContent(resolvedTemplate.back_template, fields))
-        : 'No template';
+        : t('study.no_template');
 
     return (
         <div className="study-session" data-testid="study-session">

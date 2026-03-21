@@ -12,3 +12,4 @@ export { MetaChip } from '@sekel/components';
 export * from './ImageUpload';
 export * from './SessionAnalytics';
 export { default as RichTextEditor } from './RichTextEditor';
+export { ToastProvider, useToast } from './Toast';

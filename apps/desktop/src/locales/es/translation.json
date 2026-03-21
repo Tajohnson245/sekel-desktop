@@ -19,7 +19,8 @@
         "user": "Usuario",
         "expand": "Expandir",
         "collapse": "Contraer",
-        "remove": "Eliminar"
+        "remove": "Eliminar",
+        "loading_app": "Cargando Sekel..."
     },
     "nav": {
         "dashboard": "Tablero",
@@ -150,6 +151,8 @@
         "tap_to_flip": "Toca para voltear",
         "congratulations": "¡Felicidades!",
         "cards_studied": "Tarjetas estudiadas",
+        "no_template": "Sin plantilla",
+        "show_answer": "Mostrar Respuesta",
         "rating": {
             "again": "Otra vez",
             "hard": "Difícil",
@@ -235,7 +238,7 @@
         "delete_account": "Eliminar Cuenta",
         "delete_account_btn": "Eliminar Cuenta Personal",
         "delete_account_warning": "Una vez que elimines tu cuenta, no hay vuelta atrás. Por favor, asegúrate.",
-        "delete_account_confirm": "Are you absolutely sure you want to delete your account? This action cannot be undone.",
+        "delete_account_confirm": "¿Estás completamente seguro de que quieres eliminar tu cuenta? Esta acción no se puede deshacer.",
         "change_photo": "Cambiar foto",
         "upload_photo": "Subir foto",
         "remove_photo": "Eliminar foto",
@@ -244,7 +247,16 @@
         "reminder_times": "Horarios de Recordatorio",
         "add_reminder": "Agregar recordatorio",
         "data_management": "Gestión de Datos",
-        "import_anki_desc": "Importa tus mazos de Anki (archivos .apkg) incluyendo tarjetas, multimedia y datos de programación."
+        "import_anki_desc": "Importa tus mazos de Anki (archivos .apkg) incluyendo tarjetas, multimedia y datos de programación.",
+        "profile_info": "Perfil",
+        "card_style": "Tarjeta Visual",
+        "card_style_desc": "Muestra preguntas y respuestas dentro de una tarjeta estilizada. Si está desactivado, el contenido se muestra en línea como Anki clásico.",
+        "flip_animation": "Animación de Volteo",
+        "flip_animation_desc": "Mostrar animación 3D al revelar una tarjeta",
+        "role_placeholder": "ej. Estudiante de Medicina",
+        "school_placeholder": "Nombre de la Universidad",
+        "degree_placeholder": "ej. Doctor en Medicina",
+        "exam_placeholder": "ej. USMLE Step 1"
     },
     "verification": {
         "complete": "Verificación Completa",
@@ -384,5 +396,18 @@
         "importButton": "Importar {{count}} Mazo(s)",
         "atLeastOne": "Selecciona al menos un mazo para importar.",
         "warnings": "{{count}} advertencia(s)"
+    },
+    "errors": {
+        "invalid_youtube_url": "Por favor ingresa una URL de YouTube válida",
+        "upload_image": "Error al subir la imagen",
+        "upload_image_retry": "Error al subir la imagen. Inténtalo de nuevo.",
+        "delete_decks": "Error al eliminar los mazos",
+        "generate_cards": "Error al generar las tarjetas",
+        "add_card": "Error al agregar la tarjeta",
+        "occlusion_generate": "Error al generar tarjetas de oclusión",
+        "delete_cards": "Error al eliminar las tarjetas",
+        "session_create": "Error al crear la sesión de estudio",
+        "save_fsrs": "Error al guardar la configuración FSRS",
+        "login_required": "Inicia sesión para ver tu perfil."
     }
 }

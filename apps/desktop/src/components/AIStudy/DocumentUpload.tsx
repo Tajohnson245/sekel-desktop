@@ -55,7 +55,7 @@ export default function DocumentUpload({ onFilesSelected, onUrlSelected, isProce
             onUrlSelected?.(urlInput);
             setUrlInput('');
         } else {
-            alert("Please enter a valid YouTube URL");
+            alert(t('errors.invalid_youtube_url'));
         }
     };
 

@@ -19,7 +19,8 @@
         "user": "Utilisateur",
         "expand": "Développer",
         "collapse": "Réduire",
-        "remove": "Supprimer"
+        "remove": "Supprimer",
+        "loading_app": "Chargement de Sekel..."
     },
     "nav": {
         "dashboard": "Tableau de bord",
@@ -109,6 +110,8 @@
         "tap_to_flip": "Appuyer pour retourner",
         "congratulations": "Félicitations !",
         "cards_studied": "Cartes étudiées",
+        "no_template": "Pas de modèle",
+        "show_answer": "Afficher la réponse",
         "rating": {
             "again": "À revoir",
             "hard": "Difficile",
@@ -203,7 +206,16 @@
         "reminder_times": "Horaires de rappel",
         "add_reminder": "Ajouter un rappel",
         "data_management": "Gestion des données",
-        "import_anki_desc": "Importez vos paquets Anki (fichiers .apkg) avec les cartes, médias et données de planification."
+        "import_anki_desc": "Importez vos paquets Anki (fichiers .apkg) avec les cartes, médias et données de planification.",
+        "profile_info": "Profil",
+        "card_style": "Carte Visuelle",
+        "card_style_desc": "Afficher les questions et réponses dans une carte stylisée. Désactivé, le contenu s'affiche en ligne comme Anki classique.",
+        "flip_animation": "Animation de Retournement",
+        "flip_animation_desc": "Afficher une animation 3D lors de la révélation d'une carte",
+        "role_placeholder": "ex. Étudiant en Médecine",
+        "school_placeholder": "Nom de l'Université",
+        "degree_placeholder": "ex. Docteur en Médecine",
+        "exam_placeholder": "ex. ECN"
     },
     "verification": {
         "complete": "Vérification Complète",
@@ -384,5 +396,18 @@
         "importButton": "Importer {{count}} paquet(s)",
         "atLeastOne": "Sélectionnez au moins un paquet à importer.",
         "warnings": "{{count}} avertissement(s)"
+    },
+    "errors": {
+        "invalid_youtube_url": "Veuillez entrer une URL YouTube valide",
+        "upload_image": "Échec du téléchargement de l'image",
+        "upload_image_retry": "Échec du téléchargement de l'image. Veuillez réessayer.",
+        "delete_decks": "Échec de la suppression des paquets",
+        "generate_cards": "Échec de la génération des cartes",
+        "add_card": "Échec de l'ajout de la carte",
+        "occlusion_generate": "Échec de la génération des cartes d'occlusion",
+        "delete_cards": "Échec de la suppression des cartes",
+        "session_create": "Échec de la création de la session d'étude",
+        "save_fsrs": "Échec de la sauvegarde des paramètres FSRS",
+        "login_required": "Veuillez vous connecter pour voir votre profil."
     }
 }

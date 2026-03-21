@@ -19,7 +19,8 @@
         "user": "Benutzer",
         "expand": "Erweitern",
         "collapse": "Einklappen",
-        "remove": "Entfernen"
+        "remove": "Entfernen",
+        "loading_app": "Sekel wird geladen..."
     },
     "nav": {
         "dashboard": "Dashboard",
@@ -109,6 +110,8 @@
         "tap_to_flip": "Tippen zum Umdrehen",
         "congratulations": "Herzlichen Glückwunsch!",
         "cards_studied": "Karten gelernt",
+        "no_template": "Keine Vorlage",
+        "show_answer": "Antwort zeigen",
         "rating": {
             "again": "Nochmal",
             "hard": "Schwer",
@@ -203,7 +206,16 @@
         "reminder_times": "Erinnerungszeiten",
         "add_reminder": "Erinnerung hinzufügen",
         "data_management": "Datenverwaltung",
-        "import_anki_desc": "Importiere deine Anki-Stapel (.apkg-Dateien) inklusive Karten, Medien und Planungsdaten."
+        "import_anki_desc": "Importiere deine Anki-Stapel (.apkg-Dateien) inklusive Karten, Medien und Planungsdaten.",
+        "profile_info": "Profil",
+        "card_style": "Visuelle Karte",
+        "card_style_desc": "Fragen und Antworten in einer gestalteten Karte anzeigen. Wenn deaktiviert, wird der Inhalt inline wie bei klassischem Anki angezeigt.",
+        "flip_animation": "Karten-Umdreh-Animation",
+        "flip_animation_desc": "3D-Umdreh-Animation beim Aufdecken einer Karte anzeigen",
+        "role_placeholder": "z.B. Medizinstudent",
+        "school_placeholder": "Name der Universität",
+        "degree_placeholder": "z.B. Arzt",
+        "exam_placeholder": "z.B. Staatsexamen"
     },
     "verification": {
         "complete": "Verifizierung Abgeschlossen",
@@ -384,5 +396,18 @@
         "importButton": "{{count}} Deck(s) importieren",
         "atLeastOne": "Wähle mindestens ein Deck zum Importieren aus.",
         "warnings": "{{count}} Warnung(en)"
+    },
+    "errors": {
+        "invalid_youtube_url": "Bitte gib eine gültige YouTube-URL ein",
+        "upload_image": "Bild konnte nicht hochgeladen werden",
+        "upload_image_retry": "Bild konnte nicht hochgeladen werden. Bitte versuche es erneut.",
+        "delete_decks": "Stapel konnten nicht gelöscht werden",
+        "generate_cards": "Karten konnten nicht generiert werden",
+        "add_card": "Karte konnte nicht hinzugefügt werden",
+        "occlusion_generate": "Maskierungskarten konnten nicht generiert werden",
+        "delete_cards": "Karten konnten nicht gelöscht werden",
+        "session_create": "Lernsitzung konnte nicht erstellt werden",
+        "save_fsrs": "FSRS-Einstellungen konnten nicht gespeichert werden",
+        "login_required": "Bitte melde dich an, um dein Profil zu sehen."
     }
 }

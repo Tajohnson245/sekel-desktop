@@ -3,7 +3,7 @@ import { Loader, FileText, CheckCircle, AlertCircle, RefreshCw, ArrowRight, Tras
 import { useTranslation } from 'react-i18next';
 import DocumentUpload from './DocumentUpload';
 import AICardGenerator from './AICardGenerator';
-import { Button, MetaChip, YouTubeIcon } from '../UI';
+import { Button, MetaChip, YouTubeIcon, useToast } from '../UI';
 import { parseFile, parseYoutube } from '../../lib/documentParser';
 import './DocumentsPage.css';
 
@@ -44,6 +44,7 @@ function SectionItem({ index, label }: SectionItemProps) {
 
 export default function DocumentsPage({ userId, initialDeckId, onUnfinishedWorkChange }: DocumentsPageProps) {
     const { t, i18n } = useTranslation();
+    const { showToast } = useToast();
     const [files, setFiles] = useState<ParsedFile[]>([]);
     const [summaryText, setSummaryText] = useState<string>('');
     const [summaryTopics, setSummaryTopics] = useState<string[]>([]);
@@ -95,8 +96,8 @@ export default function DocumentsPage({ userId, initialDeckId, onUnfinishedWorkC
                     content: result.content,
                     name: result.filename
                 } : f));
-            } catch (error) {
-                console.error(`Error parsing ${file.name}`, error);
+            } catch (_error) {
+                showToast(`${t('ai.error_parsing')}: ${file.name}`, 'error');
                 setFiles(prev => prev.map(f => f.id === fileId ? {
                     ...f,
                     status: 'error',
@@ -132,8 +133,8 @@ export default function DocumentsPage({ userId, initialDeckId, onUnfinishedWorkC
                 content: result.content,
                 name: result.filename || f.name
             } : f));
-        } catch (error) {
-            console.error(`Error parsing YouTube URL ${url}:`, error);
+        } catch (_error) {
+            showToast(t('ai.error_video'), 'error');
             setFiles(prev => prev.map(f => f.id === newFile.id ? {
                 ...f,
                 status: 'error',
@@ -169,9 +170,8 @@ export default function DocumentsPage({ userId, initialDeckId, onUnfinishedWorkC
             setSummaryTopics(overview.topics);
             setEstimatedCardCount(overview.estimatedCardCount);
             setStep('review');
-        } catch (error) {
-            console.error("Error generating summary:", error);
-            alert(t('ai.error_summary'));
+        } catch (_error) {
+            showToast(t('ai.error_summary'), 'error');
         } finally {
             setIsGeneratingSummary(false);
         }
