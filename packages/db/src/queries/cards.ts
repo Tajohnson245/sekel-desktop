@@ -1,29 +1,42 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Card, CardInsert, Note, NoteType } from '../types';
 
+// The joined note shape returned by the select query (only the columns we fetch)
+export interface JoinedNote {
+    id: string;
+    fields: Note['fields'];
+    tags: Note['tags'];
+    note_type: NoteType;
+}
+
 export interface CardWithNote extends Card {
-    note: Note & { note_type: NoteType };
+    note: JoinedNote;
+}
+
+async function fetchNotesForDeck(client: SupabaseClient, deckId: string): Promise<JoinedNote[]> {
+    const { data, error } = await client
+        .from('notes')
+        .select('id, fields, tags, note_type:note_types(*)') as unknown as { data: JoinedNote[] | null; error: Error | null };
+
+    if (error) throw error;
+    return data ?? [];
+}
+
+function joinCardsWithNotes(cards: Card[], notes: JoinedNote[]): CardWithNote[] {
+    const noteMap = new Map(notes.map(n => [n.id, n]));
+    return cards.map(card => ({
+        ...card,
+        note: noteMap.get(card.note_id)!,
+    }));
 }
 
 export async function fetchDueCards(client: SupabaseClient, deckId: string, limit = 50): Promise<CardWithNote[]> {
     const now = new Date().toISOString();
+    const notes = await fetchNotesForDeck(client, deckId);
+    const noteIds = notes.map(n => n.id);
+    if (noteIds.length === 0) return [];
 
-    // Get notes in this deck
-    const { data: notes, error: notesError } = await client
-        .from('notes')
-        .select('id, fields, tags, note_type:note_types(*)')
-        .eq('deck_id', deckId);
-
-    if (notesError) throw notesError;
-
-    const noteIds = notes?.map(n => n.id) ?? [];
-
-    if (noteIds.length === 0) {
-        return [];
-    }
-
-    // Get due cards
-    const { data: cards, error: cardsError } = await client
+    const { data: cards, error } = await client
         .from('cards')
         .select('*')
         .in('note_id', noteIds)
@@ -31,52 +44,24 @@ export async function fetchDueCards(client: SupabaseClient, deckId: string, limi
         .order('due', { ascending: true })
         .limit(limit);
 
-    if (cardsError) throw cardsError;
-
-    // Join cards with notes
-    const noteMap = new Map(notes?.map(n => [n.id, n]));
-
-    return (cards ?? []).map(card => ({
-        ...card,
-        note: noteMap.get(card.note_id) as unknown as Note & { note_type: NoteType },
-    }));
+    if (error) throw error;
+    return joinCardsWithNotes(cards ?? [], notes);
 }
 
-/**
- * Fetch all cards in a deck for study (Cram Mode)
- */
 export async function fetchAllCardsForStudy(client: SupabaseClient, deckId: string, limit = 50): Promise<CardWithNote[]> {
-    // Get notes in this deck
-    const { data: notes, error: notesError } = await client
-        .from('notes')
-        .select('id, fields, tags, note_type:note_types(*)')
-        .eq('deck_id', deckId);
+    const notes = await fetchNotesForDeck(client, deckId);
+    const noteIds = notes.map(n => n.id);
+    if (noteIds.length === 0) return [];
 
-    if (notesError) throw notesError;
-
-    const noteIds = notes?.map(n => n.id) ?? [];
-
-    if (noteIds.length === 0) {
-        return [];
-    }
-
-    // Get all cards (ordered by last review or oldest due)
-    const { data: cards, error: cardsError } = await client
+    const { data: cards, error } = await client
         .from('cards')
         .select('*')
         .in('note_id', noteIds)
         .order('last_review', { ascending: true, nullsFirst: true })
         .limit(limit);
 
-    if (cardsError) throw cardsError;
-
-    // Join cards with notes
-    const noteMap = new Map(notes?.map(n => [n.id, n]));
-
-    return (cards ?? []).map(card => ({
-        ...card,
-        note: noteMap.get(card.note_id) as unknown as Note & { note_type: NoteType },
-    }));
+    if (error) throw error;
+    return joinCardsWithNotes(cards ?? [], notes);
 }
 
 export async function updateCardAfterReview(

@@ -1,16 +1,15 @@
 import { useState, useEffect } from 'react';
-// import { X } from 'lucide-react'; // Removed unused import
 import { useTranslation } from 'react-i18next';
 import { useCreateNote, useUpdateNote } from '../../hooks/useNotes';
 import { Button, Modal, RichTextEditor } from '../UI';
-import type { Note } from '../../lib/types'; // Import Note type
+import type { JoinedNote } from '@sekel/db';
 
 interface NoteEditorProps {
     deckId: string;
     userId: string;
     noteTypeId: string;
     onClose: () => void;
-    editingNote?: Note | null;
+    editingNote?: JoinedNote | null;
 }
 
 export default function NoteEditor({ deckId, userId, noteTypeId, onClose, editingNote }: NoteEditorProps) {

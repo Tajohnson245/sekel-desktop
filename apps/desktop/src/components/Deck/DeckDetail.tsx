@@ -27,7 +27,7 @@ export default function DeckDetail({ deckId, userId, onBack, onStudy, onNavigate
     const { t } = useTranslation();
 
     const [showNoteEditor, setShowNoteEditor] = useState(false);
-    const [editingNote, setEditingNote] = useState<import('../../lib/types').Note | null>(null);
+    const [editingNote, setEditingNote] = useState<import('@sekel/db').JoinedNote | null>(null);
     const [defaultNoteTypeId, setDefaultNoteTypeId] = useState<string | null>(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -68,7 +68,7 @@ export default function DeckDetail({ deckId, userId, onBack, onStudy, onNavigate
         }
     };
 
-    const handleEditNote = (note: import('../../lib/types').Note) => {
+    const handleEditNote = (note: import('@sekel/db').JoinedNote) => {
         setEditingNote(note);
         setShowNoteEditor(true);
     };

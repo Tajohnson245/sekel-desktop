@@ -4,11 +4,9 @@ import { useProfileStore, UserProfile } from '../../stores/profileStore';
 import { useTheme } from '../ThemeProvider';
 import { User, MapPin, Edit2, Lock, Trash2, Upload } from 'lucide-react';
 import ImportAnkiButton from '../Deck/ImportAnkiButton';
-import type { ImportResult } from '../../types/electron';
+
 import { useTranslation } from 'react-i18next';
-import { Modal } from '../UI/Modal';
-import { Button } from '../UI/Button';
-import { Input } from '../UI/Input';
+import { Modal, Button, Input } from '../UI';
 import { useDecks, useUpdateDeck } from '../../hooks/useDecks';
 import './UserProfilePage.css';
 
@@ -626,9 +624,7 @@ export const UserProfilePage: React.FC = () => {
                                 </p>
                             </div>
                             <ImportAnkiButton
-                                onSuccess={(result: ImportResult) => {
-                                    console.log('[import] complete:', result);
-                                }}
+                                onSuccess={() => {}}
                             />
                         </div>
                     </div>

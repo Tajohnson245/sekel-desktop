@@ -3,9 +3,7 @@ import { Loader, FileText, CheckCircle, AlertCircle, RefreshCw, ArrowRight, Tras
 import { useTranslation } from 'react-i18next';
 import DocumentUpload from './DocumentUpload';
 import AICardGenerator from './AICardGenerator';
-import { Button } from '../UI/Button';
-import { MetaChip } from '../UI/MetaChip';
-import { YouTubeIcon } from '../UI/Icons';
+import { Button, MetaChip, YouTubeIcon } from '../UI';
 import { parseFile, parseYoutube } from '../../lib/documentParser';
 import './DocumentsPage.css';
 

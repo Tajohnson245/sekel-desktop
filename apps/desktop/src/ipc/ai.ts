@@ -21,7 +21,7 @@ const openai = new OpenAI({
     apiKey: apiKey,
 });
 
-const MODEL = 'gpt-4.1-mini';
+const MODEL = process.env.VITE_OPENAI_MODEL || 'gpt-4.1-mini';
 
 // ─────────────────────────────────────────────────────────────────
 // Local types
@@ -434,13 +434,12 @@ ${formatRules}
     });
 
     // Four-stage pipeline: chunk → generate → evaluate → return
-    ipcMain.handle('generate-cards-from-context', async (_event, { summary, content, count, language = 'English', options }: { summary: string, content: string, count: number, language?: string, options?: GenerationOptions }) => {
+    ipcMain.handle('generate-cards-from-context', async (_event, { content, count, language = 'English', options }: { summary: string, content: string, count: number, language?: string, options?: GenerationOptions }) => {
         try {
             if (!apiKey) throw new Error('OpenAI API Key is missing.');
 
             const cardFormat = options?.cardFormat ?? 'basic';
             const difficulty = options?.difficulty ?? 'detailed';
-            const sessionId = Date.now().toString(36) + Math.random().toString(36).slice(2);
 
             // Stage 3 pre-processing: interpret user instruction once
             const interpretedInstruction = await interpretCustomInstruction(options?.customInstructions ?? '');
@@ -472,21 +471,6 @@ ${formatRules}
 
             const allCards = chunkResults.flat();
 
-            // Session logging
-            console.log('GenerationSession:', JSON.stringify({
-                sessionId,
-                timestamp: new Date().toISOString(),
-                documentLength: content.length,
-                chunkCount: chunks.length,
-                cardType: cardFormat,
-                cardsRequested: count,
-                cardsGenerated: stats.cardsGenerated,
-                cardsKept: stats.cardsKept,
-                cardsRevised: stats.cardsRevised,
-                cardsRejected: stats.cardsRejected,
-                evaluatorReasons: stats.evaluatorReasons,
-                summaryUsed: !!summary,
-            }, null, 2));
 
             return allCards;
 

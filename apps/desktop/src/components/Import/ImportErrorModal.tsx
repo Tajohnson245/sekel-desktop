@@ -1,5 +1,4 @@
-import { Modal } from '../UI/Modal';
-import { Button } from '../UI';
+import { Modal, Button } from '../UI';
 import type { ImportStage } from '../../types/electron';
 
 const STAGE_LABELS: Partial<Record<ImportStage, string>> = {

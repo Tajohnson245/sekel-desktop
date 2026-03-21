@@ -52,11 +52,7 @@ export default function DocumentUpload({ onFilesSelected, onUrlSelected, isProce
         // Simple YouTube URL validation
         const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+$/;
         if (youtubeRegex.test(urlInput)) {
-            if (onUrlSelected) {
-                onUrlSelected(urlInput);
-            } else {
-                console.warn("onUrlSelected not implemented");
-            }
+            onUrlSelected?.(urlInput);
             setUrlInput('');
         } else {
             alert("Please enter a valid YouTube URL");

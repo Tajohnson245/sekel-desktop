@@ -97,14 +97,7 @@ const template: MenuItemConstructorOptions[] = [
             {
                 label: 'Learn More',
                 click: async () => {
-                    await shell.openExternal('https://electronjs.org');
-                }
-            },
-            {
-                label: 'Sekel Config (Dev Only)',
-                click: async () => {
-                    // Placeholder for future actions
-                    console.log('Open config or something');
+                    await shell.openExternal('https://sekel.app');
                 }
             }
         ]
