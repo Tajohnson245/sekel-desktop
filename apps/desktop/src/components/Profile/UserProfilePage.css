@@ -102,6 +102,26 @@
     font-weight: 500;
 }
 
+.subsection-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.subsection-header:not(:first-of-type) {
+    margin-top: 1.5rem;
+}
+
+.subsection-header h4 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--fog);
+    font-weight: 500;
+}
+
 .edit-btn {
     background: var(--bg-secondary);
     border: 1px solid var(--border);

@@ -2,7 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '../../stores/authStore';
 import { useProfileStore, UserProfile } from '../../stores/profileStore';
 import { useTheme } from '../ThemeProvider';
-import { User, MapPin, Edit2, Lock, Trash2, Settings } from 'lucide-react';
+import { User, MapPin, Edit2, Lock, Trash2, Upload } from 'lucide-react';
+import ImportAnkiButton from '../Deck/ImportAnkiButton';
+import type { ImportResult } from '../../types/electron';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '../UI/Modal';
 import { Button } from '../UI/Button';
@@ -194,10 +196,88 @@ export const UserProfilePage: React.FC = () => {
                 </div>
             </div>
 
-            {/* Study/Career Profile Section */}
+            {/* Profile Section — Personal + Career */}
             <section className="profile-section">
                 <div className="section-header">
-                    <h3>{t('profile.career_profile')}</h3>
+                    <h3>{t('profile.profile_info')}</h3>
+                </div>
+
+                {/* Personal Data */}
+                <div className="subsection-header">
+                    <h4>{t('profile.personal_data')}</h4>
+                    {!isEditingPersonal && (
+                        <button className="edit-btn" onClick={() => setIsEditingPersonal(true)}>
+                            {t('profile.edit')}
+                        </button>
+                    )}
+                </div>
+
+                <div className="profile-grid">
+                    {isEditingPersonal ? (
+                        <Input
+                            className="field-input"
+                            containerClassName="profile-field"
+                            labelClassName="field-label"
+                            label={t('profile.first_name') + ' *'}
+                            value={formData.first_name || ''}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('first_name', e.target.value)}
+                        />
+                    ) : (
+                        <div className="profile-field">
+                            <label className="field-label">{t('profile.first_name')} <span className="required-mark">*</span></label>
+                            <div className="field-value">{profile?.first_name || '-'}</div>
+                        </div>
+                    )}
+
+                    {isEditingPersonal ? (
+                        <Input
+                            className="field-input"
+                            containerClassName="profile-field"
+                            labelClassName="field-label"
+                            label={t('profile.last_name') + ' *'}
+                            value={formData.last_name || ''}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('last_name', e.target.value)}
+                        />
+                    ) : (
+                        <div className="profile-field">
+                            <label className="field-label">{t('profile.last_name')} <span className="required-mark">*</span></label>
+                            <div className="field-value">{profile?.last_name || '-'}</div>
+                        </div>
+                    )}
+
+                    {isEditingPersonal ? (
+                        <Input
+                            className="field-input"
+                            containerClassName="profile-field"
+                            labelClassName="field-label"
+                            label={t('profile.location')}
+                            value={formData.location || ''}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('location', e.target.value)}
+                            placeholder={t('profile.location_placeholder')}
+                        />
+                    ) : (
+                        <div className="profile-field">
+                            <label className="field-label">{t('profile.location')}</label>
+                            <div className="field-value">{profile?.location || '-'}</div>
+                        </div>
+                    )}
+
+                    <div className="profile-field">
+                        <label className="field-label">{t('profile.email')} <span className="required-mark">*</span></label>
+                        <div className="field-value" style={{ color: 'var(--text-muted)' }}>{user.email}</div>
+                    </div>
+                </div>
+
+                {isEditingPersonal && (
+                    <div className="section-actions">
+                        <button className="btn btn-cancel" onClick={() => handleCancel('personal')}>{t('profile.cancel')}</button>
+                        <button className="btn btn-save" onClick={() => handleSaveDate('personal')}>{t('profile.save')}</button>
+                    </div>
+                )}
+
+                {/* Career Profile */}
+                <div className="subsection-header">
+                    <h4>{t('profile.career_profile')}</h4>
                     {!isEditingCareer && (
                         <button className="edit-btn" onClick={() => setIsEditingCareer(true)}>
                             {t('profile.edit')}
@@ -300,81 +380,6 @@ export const UserProfilePage: React.FC = () => {
                 )}
             </section>
 
-            {/* Personal Data Section - Merged "Personal Information" and "Account Data" roughly */}
-            <section className="profile-section">
-                <div className="section-header">
-                    <h3>{t('profile.personal_data')}</h3>
-                    {!isEditingPersonal && (
-                        <button className="edit-btn" onClick={() => setIsEditingPersonal(true)}>
-                            {t('profile.edit')}
-                        </button>
-                    )}
-                </div>
-
-                <div className="profile-grid">
-                    {isEditingPersonal ? (
-                        <Input
-                            className="field-input"
-                            containerClassName="profile-field"
-                            labelClassName="field-label"
-                            label={t('profile.first_name') + ' *'}
-                            value={formData.first_name || ''}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('first_name', e.target.value)}
-                        />
-                    ) : (
-                        <div className="profile-field">
-                            <label className="field-label">{t('profile.first_name')} <span className="required-mark">*</span></label>
-                            <div className="field-value">{profile?.first_name || '-'}</div>
-                        </div>
-                    )}
-
-                    {isEditingPersonal ? (
-                        <Input
-                            className="field-input"
-                            containerClassName="profile-field"
-                            labelClassName="field-label"
-                            label={t('profile.last_name') + ' *'}
-                            value={formData.last_name || ''}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('last_name', e.target.value)}
-                        />
-                    ) : (
-                        <div className="profile-field">
-                            <label className="field-label">{t('profile.last_name')} <span className="required-mark">*</span></label>
-                            <div className="field-value">{profile?.last_name || '-'}</div>
-                        </div>
-                    )}
-
-                    {isEditingPersonal ? (
-                        <Input
-                            className="field-input"
-                            containerClassName="profile-field"
-                            labelClassName="field-label"
-                            label={t('profile.location')}
-                            value={formData.location || ''}
-                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('location', e.target.value)}
-                            placeholder={t('profile.location_placeholder')}
-                        />
-                    ) : (
-                        <div className="profile-field">
-                            <label className="field-label">{t('profile.location')}</label>
-                            <div className="field-value">{profile?.location || '-'}</div>
-                        </div>
-                    )}
-
-                    <div className="profile-field">
-                        <label className="field-label">{t('profile.email')} <span className="required-mark">*</span></label>
-                        <div className="field-value" style={{ color: 'var(--text-muted)' }}>{user.email}</div>
-                    </div>
-                </div>
-
-                {isEditingPersonal && (
-                    <div className="section-actions">
-                        <button className="btn btn-cancel" onClick={() => handleCancel('personal')}>{t('profile.cancel')}</button>
-                        <button className="btn btn-save" onClick={() => handleSaveDate('personal')}>{t('profile.save')}</button>
-                    </div>
-                )}
-            </section>
-
             <section className="profile-section">
                 <div className="section-header">
                     <h3>{t('profile.settings')}</h3>
@@ -473,22 +478,14 @@ export const UserProfilePage: React.FC = () => {
                             </button>
                         </div>
                     </div>
-                </div>
-            </section>
 
-            {/* FSRS Settings Section */}
-            <section className="profile-section">
-                <div className="section-header">
-                    <h3><Settings size={18} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'middle' }} />{t('fsrs.title')}</h3>
-                </div>
-                <div className="profile-grid">
+                    {/* FSRS Scheduling */}
                     <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
                         <label className="field-label">{t('fsrs.enable_fsrs_for_decks')}</label>
                         <p className="text-muted" style={{ fontSize: '0.875rem', marginBottom: '0.75rem' }}>
                             {t('fsrs.description')}
                         </p>
 
-                        {/* Dropdown trigger */}
                         <div className="fsrs-deck-selector">
                             <button
                                 className="fsrs-dropdown-trigger"
@@ -511,7 +508,6 @@ export const UserProfilePage: React.FC = () => {
                                         <div className="fsrs-empty">{t('fsrs.empty')}</div>
                                     ) : (
                                         <>
-                                            {/* Select All / None */}
                                             <div className="fsrs-select-all">
                                                 <button
                                                     type="button"
@@ -529,7 +525,6 @@ export const UserProfilePage: React.FC = () => {
                                                 </button>
                                             </div>
 
-                                            {/* Deck list */}
                                             <ul className="fsrs-deck-list">
                                                 {decks.map(deck => (
                                                     <li key={deck.id} className="fsrs-deck-item">
@@ -549,7 +544,6 @@ export const UserProfilePage: React.FC = () => {
                                                 ))}
                                             </ul>
 
-                                            {/* Save button */}
                                             <div className="fsrs-dropdown-footer">
                                                 <Button
                                                     variant="primary"
@@ -569,10 +563,34 @@ export const UserProfilePage: React.FC = () => {
                 </div>
             </section>
 
-            {/* Security Section (Password) */}
+            {/* Data Management Section */}
             <section className="profile-section">
                 <div className="section-header">
-                    <h3>{t('profile.security')}</h3>
+                    <h3><Upload size={18} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'middle' }} />{t('profile.data_management')}</h3>
+                </div>
+                <div className="profile-grid">
+                    <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div>
+                                <label className="field-label">{t('import.importAnkiDeck')}</label>
+                                <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0.2rem 0 0' }}>
+                                    {t('profile.import_anki_desc')}
+                                </p>
+                            </div>
+                            <ImportAnkiButton
+                                onSuccess={(result: ImportResult) => {
+                                    console.log('[import] complete:', result);
+                                }}
+                            />
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Account Management (Password + Delete) */}
+            <section className="profile-section">
+                <div className="section-header">
+                    <h3>{t('profile.account_management')}</h3>
                 </div>
                 <div className="profile-grid">
                     <div className="profile-field">
@@ -614,17 +632,8 @@ export const UserProfilePage: React.FC = () => {
                             </div>
                         )}
                     </div>
-                </div>
-            </section>
 
-            {/* Account Management (Delete Account) */}
-            <section className="profile-section">
-                <div className="section-header">
-                    <h3 className="text-danger">{t('profile.account_management')}</h3>
-                </div>
-
-                <div className="profile-grid">
-                    <div className="profile-field">
+                    <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
                         <label className="field-label text-danger">{t('profile.delete_account')}</label>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <p className="text-muted" style={{ fontSize: '0.9rem', margin: 0 }}>

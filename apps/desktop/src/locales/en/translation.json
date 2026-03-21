@@ -155,8 +155,9 @@
     },
     "profile": {
         "title": "User Profile",
+        "profile_info": "Profile",
         "personal_data": "Personal Data",
-        "career_profile": "Study/Career Profile",
+        "career_profile": "Study / Career",
         "language_settings": "Language Settings",
         "edit": "EDIT",
         "save": "Save",
@@ -198,7 +199,9 @@
         "upload_photo": "Upload Photo",
         "remove_photo": "Remove Photo",
         "flip_animation": "Card Flip Animation",
-        "flip_animation_desc": "Show 3D flip animation when revealing a card"
+        "flip_animation_desc": "Show 3D flip animation when revealing a card",
+        "data_management": "Data Management",
+        "import_anki_desc": "Import your Anki decks (.apkg files) including cards, media, and scheduling data."
     },
     "verification": {
         "complete": "Verification Complete",
