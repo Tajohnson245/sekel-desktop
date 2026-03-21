@@ -25,6 +25,14 @@ export const useProfileStore = create<ProfileState>((set) => ({
         try {
             const data = await fetchUserProfile(supabase, userId);
             set({ profile: data });
+            // Configure notification scheduler with profile settings
+            if (data) {
+                window.electronAPI?.notify.configure({
+                    userId,
+                    enabled: data.notifications_enabled ?? false,
+                    reminderTimes: data.reminder_times ?? [],
+                });
+            }
         } catch (err: unknown) {
             set({ error: err instanceof Error ? err.message : String(err) });
         } finally {

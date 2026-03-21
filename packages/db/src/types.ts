@@ -244,6 +244,8 @@ export interface UserProfile {
     theme_preference: 'light' | 'dark' | 'system';
     flip_animation: boolean;
     card_style: boolean;
+    notifications_enabled: boolean;
+    reminder_times: string[];
     created_at: string;
     updated_at: string;
 }

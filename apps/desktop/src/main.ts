@@ -8,6 +8,7 @@ import { setupAuthHandlers } from './ipc/auth';
 import { setupDocumentHandlers } from './ipc/document_parsing';
 import { setupDatabaseHandlers } from './ipc/database';
 import { setupImportHandlers } from './ipc/import';
+import { setupNotificationHandlers } from './ipc/notifications';
 import { cleanupStaleTempDirs } from './main/import/tempCleanup';
 import { fetchMediaByFilename } from './main/db/service';
 
@@ -92,6 +93,7 @@ app.whenReady().then(() => {
     try { setupDocumentHandlers(); } catch (err) { console.error('[main] document handler setup failed:', err); }
     try { setupDatabaseHandlers(); } catch (err) { console.error('[main] database handler setup failed:', err); }
     try { setupImportHandlers(); } catch (err) { console.error('[main] import handler setup failed:', err); }
+    try { setupNotificationHandlers(); } catch (err) { console.error('[main] notification handler setup failed:', err); }
     cleanupStaleTempDirs().catch((err) => console.error('[main] temp cleanup failed:', err));
 
     // Check for updates only in production (packaged app)
