@@ -1,7 +1,9 @@
 import { useState, useRef } from 'react';
 import { Image as ImageIcon, Loader2, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { uploadImage } from '../../lib/storage';
 import { Button } from '@sekel/components';
+import { useToast } from './Toast';
 import './ImageUpload.css';
 
 interface ImageUploadProps {
@@ -16,6 +18,8 @@ interface ImageUploadProps {
 export function ImageUpload({ userId, onUpload, label, className = '', currentImage, onRemove }: ImageUploadProps) {
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const { t } = useTranslation();
+    const { showToast } = useToast();
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -25,9 +29,8 @@ export function ImageUpload({ userId, onUpload, label, className = '', currentIm
         try {
             const url = await uploadImage(file, userId);
             onUpload(url);
-        } catch (error) {
-            console.error('Failed to upload image:', error);
-            alert('Failed to upload image. Please try again.');
+        } catch (_error) {
+            showToast(t('errors.upload_image_retry'), 'error');
         } finally {
             setIsUploading(false);
             if (fileInputRef.current) {

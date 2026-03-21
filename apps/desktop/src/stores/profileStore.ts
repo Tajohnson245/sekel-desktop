@@ -70,11 +70,11 @@ export const useProfileStore = create<ProfileState>((set) => ({
         set({ isLoading: true, error: null });
         try {
             const fileExt = file.name.split('.').pop();
-            const fileName = `${userId}-${Math.random()}.${fileExt}`;
+            const fileName = `${userId}-${Date.now()}.${fileExt}`;
 
             const { error: uploadError } = await supabase.storage
                 .from('avatars')
-                .upload(fileName, file);
+                .upload(fileName, file, { upsert: true });
 
             if (uploadError) throw uploadError;
 

@@ -1,7 +1,9 @@
 import React, { useRef, useMemo, useCallback } from 'react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
+import { useTranslation } from 'react-i18next';
 import { uploadImage } from '../../lib/storage';
+import { useToast } from './Toast';
 import './RichTextEditor.css';
 
 interface RichTextEditorProps {
@@ -15,6 +17,8 @@ interface RichTextEditorProps {
 
 export default function RichTextEditor({ value, onChange, placeholder, userId, id, style }: RichTextEditorProps) {
     const quillRef = useRef<ReactQuill>(null);
+    const { t } = useTranslation();
+    const { showToast } = useToast();
 
     // Custom image handler
     const imageHandler = useCallback(() => {
@@ -33,9 +37,8 @@ export default function RichTextEditor({ value, onChange, placeholder, userId, i
                     if (quill && range) {
                         quill.insertEmbed(range.index, 'image', url);
                     }
-                } catch (error) {
-                    console.error('Error uploading image:', error);
-                    alert('Failed to upload image');
+                } catch (_error) {
+                    showToast(t('errors.upload_image'), 'error');
                 }
             }
         };

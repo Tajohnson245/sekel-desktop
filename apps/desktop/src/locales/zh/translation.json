@@ -18,7 +18,9 @@
         "next": "下一步",
         "user": "用户",
         "expand": "展开",
-        "collapse": "收起"
+        "collapse": "收起",
+        "remove": "移除",
+        "loading_app": "Sekel 加载中..."
     },
     "nav": {
         "dashboard": "仪表板",
@@ -108,6 +110,8 @@
         "tap_to_flip": "点击翻转",
         "congratulations": "恭喜！",
         "cards_studied": "已学卡片",
+        "no_template": "无模板",
+        "show_answer": "显示答案",
         "rating": {
             "again": "重来",
             "hard": "困难",
@@ -196,7 +200,22 @@
         "delete_account_confirm": "您确定要删除账户吗？此操作无法撤销。",
         "change_photo": "更改照片",
         "upload_photo": "上传照片",
-        "remove_photo": "移除照片"
+        "remove_photo": "移除照片",
+        "notifications": "学习提醒",
+        "notifications_desc": "当有卡片需要复习时收到通知",
+        "reminder_times": "提醒时间",
+        "add_reminder": "添加提醒",
+        "data_management": "数据管理",
+        "import_anki_desc": "导入你的 Anki 牌组（.apkg 文件），包括卡片、媒体和排程数据。",
+        "profile_info": "个人资料",
+        "card_style": "视觉卡片",
+        "card_style_desc": "在样式化卡片中显示问题和答案。关闭后，内容将以经典 Anki 的内联方式显示。",
+        "flip_animation": "卡片翻转动画",
+        "flip_animation_desc": "揭示卡片时显示 3D 翻转动画",
+        "role_placeholder": "例如 医学生",
+        "school_placeholder": "大学名称",
+        "degree_placeholder": "例如 临床医学",
+        "exam_placeholder": "例如 执业医师考试"
     },
     "verification": {
         "complete": "验证完成",
@@ -377,5 +396,18 @@
         "importButton": "导入 {{count}} 个牌组",
         "atLeastOne": "请至少选择一个牌组进行导入。",
         "warnings": "{{count}} 条警告"
+    },
+    "errors": {
+        "invalid_youtube_url": "请输入有效的 YouTube 网址",
+        "upload_image": "图片上传失败",
+        "upload_image_retry": "图片上传失败，请重试。",
+        "delete_decks": "删除牌组失败",
+        "generate_cards": "生成卡片失败",
+        "add_card": "添加卡片失败",
+        "occlusion_generate": "生成遮挡卡片失败",
+        "delete_cards": "删除卡片失败",
+        "session_create": "创建学习会话失败",
+        "save_fsrs": "保存 FSRS 设置失败",
+        "login_required": "请登录以查看个人资料。"
     }
 }

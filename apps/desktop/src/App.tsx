@@ -29,6 +29,7 @@ import './components/ImageOcclusion/ImageOcclusionEditor.css';
 import './components/Auth/Auth.css';
 import { ProtectedRoute } from './components/Auth/ProtectedRoute';
 import { UserProfile } from './components/UserProfile';
+import { ToastProvider } from './components/UI';
 import { UserProfilePage } from './components/Profile/UserProfilePage';
 import { useAuthStore } from './stores/authStore';
 import { useDrafts } from './hooks/useDrafts';
@@ -228,9 +229,11 @@ export default function App() {
     return (
         <QueryClientProvider client={queryClient}>
             <ThemeProvider>
-                <ProtectedRoute>
-                    <AppContent />
-                </ProtectedRoute>
+                <ToastProvider>
+                    <ProtectedRoute>
+                        <AppContent />
+                    </ProtectedRoute>
+                </ToastProvider>
             </ThemeProvider>
         </QueryClientProvider>
     );

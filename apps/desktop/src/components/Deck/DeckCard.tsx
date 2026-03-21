@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { Library, Clock, Sparkles, Pencil } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Deck } from '../../lib/types';
-import { useUpdateDeck } from '../../hooks/useDecks';
+import { useUpdateDeck, useDeckStats } from '../../hooks/useDecks';
 import './DeckCard.css';
 
 interface DeckCardProps {
@@ -22,6 +22,7 @@ export default function DeckCard({
 }: DeckCardProps) {
     const { t } = useTranslation();
     const updateDeck = useUpdateDeck();
+    const { data: stats } = useDeckStats(deck.id);
     const inputRef = useRef<HTMLInputElement>(null);
 
     const [isRenaming, setIsRenaming] = useState(false);
@@ -113,11 +114,11 @@ export default function DeckCard({
                 <div className="deck-stats">
                     <div className="deck-stat">
                         <Sparkles size={14} />
-                        <span>0 {t('decks.new')}</span>
+                        <span>{stats?.newCount ?? 0} {t('decks.new')}</span>
                     </div>
                     <div className="deck-stat">
                         <Clock size={14} />
-                        <span>{t('decks.cards_due', { count: 0 })}</span>
+                        <span>{t('decks.cards_due', { count: (stats?.reviewCount ?? 0) + (stats?.learningCount ?? 0) })}</span>
                     </div>
                 </div>
 

@@ -6,7 +6,7 @@ import { User, MapPin, Edit2, Lock, Trash2, Upload, Bell, Plus, X } from 'lucide
 import ImportAnkiButton from '../Deck/ImportAnkiButton';
 
 import { useTranslation } from 'react-i18next';
-import { Modal, Button, Input } from '../UI';
+import { Modal, Button, Input, useToast } from '../UI';
 import { useDecks, useUpdateDeck } from '../../hooks/useDecks';
 import './UserProfilePage.css';
 
@@ -15,6 +15,7 @@ export const UserProfilePage: React.FC = () => {
     const { profile, fetchProfile, upsertProfile } = useProfileStore();
     const { setTheme } = useTheme();
     const { t, i18n } = useTranslation();
+    const { showToast } = useToast();
 
     // Edit mode states
     const [isEditingPersonal, setIsEditingPersonal] = useState(false);
@@ -37,16 +38,16 @@ export const UserProfilePage: React.FC = () => {
 
     const handleChangePassword = async () => {
         if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-            alert(t('auth.passwords_mismatch'));
+            showToast(t('auth.passwords_mismatch'), 'error');
             return;
         }
         try {
             await useAuthStore.getState().updatePassword(passwordForm.newPassword);
             setIsEditingPassword(false);
             setPasswordForm({ newPassword: '', confirmPassword: '' });
-            alert(t('profile.password_updated'));
+            showToast(t('profile.password_updated'), 'success');
         } catch (_error) {
-            alert(t('common.error'));
+            showToast(t('common.error'), 'error');
         }
     };
 
@@ -54,9 +55,8 @@ export const UserProfilePage: React.FC = () => {
         try {
             await useAuthStore.getState().deleteAccount();
             setIsDeleteModalOpen(false);
-        } catch (error) {
-            console.error(error);
-            alert(t('common.error'));
+        } catch (_error) {
+            showToast(t('common.error'), 'error');
         }
     };
 
@@ -110,8 +110,8 @@ export const UserProfilePage: React.FC = () => {
                 )
             );
             setFsrsDropdownOpen(false);
-        } catch (error) {
-            console.error('Failed to save FSRS settings:', error);
+        } catch (_error) {
+            showToast(t('errors.save_fsrs'), 'error');
         } finally {
             setFsrsSaving(false);
         }
@@ -142,7 +142,7 @@ export const UserProfilePage: React.FC = () => {
         if (section === 'career') setIsEditingCareer(false);
     };
 
-    if (!user) return <div className="user-profile-page">Please log in to view profile.</div>;
+    if (!user) return <div className="user-profile-page">{t('errors.login_required')}</div>;
 
     const fullName = `${profile?.first_name || t('common.user')} ${profile?.last_name || ''}`.trim();
 
@@ -176,7 +176,7 @@ export const UserProfilePage: React.FC = () => {
                                 const file = e.target.files[0];
                                 // Check file size (e.g. 5MB limit)
                                 if (file.size > 5 * 1024 * 1024) {
-                                    alert(t('common.error_file_size'));
+                                    showToast(t('common.error_file_size'), 'error');
                                     return;
                                 }
                                 useProfileStore.getState().uploadAvatar(user.id, file);
@@ -292,7 +292,7 @@ export const UserProfilePage: React.FC = () => {
                             label={t('profile.role')}
                             value={formData.role || ''}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('role', e.target.value)}
-                            placeholder="e.g. Medical Student"
+                            placeholder={t('profile.role_placeholder')}
                         />
                     ) : (
                         <div className="profile-field">
@@ -309,7 +309,7 @@ export const UserProfilePage: React.FC = () => {
                             label={t('profile.medical_school')}
                             value={formData.medical_school || ''}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('medical_school', e.target.value)}
-                            placeholder="University Name"
+                            placeholder={t('profile.school_placeholder')}
                         />
                     ) : (
                         <div className="profile-field">
@@ -326,7 +326,7 @@ export const UserProfilePage: React.FC = () => {
                             label={t('profile.degree_track')}
                             value={formData.degree_track || ''}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('degree_track', e.target.value)}
-                            placeholder="e.g. Medical Doctor"
+                            placeholder={t('profile.degree_placeholder')}
                         />
                     ) : (
                         <div className="profile-field">
@@ -343,7 +343,7 @@ export const UserProfilePage: React.FC = () => {
                             label={t('profile.exam')}
                             value={formData.exam || ''}
                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange('exam', e.target.value)}
-                            placeholder="e.g. USMLE Step 1"
+                            placeholder={t('profile.exam_placeholder')}
                         />
                     ) : (
                         <div className="profile-field">
