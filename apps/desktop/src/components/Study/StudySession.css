@@ -33,6 +33,8 @@
     padding-top: 3rem;
     gap: 1.5rem;
     position: relative;
+    overflow: hidden;
+    min-height: 0;
 }
 
 .study-complete {

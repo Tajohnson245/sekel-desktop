@@ -69,6 +69,7 @@ function renderOcclusionOverlay(html: string): string {
 export default function CardViewer({ front, back, isRevealed, onReveal, onUnreveal }: CardViewerProps) {
     const { t } = useTranslation();
     const { profile } = useProfileStore();
+    const cardStyleEnabled = profile?.card_style ?? true;
     const animationEnabled = profile?.flip_animation ?? true;
 
     const handleClick = () => {
@@ -81,6 +82,44 @@ export default function CardViewer({ front, back, isRevealed, onReveal, onUnreve
 
     const renderedFront = renderOcclusionOverlay(renderClozeFront(front));
     const renderedBack = renderOcclusionOverlay(renderClozeBack(back));
+
+    // ── Classic mode: no card, front + divider + answer ───────────
+    // The Anki back template is typically: {{FrontSide}}<hr>answer
+    // Strip the repeated front content and <hr> so only the answer remains
+    const classicBack = renderedBack
+        .replace(/<hr\s*\/?>/gi, '')
+        .replace(renderedFront, '')
+        .trim();
+
+    if (!cardStyleEnabled) {
+        return (
+            <div className="card-viewer card-viewer--classic" data-testid="card-viewer">
+                <div className="classic-front">
+                    <div
+                        className="flashcard-content"
+                        dangerouslySetInnerHTML={{ __html: renderedFront }}
+                    />
+                </div>
+
+                {!isRevealed ? (
+                    <button className="classic-show-answer" onClick={onReveal}>
+                        {t('study.show_answer')}
+                    </button>
+                ) : (
+                    <>
+                        <hr className="classic-divider" />
+                        <div className="classic-back">
+                            <div className="flashcard-label">{t('study.answer')}</div>
+                            <div
+                                className="flashcard-content"
+                                dangerouslySetInnerHTML={{ __html: classicBack }}
+                            />
+                        </div>
+                    </>
+                )}
+            </div>
+        );
+    }
 
     // ── No-animation mode: skip the 3D flipper entirely ───────────
     if (!animationEnabled) {

@@ -432,8 +432,55 @@ export const UserProfilePage: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Card Flip Animation toggle */}
+                    {/* Card Style toggle */}
                     <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div>
+                                <label className="field-label">{t('profile.card_style')}</label>
+                                <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0.2rem 0 0' }}>
+                                    {t('profile.card_style_desc')}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                role="switch"
+                                aria-checked={profile?.card_style ?? true}
+                                onClick={() => {
+                                    const next = !(profile?.card_style ?? true);
+                                    if (user?.id) {
+                                        upsertProfile(user.id, { card_style: next });
+                                    }
+                                }}
+                                style={{
+                                    flexShrink: 0,
+                                    width: '44px',
+                                    height: '24px',
+                                    borderRadius: '12px',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    background: (profile?.card_style ?? true) ? 'var(--primary)' : 'var(--border)',
+                                    position: 'relative',
+                                    transition: 'background 0.2s ease',
+                                    padding: 0,
+                                }}
+                            >
+                                <span style={{
+                                    position: 'absolute',
+                                    top: '3px',
+                                    left: (profile?.card_style ?? true) ? '23px' : '3px',
+                                    width: '18px',
+                                    height: '18px',
+                                    borderRadius: '50%',
+                                    background: '#fff',
+                                    transition: 'left 0.2s ease',
+                                    boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                                }} />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Card Flip Animation toggle — disabled when card style is off */}
+                    <div className="profile-field" style={{ gridColumn: '1 / -1', opacity: (profile?.card_style ?? true) ? 1 : 0.4 }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <div>
                                 <label className="field-label">{t('profile.flip_animation')}</label>
@@ -445,6 +492,7 @@ export const UserProfilePage: React.FC = () => {
                                 type="button"
                                 role="switch"
                                 aria-checked={profile?.flip_animation ?? true}
+                                disabled={!(profile?.card_style ?? true)}
                                 onClick={() => {
                                     const next = !(profile?.flip_animation ?? true);
                                     if (user?.id) {
@@ -457,8 +505,8 @@ export const UserProfilePage: React.FC = () => {
                                     height: '24px',
                                     borderRadius: '12px',
                                     border: 'none',
-                                    cursor: 'pointer',
-                                    background: (profile?.flip_animation ?? true) ? 'var(--primary)' : 'var(--border)',
+                                    cursor: (profile?.card_style ?? true) ? 'pointer' : 'not-allowed',
+                                    background: (profile?.flip_animation ?? true) && (profile?.card_style ?? true) ? 'var(--primary)' : 'var(--border)',
                                     position: 'relative',
                                     transition: 'background 0.2s ease',
                                     padding: 0,
@@ -467,7 +515,7 @@ export const UserProfilePage: React.FC = () => {
                                 <span style={{
                                     position: 'absolute',
                                     top: '3px',
-                                    left: (profile?.flip_animation ?? true) ? '23px' : '3px',
+                                    left: (profile?.flip_animation ?? true) && (profile?.card_style ?? true) ? '23px' : '3px',
                                     width: '18px',
                                     height: '18px',
                                     borderRadius: '50%',

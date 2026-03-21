@@ -106,6 +106,7 @@
         "answer": "Answer",
         "tap_to_reveal": "Tap to reveal",
         "tap_to_flip": "Tap to flip",
+        "show_answer": "Show Answer",
         "congratulations": "Congratulations!",
         "cards_studied": "Cards studied",
         "rating": {
@@ -198,6 +199,8 @@
         "change_photo": "Change Photo",
         "upload_photo": "Upload Photo",
         "remove_photo": "Remove Photo",
+        "card_style": "Visual Card",
+        "card_style_desc": "Display questions and answers inside a styled card. When off, content is shown inline like classic Anki.",
         "flip_animation": "Card Flip Animation",
         "flip_animation_desc": "Show 3D flip animation when revealing a card",
         "data_management": "Data Management",

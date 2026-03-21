@@ -215,6 +215,67 @@
     justify-content: center;
 }
 
+/* ── Classic mode (no card) ───────────────────────────────────── */
+
+.card-viewer--classic {
+    flex: 1;
+    max-width: 600px;
+    perspective: none;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.classic-front {
+    text-align: center;
+    padding: 1.5rem 0;
+}
+
+.classic-front .flashcard-content img {
+    max-height: 180px;
+}
+
+.classic-show-answer {
+    display: block;
+    margin: auto auto 0;
+    padding: 0.6rem 2rem;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: var(--r-sm);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.classic-show-answer:hover {
+    opacity: 0.85;
+}
+
+.classic-divider {
+    border: none;
+    height: 1px;
+    width: 100%;
+    background: var(--border);
+    margin: 1rem 0;
+    flex-shrink: 0;
+}
+
+.classic-back {
+    text-align: center;
+    padding: 0 0 1rem;
+}
+
+.classic-back .flashcard-content img {
+    max-height: 180px;
+}
+
+.classic-back .flashcard-content:not(:has(.occlusion-card)) {
+    color: var(--success);
+}
+
 /* ── Cloze Deletion Styles ────────────────────────────────────── */
 
 .cloze-blank {

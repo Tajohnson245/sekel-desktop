@@ -243,6 +243,7 @@ export interface UserProfile {
     location: string | null;
     theme_preference: 'light' | 'dark' | 'system';
     flip_animation: boolean;
+    card_style: boolean;
     created_at: string;
     updated_at: string;
 }
