@@ -99,16 +99,52 @@ jobs:
             npm --version
           shell: powershell.exe
       - run:
-          name: Convert PNG to proper ICO
+          name: Convert PNG to proper multi-size ICO
           command: |
             Add-Type -AssemblyName System.Drawing
-            $png = [System.Drawing.Image]::FromFile("$PWD\apps\desktop\assets\sekel_logo_draft.png")
-            $icon = [System.Drawing.Icon]::FromHandle($png.GetHicon())
-            $fs = [System.IO.File]::Create("$PWD\apps\desktop\assets\sekel_logo.ico")
-            $icon.Save($fs)
-            $fs.Close()
-            $icon.Dispose()
-            $png.Dispose()
+            $src = [System.Drawing.Image]::FromFile("$PWD\apps\desktop\assets\sekel_logo_draft.png")
+            $sizes = @(16, 32, 48, 64, 128, 256)
+            $ico = "$PWD\apps\desktop\assets\sekel_logo.ico"
+            $ms = New-Object System.IO.MemoryStream
+            $bw = New-Object System.IO.BinaryWriter($ms)
+            # ICO header
+            $bw.Write([uint16]0)  # reserved
+            $bw.Write([uint16]1)  # type: icon
+            $bw.Write([uint16]$sizes.Count)
+            # Render each size to PNG bytes
+            $pngData = @()
+            foreach ($s in $sizes) {
+              $bmp = New-Object System.Drawing.Bitmap($src, $s, $s)
+              $pms = New-Object System.IO.MemoryStream
+              $bmp.Save($pms, [System.Drawing.Imaging.ImageFormat]::Png)
+              $pngData += ,($pms.ToArray())
+              $pms.Dispose()
+              $bmp.Dispose()
+            }
+            # Directory entries (offset starts after header + all entries)
+            $offset = 6 + ($sizes.Count * 16)
+            for ($i = 0; $i -lt $sizes.Count; $i++) {
+              $s = $sizes[$i]
+              $w = if ($s -ge 256) { 0 } else { $s }
+              $h = $w
+              $bw.Write([byte]$w)       # width
+              $bw.Write([byte]$h)       # height
+              $bw.Write([byte]0)        # color palette
+              $bw.Write([byte]0)        # reserved
+              $bw.Write([uint16]1)      # color planes
+              $bw.Write([uint16]32)     # bits per pixel
+              $bw.Write([uint32]$pngData[$i].Length)  # size
+              $bw.Write([uint32]$offset)              # offset
+              $offset += $pngData[$i].Length
+            }
+            # Image data
+            foreach ($d in $pngData) { $bw.Write($d) }
+            $bw.Flush()
+            [System.IO.File]::WriteAllBytes($ico, $ms.ToArray())
+            $bw.Dispose()
+            $ms.Dispose()
+            $src.Dispose()
+            Write-Host "Generated ICO with sizes: $($sizes -join ', ')"
           shell: powershell.exe
       - run:
           name: Install dependencies
