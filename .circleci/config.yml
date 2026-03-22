@@ -73,18 +73,15 @@ jobs:
       - checkout
       - install-deps
       - run:
-          name: Install Linux packaging dependencies
-          command: sudo apt-get update && sudo apt-get install -y dpkg fakeroot rpm
-      - run:
           name: Install Rollup native binary
           command: npm install --no-save rollup
           working_directory: apps/desktop
       - run:
-          name: Build & package installer
-          command: npm run make
+          name: Build & package app
+          command: npm run package
           working_directory: apps/desktop
       - store_artifacts:
-          path: apps/desktop/out/make
+          path: apps/desktop/out/Sekel-linux-x64
           destination: desktop-linux
 
   desktop-build-windows:
