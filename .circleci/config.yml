@@ -73,6 +73,9 @@ jobs:
       - checkout
       - install-deps
       - run:
+          name: Install Linux packaging dependencies
+          command: sudo apt-get update && sudo apt-get install -y dpkg fakeroot rpm
+      - run:
           name: Install Rollup native binary
           command: npm install --no-save rollup
           working_directory: apps/desktop
