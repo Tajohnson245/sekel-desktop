@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import DOMPurify from 'dompurify';
 import { Plus, Trash2, Sparkles, AlertTriangle, Pencil } from 'lucide-react';
+import { sanitize } from '../../lib/sanitize';
 import { useTranslation } from 'react-i18next';
 import { useCardsByDeck } from '../../hooks/useDecks';
 import { useDeleteNote } from '../../hooks/useNotes';
@@ -126,7 +126,7 @@ export default function CardList({ deckId, onAddCard, onGenerateAI, onEdit }: Ca
                                                     />
                                                     <span style={{ fontSize: '0.9em' }}>
                                                         {card.note.fields.Front?.trim()
-                                                            ? <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(card.note.fields.Front) }} />
+                                                            ? <span dangerouslySetInnerHTML={{ __html: sanitize(card.note.fields.Front) }} />
                                                             : <span className="text-muted" style={{ fontStyle: 'italic', fontSize: '0.85em' }}>{t('occlusion.title')} #{(parseInt(card.note.fields.ActiveIndex, 10) || 0) + 1}</span>
                                                         }
                                                     </span>
@@ -135,7 +135,7 @@ export default function CardList({ deckId, onAddCard, onGenerateAI, onEdit }: Ca
                                             <div className="card-back">
                                                 <span className="card-label">{t('card.back')}</span>
                                                 {card.note.fields.Back?.trim()
-                                                    ? <p style={{ margin: 0 }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(card.note.fields.Back) }} />
+                                                    ? <p style={{ margin: 0 }} dangerouslySetInnerHTML={{ __html: sanitize(card.note.fields.Back) }} />
                                                     : <span className="text-muted" style={{ fontSize: '0.85em', fontStyle: 'italic' }}>{t('occlusion.title')}</span>
                                                 }
                                             </div>
@@ -144,11 +144,11 @@ export default function CardList({ deckId, onAddCard, onGenerateAI, onEdit }: Ca
                                         <>
                                             <div className="card-front">
                                                 <span className="card-label">{t('card.front')}</span>
-                                                <p dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(renderSide(template?.front_template ?? '{{Front}}', card.note.fields, isAnki)) }} />
+                                                <p dangerouslySetInnerHTML={{ __html: sanitize(renderSide(template?.front_template ?? '{{Front}}', card.note.fields, isAnki)) }} />
                                             </div>
                                             <div className="card-back">
                                                 <span className="card-label">{t('card.back')}</span>
-                                                <p dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(renderSide(template?.back_template ?? '{{Back}}', card.note.fields, isAnki, true)) }} />
+                                                <p dangerouslySetInnerHTML={{ __html: sanitize(renderSide(template?.back_template ?? '{{Back}}', card.note.fields, isAnki, true)) }} />
                                             </div>
                                         </>
                                     )}

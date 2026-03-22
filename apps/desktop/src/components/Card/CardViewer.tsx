@@ -1,6 +1,6 @@
-import DOMPurify from 'dompurify';
 import { useTranslation } from 'react-i18next';
 import { useProfileStore } from '../../stores/profileStore';
+import { sanitize } from '../../lib/sanitize';
 
 interface CardViewerProps {
     front: string;
@@ -9,8 +9,6 @@ interface CardViewerProps {
     onReveal: () => void;
     onUnreveal?: () => void;
 }
-
-const sanitize = (html: string) => DOMPurify.sanitize(html);
 
 // ─── Content transforms ─────────────────────────────────────────
 // These pure functions process the raw HTML before rendering.
