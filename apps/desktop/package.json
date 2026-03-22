@@ -1,6 +1,6 @@
 {
   "name": "@sekel/desktop",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "Anki but better",
   "homepage": "https://github.com/Tajohnson245/sekel#readme",
   "bugs": {
@@ -71,7 +71,7 @@
     "vitest": "^4.1.0"
   },
   "dependencies": {
-    "@sekel/db": "*1.5.0",
+    "@sekel/db": "*1.5.1",
     "@supabase/supabase-js": "^2.95.3",
     "@tanstack/react-query": "^5.90.20",
     "better-sqlite3": "^12.6.2",
