@@ -120,6 +120,19 @@ jobs:
       - node/install:
           node-version: '22'
       - run:
+          name: Generate .icns from PNG
+          command: |
+            ICONSET=apps/desktop/assets/sekel_logo.iconset
+            mkdir -p "$ICONSET"
+            SRC=apps/desktop/assets/sekel_logo_draft.png
+            for SIZE in 16 32 128 256 512; do
+              sips -z $SIZE $SIZE "$SRC" --out "$ICONSET/icon_${SIZE}x${SIZE}.png" > /dev/null
+              DOUBLE=$((SIZE * 2))
+              sips -z $DOUBLE $DOUBLE "$SRC" --out "$ICONSET/icon_${SIZE}x${SIZE}@2x.png" > /dev/null
+            done
+            iconutil -c icns "$ICONSET" -o apps/desktop/assets/sekel_logo.icns
+            rm -rf "$ICONSET"
+      - run:
           name: Install dependencies
           command: npm install
       - run:
