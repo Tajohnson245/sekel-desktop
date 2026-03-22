@@ -29,6 +29,12 @@ module.exports = {
     name: 'Sekel',
     executableName: 'sekel',
     icon: path.join(__dirname, 'assets', 'sekel_logo'),
+    appCopyright: 'Copyright © 2026 BYTEFLOW LLC',
+    win32metadata: {
+      CompanyName: 'BYTEFLOW LLC',
+      ProductName: 'Sekel',
+      FileDescription: 'SEKEL - Intelligent Flashcards',
+    },
     // The packager doesn't copy node_modules in a monorepo workspace setup.
     // Walk the full production dependency tree and copy each package from
     // wherever npm placed it (local node_modules or hoisted to monorepo root).
@@ -104,6 +110,8 @@ module.exports = {
       name: '@electron-forge/maker-squirrel',
       config: {
         name: 'Sekel',
+        setupIcon: path.join(__dirname, 'assets', 'sekel_logo.ico'),
+        iconUrl: 'https://raw.githubusercontent.com/Tajohnson245/sekel/main/apps/desktop/assets/sekel_logo.ico',
       },
     },
     {

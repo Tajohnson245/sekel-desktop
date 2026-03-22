@@ -11,7 +11,7 @@
     "url": "git+https://github.com/Tajohnson245/sekel.git"
   },
   "license": "MIT",
-  "author": "Tyrone A. Johnson",
+  "author": "BYTEFLOW LLC",
   "type": "commonjs",
   "main": "dist/main/main.js",
   "scripts": {
