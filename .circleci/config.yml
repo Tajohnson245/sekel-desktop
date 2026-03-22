@@ -99,6 +99,18 @@ jobs:
             npm --version
           shell: powershell.exe
       - run:
+          name: Convert PNG to proper ICO
+          command: |
+            Add-Type -AssemblyName System.Drawing
+            $png = [System.Drawing.Image]::FromFile("$PWD\apps\desktop\assets\sekel_logo_draft.png")
+            $icon = [System.Drawing.Icon]::FromHandle($png.GetHicon())
+            $fs = [System.IO.File]::Create("$PWD\apps\desktop\assets\sekel_logo.ico")
+            $icon.Save($fs)
+            $fs.Close()
+            $icon.Dispose()
+            $png.Dispose()
+          shell: powershell.exe
+      - run:
           name: Install dependencies
           command: npm install
       - run:
