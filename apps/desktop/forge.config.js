@@ -111,7 +111,6 @@ module.exports = {
       config: {
         name: 'Sekel',
         setupIcon: path.join(__dirname, 'assets', 'sekel_logo.ico'),
-        iconUrl: 'https://raw.githubusercontent.com/Tajohnson245/sekel/main/apps/desktop/assets/sekel_logo.ico',
       },
     },
     {
