@@ -102,7 +102,9 @@ module.exports = {
   makers: [
     {
       name: '@electron-forge/maker-squirrel',
-      config: {},
+      config: {
+        name: 'Sekel',
+      },
     },
     {
       name: '@electron-forge/maker-zip',
