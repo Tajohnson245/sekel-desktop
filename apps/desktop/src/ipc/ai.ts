@@ -10,16 +10,19 @@
 import { ipcMain } from 'electron';
 import { OpenAI } from "openai";
 
-// Initialize OpenAI client
-const apiKey = process.env.VITE_OPENAI_API_KEY || import.meta.env.VITE_OPENAI_API_KEY;
+// Lazy-initialize OpenAI client (avoids crash on startup when key is absent)
+let _openai: OpenAI | null = null;
 
-if (!apiKey) {
-    console.error('Missing VITE_OPENAI_API_KEY environment variable in Main process.');
+function getOpenAI(): OpenAI {
+    if (!_openai) {
+        const apiKey = import.meta.env.VITE_OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
+        if (!apiKey) {
+            throw new Error('Missing VITE_OPENAI_API_KEY. Set it in your .env.local file.');
+        }
+        _openai = new OpenAI({ apiKey });
+    }
+    return _openai;
 }
-
-const openai = new OpenAI({
-    apiKey: apiKey,
-});
 
 const MODEL = process.env.VITE_OPENAI_MODEL || 'gpt-4.1-mini';
 
@@ -107,7 +110,7 @@ function buildFormatRules(options: GenerationOptions): string {
 
 async function chunkDocument(text: string): Promise<Chunk[]> {
     try {
-        const response = await openai.chat.completions.create({
+        const response = await getOpenAI().chat.completions.create({
             model: MODEL,
             messages: [
                 {
@@ -149,7 +152,7 @@ function distributeCards(chunks: Chunk[], total: number): number[] {
 async function interpretCustomInstruction(raw: string): Promise<string> {
     if (!raw.trim()) return 'No additional instruction.';
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
         model: MODEL,
         messages: [
             {
@@ -272,7 +275,7 @@ async function generateCardsForChunk(
 ): Promise<GeneratedCard[]> {
     const prompt = buildCardTypePrompt(cardFormat, count, interpretedInstruction, chunk.text, difficulty, revisionReason);
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
         model: MODEL,
         messages: [
             { role: 'system', content: prompt },
@@ -304,7 +307,7 @@ async function evaluateCard(card: GeneratedCard, cardFormat: string): Promise<Ca
         : card.back;
 
     try {
-        const response = await openai.chat.completions.create({
+        const response = await getOpenAI().chat.completions.create({
             model: MODEL,
             messages: [
                 {
@@ -405,11 +408,11 @@ export const setupAIHandlers = () => {
     // Basic text-to-cards generation (Legacy)
     ipcMain.handle('generate-cards', async (_event, text: string, count: number = 5, language: string = 'English', options?: GenerationOptions) => {
         try {
-            if (!apiKey) throw new Error('OpenAI API Key is missing.');
+            getOpenAI(); // fail early if API key is missing
 
             const formatRules = buildFormatRules(options ?? {});
 
-            const response = await openai.chat.completions.create({
+            const response = await getOpenAI().chat.completions.create({
                 model: MODEL,
                 messages: [
                     {
@@ -436,7 +439,7 @@ ${formatRules}
     // Four-stage pipeline: chunk → generate → evaluate → return
     ipcMain.handle('generate-cards-from-context', async (_event, { content, count, language = 'English', options }: { summary: string, content: string, count: number, language?: string, options?: GenerationOptions }) => {
         try {
-            if (!apiKey) throw new Error('OpenAI API Key is missing.');
+            getOpenAI(); // fail early if API key is missing
 
             const cardFormat = options?.cardFormat ?? 'basic';
             const difficulty = options?.difficulty ?? 'detailed';

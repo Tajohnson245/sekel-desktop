@@ -15,9 +15,19 @@ import { YoutubeTranscript } from 'youtube-transcript';
 const pdfParse = require('pdf-parse');
 import { stripMarkdown } from '../lib/stringUtils';
 
-// Initialize OpenAI client
-const apiKey = process.env.VITE_OPENAI_API_KEY || import.meta.env.VITE_OPENAI_API_KEY;
-const openai = new OpenAI({ apiKey });
+// Lazy-initialize OpenAI client (avoids crash on startup when key is absent)
+let _openai: OpenAI | null = null;
+
+function getOpenAI(): OpenAI {
+    if (!_openai) {
+        const apiKey = import.meta.env.VITE_OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
+        if (!apiKey) {
+            throw new Error('Missing VITE_OPENAI_API_KEY. Set it in your .env.local file.');
+        }
+        _openai = new OpenAI({ apiKey });
+    }
+    return _openai;
+}
 
 export const setupDocumentHandlers = () => {
     // Handle document parsing requests from renderer
@@ -111,7 +121,7 @@ export async function parseWithOpenAIVision(filename: string, buffer: Buffer, ex
             }
         ];
 
-        const response = await openai.chat.completions.create({
+        const response = await getOpenAI().chat.completions.create({
             model: "gpt-4o",
             messages: [{ role: "user", content }],
             max_tokens: 4000,
@@ -207,7 +217,7 @@ function extractValuesByKey(obj: any, key: string): string[] {
 
 // Summarize a single document's content
 export async function summarizeDocumentContent(filename: string, content: string, language: string = 'English'): Promise<string> {
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
         model: "gpt-4.1-mini",
         messages: [
             {
@@ -255,7 +265,7 @@ export async function generateGlobalSummary(documents: Record<string, string>, l
         return `--- File: ${name} ---\n\n${content}\n\n`;
     }).join("\n\n");
 
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
         model: "gpt-4.1-mini",
         messages: [
             {
