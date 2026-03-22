@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@sekel/db": "*1.5.2",
+    "@sekel/db": "*1.5.3",
     "@sekel/survey-components": "*0.1.2",
     "@sekel/web-components": "*1.4.0",
     "@supabase/ssr": "^0.9.0",

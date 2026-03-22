@@ -20,11 +20,12 @@ Update this file as part of every release (Step 3 of the release checklist).
 
 ## Desktop (`apps/desktop`)
 
-Current stable: **v1.5.2** (tag `desktop/v1.5.2`)
+Current stable: **v1.5.3** (tag `desktop/v1.5.3`)
 Next release tag: `desktop/v1.6.0`
 
 | Version | Date | Tag | Key Changes |
 |---------|------|-----|-------------|
+| v1.5.3 | 2026-03-22 | `desktop/v1.5.3` | Fix images not rendering — DOMPurify was stripping sekel-media:// URLs |
 | v1.5.2 | 2026-03-22 | `desktop/v1.5.2` | Rebrand to BYTEFLOW LLC, app icon for Windows/macOS installers, CircleCI .icns generation |
 | v1.5.1 | 2026-03-22 | `desktop/v1.5.1` | Lazy-init OpenAI client to prevent startup crash when API key is absent, CI-embedded API key via env var |
 | v1.5.0 | 2026-03-22 | `desktop/v1.5.0` | Toast notifications, DOMPurify sanitization, missing i18n translations (es/de/fr/zh), dynamic deck stats, desktop notifications, CircleCI artifact builds, Squirrel installer fix |
