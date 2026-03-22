@@ -77,8 +77,12 @@ jobs:
           command: npm install --no-save rollup
           working_directory: apps/desktop
       - run:
-          name: Build
-          command: npx turbo run build --filter=@sekel/desktop
+          name: Build & package installer
+          command: npm run make
+          working_directory: apps/desktop
+      - store_artifacts:
+          path: apps/desktop/out/make
+          destination: desktop-linux
 
   desktop-build-windows:
     executor:
@@ -102,8 +106,12 @@ jobs:
           command: npm install --no-save rollup
           working_directory: apps/desktop
       - run:
-          name: Build
-          command: npx turbo run build --filter=@sekel/desktop
+          name: Build & package installer
+          command: npm run make
+          working_directory: apps/desktop
+      - store_artifacts:
+          path: apps/desktop/out/make
+          destination: desktop-windows
 
   desktop-build-macos:
     executor: macos-exec
@@ -119,8 +127,12 @@ jobs:
           command: npm install --no-save rollup
           working_directory: apps/desktop
       - run:
-          name: Build
-          command: npx turbo run build --filter=@sekel/desktop
+          name: Build & package installer
+          command: npm run make
+          working_directory: apps/desktop
+      - store_artifacts:
+          path: apps/desktop/out/make
+          destination: desktop-macos
 
   # ── Web (all branches) ───────────────────────────────────────────────────
   web-ci:
