@@ -13,8 +13,8 @@ executors:
       - image: cimg/node:20.18
   macos-exec:
     macos:
-      xcode: 15.4.0
-    resource_class: macos.m1.medium.gen1
+      xcode: 16.4.0
+    resource_class: m4pro.medium
 
 commands:
   install-deps:
