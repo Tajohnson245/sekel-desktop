@@ -671,6 +671,90 @@ export const UserProfilePage: React.FC = () => {
                         )}
                     </div>
 
+                    {/* Background Image */}
+                    <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                            <div>
+                                <label className="field-label">{t('profile.background_image')}</label>
+                                <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0.2rem 0 0' }}>
+                                    {t('profile.background_image_desc')}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.5rem' }}>
+                            {profile?.background_url && (
+                                <div style={{
+                                    width: 80,
+                                    height: 50,
+                                    borderRadius: 'var(--radius)',
+                                    overflow: 'hidden',
+                                    border: '1px solid var(--border)',
+                                    flexShrink: 0,
+                                }}>
+                                    <img
+                                        src={profile.background_url}
+                                        alt="Background preview"
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    />
+                                </div>
+                            )}
+                            <label style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.4rem',
+                                padding: '0.4rem 0.75rem',
+                                borderRadius: 'var(--radius)',
+                                border: '1px solid var(--border)',
+                                cursor: 'pointer',
+                                fontSize: '0.85rem',
+                                color: 'var(--text-muted)',
+                            }}>
+                                <Upload size={14} />
+                                {profile?.background_url ? t('profile.change_background') : t('profile.upload_background')}
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    style={{ display: 'none' }}
+                                    onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file && user?.id) {
+                                            const url = await useProfileStore.getState().uploadBackground(user.id, file);
+                                            if (url) showToast(t('profile.background_updated'), 'success');
+                                            else showToast(t('profile.background_error'), 'error');
+                                        }
+                                    }}
+                                />
+                            </label>
+                            {profile?.background_url && (
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        if (user?.id) {
+                                            await useProfileStore.getState().removeBackground(user.id);
+                                            showToast(t('profile.background_removed'), 'success');
+                                        }
+                                    }}
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '0.4rem',
+                                        padding: '0.4rem 0.75rem',
+                                        borderRadius: 'var(--radius)',
+                                        border: '1px solid var(--border)',
+                                        background: 'transparent',
+                                        cursor: 'pointer',
+                                        fontSize: '0.85rem',
+                                        color: 'var(--rose)',
+                                    }}
+                                >
+                                    <X size={14} />
+                                    {t('profile.remove_background')}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
                     {/* FSRS Scheduling */}
                     <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
                         <label className="field-label">{t('fsrs.enable_fsrs_for_decks')}</label>

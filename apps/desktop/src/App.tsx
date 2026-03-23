@@ -32,6 +32,7 @@ import { UserProfile } from './components/UserProfile';
 import { ToastProvider } from './components/UI';
 import { UserProfilePage } from './components/Profile/UserProfilePage';
 import { useAuthStore } from './stores/authStore';
+import { useProfileStore } from './stores/profileStore';
 import { useDrafts } from './hooks/useDrafts';
 
 const queryClient = new QueryClient({
@@ -47,7 +48,9 @@ const queryClient = new QueryClient({
 
 function AppContent() {
     const { user } = useAuthStore();
+    const { profile } = useProfileStore();
     const userId = user?.id || '';
+    const backgroundUrl = profile?.background_url;
     const [activeView, setActiveView] = useState('dashboard');
     const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
     const [studyMode, setStudyMode] = useState<'due' | 'all'>('due');
@@ -160,7 +163,15 @@ function AppContent() {
     };
 
     return (
-        <div className="app-shell">
+        <div
+            className={`app-shell ${backgroundUrl ? 'has-background' : ''}`}
+            style={backgroundUrl ? {
+                backgroundImage: `url(${backgroundUrl})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundAttachment: 'fixed',
+            } : undefined}
+        >
             <header className="header">
                 <div className="header-left">
                     <h1>Sekel</h1>

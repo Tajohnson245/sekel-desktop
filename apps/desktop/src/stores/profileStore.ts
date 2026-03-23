@@ -13,6 +13,8 @@ interface ProfileState {
     updateProfile: (userId: string, updates: Partial<UserProfile>) => Promise<void>;
     upsertProfile: (userId: string, updates: Partial<UserProfile>) => Promise<void>;
     uploadAvatar: (userId: string, file: File) => Promise<string | null>;
+    uploadBackground: (userId: string, file: File) => Promise<string | null>;
+    removeBackground: (userId: string) => Promise<void>;
 }
 
 export const useProfileStore = create<ProfileState>((set) => ({
@@ -92,5 +94,45 @@ export const useProfileStore = create<ProfileState>((set) => ({
         } finally {
             set({ isLoading: false });
         }
-    }
+    },
+
+    uploadBackground: async (userId: string, file: File) => {
+        set({ isLoading: true, error: null });
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${userId}-bg-${Date.now()}.${fileExt}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('backgrounds')
+                .upload(fileName, file, { upsert: true });
+
+            if (uploadError) throw uploadError;
+
+            const { data } = supabase.storage
+                .from('backgrounds')
+                .getPublicUrl(fileName);
+
+            const backgroundUrl = data.publicUrl;
+            const updatedProfile = await upsertUserProfile(supabase, userId, { background_url: backgroundUrl });
+            set({ profile: updatedProfile });
+            return backgroundUrl;
+        } catch (err: unknown) {
+            set({ error: err instanceof Error ? err.message : String(err) });
+            return null;
+        } finally {
+            set({ isLoading: false });
+        }
+    },
+
+    removeBackground: async (userId: string) => {
+        set({ isLoading: true, error: null });
+        try {
+            const updatedProfile = await upsertUserProfile(supabase, userId, { background_url: null });
+            set({ profile: updatedProfile });
+        } catch (err: unknown) {
+            set({ error: err instanceof Error ? err.message : String(err) });
+        } finally {
+            set({ isLoading: false });
+        }
+    },
 }));
