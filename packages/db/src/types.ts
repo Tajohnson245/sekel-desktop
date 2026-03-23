@@ -246,6 +246,7 @@ export interface UserProfile {
     card_style: boolean;
     notifications_enabled: boolean;
     reminder_times: string[];
+    background_url: string | null;
     created_at: string;
     updated_at: string;
 }
