@@ -93,11 +93,7 @@ export default function CardViewer({ front, back, isRevealed, onReveal, onUnreve
                     <div className="flashcard-content" dangerouslySetInnerHTML={{ __html: sanitize(renderedFront) }} />
                 </div>
 
-                {!isRevealed ? (
-                    <button className="classic-show-answer" onClick={onReveal}>
-                        {t('study.show_answer')}
-                    </button>
-                ) : (
+                {isRevealed && (
                     <>
                         <hr className="classic-divider" />
                         <div className="classic-back">
