@@ -74,6 +74,23 @@ export default function StudySession({ deckId, userId, mode = 'due', onBack }: S
         setIsRevealed(false);
     };
 
+    // Spacebar to flip card (additive — "Show Answer" button still works)
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key !== ' ') return;
+
+            // Don't interfere when user is typing in an input/textarea
+            const tag = document.activeElement?.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+            e.preventDefault(); // prevent page scroll
+            if (!isRevealed) handleReveal();
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [isRevealed]);
+
     const handleRate = async (rating: Rating) => {
         if (!currentCard || !schedulingOptions) return;
 

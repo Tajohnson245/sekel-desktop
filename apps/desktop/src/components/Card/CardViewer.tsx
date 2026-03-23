@@ -83,12 +83,22 @@ export default function CardViewer({ front, back, isRevealed, onReveal, onUnreve
     const renderedFront = renderOcclusionOverlay(renderClozeFront(front));
     const renderedBack = renderOcclusionOverlay(renderClozeBack(back));
 
+    const handleClick = () => {
+        if (isRevealed && onUnreveal) onUnreveal();
+        else if (!isRevealed) onReveal();
+    };
+
     // ── Classic mode ─────────────────────────────────────────────
     if (!cardStyleEnabled) {
         const answerOnly = stripFrontFromBack(renderedBack, renderedFront);
 
         return (
-            <div className="card-viewer card-viewer--classic" data-testid="card-viewer">
+            <div
+                className="card-viewer card-viewer--classic"
+                data-testid="card-viewer"
+                onClick={handleClick}
+                style={{ cursor: 'pointer' }}
+            >
                 <div className="classic-front">
                     <div className="flashcard-content" dangerouslySetInnerHTML={{ __html: sanitize(renderedFront) }} />
                 </div>
@@ -105,11 +115,6 @@ export default function CardViewer({ front, back, isRevealed, onReveal, onUnreve
             </div>
         );
     }
-
-    const handleClick = () => {
-        if (isRevealed && onUnreveal) onUnreveal();
-        else if (!isRevealed) onReveal();
-    };
 
     // ── Static mode (no animation) ───────────────────────────────
     if (!animationEnabled) {
