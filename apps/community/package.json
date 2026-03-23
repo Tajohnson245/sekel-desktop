@@ -11,9 +11,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@sekel/community-components": "*0.1.0",
-    "@sekel/db": "*1.5.3",
-    "@sekel/web-components": "*1.4.0",
+    "@sekel/community-components": "*",
+    "@sekel/db": "*",
+    "@sekel/web-components": "*",
     "@supabase/supabase-js": "^2.98.0",
     "framer-motion": "^12.35.1",
     "lucide-react": "^0.575.0",

@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@sekel/db": "*",
-    "@sekel/web-components": "*1.4.0",
+    "@sekel/web-components": "*",
     "@supabase/supabase-js": "^2.100.0",
     "framer-motion": "^12.35.1",
     "lucide-react": "^0.575.0",
