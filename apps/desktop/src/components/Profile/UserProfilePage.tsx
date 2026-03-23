@@ -8,6 +8,7 @@ import ImportAnkiButton from '../Deck/ImportAnkiButton';
 import { useTranslation } from 'react-i18next';
 import { Modal, Button, Input, useToast } from '../UI';
 import { useDecks, useUpdateDeck } from '../../hooks/useDecks';
+import { FeedbackSection } from './FeedbackSection';
 import './UserProfilePage.css';
 
 export const UserProfilePage: React.FC = () => {
@@ -775,6 +776,8 @@ export const UserProfilePage: React.FC = () => {
                     </div>
                 </div>
             </section>
+
+            <FeedbackSection />
 
             {/* Account Management (Password + Delete) */}
             <section className="profile-section">

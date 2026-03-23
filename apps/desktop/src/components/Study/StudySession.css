@@ -3,7 +3,8 @@
 .study-session {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    flex: 1;
+    min-height: 0;
 }
 
 .study-header {
@@ -30,11 +31,13 @@
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    padding-top: 3rem;
+    padding-top: 2rem;
     gap: 1.5rem;
     position: relative;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     min-height: 0;
+    margin-right: -1.5rem;
 }
 
 .study-complete {
@@ -56,19 +59,15 @@
     margin-bottom: 2rem;
 }
 
-/* Rating buttons zone — pinned to the very bottom of the study window */
+/* Rating buttons zone — pinned to the bottom, outside the scrollable area */
 .rating-zone {
     display: flex;
     justify-content: center;
     align-items: center;
+    flex-shrink: 0;
     min-height: 80px;
     transition: opacity 0.2s ease;
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
     padding: 1rem 0;
-    z-index: 5;
 }
 
 .rating-zone[style*="hidden"] {

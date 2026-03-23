@@ -237,29 +237,33 @@ export default function StudySession({ deckId, userId, mode = 'due', onBack }: S
                     onReveal={handleReveal}
                     onUnreveal={handleUnreveal}
                 />
+            </div>
 
-                {/* Always reserve space for buttons — visibility toggled so card never shifts */}
-                <div className="rating-zone" style={{ visibility: isRevealed ? 'visible' : 'hidden' }}>
-                    {fsrsEnabled && schedulingOptions ? (
-                        <RatingButtons
-                            options={schedulingOptions}
-                            onRate={handleRate}
+            {/* Action zone — pinned at bottom, outside scrollable area */}
+            <div className="rating-zone">
+                {!isRevealed ? (
+                    <button className="classic-show-answer" onClick={handleReveal}>
+                        {t('study.show_answer')}
+                    </button>
+                ) : fsrsEnabled && schedulingOptions ? (
+                    <RatingButtons
+                        options={schedulingOptions}
+                        onRate={handleRate}
+                        isLoading={updateCard.isPending}
+                    />
+                ) : (
+                    <div className="next-action">
+                        <Button
+                            variant="primary"
+                            size="lg"
+                            onClick={() => handleRate('good')}
                             isLoading={updateCard.isPending}
-                        />
-                    ) : (
-                        <div className="next-action">
-                            <Button
-                                variant="primary"
-                                size="lg"
-                                onClick={() => handleRate('good')}
-                                isLoading={updateCard.isPending}
-                                icon={<ChevronRight size={18} />}
-                            >
-                                {t('common.next')}
-                            </Button>
-                        </div>
-                    )}
-                </div>
+                            icon={<ChevronRight size={18} />}
+                        >
+                            {t('common.next')}
+                        </Button>
+                    </div>
+                )}
             </div>
         </div>
     );
