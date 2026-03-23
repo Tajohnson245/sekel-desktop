@@ -249,3 +249,18 @@ export interface UserProfile {
     created_at: string;
     updated_at: string;
 }
+
+// ─────────────────────────────────────────────────────────────────
+// Feedback
+// ─────────────────────────────────────────────────────────────────
+export interface Feedback {
+    id: string;
+    user_id: string;
+    areas: string[];
+    description: string;
+    screenshot_url: string | null;
+    desired_fix: string | null;
+    created_at: string;
+}
+
+export type FeedbackInsert = Omit<Feedback, 'id' | 'created_at'>;

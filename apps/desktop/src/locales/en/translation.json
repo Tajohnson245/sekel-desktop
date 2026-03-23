@@ -409,5 +409,32 @@
         "session_create": "Failed to create study session",
         "save_fsrs": "Failed to save FSRS settings",
         "login_required": "Please log in to view profile."
+    },
+    "feedback": {
+        "title": "Feedback",
+        "section_description": "Help us improve Sekel by reporting issues or suggesting changes.",
+        "send_feedback": "Send Feedback",
+        "problem_area": "What area are you experiencing problems in?",
+        "area_study_sessions": "Study Sessions",
+        "area_card_editor": "Card Editor",
+        "area_deck_management": "Deck Management",
+        "area_import_export": "Import/Export",
+        "area_settings": "Settings",
+        "area_performance": "Performance",
+        "area_other": "Other",
+        "describe_problem": "Describe the problem",
+        "describe_placeholder": "Tell us what went wrong or what's not working as expected...",
+        "screenshot_optional": "Screenshot (optional)",
+        "upload_screenshot": "Upload Screenshot",
+        "max_file_size": "PNG, JPG up to 5MB",
+        "screenshot_too_large": "Screenshot must be under 5MB",
+        "invalid_image": "Please select a valid image file",
+        "desired_fix": "What would you like to see differently?",
+        "desired_fix_placeholder": "Describe how you'd like this to work...",
+        "submit": "Submit Feedback",
+        "submitting": "Submitting...",
+        "submitted": "Thank you for your feedback!",
+        "error": "Failed to submit feedback. Please try again.",
+        "validation_error": "Please select at least one area and describe the problem."
     }
 }

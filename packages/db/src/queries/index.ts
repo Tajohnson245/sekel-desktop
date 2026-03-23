@@ -6,3 +6,4 @@ export * from './deck_sessions';
 export * from './reviews';
 export * from './card_drafts';
 export * from './user_profiles';
+export * from './feedback';
