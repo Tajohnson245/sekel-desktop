@@ -26,7 +26,7 @@
 
 .flashcard-content img {
     max-width: 100%;
-    max-height: 250px;
+    max-height: 35vh;
     object-fit: contain;
     display: block;
     margin: 0.5rem auto;
@@ -146,12 +146,11 @@
 /* ── Classic mode (no card) ──────────────────────────────────── */
 
 .card-viewer--classic {
-    flex: 1;
     max-width: 600px;
     perspective: none;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    min-height: 0;
 }
 
 .classic-front {
@@ -161,7 +160,7 @@
 
 .classic-front .flashcard-content img,
 .classic-back  .flashcard-content img {
-    max-height: 180px;
+    max-height: 25vh;
 }
 
 .classic-show-answer {
