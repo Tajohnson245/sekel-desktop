@@ -26,9 +26,11 @@ jobs:
 
       - name: Extract version from tag
         id: version
+        shell: bash
         run: echo "version=${GITHUB_REF_NAME#desktop/v}" >> $GITHUB_OUTPUT
 
       - name: Validate version matches version.json
+        shell: bash
         run: |
           EXPECTED=$(node -p "require('./scripts/version.json').desktop")
           TAG_VERSION=${{ steps.version.outputs.version }}
