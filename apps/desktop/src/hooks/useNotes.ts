@@ -67,6 +67,7 @@ export function useUpdateNote() {
             updateNote(id, updates),
         onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: noteKeys.byDeck(variables.deckId) });
+            queryClient.invalidateQueries({ queryKey: deckKeys.cards(variables.deckId) });
         },
     });
 }
