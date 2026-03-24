@@ -32,7 +32,7 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "npx playwright test",
     "test:e2e:ui": "npx playwright test --ui",
-    "publish": "node -e \"delete process.env.ELECTRON_RUN_AS_NODE;const args=process.argv.slice(1).join(' ');require('child_process').execSync('electron-vite build && electron-forge publish '+args,{stdio:'inherit'})\"",
+    "publish": "node -e \"delete process.env.ELECTRON_RUN_AS_NODE;const arch=process.env.FORGE_ARCH?(' --arch='+process.env.FORGE_ARCH):'';require('child_process').execSync('electron-vite build && electron-forge publish'+arch,{stdio:'inherit'})\"",
     "rebuild:electron": "npx @electron/rebuild -f -w better-sqlite3",
     "rebuild:node": "npm rebuild better-sqlite3",
     "db:push": "npx supabase db push",
