@@ -32,7 +32,13 @@ export interface ImportResult {
     reviewsInserted: number;
 }
 
-export function executeImport(options: ImportOptions, userId: string): ImportResult {
+export type ImportProgressCallback = (stage: string, detail: string, percent: number) => void;
+
+export function executeImport(
+    options: ImportOptions,
+    userId: string,
+    onProgress?: ImportProgressCallback,
+): ImportResult {
     const result: ImportResult = { decksCreated: 0, decksSkipped: 0, notesInserted: 0, cardsInserted: 0, reviewsInserted: 0 };
     const { parsedData, decks: deckOptions } = options;
 
@@ -97,6 +103,10 @@ export function executeImport(options: ImportOptions, userId: string): ImportRes
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
+    // Pre-count total cards for progress reporting
+    const totalCards = parsedData.cards.filter(c => selectedOptions.has(c.did)).length;
+    const totalRevlogs = parsedData.revlog.length;
+
     // Maps built during card insertion for use when inserting review logs
     const ankiCardIdToSekelCardId = new Map<number, string>();
     const ankiCardIdToSekelDeckId = new Map<number, string>();
@@ -104,6 +114,8 @@ export function executeImport(options: ImportOptions, userId: string): ImportRes
     const keepSchedulingDeckIds = new Set<number>();
 
     const tx = db.transaction(() => {
+        onProgress?.('inserting-decks', `Creating ${sortedDeckIds.length} deck(s)`, 30);
+
         for (const ankiDeckId of sortedDeckIds) {
             const opt = selectedOptions.get(ankiDeckId)!;
             const ankiDeck = parsedData.decks.get(ankiDeckId);
@@ -148,6 +160,11 @@ export function executeImport(options: ImportOptions, userId: string): ImportRes
 
             nameToSekelId.set(ankiDeck.name, sekelDeckId);
             if (opt.scheduling === 'keep') keepSchedulingDeckIds.add(ankiDeckId);
+
+            // Report note type / notes progress once per deck
+            if (result.cardsInserted === 0) {
+                onProgress?.('inserting-notes', `Importing notes and cards...`, 35);
+            }
 
             // All Anki cards belonging to this deck
             const ankiCards = parsedData.cards.filter(c => c.did === ankiDeckId);
@@ -234,13 +251,27 @@ export function executeImport(options: ImportOptions, userId: string): ImportRes
                     result.cardsInserted++;
                     ankiCardIdToSekelCardId.set(ankiCard.id, cardId);
                     ankiCardIdToSekelDeckId.set(ankiCard.id, sekelDeckId);
+
+                    // Report progress every 100 cards
+                    if (result.cardsInserted % 100 === 0) {
+                        const cardPercent = totalCards > 0
+                            ? 35 + Math.round((result.cardsInserted / totalCards) * 45)
+                            : 35;
+                        onProgress?.(
+                            'inserting-cards',
+                            `${result.cardsInserted.toLocaleString()} / ${totalCards.toLocaleString()} cards`,
+                            Math.min(cardPercent, 80),
+                        );
+                    }
                 }
             }
         }
 
         // Insert Anki review logs for all cards that used 'keep' scheduling
         if (keepSchedulingDeckIds.size > 0) {
+            onProgress?.('inserting-reviews', `Importing review history...`, 80);
             const createdAt = new Date().toISOString();
+            let reviewsProcessed = 0;
             for (const revlog of parsedData.revlog) {
                 const sekelCardId = ankiCardIdToSekelCardId.get(revlog.cid);
                 if (!sekelCardId) continue; // card was not imported (different deck or deselected)
@@ -273,6 +304,19 @@ export function executeImport(options: ImportOptions, userId: string): ImportRes
                     createdAt,
                 );
                 result.reviewsInserted++;
+                reviewsProcessed++;
+
+                // Report progress every 500 review logs
+                if (reviewsProcessed % 500 === 0) {
+                    const revPercent = totalRevlogs > 0
+                        ? 80 + Math.round((reviewsProcessed / totalRevlogs) * 15)
+                        : 80;
+                    onProgress?.(
+                        'inserting-reviews',
+                        `${reviewsProcessed.toLocaleString()} / ${totalRevlogs.toLocaleString()} reviews`,
+                        Math.min(revPercent, 95),
+                    );
+                }
             }
         }
     });

@@ -25,6 +25,15 @@ function getMimeType(filename: string): string {
     return MIME_MAP[ext] ?? 'application/octet-stream';
 }
 
+export type MediaProgressCallback = (processed: number, total: number) => void;
+
+/** Read a file and compute its SHA1 hash in one pass. */
+async function readAndHash(filePath: string): Promise<{ buffer: Buffer; sha1: string }> {
+    const buffer = await readFile(filePath);
+    const sha1 = createHash('sha1').update(buffer).digest('hex');
+    return { buffer, sha1 };
+}
+
 /**
  * Phase 5: Extract media files from a .apkg temp directory into permanent storage.
  *
@@ -42,6 +51,7 @@ export async function extractMedia(
     mediaMap: Record<string, string>,
     userId: string,
     importId: string,
+    onProgress?: MediaProgressCallback,
 ): Promise<MediaExtractionResult> {
     const entries = Object.entries(mediaMap);
 
@@ -54,47 +64,78 @@ export async function extractMedia(
 
     let extracted = 0;
     let skipped = 0;
+    let processed = 0;
     const warnings: string[] = [];
     const mediaRecords = [];
 
-    for (const [numericKey, originalFilename] of entries) {
-        const sourcePath = path.join(tempDir, numericKey);
+    // Report progress every N files (more frequently for small batches)
+    const reportInterval = entries.length < 50 ? 1 : 10;
 
-        if (!existsSync(sourcePath)) {
-            warnings.push(
-                `[media] File missing from archive: key "${numericKey}" → "${originalFilename}"`,
+    // Process files in batches of 5 for parallel I/O
+    const BATCH_SIZE = 5;
+
+    for (let i = 0; i < entries.length; i += BATCH_SIZE) {
+        const batch = entries.slice(i, i + BATCH_SIZE);
+
+        // Phase 1: Read + hash files in parallel
+        const readResults = await Promise.all(
+            batch.map(async ([numericKey, originalFilename]) => {
+                const sourcePath = path.join(tempDir, numericKey);
+
+                if (!existsSync(sourcePath)) {
+                    return { numericKey, originalFilename, missing: true as const };
+                }
+
+                const { buffer, sha1 } = await readAndHash(sourcePath);
+                return { numericKey, originalFilename, missing: false as const, buffer, sha1 };
+            }),
+        );
+
+        // Phase 2: DB writes + file copies (sequential — SQLite is single-writer)
+        for (const item of readResults) {
+            if (item.missing) {
+                warnings.push(
+                    `[media] File missing from archive: key "${item.numericKey}" → "${item.originalFilename}"`,
+                );
+                processed++;
+                continue;
+            }
+
+            const existing = fetchMediaByHash(userId, item.sha1);
+            if (existing) {
+                mediaRecords.push(existing);
+                skipped++;
+                processed++;
+                continue;
+            }
+
+            const ext = path.extname(item.originalFilename);
+            const destPath = path.join(mediaDir, item.sha1 + ext);
+
+            await copyFile(
+                path.join(tempDir, item.numericKey),
+                destPath,
             );
-            continue;
+
+            const record = createMedia({
+                user_id: userId,
+                filename: item.originalFilename,
+                file_path: destPath,
+                file_hash: item.sha1,
+                file_size: item.buffer.length,
+                mime_type: getMimeType(item.originalFilename),
+                import_id: importId,
+            });
+
+            mediaRecords.push(record);
+            extracted++;
+            processed++;
         }
 
-        const buffer = await readFile(sourcePath);
-        const sha1 = createHash('sha1').update(buffer).digest('hex');
-
-        const existing = fetchMediaByHash(userId, sha1);
-        if (existing) {
-            mediaRecords.push(existing);
-            skipped++;
-            console.log(`[media] Deduplicated: "${originalFilename}" (hash ${sha1.slice(0, 8)}…)`);
-            continue;
+        // Report progress at configured interval
+        if (processed % reportInterval === 0 || processed === entries.length) {
+            onProgress?.(processed, entries.length);
         }
-
-        const ext = path.extname(originalFilename);
-        const destPath = path.join(mediaDir, sha1 + ext);
-
-        await copyFile(sourcePath, destPath);
-
-        const record = createMedia({
-            user_id: userId,
-            filename: originalFilename,
-            file_path: destPath,
-            file_hash: sha1,
-            file_size: buffer.length,
-            mime_type: getMimeType(originalFilename),
-            import_id: importId,
-        });
-
-        mediaRecords.push(record);
-        extracted++;
     }
 
     return { extracted, skipped, warnings, mediaRecords };

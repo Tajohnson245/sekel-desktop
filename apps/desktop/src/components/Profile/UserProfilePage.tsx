@@ -7,7 +7,8 @@ import ImportAnkiButton from '../Deck/ImportAnkiButton';
 
 import { useTranslation } from 'react-i18next';
 import { Modal, Button, Input, useToast } from '../UI';
-import { useDecks, useUpdateDeck } from '../../hooks/useDecks';
+import { useDecks, useUpdateDeck, deckKeys } from '../../hooks/useDecks';
+import { useQueryClient } from '@tanstack/react-query';
 import { FeedbackSection } from './FeedbackSection';
 import './UserProfilePage.css';
 
@@ -17,6 +18,7 @@ export const UserProfilePage: React.FC = () => {
     const { setTheme } = useTheme();
     const { t, i18n } = useTranslation();
     const { showToast } = useToast();
+    const queryClient = useQueryClient();
 
     // Edit mode states
     const [isEditingPersonal, setIsEditingPersonal] = useState(false);
@@ -854,7 +856,9 @@ export const UserProfilePage: React.FC = () => {
                                 </p>
                             </div>
                             <ImportAnkiButton
-                                onSuccess={() => {}}
+                                onSuccess={() => {
+                                    queryClient.invalidateQueries({ queryKey: deckKeys.all });
+                                }}
                             />
                         </div>
                     </div>

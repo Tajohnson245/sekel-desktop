@@ -14,7 +14,7 @@ import type {
     ImportOptionsPayload,
 } from '../main/import/types';
 import { CancelledError } from '../main/import/types';
-import type { ImportProgress, ImportResult } from '../types/electron';
+import type { ImportProgress, ImportResult, ImportStage } from '../types/electron';
 
 // In-memory cache: tempDir → AnkiCollection.
 // Populated by import:get-summary and consumed by import:confirm.
@@ -100,12 +100,14 @@ export function setupImportHandlers(): void {
             let insertResult: ReturnType<typeof executeImport> | null = null;
 
             try {
-                // Phase 5: media extraction
+                // Phase 5: media extraction with granular progress
                 checkCancelled(payload.tempDir);
                 sendProgress(event.sender, {
                     stage: 'extracting-media',
-                    detail: mediaCount > 0 ? `Extracting ${mediaCount} media file${mediaCount !== 1 ? 's' : ''}` : undefined,
-                    percent: 10,
+                    detail: mediaCount > 0
+                        ? `Extracting ${mediaCount} media file${mediaCount !== 1 ? 's' : ''}`
+                        : undefined,
+                    percent: 5,
                 });
 
                 mediaResult = await extractMedia(
@@ -113,18 +115,36 @@ export function setupImportHandlers(): void {
                     payload.mediaMap,
                     payload.userId,
                     importId,
+                    (processed, total) => {
+                        // Map media progress to 5–30% range
+                        const percent = total > 0
+                            ? 5 + Math.round((processed / total) * 25)
+                            : 5;
+                        sendProgress(event.sender, {
+                            stage: 'extracting-media',
+                            detail: `Extracting media... ${processed.toLocaleString()} / ${total.toLocaleString()}`,
+                            percent: Math.min(percent, 30),
+                        });
+                    },
                 );
                 if (mediaResult.warnings.length > 0) {
                     console.warn('[import] Media extraction warnings:', mediaResult.warnings);
                 }
 
-                // Phase 6: data insertion
+                // Phase 6: data insertion with granular progress
                 checkCancelled(payload.tempDir);
-                sendProgress(event.sender, { stage: 'inserting-decks', percent: 30 });
 
                 insertResult = executeImport(
                     { ...payload, parsedData: collection },
                     payload.userId,
+                    (stage, detail, percent) => {
+                        checkCancelled(payload.tempDir);
+                        sendProgress(event.sender, {
+                            stage: stage as ImportStage,
+                            detail,
+                            percent,
+                        });
+                    },
                 );
 
                 sendProgress(event.sender, {
