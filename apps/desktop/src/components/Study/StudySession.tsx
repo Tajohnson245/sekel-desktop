@@ -85,6 +85,7 @@ export default function StudySession({ deckId, userId, mode = 'due', onBack }: S
 
             e.preventDefault(); // prevent page scroll
             if (!isRevealed) handleReveal();
+            else handleUnreveal();
         };
 
         document.addEventListener('keydown', handleKeyDown);
@@ -246,7 +247,11 @@ export default function StudySession({ deckId, userId, mode = 'due', onBack }: S
                 </span>
             </div>
 
-            <div className="study-content">
+            <div
+                className="study-content"
+                onClick={() => { if (!isRevealed) handleReveal(); else handleUnreveal(); }}
+                style={{ cursor: 'pointer' }}
+            >
                 <CardViewer
                     front={frontContent}
                     back={backContent}

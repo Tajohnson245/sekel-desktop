@@ -45,6 +45,10 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    padding-bottom: 2rem;
 }
 
 .complete-icon {
