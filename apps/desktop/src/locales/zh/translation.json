@@ -377,6 +377,11 @@
             "images": "图片",
             "audio": "音频文件"
         },
+        "hierarchyMode": {
+            "label": "牌组结构",
+            "subdecks": "保持为子牌组",
+            "individual": "独立牌组"
+        },
         "deckOptions": {
             "deck": "牌组",
             "scheduling": "调度",

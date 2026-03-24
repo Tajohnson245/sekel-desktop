@@ -385,6 +385,11 @@
             "images": "Images",
             "audio": "Audio Files"
         },
+        "hierarchyMode": {
+            "label": "Deck structure",
+            "subdecks": "Keep as subdecks",
+            "individual": "Individual decks"
+        },
         "deckOptions": {
             "deck": "Deck",
             "scheduling": "Scheduling",

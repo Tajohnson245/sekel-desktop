@@ -377,6 +377,11 @@
             "images": "Imágenes",
             "audio": "Archivos de audio"
         },
+        "hierarchyMode": {
+            "label": "Estructura del mazo",
+            "subdecks": "Mantener como submazos",
+            "individual": "Mazos individuales"
+        },
         "deckOptions": {
             "deck": "Mazo",
             "scheduling": "Programación",

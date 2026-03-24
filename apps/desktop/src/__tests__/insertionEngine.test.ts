@@ -144,7 +144,7 @@ function makeDeckOption(ankiDeckId: number, opts: Partial<ImportOptionsDeck> = {
 }
 
 function makeOptions(collection: AnkiCollection, deckOpts: ImportOptionsDeck[]): ImportOptions {
-    return { parsedData: collection, decks: deckOpts, mediaMap: {}, mediaFilePaths: [], tempDir: '/tmp/test', userId: USER };
+    return { parsedData: collection, decks: deckOpts, hierarchyMode: 'subdecks', mediaMap: {}, mediaFilePaths: [], tempDir: '/tmp/test', userId: USER };
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────

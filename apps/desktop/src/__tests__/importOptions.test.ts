@@ -290,10 +290,10 @@ describe('fetchDecksByAnkiIds', () => {
 
 describe('toggleParentDecks', () => {
     const decks: ImportSummaryDeck[] = [
-        { ankiDeckId: 10, name: 'Science', nameComponents: ['Science'], hasConflict: false },
-        { ankiDeckId: 11, name: 'Science::Biology', nameComponents: ['Science', 'Biology'], hasConflict: false },
-        { ankiDeckId: 12, name: 'Science::Chemistry', nameComponents: ['Science', 'Chemistry'], hasConflict: false },
-        { ankiDeckId: 20, name: 'Math', nameComponents: ['Math'], hasConflict: false },
+        { ankiDeckId: 10, name: 'Science', nameComponents: ['Science'], cardCount: 5, hasConflict: false },
+        { ankiDeckId: 11, name: 'Science::Biology', nameComponents: ['Science', 'Biology'], cardCount: 5, hasConflict: false },
+        { ankiDeckId: 12, name: 'Science::Chemistry', nameComponents: ['Science', 'Chemistry'], cardCount: 5, hasConflict: false },
+        { ankiDeckId: 20, name: 'Math', nameComponents: ['Math'], cardCount: 5, hasConflict: false },
     ];
 
     function makeStates(selected = true) {
@@ -336,8 +336,8 @@ describe('toggleParentDecks', () => {
 
 describe('buildPayload', () => {
     const decks: ImportSummaryDeck[] = [
-        { ankiDeckId: 10, name: 'Science', nameComponents: ['Science'], hasConflict: false },
-        { ankiDeckId: 11, name: 'Math', nameComponents: ['Math'], hasConflict: true, existingDeckId: 'abc' },
+        { ankiDeckId: 10, name: 'Science', nameComponents: ['Science'], cardCount: 5, hasConflict: false },
+        { ankiDeckId: 11, name: 'Math', nameComponents: ['Math'], cardCount: 5, hasConflict: true, existingDeckId: 'abc' },
     ];
 
     const summary = {
@@ -354,7 +354,7 @@ describe('buildPayload', () => {
     ]);
 
     it('produces correct ImportOptionsPayload from state', () => {
-        const payload = buildPayload(summary, states, { '0': 'img.jpg' }, ['/tmp/img.jpg'], '/tmp/import-abc');
+        const payload = buildPayload(summary, states, 'subdecks', { '0': 'img.jpg' }, ['/tmp/img.jpg'], '/tmp/import-abc');
 
         expect(payload.tempDir).toBe('/tmp/import-abc');
         expect(payload.mediaMap).toEqual({ '0': 'img.jpg' });
@@ -363,7 +363,7 @@ describe('buildPayload', () => {
     });
 
     it('correctly maps selected deck', () => {
-        const payload = buildPayload(summary, states, {}, [], '/tmp/x');
+        const payload = buildPayload(summary, states, 'subdecks', {}, [], '/tmp/x');
         const science = payload.decks.find(d => d.ankiDeckId === 10)!;
 
         expect(science.selected).toBe(true);
@@ -373,7 +373,7 @@ describe('buildPayload', () => {
     });
 
     it('correctly maps deselected conflicting deck', () => {
-        const payload = buildPayload(summary, states, {}, [], '/tmp/x');
+        const payload = buildPayload(summary, states, 'subdecks', {}, [], '/tmp/x');
         const math = payload.decks.find(d => d.ankiDeckId === 11)!;
 
         expect(math.selected).toBe(false);
@@ -387,7 +387,7 @@ describe('buildPayload', () => {
             [10, { selected: true, scheduling: 'keep' as const, algorithm: 'fsrs' as const, conflict: null, expanded: false }],
             [11, { selected: true, scheduling: 'keep' as const, algorithm: 'fsrs' as const, conflict: null, expanded: false }],
         ]);
-        const payload = buildPayload(summary, fresh, {}, [], '/tmp/x');
+        const payload = buildPayload(summary, fresh, 'subdecks', {}, [], '/tmp/x');
         const science = payload.decks.find(d => d.ankiDeckId === 10)!;
         expect(science.conflict).toBeNull();
     });
@@ -395,7 +395,7 @@ describe('buildPayload', () => {
 
 describe('ImportOptions defaults', () => {
     it('default algorithm is fsrs', () => {
-        const deck: ImportSummaryDeck = { ankiDeckId: 10, name: 'Test', nameComponents: ['Test'], hasConflict: false };
+        const deck: ImportSummaryDeck = { ankiDeckId: 10, name: 'Test', nameComponents: ['Test'], cardCount: 5, hasConflict: false };
         const summary = {
             deckCount: 1, noteTypeCount: 0, noteCount: 0, cardCount: 0,
             reviewLogCount: 0, mediaImageCount: 0, mediaAudioCount: 0,
@@ -409,7 +409,7 @@ describe('ImportOptions defaults', () => {
             algorithm, conflict: null, expanded: false,
         }]]);
 
-        const payload = buildPayload(summary, states, {}, [], '/tmp/x');
+        const payload = buildPayload(summary, states, 'subdecks', {}, [], '/tmp/x');
         expect(payload.decks[0].algorithm).toBe('fsrs');
     });
 
