@@ -377,6 +377,11 @@
             "images": "Bilder",
             "audio": "Audiodateien"
         },
+        "hierarchyMode": {
+            "label": "Deck-Struktur",
+            "subdecks": "Als Unterdecks behalten",
+            "individual": "Einzelne Decks"
+        },
         "deckOptions": {
             "deck": "Deck",
             "scheduling": "Planung",

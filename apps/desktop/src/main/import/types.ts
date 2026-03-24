@@ -183,6 +183,8 @@ export interface ImportSummaryDeck {
     ankiDeckId: number;
     name: string;
     nameComponents: string[];
+    /** Number of Anki cards that belong directly to this deck. */
+    cardCount: number;
     hasConflict: boolean;
     /** SEKEL deck UUID if a conflict was found. */
     existingDeckId?: string;
@@ -214,6 +216,8 @@ export interface ImportOptionsDeck {
 /** Sent renderer → main via import:confirm. Never includes AnkiCollection (not serializable). */
 export interface ImportOptionsPayload {
     decks: ImportOptionsDeck[];
+    /** How to handle the Anki deck hierarchy during import. */
+    hierarchyMode: 'subdecks' | 'individual';
     mediaMap: Record<string, string>;
     mediaFilePaths: string[];
     /** tempDir from ApkgImportResult — used as cache key for AnkiCollection lookup. */

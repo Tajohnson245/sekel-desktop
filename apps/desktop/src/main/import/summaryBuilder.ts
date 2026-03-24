@@ -22,6 +22,12 @@ export function buildImportSummary(
         if (d.anki_id !== null) existingByAnkiId.set(d.anki_id, d.id);
     }
 
+    // Count cards per deck (group by did)
+    const cardCountByDeck = new Map<number, number>();
+    for (const card of collection.cards) {
+        cardCountByDeck.set(card.did, (cardCountByDeck.get(card.did) ?? 0) + 1);
+    }
+
     // Anki always includes a built-in "Default" deck with id=1.
     // It is typically empty in exported packages and should not be shown to users.
     const decks: ImportSummaryDeck[] = Array.from(collection.decks.values())
@@ -30,6 +36,7 @@ export function buildImportSummary(
             ankiDeckId: d.id,
             name: d.name,
             nameComponents: d.nameComponents,
+            cardCount: cardCountByDeck.get(d.id) ?? 0,
             hasConflict: existingByAnkiId.has(d.id),
             existingDeckId: existingByAnkiId.get(d.id),
         }));

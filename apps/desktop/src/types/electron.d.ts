@@ -17,6 +17,7 @@ export interface ImportSummaryDeck {
     ankiDeckId: number;
     name: string;
     nameComponents: string[];
+    cardCount: number;
     hasConflict: boolean;
     existingDeckId?: string;
 }
@@ -45,6 +46,7 @@ export interface ImportOptionsDeck {
 
 export interface ImportOptionsPayload {
     decks: ImportOptionsDeck[];
+    hierarchyMode: 'subdecks' | 'individual';
     mediaMap: Record<string, string>;
     mediaFilePaths: string[];
     tempDir: string;

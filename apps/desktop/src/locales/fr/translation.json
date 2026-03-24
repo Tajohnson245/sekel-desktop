@@ -377,6 +377,11 @@
             "images": "Images",
             "audio": "Fichiers audio"
         },
+        "hierarchyMode": {
+            "label": "Structure du paquet",
+            "subdecks": "Garder comme sous-paquets",
+            "individual": "Paquets individuels"
+        },
         "deckOptions": {
             "deck": "Paquet",
             "scheduling": "Planification",

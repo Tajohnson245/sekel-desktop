@@ -127,9 +127,9 @@ export function executeImport(options: ImportOptions, userId: string): ImportRes
                 // overwrite and merge both reuse the existing deck record
                 sekelDeckId = existing.id;
             } else {
-                // Resolve parent deck id from the name hierarchy
+                // Resolve parent deck id from the name hierarchy (subdecks mode only)
                 let parentId: string | null = null;
-                if (ankiDeck.nameComponents.length > 1) {
+                if (options.hierarchyMode !== 'individual' && ankiDeck.nameComponents.length > 1) {
                     const parentName = ankiDeck.nameComponents.slice(0, -1).join('::');
                     parentId = nameToSekelId.get(parentName) ?? null;
                 }
