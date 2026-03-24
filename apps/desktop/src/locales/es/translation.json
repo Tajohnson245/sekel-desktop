@@ -177,7 +177,16 @@
             "no_forgotten": "Ninguna tarjeta olvidada",
             "no_data": "Sin datos para esta sesión",
             "card_lapse_count": "{{count}}x olvidada",
-            "total_reviews": "repasos"
+            "total_reviews": "repasos",
+            "time_per_card": "Tiempo por tarjeta",
+            "time_per_card_desc": "Tiempo promedio de respuesta por calificación",
+            "average_time": "Promedio: {{seconds}}s por tarjeta",
+            "slowest_cards": "Tarjetas más lentas",
+            "seconds_abbrev": "Segundos"
+        },
+        "timer": {
+            "auto_flipped": "Se acabó el tiempo — respuesta revelada",
+            "auto_graded_again": "Se acabó el tiempo — calificado como Otra vez"
         }
     },
     "auth": {
@@ -246,6 +255,14 @@
         "notifications_desc": "Recibe notificaciones cuando tengas tarjetas pendientes de repasar",
         "reminder_times": "Horarios de Recordatorio",
         "add_reminder": "Agregar recordatorio",
+        "study_timer": "Temporizador de estudio",
+        "study_timer_desc": "Configura el comportamiento del temporizador durante las sesiones de estudio",
+        "max_answer_seconds": "Tiempo máximo de respuesta (segundos)",
+        "max_answer_seconds_desc": "Límite de tiempo por tarjeta para estadísticas y avance automático. Rango: 10–300.",
+        "show_timer": "Mostrar temporizador",
+        "show_timer_desc": "Muestra un temporizador en la pantalla de estudio",
+        "auto_advance": "Avance automático al vencer",
+        "auto_advance_desc": "Cuando el temporizador expire: voltea automáticamente si muestra la pregunta, o califica 'Otra vez' si muestra la respuesta",
         "data_management": "Gestión de Datos",
         "import_anki_desc": "Importa tus mazos de Anki (archivos .apkg) incluyendo tarjetas, multimedia y datos de programación.",
         "profile_info": "Perfil",

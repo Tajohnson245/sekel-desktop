@@ -19,6 +19,30 @@
     margin-bottom: 0;
 }
 
+.study-timer {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.875rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--muted);
+    transition: color 0.3s ease;
+}
+
+.study-timer--warning {
+    color: var(--warning, #f59e0b);
+}
+
+.study-timer--danger {
+    color: var(--danger, #ef4444);
+    animation: timer-pulse 1s ease-in-out infinite;
+}
+
+@keyframes timer-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
 .progress-text {
     font-size: 0.875rem;
     color: var(--muted);

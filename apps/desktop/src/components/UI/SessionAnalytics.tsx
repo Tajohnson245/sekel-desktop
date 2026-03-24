@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { CheckCircle } from 'lucide-react';
-import { Button, Loader, RetentionTrendChart, RatingDistributionChart, LapseStatsChart } from '@sekel/components';
+import { Button, Loader, RetentionTrendChart, RatingDistributionChart, LapseStatsChart, TimePerCardChart } from '@sekel/components';
 import { useSessionAnalytics } from '../../hooks/useSessions';
 
 interface SessionAnalyticsProps {
@@ -47,6 +47,9 @@ export function SessionAnalytics({
                             <RetentionTrendChart data={analytics.retentionTrend} />
                             <RatingDistributionChart data={analytics.ratingDistribution} />
                             <LapseStatsChart lapseStats={analytics.lapseStats} />
+                            {analytics.timeStats && (
+                                <TimePerCardChart timeStats={analytics.timeStats} />
+                            )}
                         </div>
                     </div>
                 )}

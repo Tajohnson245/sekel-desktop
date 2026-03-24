@@ -1,16 +1,17 @@
-import { useState, useEffect } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useDueCards, useAllCardsForStudy, useUpdateCard, useDeck } from '../../hooks/useDecks';
 import { useCreateSession, useCompleteSession, useInsertReview } from '../../hooks/useSessions';
 import { getSchedulingOptions } from '../../lib/fsrs';
+import { useProfileStore } from '../../stores/profileStore';
 import CardViewer from '../Card/CardViewer';
 import RatingButtons from './RatingButtons';
+import StudyTimer from './StudyTimer';
 import { Button, SessionAnalytics, useToast } from '../UI';
 import type { Rating, CardUpdate } from '../../lib/types';
 import { DEFAULT_NOTE_TYPES } from '../../lib/types';
 import type { CardWithNote } from '../../lib/queries';
-import { ChevronRight } from 'lucide-react';
 import { renderAnkiTemplate } from '../../lib/mediaResolver';
 
 interface StudySessionProps {
@@ -39,6 +40,15 @@ export default function StudySession({ deckId, userId, mode = 'due', onBack }: S
     const [reviewedCount, setReviewedCount] = useState(0);
     const [sessionId, setSessionId] = useState<string | null>(null);
 
+    // Timer state
+    const { profile } = useProfileStore();
+    const maxSeconds = profile?.max_answer_seconds ?? 60;
+    const showTimer = profile?.show_timer ?? true;
+    const autoAdvance = profile?.auto_advance_on_timeout ?? false;
+    const cardStartTimeRef = useRef<number>(Date.now());
+    const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
     const currentCard: CardWithNote | undefined = cards[currentIndex];
     const isComplete = currentIndex >= cards.length && cards.length > 0;
     const isEmpty = cards.length === 0 && !isLoading;
@@ -64,6 +74,26 @@ export default function StudySession({ deckId, userId, mode = 'due', onBack }: S
             const options = getSchedulingOptions(currentCard);
             setSchedulingOptions(options);
         }
+    }, [currentCard]);
+
+    // Timer lifecycle: reset and start on each new card
+    useEffect(() => {
+        if (!currentCard) return;
+
+        cardStartTimeRef.current = Date.now();
+        setElapsedSeconds(0);
+
+        timerIntervalRef.current = setInterval(() => {
+            const elapsed = Math.floor((Date.now() - cardStartTimeRef.current) / 1000);
+            setElapsedSeconds(elapsed);
+        }, 1000);
+
+        return () => {
+            if (timerIntervalRef.current) {
+                clearInterval(timerIntervalRef.current);
+                timerIntervalRef.current = null;
+            }
+        };
     }, [currentCard]);
 
     const handleReveal = () => {
@@ -92,11 +122,17 @@ export default function StudySession({ deckId, userId, mode = 'due', onBack }: S
         return () => document.removeEventListener('keydown', handleKeyDown);
     }, [isRevealed]);
 
-    const handleRate = async (rating: Rating) => {
+    const handleRate = useCallback(async (rating: Rating) => {
         if (!currentCard || !schedulingOptions) return;
 
         const updates = schedulingOptions[rating];
         const isLastCard = currentIndex + 1 >= cards.length;
+
+        // Compute review duration (capped at max_answer_seconds)
+        const durationMs = Math.min(
+            Date.now() - cardStartTimeRef.current,
+            maxSeconds * 1000,
+        );
 
         await updateCard.mutateAsync({
             cardId: currentCard.id,
@@ -111,6 +147,7 @@ export default function StudySession({ deckId, userId, mode = 'due', onBack }: S
                 session_id: sessionId,
                 deck_id: deckId,
                 review_index: reviewedCount + 1,
+                review_duration_ms: durationMs,
                 state_before: currentCard.state,
                 stability_before: currentCard.stability,
                 difficulty_before: currentCard.difficulty,
@@ -129,7 +166,25 @@ export default function StudySession({ deckId, userId, mode = 'due', onBack }: S
         setReviewedCount((prev) => prev + 1);
         setIsRevealed(false);
         setCurrentIndex((prev) => prev + 1);
-    };
+    }, [currentCard, schedulingOptions, currentIndex, cards.length, maxSeconds, sessionId, userId, deckId, reviewedCount]);
+
+    // Auto-advance on timeout
+    useEffect(() => {
+        if (!autoAdvance || elapsedSeconds < maxSeconds) return;
+        if (updateCard.isPending || !currentCard) return;
+
+        if (!isRevealed) {
+            // Auto-flip: reveal the answer, reset timer for answer phase
+            handleReveal();
+            cardStartTimeRef.current = Date.now();
+            setElapsedSeconds(0);
+            showToast(t('study.timer.auto_flipped'), 'success');
+        } else {
+            // Auto-grade as "Again"
+            showToast(t('study.timer.auto_graded_again'), 'error');
+            handleRate('again');
+        }
+    }, [elapsedSeconds, maxSeconds, autoAdvance, isRevealed, updateCard.isPending, currentCard]);
 
     const handleStudyAgain = () => {
         setSessionId(null);
@@ -137,6 +192,8 @@ export default function StudySession({ deckId, userId, mode = 'due', onBack }: S
         setCurrentIndex(0);
         setReviewedCount(0);
         setIsRevealed(false);
+        setElapsedSeconds(0);
+        cardStartTimeRef.current = Date.now();
     };
 
     // Render card content using template
@@ -242,6 +299,11 @@ export default function StudySession({ deckId, userId, mode = 'due', onBack }: S
                 <Button variant="secondary" onClick={onBack} data-testid="back-btn" icon={<ArrowLeft size={16} />}>
                     {t('common.back')}
                 </Button>
+                <StudyTimer
+                    elapsedSeconds={elapsedSeconds}
+                    maxSeconds={maxSeconds}
+                    visible={showTimer}
+                />
                 <span className="progress-text">
                     {currentIndex + 1} / {cards.length}
                 </span>
