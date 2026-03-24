@@ -24,18 +24,18 @@ export function setupDatabaseHandlers(): void {
     ipcMain.handle('db:deleteDecks', (_e, ids: string[]) =>
         dbService.deleteDecks(ids));
 
-    ipcMain.handle('db:fetchDeckStats', (_e, deckId: string) =>
-        dbService.fetchDeckStats(deckId));
+    ipcMain.handle('db:fetchDeckStats', (_e, deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) =>
+        dbService.fetchDeckStats(deckId, userId, dailyNewLimit, dailyReviewLimit));
 
-    ipcMain.handle('db:fetchAllDueCardsCount', (_e, userId: string) =>
-        dbService.fetchAllDueCardsCount(userId));
+    ipcMain.handle('db:fetchAllDueCardsCount', (_e, userId: string, dailyNewLimit?: number, dailyReviewLimit?: number) =>
+        dbService.fetchAllDueCardsCount(userId, dailyNewLimit, dailyReviewLimit));
 
     ipcMain.handle('db:fetchGlobalRetention', (_e, userId: string, days?: number) =>
         dbService.fetchGlobalRetention(userId, days));
 
     // ── Cards ──────────────────────────────────────────────────────────────────
-    ipcMain.handle('db:fetchDueCards', (_e, deckId: string, limit?: number) =>
-        dbService.fetchDueCards(deckId, limit));
+    ipcMain.handle('db:fetchDueCards', (_e, deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) =>
+        dbService.fetchDueCards(deckId, userId, dailyNewLimit, dailyReviewLimit));
 
     ipcMain.handle('db:fetchAllCardsForStudy', (_e, deckId: string, limit?: number) =>
         dbService.fetchAllCardsForStudy(deckId, limit));

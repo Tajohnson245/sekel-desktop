@@ -28,12 +28,12 @@ export const createDeck = (deck: DeckInsert) => db().createDeck(deck);
 export const updateDeck = (id: string, updates: DeckUpdate) => db().updateDeck(id, updates);
 export const deleteDeck = (id: string) => db().deleteDeck(id);
 export const deleteDecks = (ids: string[]) => db().deleteDecks(ids);
-export const fetchDeckStats = (deckId: string) => db().fetchDeckStats(deckId);
-export const fetchAllDueCardsCount = (userId: string) => db().fetchAllDueCardsCount(userId);
+export const fetchDeckStats = (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => db().fetchDeckStats(deckId, userId, dailyNewLimit, dailyReviewLimit);
+export const fetchAllDueCardsCount = (userId: string, dailyNewLimit?: number, dailyReviewLimit?: number) => db().fetchAllDueCardsCount(userId, dailyNewLimit, dailyReviewLimit);
 export const fetchGlobalRetention = (userId: string, days?: number) => db().fetchGlobalRetention(userId, days);
 
 // ── Cards ────────────────────────────────────────────────────────────────────
-export const fetchDueCards = (deckId: string, limit?: number) => db().fetchDueCards(deckId, limit);
+export const fetchDueCards = (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => db().fetchDueCards(deckId, userId, dailyNewLimit, dailyReviewLimit);
 export const fetchAllCardsForStudy = (deckId: string, limit?: number) => db().fetchAllCardsForStudy(deckId, limit);
 export const fetchAllCardsForDeck = (deckId: string) => db().fetchAllCardsForDeck(deckId);
 export const updateCardAfterReview = (cardId: string, updates: Partial<Card>) => db().updateCardAfterReview(cardId, updates);
