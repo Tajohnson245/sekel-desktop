@@ -117,7 +117,37 @@ export function fetchDecksByAnkiIds(userId: string, ankiIds: number[]): Deck[] {
     return rows.map(mapDeck);
 }
 
-export function fetchDeckStats(deckId: string): DeckStats {
+/** Get the ISO string for the start of today (local midnight). */
+function todayMidnight(): string {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d.toISOString();
+}
+
+/** Count distinct cards studied today by state_before category for a given deck. */
+function countStudiedToday(deckId: string, userId: string): { newStudied: number; reviewStudied: number } {
+    const midnight = todayMidnight();
+    const db = getDb();
+
+    const newRow = db.prepare(`
+        SELECT COUNT(DISTINCT card_id) as cnt FROM reviews
+        WHERE user_id = ? AND deck_id = ? AND state_before = 'new' AND review_time >= ?
+    `).get(userId, deckId, midnight) as { cnt: number };
+
+    const reviewRow = db.prepare(`
+        SELECT COUNT(DISTINCT card_id) as cnt FROM reviews
+        WHERE user_id = ? AND deck_id = ? AND state_before = 'review' AND review_time >= ?
+    `).get(userId, deckId, midnight) as { cnt: number };
+
+    return { newStudied: newRow.cnt, reviewStudied: reviewRow.cnt };
+}
+
+export function fetchDeckStats(
+    deckId: string,
+    userId?: string,
+    dailyNewLimit?: number,
+    dailyReviewLimit?: number,
+): DeckStats {
     const now = new Date().toISOString();
     const db = getDb();
 
@@ -129,27 +159,88 @@ export function fetchDeckStats(deckId: string): DeckStats {
         WHERE n.deck_id = ?
     `).all(deckId) as StatRow[];
 
-    const stats: DeckStats = { deckId, newCount: 0, learningCount: 0, reviewCount: 0, totalCount: cards.length };
+    let newCount = 0;
+    let learningCount = 0;
+    let reviewCount = 0;
     for (const card of cards) {
-        if (card.state === 'new') stats.newCount++;
-        else if (card.state === 'learning' || card.state === 'relearning') stats.learningCount++;
-        else if (card.state === 'review' && card.due <= now) stats.reviewCount++;
+        if (card.state === 'new') newCount++;
+        else if (card.state === 'learning' || card.state === 'relearning') learningCount++;
+        else if (card.state === 'review' && card.due <= now) reviewCount++;
     }
-    return stats;
+
+    // Apply daily limits if provided
+    if (userId && dailyNewLimit != null && dailyReviewLimit != null) {
+        const studied = countStudiedToday(deckId, userId);
+        newCount = Math.min(newCount, Math.max(0, dailyNewLimit - studied.newStudied));
+        reviewCount = Math.min(reviewCount, Math.max(0, dailyReviewLimit - studied.reviewStudied));
+    }
+
+    return { deckId, newCount, learningCount, reviewCount, totalCount: cards.length };
 }
 
-export function fetchAllDueCardsCount(userId: string): number {
+export function fetchAllDueCardsCount(
+    userId: string,
+    dailyNewLimit?: number,
+    dailyReviewLimit?: number,
+): number {
     const now = new Date().toISOString();
-    const row = getDb().prepare(`
-        SELECT COUNT(*) as cnt
+    const db = getDb();
+
+    // If no limits, use the simple count
+    if (dailyNewLimit == null || dailyReviewLimit == null) {
+        const row = db.prepare(`
+            SELECT COUNT(*) as cnt
+            FROM cards c
+            JOIN notes n ON c.note_id = n.id
+            JOIN decks d ON n.deck_id = d.id
+            WHERE d.user_id = ?
+              AND (c.state IN ('new', 'learning', 'relearning')
+                   OR (c.state = 'review' AND c.due <= ?))
+        `).get(userId, now) as { cnt: number };
+        return row.cnt;
+    }
+
+    // With limits: count per category per deck, apply limits, sum
+    type DeckCategoryRow = { deck_id: string; state: string; cnt: number };
+    const rows = db.prepare(`
+        SELECT n.deck_id, c.state, COUNT(*) as cnt
         FROM cards c
         JOIN notes n ON c.note_id = n.id
         JOIN decks d ON n.deck_id = d.id
         WHERE d.user_id = ?
           AND (c.state IN ('new', 'learning', 'relearning')
                OR (c.state = 'review' AND c.due <= ?))
-    `).get(userId, now) as { cnt: number };
-    return row.cnt;
+        GROUP BY n.deck_id, c.state
+    `).all(userId, now) as DeckCategoryRow[];
+
+    // Group by deck
+    const deckMap = new Map<string, { newCount: number; learningCount: number; reviewCount: number }>();
+    for (const row of rows) {
+        if (!deckMap.has(row.deck_id)) deckMap.set(row.deck_id, { newCount: 0, learningCount: 0, reviewCount: 0 });
+        const entry = deckMap.get(row.deck_id)!;
+        if (row.state === 'new') entry.newCount += row.cnt;
+        else if (row.state === 'learning' || row.state === 'relearning') entry.learningCount += row.cnt;
+        else if (row.state === 'review') entry.reviewCount += row.cnt;
+    }
+
+    let total = 0;
+    const midnight = todayMidnight();
+    for (const [deckId, counts] of deckMap) {
+        const newStudiedRow = db.prepare(`
+            SELECT COUNT(DISTINCT card_id) as cnt FROM reviews
+            WHERE user_id = ? AND deck_id = ? AND state_before = 'new' AND review_time >= ?
+        `).get(userId, deckId, midnight) as { cnt: number };
+        const reviewStudiedRow = db.prepare(`
+            SELECT COUNT(DISTINCT card_id) as cnt FROM reviews
+            WHERE user_id = ? AND deck_id = ? AND state_before = 'review' AND review_time >= ?
+        `).get(userId, deckId, midnight) as { cnt: number };
+
+        total += counts.learningCount; // always counted
+        total += Math.min(counts.newCount, Math.max(0, dailyNewLimit - newStudiedRow.cnt));
+        total += Math.min(counts.reviewCount, Math.max(0, dailyReviewLimit - reviewStudiedRow.cnt));
+    }
+
+    return total;
 }
 
 export function fetchGlobalRetention(userId: string, days = 30): number | null {
@@ -243,17 +334,59 @@ const CARD_WITH_NOTE_SQL = `
     JOIN note_types nt ON n.note_type_id = nt.id
 `;
 
-export function fetchDueCards(deckId: string, limit = 50): CardWithNote[] {
+export function fetchDueCards(
+    deckId: string,
+    userId?: string,
+    dailyNewLimit?: number,
+    dailyReviewLimit?: number,
+): CardWithNote[] {
     const now = new Date().toISOString();
-    const rows = getDb().prepare(`
+    const db = getDb();
+
+    // If no limits provided, fall back to original behavior
+    if (!userId || dailyNewLimit == null || dailyReviewLimit == null) {
+        const rows = db.prepare(`
+            ${CARD_WITH_NOTE_SQL}
+            WHERE n.deck_id = ?
+              AND (c.state IN ('new', 'learning', 'relearning')
+                   OR (c.state = 'review' AND c.due <= ?))
+            ORDER BY c.due ASC
+        `).all(deckId, now) as CardWithNoteRow[];
+        return rows.map(buildCardWithNote);
+    }
+
+    const studied = countStudiedToday(deckId, userId);
+    const remainingNew = Math.max(0, dailyNewLimit - studied.newStudied);
+    const remainingReview = Math.max(0, dailyReviewLimit - studied.reviewStudied);
+
+    // Learning/relearning: always shown (no limit)
+    const learningRows = db.prepare(`
         ${CARD_WITH_NOTE_SQL}
-        WHERE n.deck_id = ?
-          AND (c.state IN ('new', 'learning', 'relearning')
-               OR (c.state = 'review' AND c.due <= ?))
+        WHERE n.deck_id = ? AND c.state IN ('learning', 'relearning')
         ORDER BY c.due ASC
-        LIMIT ?
-    `).all(deckId, now, limit) as CardWithNoteRow[];
-    return rows.map(buildCardWithNote);
+    `).all(deckId) as CardWithNoteRow[];
+
+    // New cards: capped by daily limit
+    const newRows = remainingNew > 0
+        ? db.prepare(`
+            ${CARD_WITH_NOTE_SQL}
+            WHERE n.deck_id = ? AND c.state = 'new'
+            ORDER BY c.due ASC
+            LIMIT ?
+        `).all(deckId, remainingNew) as CardWithNoteRow[]
+        : [];
+
+    // Review cards: capped by daily limit
+    const reviewRows = remainingReview > 0
+        ? db.prepare(`
+            ${CARD_WITH_NOTE_SQL}
+            WHERE n.deck_id = ? AND c.state = 'review' AND c.due <= ?
+            ORDER BY c.due ASC
+            LIMIT ?
+        `).all(deckId, now, remainingReview) as CardWithNoteRow[]
+        : [];
+
+    return [...learningRows, ...newRows, ...reviewRows].map(buildCardWithNote);
 }
 
 export function fetchAllCardsForStudy(deckId: string, limit = 50): CardWithNote[] {

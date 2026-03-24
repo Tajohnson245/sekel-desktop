@@ -247,6 +247,8 @@ export interface UserProfile {
     notifications_enabled: boolean;
     reminder_times: string[];
     background_url: string | null;
+    daily_new_limit: number;
+    daily_review_limit: number;
     created_at: string;
     updated_at: string;
 }

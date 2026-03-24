@@ -20,6 +20,7 @@ import {
 } from '../lib/queries';
 import type { Deck, DeckInsert, DeckUpdate, Card } from '../lib/types';
 import { useAuthStore } from '../stores/authStore';
+import { useProfileStore } from '../stores/profileStore';
 
 // ─────────────────────────────────────────────────────────────────
 // Query Keys
@@ -56,18 +57,26 @@ export function useDeck(id: string | null) {
 }
 
 export function useDeckStats(deckId: string | null) {
+    const userId = useAuthStore((s) => s.user?.id);
+    const profile = useProfileStore((s) => s.profile);
+    const newLimit = profile?.daily_new_limit ?? 20;
+    const reviewLimit = profile?.daily_review_limit ?? 200;
     return useQuery<DeckStats>({
-        queryKey: deckKeys.stats(deckId ?? ''),
-        queryFn: () => fetchDeckStats(deckId!),
-        enabled: !!deckId,
+        queryKey: [...deckKeys.stats(deckId ?? ''), newLimit, reviewLimit],
+        queryFn: () => fetchDeckStats(deckId!, userId, newLimit, reviewLimit),
+        enabled: !!deckId && !!userId,
     });
 }
 
 export function useDueCards(deckId: string | null) {
+    const userId = useAuthStore((s) => s.user?.id);
+    const profile = useProfileStore((s) => s.profile);
+    const newLimit = profile?.daily_new_limit ?? 20;
+    const reviewLimit = profile?.daily_review_limit ?? 200;
     return useQuery<CardWithNote[]>({
-        queryKey: deckKeys.dueCards(deckId ?? ''),
-        queryFn: () => fetchDueCards(deckId!),
-        enabled: !!deckId,
+        queryKey: [...deckKeys.dueCards(deckId ?? ''), newLimit, reviewLimit],
+        queryFn: () => fetchDueCards(deckId!, userId, newLimit, reviewLimit),
+        enabled: !!deckId && !!userId,
     });
 }
 

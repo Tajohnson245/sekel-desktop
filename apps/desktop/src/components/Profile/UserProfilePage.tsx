@@ -673,6 +673,54 @@ export const UserProfilePage: React.FC = () => {
                         )}
                     </div>
 
+                    {/* Daily Study Limits */}
+                    <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
+                        <label className="field-label">{t('profile.daily_limits')}</label>
+                        <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0.2rem 0 0.75rem' }}>
+                            {t('profile.daily_limits_desc')}
+                        </p>
+                        <div style={{ display: 'flex', gap: '1.5rem' }}>
+                            <div>
+                                <label className="field-label" style={{ fontSize: '0.8rem', marginBottom: '0.25rem', display: 'block' }}>
+                                    {t('profile.new_cards_per_day')}
+                                </label>
+                                <input
+                                    type="number"
+                                    min={0}
+                                    max={9999}
+                                    className="field-input"
+                                    value={formData.daily_new_limit ?? profile?.daily_new_limit ?? 20}
+                                    onChange={(e) => setFormData((prev) => ({ ...prev, daily_new_limit: Number(e.target.value) }))}
+                                    onBlur={() => {
+                                        if (user?.id) {
+                                            upsertProfile(user.id, { daily_new_limit: Number(formData.daily_new_limit ?? profile?.daily_new_limit ?? 20) });
+                                        }
+                                    }}
+                                    style={{ width: '90px' }}
+                                />
+                            </div>
+                            <div>
+                                <label className="field-label" style={{ fontSize: '0.8rem', marginBottom: '0.25rem', display: 'block' }}>
+                                    {t('profile.reviews_per_day')}
+                                </label>
+                                <input
+                                    type="number"
+                                    min={0}
+                                    max={9999}
+                                    className="field-input"
+                                    value={formData.daily_review_limit ?? profile?.daily_review_limit ?? 200}
+                                    onChange={(e) => setFormData((prev) => ({ ...prev, daily_review_limit: Number(e.target.value) }))}
+                                    onBlur={() => {
+                                        if (user?.id) {
+                                            upsertProfile(user.id, { daily_review_limit: Number(formData.daily_review_limit ?? profile?.daily_review_limit ?? 200) });
+                                        }
+                                    }}
+                                    style={{ width: '90px' }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Background Image */}
                     <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>

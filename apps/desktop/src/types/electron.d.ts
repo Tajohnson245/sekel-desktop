@@ -131,11 +131,11 @@ interface ElectronDB {
     updateDeck:            (id: string, updates: DeckUpdate) => Promise<Deck>;
     deleteDeck:            (id: string) => Promise<void>;
     deleteDecks:           (ids: string[]) => Promise<void>;
-    fetchDeckStats:        (deckId: string) => Promise<DeckStats>;
-    fetchAllDueCardsCount: (userId: string) => Promise<number>;
+    fetchDeckStats:        (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => Promise<DeckStats>;
+    fetchAllDueCardsCount: (userId: string, dailyNewLimit?: number, dailyReviewLimit?: number) => Promise<number>;
     fetchGlobalRetention:  (userId: string, days?: number) => Promise<number | null>;
     // Cards
-    fetchDueCards:         (deckId: string, limit?: number) => Promise<CardWithNote[]>;
+    fetchDueCards:         (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => Promise<CardWithNote[]>;
     fetchAllCardsForStudy: (deckId: string, limit?: number) => Promise<CardWithNote[]>;
     fetchAllCardsForDeck:  (deckId: string) => Promise<CardWithNote[]>;
     updateCardAfterReview: (cardId: string, updates: Partial<Card>) => Promise<Card>;
