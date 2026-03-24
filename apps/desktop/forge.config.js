@@ -6,14 +6,15 @@ const { FuseV1Options, FuseVersion } = require('@electron/fuses');
 // @electron/rebuild must target this directory, not apps/desktop/node_modules.
 const MONOREPO_ROOT = path.join(__dirname, '..', '..');
 
-function rebuildSqlite() {
+function rebuildSqlite(arch) {
   const { execSync } = require('child_process');
   const electronVersion = require(path.join(__dirname, 'node_modules', 'electron', 'package.json')).version;
   const ext = process.platform === 'win32' ? '.cmd' : '';
   const rebuildBin = path.join(__dirname, 'node_modules', '.bin', `electron-rebuild${ext}`);
-  console.log(`[forge] Rebuilding better-sqlite3 for Electron ${electronVersion}...`);
+  const targetArch = arch || process.arch;
+  console.log(`[forge] Rebuilding better-sqlite3 for Electron ${electronVersion} (${targetArch})...`);
   execSync(
-    `"${rebuildBin}" -f -w better-sqlite3 -v ${electronVersion}`,
+    `"${rebuildBin}" -f -w better-sqlite3 -v ${electronVersion} --arch=${targetArch}`,
     { stdio: 'inherit', cwd: MONOREPO_ROOT }
   );
   console.log('[forge] better-sqlite3 rebuild complete');
@@ -21,7 +22,7 @@ function rebuildSqlite() {
 
 module.exports = {
   hooks: {
-    prePackage: async () => rebuildSqlite(),
+    prePackage: async (_config, _platform, arch) => rebuildSqlite(arch),
   },
   packagerConfig: {
     asar: { unpack: '**/*.node' },
