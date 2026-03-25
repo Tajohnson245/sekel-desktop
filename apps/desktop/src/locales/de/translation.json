@@ -136,7 +136,16 @@
             "no_forgotten": "Keine Karten vergessen",
             "no_data": "Keine Daten für diese Sitzung",
             "card_lapse_count": "{{count}}x vergessen",
-            "total_reviews": "Wiederholungen"
+            "total_reviews": "Wiederholungen",
+            "time_per_card": "Zeit pro Karte",
+            "time_per_card_desc": "Durchschnittliche Antwortzeit nach Bewertung",
+            "average_time": "Durchschnitt: {{seconds}}s pro Karte",
+            "slowest_cards": "Langsamste Karten",
+            "seconds_abbrev": "Sekunden"
+        },
+        "timer": {
+            "auto_flipped": "Zeit abgelaufen — Antwort aufgedeckt",
+            "auto_graded_again": "Zeit abgelaufen — als Nochmal bewertet"
         }
     },
     "auth": {
@@ -205,6 +214,14 @@
         "notifications_desc": "Lass dich benachrichtigen, wenn Karten zur Wiederholung anstehen",
         "reminder_times": "Erinnerungszeiten",
         "add_reminder": "Erinnerung hinzufügen",
+        "study_timer": "Lern-Timer",
+        "study_timer_desc": "Konfiguriere das Timer-Verhalten während Lernsitzungen",
+        "max_answer_seconds": "Max. Antwortzeit (Sekunden)",
+        "max_answer_seconds_desc": "Zeitlimit pro Karte für Statistiken und automatisches Weiterschalten. Bereich: 10–300.",
+        "show_timer": "Timer anzeigen",
+        "show_timer_desc": "Timer auf dem Lernbildschirm anzeigen",
+        "auto_advance": "Automatisch weiter bei Zeitablauf",
+        "auto_advance_desc": "Wenn der Timer abläuft: automatisch umdrehen bei Frage, oder als 'Nochmal' bewerten bei Antwort",
         "data_management": "Datenverwaltung",
         "import_anki_desc": "Importiere deine Anki-Stapel (.apkg-Dateien) inklusive Karten, Medien und Planungsdaten.",
         "profile_info": "Profil",

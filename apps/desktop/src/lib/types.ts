@@ -200,6 +200,18 @@ export interface TopForgottenCard {
     frontPreview?: string | null;
 }
 
+export interface TimeByRatingItem {
+    rating: Rating;
+    averageMs: number;
+    count: number;
+}
+
+export interface SlowestCard {
+    cardId: string;
+    durationMs: number;
+    frontPreview: string | null;
+}
+
 export interface SessionAnalytics {
     retentionTrend: RetentionTrendPoint[];
     ratingDistribution: RatingDistributionItem[];
@@ -208,6 +220,11 @@ export interface SessionAnalytics {
         lapseRate: number;
         totalReviews: number;
         topForgottenCards: TopForgottenCard[];
+    };
+    timeStats?: {
+        averageTimeMs: number;
+        timeByRating: TimeByRatingItem[];
+        slowestCards: SlowestCard[];
     };
 }
 

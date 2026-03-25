@@ -136,7 +136,16 @@
             "no_forgotten": "没有遗忘的卡片",
             "no_data": "本次会话无数据",
             "card_lapse_count": "遗忘 {{count}} 次",
-            "total_reviews": "次复习"
+            "total_reviews": "次复习",
+            "time_per_card": "每张卡片用时",
+            "time_per_card_desc": "按评分的平均响应时间",
+            "average_time": "平均：{{seconds}}秒/张",
+            "slowest_cards": "最慢的卡片",
+            "seconds_abbrev": "秒"
+        },
+        "timer": {
+            "auto_flipped": "时间到——已显示答案",
+            "auto_graded_again": "时间到——已评为重来"
         }
     },
     "auth": {
@@ -205,6 +214,14 @@
         "notifications_desc": "当有卡片需要复习时收到通知",
         "reminder_times": "提醒时间",
         "add_reminder": "添加提醒",
+        "study_timer": "学习计时器",
+        "study_timer_desc": "配置学习期间的计时器行为",
+        "max_answer_seconds": "最大答题时间（秒）",
+        "max_answer_seconds_desc": "每张卡片的统计和自动前进时间限制。范围：10–300。",
+        "show_timer": "显示计时器",
+        "show_timer_desc": "在学习界面显示计时器",
+        "auto_advance": "超时自动前进",
+        "auto_advance_desc": "计时器到期时：如果显示问题则自动翻转，如果显示答案则评为'重来'",
         "data_management": "数据管理",
         "import_anki_desc": "导入你的 Anki 牌组（.apkg 文件），包括卡片、媒体和排程数据。",
         "profile_info": "个人资料",

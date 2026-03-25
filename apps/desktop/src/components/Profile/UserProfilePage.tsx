@@ -721,6 +721,131 @@ export const UserProfilePage: React.FC = () => {
                         </div>
                     </div>
 
+                    {/* Study Timer */}
+                    <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
+                        <label className="field-label">{t('profile.study_timer')}</label>
+                        <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0.2rem 0 0.75rem' }}>
+                            {t('profile.study_timer_desc')}
+                        </p>
+
+                        {/* Max answer time input */}
+                        <div style={{ marginBottom: '1rem' }}>
+                            <label className="field-label" style={{ fontSize: '0.8rem', marginBottom: '0.25rem', display: 'block' }}>
+                                {t('profile.max_answer_seconds')}
+                            </label>
+                            <p className="text-muted" style={{ fontSize: '0.8rem', margin: '0.1rem 0 0.4rem' }}>
+                                {t('profile.max_answer_seconds_desc')}
+                            </p>
+                            <input
+                                type="number"
+                                min={10}
+                                max={300}
+                                className="field-input"
+                                value={formData.max_answer_seconds ?? profile?.max_answer_seconds ?? 60}
+                                onChange={(e) => setFormData((prev) => ({ ...prev, max_answer_seconds: Number(e.target.value) }))}
+                                onBlur={() => {
+                                    if (user?.id) {
+                                        const val = Math.max(10, Math.min(300, Number(formData.max_answer_seconds ?? profile?.max_answer_seconds ?? 60)));
+                                        upsertProfile(user.id, { max_answer_seconds: val });
+                                        setFormData((prev) => ({ ...prev, max_answer_seconds: val }));
+                                    }
+                                }}
+                                style={{ width: '90px' }}
+                            />
+                        </div>
+
+                        {/* Show timer toggle */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                            <div>
+                                <label className="field-label" style={{ fontSize: '0.8rem' }}>{t('profile.show_timer')}</label>
+                                <p className="text-muted" style={{ fontSize: '0.8rem', margin: '0.1rem 0 0' }}>
+                                    {t('profile.show_timer_desc')}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                role="switch"
+                                aria-checked={profile?.show_timer ?? true}
+                                onClick={() => {
+                                    const next = !(profile?.show_timer ?? true);
+                                    if (user?.id) {
+                                        upsertProfile(user.id, { show_timer: next });
+                                    }
+                                }}
+                                style={{
+                                    flexShrink: 0,
+                                    width: '44px',
+                                    height: '24px',
+                                    borderRadius: '12px',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    background: (profile?.show_timer ?? true) ? 'var(--primary)' : 'var(--border)',
+                                    position: 'relative',
+                                    transition: 'background 0.2s ease',
+                                    padding: 0,
+                                }}
+                            >
+                                <span style={{
+                                    position: 'absolute',
+                                    top: '3px',
+                                    left: (profile?.show_timer ?? true) ? '23px' : '3px',
+                                    width: '18px',
+                                    height: '18px',
+                                    borderRadius: '50%',
+                                    background: '#fff',
+                                    transition: 'left 0.2s ease',
+                                    boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                                }} />
+                            </button>
+                        </div>
+
+                        {/* Auto-advance toggle — disabled when show_timer is off */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: (profile?.show_timer ?? true) ? 1 : 0.4 }}>
+                            <div>
+                                <label className="field-label" style={{ fontSize: '0.8rem' }}>{t('profile.auto_advance')}</label>
+                                <p className="text-muted" style={{ fontSize: '0.8rem', margin: '0.1rem 0 0' }}>
+                                    {t('profile.auto_advance_desc')}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                role="switch"
+                                aria-checked={profile?.auto_advance_on_timeout ?? false}
+                                disabled={!(profile?.show_timer ?? true)}
+                                onClick={() => {
+                                    const next = !(profile?.auto_advance_on_timeout ?? false);
+                                    if (user?.id) {
+                                        upsertProfile(user.id, { auto_advance_on_timeout: next });
+                                    }
+                                }}
+                                style={{
+                                    flexShrink: 0,
+                                    width: '44px',
+                                    height: '24px',
+                                    borderRadius: '12px',
+                                    border: 'none',
+                                    cursor: (profile?.show_timer ?? true) ? 'pointer' : 'not-allowed',
+                                    background: (profile?.auto_advance_on_timeout ?? false) && (profile?.show_timer ?? true) ? 'var(--primary)' : 'var(--border)',
+                                    position: 'relative',
+                                    transition: 'background 0.2s ease',
+                                    padding: 0,
+                                }}
+                            >
+                                <span style={{
+                                    position: 'absolute',
+                                    top: '3px',
+                                    left: (profile?.auto_advance_on_timeout ?? false) && (profile?.show_timer ?? true) ? '23px' : '3px',
+                                    width: '18px',
+                                    height: '18px',
+                                    borderRadius: '50%',
+                                    background: '#fff',
+                                    transition: 'left 0.2s ease',
+                                    boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                                }} />
+                            </button>
+                        </div>
+                    </div>
+
                     {/* Background Image */}
                     <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
