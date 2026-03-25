@@ -1,0 +1,39 @@
+@import '../components.css';
+
+.toggle-switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    background: var(--border, #d1d5db);
+    transition: background 0.2s ease;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.toggle-switch[aria-checked="true"] {
+    background: var(--primary, #3b82f6);
+}
+
+.toggle-switch:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+}
+
+.toggle-switch-knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    transition: left 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.toggle-switch[aria-checked="true"] .toggle-switch-knob {
+    left: 23px;
+}

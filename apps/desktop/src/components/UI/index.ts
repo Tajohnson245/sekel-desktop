@@ -7,6 +7,8 @@ export { Loader } from '@sekel/components';
 export { YouTubeIcon } from '@sekel/components';
 
 export { MetaChip } from '@sekel/components';
+export { Tabs, TabList, Tab, TabPanel } from '@sekel/components';
+export { ToggleSwitch } from '@sekel/components';
 
 // Desktop-only UI (stay local)
 export * from './ImageUpload';

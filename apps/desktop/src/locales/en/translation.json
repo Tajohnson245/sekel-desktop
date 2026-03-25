@@ -169,6 +169,10 @@
     "profile": {
         "title": "User Profile",
         "profile_info": "Profile",
+        "tab_profile": "Profile",
+        "tab_preferences": "Preferences",
+        "tab_study": "Study",
+        "tab_account": "Account",
         "personal_data": "Personal Data",
         "career_profile": "Study / Career",
         "language_settings": "Language Settings",
