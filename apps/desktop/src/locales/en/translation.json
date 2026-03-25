@@ -220,7 +220,7 @@
         "flip_animation": "Card Flip Animation",
         "flip_animation_desc": "Show 3D flip animation when revealing a card",
         "background_image": "Background Image",
-        "background_image_desc": "Set a custom background image for the app",
+        "background_image_desc": "Set a custom background image for the app. For best results, use an image at least 1920×1080 pixels.",
         "upload_background": "Upload Image",
         "change_background": "Change Image",
         "remove_background": "Remove",

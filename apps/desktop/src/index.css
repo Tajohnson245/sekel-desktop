@@ -123,6 +123,11 @@ body,
 }
 
 /* When a custom background image is set */
+.app-shell.has-background {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: high-quality;
+}
+
 .app-shell.has-background .header {
     background: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(12px);
