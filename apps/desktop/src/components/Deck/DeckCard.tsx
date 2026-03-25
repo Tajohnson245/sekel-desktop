@@ -1,8 +1,12 @@
-import { useState, useRef } from 'react';
-import { Library, Clock, Sparkles, Pencil } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Library, Clock, Sparkles, Pencil, MoreVertical, Download } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Deck } from '../../lib/types';
 import { useUpdateDeck, useDeckStats } from '../../hooks/useDecks';
+import { useAuthStore } from '../../stores/authStore';
+import { useToast } from '../UI';
+import { exportDeck } from '../../lib/queries';
+import ExportModal from './ExportModal';
 import './DeckCard.css';
 
 interface DeckCardProps {
@@ -23,10 +27,44 @@ export default function DeckCard({
     const { t } = useTranslation();
     const updateDeck = useUpdateDeck();
     const { data: stats } = useDeckStats(deck.id);
+    const user = useAuthStore(s => s.user);
+    const { showToast } = useToast();
     const inputRef = useRef<HTMLInputElement>(null);
+    const menuRef = useRef<HTMLDivElement>(null);
 
     const [isRenaming, setIsRenaming] = useState(false);
     const [renameValue, setRenameValue] = useState('');
+    const [showMenu, setShowMenu] = useState(false);
+    const [showExportModal, setShowExportModal] = useState(false);
+    const [exporting, setExporting] = useState(false);
+
+    // Close menu on outside click
+    useEffect(() => {
+        if (!showMenu) return;
+        const handleClick = (e: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+                setShowMenu(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClick);
+        return () => document.removeEventListener('mousedown', handleClick);
+    }, [showMenu]);
+
+    const handleExport = async () => {
+        if (!user) return;
+        setShowExportModal(false);
+        setExporting(true);
+        try {
+            const filePath = await exportDeck(deck.id, user.id);
+            if (filePath) {
+                showToast(t('export.success'), 'success');
+            }
+        } catch {
+            showToast(t('export.error'), 'error');
+        } finally {
+            setExporting(false);
+        }
+    };
 
     const handleCardClick = (e: React.MouseEvent) => {
         if (isDeleteMode) {
@@ -123,17 +161,55 @@ export default function DeckCard({
                 </div>
 
                 {!isDeleteMode && (
-                    <button
-                        className="btn btn-secondary deck-study-btn"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onClick();
-                        }}
-                    >
-                        {t('decks.study_now')}
-                    </button>
+                    <div className="deck-card-actions">
+                        <button
+                            className="btn btn-secondary deck-study-btn"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onClick();
+                            }}
+                        >
+                            {t('decks.study_now')}
+                        </button>
+                        <div className="deck-card-menu-wrapper" ref={menuRef}>
+                            <button
+                                className="deck-card-menu-btn"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setShowMenu(!showMenu);
+                                }}
+                                title="More options"
+                            >
+                                <MoreVertical size={16} />
+                            </button>
+                            {showMenu && (
+                                <div className="deck-card-menu">
+                                    <button
+                                        className="deck-card-menu-item"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setShowMenu(false);
+                                            setShowExportModal(true);
+                                        }}
+                                        disabled={exporting}
+                                    >
+                                        <Download size={14} />
+                                        {t('export.menu_label')}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 )}
             </div>
+
+            <ExportModal
+                isOpen={showExportModal}
+                deckId={deck.id}
+                deckName={deck.name}
+                onConfirm={handleExport}
+                onClose={() => setShowExportModal(false)}
+            />
         </div>
     );
 }

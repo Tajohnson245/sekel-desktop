@@ -68,6 +68,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
         updateDraft:           (id: string, updates: unknown) => ipcRenderer.invoke('db:updateDraft', id, updates),
         deleteDraft:           (id: string) => ipcRenderer.invoke('db:deleteDraft', id),
         clearDrafts:           (userId: string) => ipcRenderer.invoke('db:clearDrafts', userId),
+        // Export
+        exportDeck:            (deckId: string, userId: string) => ipcRenderer.invoke('db:exportDeck', deckId, userId),
+        getExportableCardCount: (deckId: string) => ipcRenderer.invoke('db:getExportableCardCount', deckId),
         // Media
         saveMediaFile:         (params: { buffer: ArrayBuffer; filename: string; userId: string; mimeType: string }) =>
                                    ipcRenderer.invoke('db:saveMediaFile', params),

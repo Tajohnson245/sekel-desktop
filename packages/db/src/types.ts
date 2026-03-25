@@ -24,11 +24,12 @@ export interface Deck {
     algorithm: 'fsrs' | 'sm2';
     parent_id: string | null;
     anki_id: number | null;
+    anki_meta: string | null;
     created_at: string;
     updated_at: string;
 }
 
-export type DeckInsert = Omit<Deck, 'id' | 'created_at' | 'updated_at'>;
+export type DeckInsert = Omit<Deck, 'id' | 'created_at' | 'updated_at' | 'anki_meta'> & { anki_meta?: string | null };
 export type DeckUpdate = Partial<Omit<Deck, 'id' | 'user_id' | 'created_at' | 'updated_at'>>;
 
 // ─────────────────────────────────────────────────────────────────
@@ -48,6 +49,7 @@ export interface NoteType {
     id: string;
     user_id: string;
     anki_id: number | null;
+    anki_meta: string | null;
     name: string;
     fields: FieldDefinition[];
     card_templates: CardTemplate[];
@@ -55,7 +57,7 @@ export interface NoteType {
     updated_at: string;
 }
 
-export type NoteTypeInsert = Omit<NoteType, 'id' | 'created_at' | 'updated_at' | 'anki_id'> & { anki_id?: number | null };
+export type NoteTypeInsert = Omit<NoteType, 'id' | 'created_at' | 'updated_at' | 'anki_id' | 'anki_meta'> & { anki_id?: number | null; anki_meta?: string | null };
 export type NoteTypeUpdate = Partial<Omit<NoteType, 'id' | 'user_id' | 'created_at' | 'updated_at'>>;
 
 // ─────────────────────────────────────────────────────────────────
@@ -70,11 +72,12 @@ export interface Note {
     tags: string[];
     anki_id: number | null;
     anki_guid: string | null;
+    anki_meta: string | null;
     created_at: string;
     updated_at: string;
 }
 
-export type NoteInsert = Omit<Note, 'id' | 'created_at' | 'updated_at' | 'anki_id' | 'anki_guid'> & { anki_id?: number | null; anki_guid?: string | null };
+export type NoteInsert = Omit<Note, 'id' | 'created_at' | 'updated_at' | 'anki_id' | 'anki_guid' | 'anki_meta'> & { anki_id?: number | null; anki_guid?: string | null; anki_meta?: string | null };
 export type NoteUpdate = Partial<Omit<Note, 'id' | 'user_id' | 'created_at' | 'updated_at'>>;
 
 // ─────────────────────────────────────────────────────────────────
@@ -84,6 +87,7 @@ export interface Card {
     id: string;
     user_id: string;
     anki_id: number | null;
+    anki_meta: string | null;
     ease_factor: number | null;
     note_id: string;
     template_index: number;
@@ -103,7 +107,7 @@ export interface Card {
     updated_at: string;
 }
 
-export type CardInsert = Omit<Card, 'id' | 'created_at' | 'updated_at' | 'anki_id' | 'ease_factor'> & { anki_id?: number | null; ease_factor?: number | null };
+export type CardInsert = Omit<Card, 'id' | 'created_at' | 'updated_at' | 'anki_id' | 'anki_meta' | 'ease_factor'> & { anki_id?: number | null; anki_meta?: string | null; ease_factor?: number | null };
 export type CardUpdate = Partial<Omit<Card, 'id' | 'user_id' | 'note_id' | 'template_index' | 'created_at' | 'updated_at'>>;
 
 // ─────────────────────────────────────────────────────────────────

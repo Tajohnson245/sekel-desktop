@@ -76,15 +76,15 @@ export function executeImport(
     // Prepare statements used in the hot loop (created once, reused per row)
     const insertNote = db.prepare(`
         INSERT INTO notes
-            (id, user_id, deck_id, note_type_id, fields, tags, anki_id, anki_guid, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (id, user_id, deck_id, note_type_id, fields, tags, anki_id, anki_guid, anki_meta, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     const insertCard = db.prepare(`
         INSERT INTO cards
             (id, user_id, note_id, template_index, state, due,
              stability, difficulty, elapsed_days, scheduled_days,
-             reps, lapses, last_review, anki_id, ease_factor, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             reps, lapses, last_review, anki_id, anki_meta, ease_factor, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     const findNoteByGuid = db.prepare(
         'SELECT id FROM notes WHERE deck_id = ? AND anki_guid = ?',
@@ -146,6 +146,7 @@ export function executeImport(
                     parentId = nameToSekelId.get(parentName) ?? null;
                 }
 
+                const dconf = parsedData.deckConfigs.get(ankiDeck.conf) ?? null;
                 const sekelDeck = createDeck({
                     user_id: userId,
                     name: opt.deckName,
@@ -153,6 +154,12 @@ export function executeImport(
                     algorithm: opt.algorithm,
                     parent_id: parentId,
                     anki_id: ankiDeckId,
+                    anki_meta: JSON.stringify({
+                        conf: ankiDeck.conf,
+                        mod: ankiDeck.mod,
+                        collapsed: ankiDeck.collapsed,
+                        dconf: dconf ? { id: dconf.id, name: dconf.name, new: dconf.new, rev: dconf.rev, lapse: dconf.lapse } : null,
+                    }),
                 });
                 sekelDeckId = sekelDeck.id;
                 result.decksCreated++;
@@ -203,6 +210,13 @@ export function executeImport(
                             front_template: t.qfmt,
                             back_template: t.afmt,
                         })),
+                        anki_meta: JSON.stringify({
+                            css: model.css,
+                            type: model.type,
+                            mod: model.mod,
+                            fields: model.flds.map(f => ({ name: f.name, sticky: f.sticky, font: f.font, size: f.size })),
+                            templates: model.tmpls.map(t => ({ name: t.name, bqfmt: t.bqfmt, bafmt: t.bafmt })),
+                        }),
                     });
                     noteTypeCache.set(ankiNote.mid, noteType);
                 }
@@ -218,6 +232,7 @@ export function executeImport(
                     JSON.stringify(ankiNote.tags),
                     ankiNoteId,
                     ankiNote.guid,
+                    JSON.stringify({ mod: ankiNote.mod }),
                     now,
                     now,
                 );
@@ -244,6 +259,7 @@ export function executeImport(
                         ankiCard.lapses,
                         null,                // last_review
                         ankiCard.id,         // anki_id
+                        JSON.stringify({ queue: ankiCard.queue, mod: ankiCard.mod }),
                         easeFactor,
                         now,
                         now,
