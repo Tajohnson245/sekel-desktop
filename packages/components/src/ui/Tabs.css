@@ -1,0 +1,46 @@
+@import '../components.css';
+
+.tabs-list {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border, #e5e7eb);
+    margin-bottom: 1.5rem;
+}
+
+.tab-button {
+    padding: 0.625rem 1.25rem;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary, #6b7280);
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s, border-color 0.2s;
+    margin-bottom: -1px;
+    white-space: nowrap;
+}
+
+.tab-button:hover {
+    color: var(--text-primary, #1f2937);
+}
+
+.tab-button[aria-selected="true"] {
+    color: var(--primary, #3b82f6);
+    border-bottom-color: var(--primary, #3b82f6);
+}
+
+.tab-button:focus-visible {
+    outline: 2px solid var(--primary, #3b82f6);
+    outline-offset: -2px;
+    border-radius: 2px;
+}
+
+.tab-panel {
+    /* Active panel */
+}
+
+.tab-panel[hidden] {
+    display: none;
+}

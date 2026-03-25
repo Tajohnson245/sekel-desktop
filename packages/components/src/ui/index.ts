@@ -5,3 +5,5 @@ export * from './Modal';
 export * from './Loader';
 export * from './Icons';
 export * from './MetaChip';
+export * from './Tabs';
+export * from './ToggleSwitch';
