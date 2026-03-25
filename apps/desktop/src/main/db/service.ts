@@ -76,9 +76,9 @@ export function createDeck(deck: DeckInsert): Deck {
     const now = new Date().toISOString();
     const id = randomUUID();
     getDb().prepare(`
-        INSERT INTO decks (id, user_id, name, description, algorithm, parent_id, anki_id, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, deck.user_id, deck.name, deck.description ?? null, deck.algorithm ?? 'fsrs', deck.parent_id ?? null, deck.anki_id ?? null, now, now);
+        INSERT INTO decks (id, user_id, name, description, algorithm, parent_id, anki_id, anki_meta, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, deck.user_id, deck.name, deck.description ?? null, deck.algorithm ?? 'fsrs', deck.parent_id ?? null, deck.anki_id ?? null, deck.anki_meta ?? null, now, now);
     return fetchDeck(id)!;
 }
 
@@ -267,6 +267,7 @@ function buildCardWithNote(row: CardWithNoteRow): CardWithNote {
         id: row.nt_id as string,
         user_id: row.user_id as string,
         anki_id: (row.nt_anki_id as number | null) ?? null,
+        anki_meta: (row.nt_anki_meta as string | null) ?? null,
         name: row.nt_name as string,
         fields: j(row.nt_fields),
         card_templates: j(row.nt_templates),
@@ -282,6 +283,7 @@ function buildCardWithNote(row: CardWithNoteRow): CardWithNote {
         tags: j(row.note_tags),
         anki_id: (row.anki_id as number | null) ?? null,
         anki_guid: (row.anki_guid as string | null) ?? null,
+        anki_meta: (row.note_anki_meta as string | null) ?? null,
         created_at: row.note_created_at as string,
         updated_at: row.note_updated_at as string,
         note_type: noteType,
@@ -290,6 +292,7 @@ function buildCardWithNote(row: CardWithNoteRow): CardWithNote {
         id: row.id as string,
         user_id: row.user_id as string,
         anki_id: (row.anki_id as number | null) ?? null,
+        anki_meta: (row.card_anki_meta as string | null) ?? null,
         ease_factor: (row.ease_factor as number | null) ?? null,
 
         note_id: row.note_id as string,
@@ -315,15 +318,18 @@ const CARD_WITH_NOTE_SQL = `
         c.state, c.due, c.stability, c.difficulty,
         c.elapsed_days, c.scheduled_days, c.reps, c.lapses,
         c.last_review, c.created_at, c.updated_at,
+        c.anki_meta    AS card_anki_meta,
         n.id       AS note_id,
         n.deck_id  AS deck_id,
         n.note_type_id,
         n.fields   AS note_fields,
         n.tags     AS note_tags,
+        n.anki_meta AS note_anki_meta,
         n.created_at AS note_created_at,
         n.updated_at AS note_updated_at,
         nt.id          AS nt_id,
         nt.anki_id     AS nt_anki_id,
+        nt.anki_meta   AS nt_anki_meta,
         nt.name        AS nt_name,
         nt.fields      AS nt_fields,
         nt.card_templates AS nt_templates,
@@ -535,9 +541,9 @@ export function createNoteType(noteType: NoteTypeInsert): NoteType {
     const now = new Date().toISOString();
     const id = randomUUID();
     getDb().prepare(`
-        INSERT INTO note_types (id, user_id, name, fields, card_templates, anki_id, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, noteType.user_id, noteType.name, s(noteType.fields), s(noteType.card_templates), noteType.anki_id ?? null, now, now);
+        INSERT INTO note_types (id, user_id, name, fields, card_templates, anki_id, anki_meta, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, noteType.user_id, noteType.name, s(noteType.fields), s(noteType.card_templates), noteType.anki_id ?? null, noteType.anki_meta ?? null, now, now);
     const row = getDb().prepare('SELECT * FROM note_types WHERE id = ?').get(id) as Record<string, unknown>;
     return mapNoteType(row);
 }

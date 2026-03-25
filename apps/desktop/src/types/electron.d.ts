@@ -163,6 +163,9 @@ interface ElectronDB {
     updateDraft:           (id: string, updates: Partial<Pick<DraftCard, 'front' | 'back'>>) => Promise<DraftCard>;
     deleteDraft:           (id: string) => Promise<void>;
     clearDrafts:           (userId: string) => Promise<void>;
+    // Export
+    exportDeck:            (deckId: string, userId: string) => Promise<string | null>;
+    getExportableCardCount: (deckId: string) => Promise<{ ankiCards: number; sekelCards: number }>;
     // Media
     saveMediaFile:         (params: { buffer: ArrayBuffer; filename: string; userId: string; mimeType: string }) => Promise<string>;
 }

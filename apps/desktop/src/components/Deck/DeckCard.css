@@ -33,3 +33,70 @@
     outline: none;
     width: 100%;
 }
+
+/* ── Three-dot menu ─────────────────────────────────────────── */
+
+.deck-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.deck-card-menu-wrapper {
+    position: relative;
+}
+
+.deck-card-menu-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: 4px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s, background 0.15s;
+}
+
+.deck-card-menu-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+}
+
+.deck-card-menu {
+    position: absolute;
+    right: 0;
+    bottom: 100%;
+    margin-bottom: 4px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 180px;
+    z-index: 100;
+}
+
+.deck-card-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-primary);
+    font-size: 0.8125rem;
+    text-align: left;
+    transition: background 0.15s;
+}
+
+.deck-card-menu-item:hover {
+    background: var(--bg-secondary);
+}
+
+.deck-card-menu-item:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

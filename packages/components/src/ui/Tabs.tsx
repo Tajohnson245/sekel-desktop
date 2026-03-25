@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useRef, type ReactNode, type KeyboardEvent } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode, type KeyboardEvent } from 'react';
 import './Tabs.css';
 
 interface TabsContextValue {
@@ -86,8 +86,8 @@ export function Tab({ id, children }: TabProps) {
     const { activeTab, setActiveTab, registerTab } = useTabsContext();
     const isActive = activeTab === id;
 
-    // Register on first render
-    useState(() => { registerTab(id); });
+    // Register on mount
+    useEffect(() => { registerTab(id); }, [id, registerTab]);
 
     return (
         <button

@@ -59,3 +59,7 @@ export const fetchSessionAnalytics = (sessionId: string) => db().fetchSessionAna
 // ── Reviews ───────────────────────────────────────────────────────────────────
 export const insertReview = (params: InsertReviewParams) => db().insertReview(params);
 export const fetchUserReviewHistory = (userId: string, days?: number) => db().fetchUserReviewHistory(userId, days);
+
+// ── Export ────────────────────────────────────────────────────────────────────
+export const exportDeck = (deckId: string, userId: string) => db().exportDeck(deckId, userId);
+export const getExportableCardCount = (deckId: string) => db().getExportableCardCount(deckId);

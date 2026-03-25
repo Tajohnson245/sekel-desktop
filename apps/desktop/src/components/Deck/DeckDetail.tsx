@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, BookOpen, Trash2, Zap, Plus } from 'lucide-react';
+import { ArrowLeft, BookOpen, Trash2, Zap, Plus, Pencil } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useDeck, useDeckStats } from '../../hooks/useDecks';
 import { useNoteTypes, useCreateNoteType, useNotesByDeck, useDeleteNote } from '../../hooks/useNotes';
 import CardList from '../Card/CardList';
 import NoteEditor from '../Card/NoteEditor';
+import DeckEditor from './DeckEditor';
 import { Button, useToast } from '../UI';
 import { DEFAULT_NOTE_TYPES } from '../../lib/types';
 import './DeckDetail.css';
@@ -31,6 +32,7 @@ export default function DeckDetail({ deckId, userId, onBack, onStudy, onNavigate
     const [editingNote, setEditingNote] = useState<import('@sekel/db').JoinedNote | null>(null);
     const [defaultNoteTypeId, setDefaultNoteTypeId] = useState<string | null>(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [showDeckEditor, setShowDeckEditor] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
 
     // Ensure we have a default note type (Basic)
@@ -111,7 +113,17 @@ export default function DeckDetail({ deckId, userId, onBack, onStudy, onNavigate
                     </Button>
 
                     <div className="deck-detail-title">
-                        <h2>{displayDeckName}</h2>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <h2>{displayDeckName}</h2>
+                            <button
+                                className="deck-card-rename-btn"
+                                onClick={() => setShowDeckEditor(true)}
+                                title={t('modals.edit_deck_title')}
+                                style={{ opacity: 1 }}
+                            >
+                                <Pencil size={14} />
+                            </button>
+                        </div>
                         {displayDeckDesc && (
                             <p className="text-muted">{displayDeckDesc}</p>
                         )}
@@ -208,6 +220,14 @@ export default function DeckDetail({ deckId, userId, onBack, onStudy, onNavigate
                     noteTypeId={defaultNoteTypeId}
                     onClose={() => setShowNoteEditor(false)}
                     editingNote={editingNote}
+                />
+            )}
+
+            {showDeckEditor && (
+                <DeckEditor
+                    deck={deck}
+                    userId={userId}
+                    onClose={() => setShowDeckEditor(false)}
                 />
             )}
 

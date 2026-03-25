@@ -220,7 +220,7 @@
         "flip_animation": "Card Flip Animation",
         "flip_animation_desc": "Show 3D flip animation when revealing a card",
         "background_image": "Background Image",
-        "background_image_desc": "Set a custom background image for the app",
+        "background_image_desc": "Set a custom background image for the app. For best results, use an image at least 1920×1080 pixels.",
         "upload_background": "Upload Image",
         "change_background": "Change Image",
         "remove_background": "Remove",
@@ -474,5 +474,16 @@
         "submitted": "Thank you for your feedback!",
         "error": "Failed to submit feedback. Please try again.",
         "validation_error": "Please select at least one area and describe the problem."
+    },
+    "export": {
+        "menu_label": "Export as .apkg",
+        "modal_title": "Export to Anki",
+        "modal_body": "Only cards imported from Anki will be included in the .apkg export. {{ankiCards}} of {{totalCards}} cards will be exported.",
+        "modal_body_sekel_only": "Cards created in Sekel are not compatible with Anki's format.",
+        "modal_no_anki_cards": "This deck has no Anki-imported cards to export.",
+        "button_export": "Export",
+        "button_cancel": "Cancel",
+        "success": "Deck exported successfully",
+        "error": "Export failed"
     }
 }

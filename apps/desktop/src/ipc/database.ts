@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import * as dbService from '../main/db/service';
+import { exportDeckAsApkg, getExportableCardCount } from '../main/export/index';
 
 export function setupDatabaseHandlers(): void {
     // ── Decks ──────────────────────────────────────────────────────────────────
@@ -107,6 +108,13 @@ export function setupDatabaseHandlers(): void {
 
     ipcMain.handle('db:clearDrafts', (_e, userId: string) =>
         dbService.clearDrafts(userId));
+
+    // ── Export ─────────────────────────────────────────────────────────────────
+    ipcMain.handle('db:exportDeck', (_e, deckId: string, userId: string) =>
+        exportDeckAsApkg(deckId, userId));
+
+    ipcMain.handle('db:getExportableCardCount', (_e, deckId: string) =>
+        getExportableCardCount(deckId));
 
     // ── Media ──────────────────────────────────────────────────────────────────
     ipcMain.handle('db:saveMediaFile', async (_e, params: {

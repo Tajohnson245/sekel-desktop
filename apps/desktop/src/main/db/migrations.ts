@@ -182,4 +182,11 @@ export const MIGRATIONS: string[] = [
     `
     ALTER TABLE media ADD COLUMN import_id TEXT;
     `,
+    // Migration 009 — anki_meta JSON columns for full Anki round-trip fidelity
+    `
+    ALTER TABLE note_types ADD COLUMN anki_meta TEXT;
+    ALTER TABLE notes      ADD COLUMN anki_meta TEXT;
+    ALTER TABLE cards      ADD COLUMN anki_meta TEXT;
+    ALTER TABLE decks      ADD COLUMN anki_meta TEXT;
+    `,
 ];

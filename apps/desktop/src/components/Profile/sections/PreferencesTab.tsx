@@ -155,6 +155,7 @@ export function PreferencesTab() {
                                         if (url) showToast(t('profile.background_updated'), 'success');
                                         else showToast(t('profile.background_error'), 'error');
                                     }
+                                    e.target.value = '';
                                 }}
                             />
                         </label>
