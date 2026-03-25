@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Library, Clock, Sparkles, Pencil, MoreVertical, Download } from 'lucide-react';
+import { Library, Clock, Sparkles, Pencil, MoreVertical, Download, Settings } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Deck } from '../../lib/types';
 import { useUpdateDeck, useDeckStats } from '../../hooks/useDecks';
@@ -7,6 +7,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useToast } from '../UI';
 import { exportDeck } from '../../lib/queries';
 import ExportModal from './ExportModal';
+import DeckEditor from './DeckEditor';
 import './DeckCard.css';
 
 interface DeckCardProps {
@@ -36,6 +37,7 @@ export default function DeckCard({
     const [renameValue, setRenameValue] = useState('');
     const [showMenu, setShowMenu] = useState(false);
     const [showExportModal, setShowExportModal] = useState(false);
+    const [showDeckEditor, setShowDeckEditor] = useState(false);
     const [exporting, setExporting] = useState(false);
 
     // Close menu on outside click
@@ -189,6 +191,17 @@ export default function DeckCard({
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             setShowMenu(false);
+                                            setShowDeckEditor(true);
+                                        }}
+                                    >
+                                        <Settings size={14} />
+                                        {t('modals.edit_deck_title')}
+                                    </button>
+                                    <button
+                                        className="deck-card-menu-item"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setShowMenu(false);
                                             setShowExportModal(true);
                                         }}
                                         disabled={exporting}
@@ -210,6 +223,14 @@ export default function DeckCard({
                 onConfirm={handleExport}
                 onClose={() => setShowExportModal(false)}
             />
+
+            {showDeckEditor && (
+                <DeckEditor
+                    deck={deck}
+                    userId={user?.id ?? ''}
+                    onClose={() => setShowDeckEditor(false)}
+                />
+            )}
         </div>
     );
 }
