@@ -9,7 +9,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { FeedbackSection } from '../FeedbackSection';
 
 export function AccountTab() {
-    const { user } = useAuthStore();
     const { t } = useTranslation();
     const { showToast } = useToast();
     const queryClient = useQueryClient();
