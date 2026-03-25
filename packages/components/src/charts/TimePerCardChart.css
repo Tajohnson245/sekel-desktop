@@ -1,0 +1,54 @@
+@import '../components.css';
+@import './RetentionTrendChart.css';
+
+/* ==========================================================================
+   TimePerCardChart
+   Classes: .analytics-chart, .time-per-card, .time-summary, .time-avg-big,
+            .slowest-cards, .slowest-list, .card-preview, .card-time
+   ========================================================================== */
+
+.time-per-card {
+  /* inherits .analytics-chart */
+}
+
+.time-summary {
+  margin: var(--space-md) 0;
+}
+
+.time-avg-big {
+  font-family: var(--font-display);
+  font-size:   48px;
+  font-weight: 400;
+  color:       var(--fog);
+  line-height: 1;
+}
+
+.slowest-cards {
+  margin-top: var(--space-xl);
+}
+
+.slowest-list {
+  list-style: none;
+  margin:     0;
+  padding:    0;
+  display:    flex;
+  flex-direction: column;
+  gap:        var(--space-sm);
+}
+
+.slowest-list li {
+  display:          flex;
+  align-items:      center;
+  justify-content:  space-between;
+  gap:              var(--space-md);
+  padding:          var(--space-sm) var(--space-md);
+  background-color: var(--ink-muted);
+  border-radius:    var(--r-sm);
+}
+
+.card-time {
+  font-family: var(--font-mono);
+  font-size:   12px;
+  color:       var(--warning, #f59e0b);
+  flex-shrink: 0;
+}

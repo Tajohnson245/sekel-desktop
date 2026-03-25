@@ -136,7 +136,16 @@
             "no_forgotten": "Aucune carte oubliée",
             "no_data": "Aucune donnée pour cette session",
             "card_lapse_count": "{{count}}x oubliée",
-            "total_reviews": "révisions"
+            "total_reviews": "révisions",
+            "time_per_card": "Temps par carte",
+            "time_per_card_desc": "Temps de réponse moyen par note",
+            "average_time": "Moyenne : {{seconds}}s par carte",
+            "slowest_cards": "Cartes les plus lentes",
+            "seconds_abbrev": "Secondes"
+        },
+        "timer": {
+            "auto_flipped": "Temps écoulé — réponse révélée",
+            "auto_graded_again": "Temps écoulé — noté À revoir"
         }
     },
     "auth": {
@@ -205,6 +214,14 @@
         "notifications_desc": "Recevez des notifications lorsque des cartes sont à réviser",
         "reminder_times": "Horaires de rappel",
         "add_reminder": "Ajouter un rappel",
+        "study_timer": "Chronomètre d'étude",
+        "study_timer_desc": "Configurer le comportement du chronomètre pendant les sessions d'étude",
+        "max_answer_seconds": "Temps de réponse max (secondes)",
+        "max_answer_seconds_desc": "Limite de temps par carte pour les statistiques et l'avance automatique. Plage : 10–300.",
+        "show_timer": "Afficher le chronomètre",
+        "show_timer_desc": "Afficher un chronomètre sur l'écran d'étude",
+        "auto_advance": "Avance automatique à expiration",
+        "auto_advance_desc": "Quand le chronomètre expire : retourne automatiquement si la question est affichée, ou note 'À revoir' si la réponse est affichée",
         "data_management": "Gestion des données",
         "import_anki_desc": "Importez vos paquets Anki (fichiers .apkg) avec les cartes, médias et données de planification.",
         "profile_info": "Profil",

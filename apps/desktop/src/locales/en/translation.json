@@ -136,7 +136,16 @@
             "no_forgotten": "No cards forgotten",
             "no_data": "No data for this session",
             "card_lapse_count": "{{count}}x forgotten",
-            "total_reviews": "reviews"
+            "total_reviews": "reviews",
+            "time_per_card": "Time Per Card",
+            "time_per_card_desc": "Average response time by rating",
+            "average_time": "Average: {{seconds}}s per card",
+            "slowest_cards": "Slowest Cards",
+            "seconds_abbrev": "Seconds"
+        },
+        "timer": {
+            "auto_flipped": "Time's up — answer revealed",
+            "auto_graded_again": "Time's up — graded as Again"
         }
     },
     "auth": {
@@ -226,6 +235,14 @@
         "daily_limits_desc": "Control how many new and review cards you see each day. Cards you're currently learning are always shown.",
         "new_cards_per_day": "New cards/day",
         "reviews_per_day": "Reviews/day",
+        "study_timer": "Study Timer",
+        "study_timer_desc": "Configure timing behavior during study sessions",
+        "max_answer_seconds": "Max answer time (seconds)",
+        "max_answer_seconds_desc": "Time limit per card for statistics and auto-advance. Range: 10–300.",
+        "show_timer": "Show Timer",
+        "show_timer_desc": "Display a timer on the study screen",
+        "auto_advance": "Auto-Advance on Timeout",
+        "auto_advance_desc": "When the timer expires: auto-flip if question is showing, or grade 'Again' if answer is showing",
         "data_management": "Data Management",
         "import_anki_desc": "Import your Anki decks (.apkg files) including cards, media, and scheduling data.",
         "role_placeholder": "e.g. Medical Student",

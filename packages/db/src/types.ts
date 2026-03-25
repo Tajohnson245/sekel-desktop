@@ -201,6 +201,18 @@ export interface TopForgottenCard {
     frontPreview?: string | null;
 }
 
+export interface TimeByRatingItem {
+    rating: Rating;
+    averageMs: number;
+    count: number;
+}
+
+export interface SlowestCard {
+    cardId: string;
+    durationMs: number;
+    frontPreview: string | null;
+}
+
 export interface SessionAnalytics {
     retentionTrend: RetentionTrendPoint[];
     ratingDistribution: RatingDistributionItem[];
@@ -209,6 +221,11 @@ export interface SessionAnalytics {
         lapseRate: number;
         totalReviews: number;
         topForgottenCards: TopForgottenCard[];
+    };
+    timeStats?: {
+        averageTimeMs: number;
+        timeByRating: TimeByRatingItem[];
+        slowestCards: SlowestCard[];
     };
 }
 
@@ -249,6 +266,9 @@ export interface UserProfile {
     background_url: string | null;
     daily_new_limit: number;
     daily_review_limit: number;
+    max_answer_seconds: number;
+    show_timer: boolean;
+    auto_advance_on_timeout: boolean;
     created_at: string;
     updated_at: string;
 }

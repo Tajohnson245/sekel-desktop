@@ -613,9 +613,9 @@ export function fetchSessionAnalytics(sessionId: string): SessionAnalytics | nul
     const session = db.prepare('SELECT status FROM deck_sessions WHERE id = ?').get(sessionId) as SessionRow | undefined;
     if (!session || session.status !== 'completed') return null;
 
-    type ReviewRow = { id: string; card_id: string; rating: string; review_index: number | null };
+    type ReviewRow = { id: string; card_id: string; rating: string; review_index: number | null; review_duration_ms: number | null };
     const reviews = db.prepare(`
-        SELECT id, card_id, rating, review_index FROM reviews
+        SELECT id, card_id, rating, review_index, review_duration_ms FROM reviews
         WHERE session_id = ?
         ORDER BY review_index ASC
     `).all(sessionId) as ReviewRow[];
@@ -673,6 +673,55 @@ export function fetchSessionAnalytics(sessionId: string): SessionAnalytics | nul
         return item;
     });
 
+    // Time stats (only if any reviews have duration data)
+    const reviewsWithTime = reviews.filter(r => r.review_duration_ms != null);
+    const timeStats = reviewsWithTime.length > 0 ? (() => {
+        const totalMs = reviewsWithTime.reduce((sum, r) => sum + r.review_duration_ms!, 0);
+        const averageTimeMs = Math.round(totalMs / reviewsWithTime.length);
+
+        const timeByRatingMap = new Map<string, { totalMs: number; count: number }>();
+        for (const r of reviewsWithTime) {
+            const entry = timeByRatingMap.get(r.rating) ?? { totalMs: 0, count: 0 };
+            entry.totalMs += r.review_duration_ms!;
+            entry.count++;
+            timeByRatingMap.set(r.rating, entry);
+        }
+        const timeByRating = ratingOrder
+            .filter(rating => timeByRatingMap.has(rating))
+            .map(rating => {
+                const entry = timeByRatingMap.get(rating)!;
+                return { rating, averageMs: Math.round(entry.totalMs / entry.count), count: entry.count };
+            });
+
+        // Top 5 slowest cards by duration
+        const cardMaxTime = new Map<string, number>();
+        for (const r of reviewsWithTime) {
+            const prev = cardMaxTime.get(r.card_id) ?? 0;
+            if (r.review_duration_ms! > prev) cardMaxTime.set(r.card_id, r.review_duration_ms!);
+        }
+        const slowestCardIds = [...cardMaxTime.entries()]
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5);
+
+        const slowestCards = slowestCardIds.map(([cardId, durationMs]) => {
+            let frontPreview: string | null = null;
+            type CardNoteRow = { note_fields: string };
+            const row = db.prepare(`
+                SELECT n.fields AS note_fields
+                FROM cards c JOIN notes n ON c.note_id = n.id
+                WHERE c.id = ?
+            `).get(cardId) as CardNoteRow | undefined;
+            if (row) {
+                const fields = j<Record<string, string>>(row.note_fields);
+                const preview = fields.Front ?? fields.front ?? Object.values(fields)[0] ?? '';
+                frontPreview = String(preview).replace(/\s+/g, ' ').trim().slice(0, 60);
+            }
+            return { cardId, durationMs, frontPreview };
+        });
+
+        return { averageTimeMs, timeByRating, slowestCards };
+    })() : undefined;
+
     return {
         retentionTrend,
         ratingDistribution,
@@ -682,6 +731,7 @@ export function fetchSessionAnalytics(sessionId: string): SessionAnalytics | nul
             totalReviews,
             topForgottenCards,
         },
+        timeStats,
     };
 }
 
