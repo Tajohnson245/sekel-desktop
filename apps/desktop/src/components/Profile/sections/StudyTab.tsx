@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '../../../stores/authStore';
 import { useProfileStore } from '../../../stores/profileStore';
-import { Bell, Plus, X } from 'lucide-react';
+import { Bell, Clock, Plus, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button, useToast, ToggleSwitch } from '../../UI';
 import { useDecks, useUpdateDeck } from '../../../hooks/useDecks';
@@ -30,6 +30,12 @@ export function StudyTab() {
     const [fsrsEnabledDeckIds, setFsrsEnabledDeckIds] = useState<Set<string>>(new Set());
     const [fsrsSaving, setFsrsSaving] = useState(false);
 
+    // Time Travel state
+    const [ttDaysBack, setTtDaysBack] = useState(7);
+    const [ttPreview, setTtPreview] = useState<{ overdueCount: number; windowDays: number; dailyTarget: number; distribution: { date: string; count: number }[] } | null>(null);
+    const [ttLoading, setTtLoading] = useState(false);
+    const [ttExecuting, setTtExecuting] = useState(false);
+
     useEffect(() => {
         if (decks.length > 0) {
             const enabledIds = new Set(
@@ -46,6 +52,32 @@ export function StudyTab() {
             else next.add(deckId);
             return next;
         });
+    };
+
+    const handleTimeTravelCheck = async () => {
+        setTtLoading(true);
+        setTtPreview(null);
+        try {
+            const preview = await window.electronAPI.db.timeTravelPreview(ttDaysBack);
+            setTtPreview(preview);
+        } catch (_error) {
+            showToast(t('time_travel.error'), 'error');
+        } finally {
+            setTtLoading(false);
+        }
+    };
+
+    const handleTimeTravelExecute = async () => {
+        setTtExecuting(true);
+        try {
+            await window.electronAPI.db.timeTravelExecute(ttDaysBack);
+            showToast(t('time_travel.success'), 'success');
+            setTtPreview(null);
+        } catch (_error) {
+            showToast(t('time_travel.error'), 'error');
+        } finally {
+            setTtExecuting(false);
+        }
     };
 
     const handleSaveFSRS = async () => {
@@ -320,6 +352,90 @@ export function StudyTab() {
                             </div>
                         )}
                     </div>
+                </div>
+
+                {/* Time Travel */}
+                <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
+                    <label className="field-label">
+                        <Clock size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+                        {t('time_travel.title')}
+                    </label>
+                    <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0.2rem 0 0.75rem' }}>
+                        {t('time_travel.description')}
+                    </p>
+
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '1rem' }}>
+                        <div>
+                            <label className="field-label" style={{ fontSize: '0.8rem', marginBottom: '0.25rem', display: 'block' }}>
+                                {t('time_travel.days_back')}
+                            </label>
+                            <input
+                                type="number"
+                                min={1}
+                                max={7}
+                                className="field-input"
+                                value={ttDaysBack}
+                                onChange={(e) => {
+                                    setTtDaysBack(Math.max(1, Math.min(7, Number(e.target.value))));
+                                    setTtPreview(null);
+                                }}
+                                style={{ width: '60px' }}
+                            />
+                        </div>
+                        <Button
+                            variant="secondary"
+                            onClick={handleTimeTravelCheck}
+                            isLoading={ttLoading}
+                            disabled={ttLoading}
+                        >
+                            {t('time_travel.check')}
+                        </Button>
+                    </div>
+
+                    {ttPreview && (
+                        <div style={{
+                            marginTop: '1rem',
+                            padding: '1rem',
+                            border: '1px solid var(--border)',
+                            borderRadius: 'var(--radius, 8px)',
+                            background: 'var(--bg-secondary)',
+                        }}>
+                            {ttPreview.overdueCount === 0 ? (
+                                <p className="text-muted" style={{ margin: 0, fontSize: '0.85rem' }}>
+                                    {t('time_travel.no_overdue')}
+                                </p>
+                            ) : (
+                                <>
+                                    <p style={{ margin: '0 0 0.25rem', fontWeight: 600 }}>
+                                        {t('time_travel.overdue_found', { count: ttPreview.overdueCount })}
+                                    </p>
+                                    <p className="text-muted" style={{ margin: '0 0 0.75rem', fontSize: '0.85rem' }}>
+                                        {t('time_travel.spread_across', {
+                                            days: ttPreview.windowDays,
+                                            perDay: Math.ceil(ttPreview.overdueCount / ttPreview.windowDays),
+                                        })}
+                                    </p>
+
+                                    <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1rem', fontSize: '0.85rem' }}>
+                                        {ttPreview.distribution.map((d) => (
+                                            <li key={d.date} style={{ padding: '0.2rem 0', color: 'var(--text-secondary)' }}>
+                                                {t('time_travel.date_count', { date: d.date, count: d.count })}
+                                            </li>
+                                        ))}
+                                    </ul>
+
+                                    <Button
+                                        variant="primary"
+                                        onClick={handleTimeTravelExecute}
+                                        isLoading={ttExecuting}
+                                        disabled={ttExecuting}
+                                    >
+                                        {t('time_travel.redistribute')}
+                                    </Button>
+                                </>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
         </section>

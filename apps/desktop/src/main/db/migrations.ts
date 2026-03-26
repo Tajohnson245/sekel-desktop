@@ -189,4 +189,14 @@ export const MIGRATIONS: string[] = [
     ALTER TABLE cards      ADD COLUMN anki_meta TEXT;
     ALTER TABLE decks      ADD COLUMN anki_meta TEXT;
     `,
+    // Migration 010 — time_travel_log for tracking redistribution events
+    `
+    CREATE TABLE IF NOT EXISTS time_travel_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        triggered_at TEXT NOT NULL,
+        overdue_count INTEGER NOT NULL,
+        window_days INTEGER NOT NULL,
+        daily_target INTEGER NOT NULL
+    );
+    `,
 ];

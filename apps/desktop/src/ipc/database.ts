@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import * as dbService from '../main/db/service';
+import * as timeTravel from '../main/db/timeTravel';
 import { exportDeckAsApkg, getExportableCardCount } from '../main/export/index';
 
 export function setupDatabaseHandlers(): void {
@@ -150,4 +151,11 @@ export function setupDatabaseHandlers(): void {
 
         return `sekel-media://${encodeURIComponent(userId)}/${encodeURIComponent(filename)}`;
     });
+
+    // ── Time Travel ─────────────────────────────────────────────────────────
+    ipcMain.handle('db:timeTravelPreview', (_e, daysBack: number) =>
+        timeTravel.timeTravelPreview(daysBack));
+
+    ipcMain.handle('db:timeTravelExecute', (_e, daysBack: number) =>
+        timeTravel.timeTravelExecute(daysBack));
 }

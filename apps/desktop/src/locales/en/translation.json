@@ -465,8 +465,18 @@
         "area_deck_management": "Deck Management",
         "area_import_export": "Import/Export",
         "area_settings": "Settings",
+        "area_ai_card_generation": "AI Card Generation",
+        "area_fsrs_scheduling": "FSRS Scheduling",
+        "area_time_travel": "Time Travel",
         "area_performance": "Performance",
         "area_other": "Other",
+        "os_label": "What operating system are you using?",
+        "os_windows": "Windows",
+        "os_macos": "macOS",
+        "os_linux": "Linux",
+        "mac_chip_label": "What chip does your Mac use?",
+        "mac_chip_intel": "Intel",
+        "mac_chip_apple_silicon": "Apple Silicon",
         "describe_problem": "Describe the problem",
         "describe_placeholder": "Tell us what went wrong or what's not working as expected...",
         "screenshot_optional": "Screenshot (optional)",
@@ -492,5 +502,18 @@
         "button_cancel": "Cancel",
         "success": "Deck exported successfully",
         "error": "Export failed"
+    },
+    "time_travel": {
+        "title": "Time Travel",
+        "description": "Redistribute overdue review cards across upcoming days instead of facing them all at once.",
+        "days_back": "Days back",
+        "check": "Check Overdue Cards",
+        "no_overdue": "No overdue cards found for this time range.",
+        "overdue_found": "{{count}} overdue cards found",
+        "spread_across": "Will be spread across {{days}} days (~{{perDay}} cards/day)",
+        "date_count": "{{date}}: {{count}} cards",
+        "redistribute": "Redistribute Cards",
+        "success": "Cards redistributed successfully!",
+        "error": "Failed to redistribute cards. Please try again."
     }
 }

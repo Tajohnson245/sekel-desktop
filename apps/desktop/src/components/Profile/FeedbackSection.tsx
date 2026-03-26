@@ -11,6 +11,9 @@ const FEEDBACK_AREAS = [
     'Card Editor',
     'Deck Management',
     'Import/Export',
+    'AI Card Generation',
+    'FSRS Scheduling',
+    'Time Travel',
     'Settings',
     'Performance',
     'Other',
@@ -31,6 +34,8 @@ export const FeedbackSection: React.FC = () => {
     const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
     const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
+    const [os, setOs] = useState<string>('');
+    const [macChip, setMacChip] = useState<string>('');
 
     const toggleArea = (area: string) => {
         setAreas(prev =>
@@ -69,6 +74,8 @@ export const FeedbackSection: React.FC = () => {
         setAreas([]);
         setDescription('');
         setDesiredFix('');
+        setOs('');
+        setMacChip('');
         removeScreenshot();
     };
 
@@ -110,6 +117,8 @@ export const FeedbackSection: React.FC = () => {
                 description: description.trim(),
                 screenshot_url: screenshotUrl,
                 desired_fix: desiredFix.trim() || null,
+                os: os || null,
+                mac_chip: os === 'macOS' ? (macChip || null) : null,
             });
 
             showToast(t('feedback.submitted'), 'success');
@@ -187,6 +196,43 @@ export const FeedbackSection: React.FC = () => {
                                 </label>
                             ))}
                         </div>
+                    </div>
+
+                    {/* OS selection */}
+                    <div>
+                        <label className="field-label">{t('feedback.os_label')}</label>
+                        <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                            {(['Windows', 'macOS', 'Linux'] as const).map(option => (
+                                <label key={option} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}>
+                                    <input
+                                        type="radio"
+                                        name="os"
+                                        checked={os === option}
+                                        onChange={() => { setOs(option); if (option !== 'macOS') setMacChip(''); }}
+                                    />
+                                    <span>{t(`feedback.os_${option.toLowerCase().replace('macos', 'macos')}`)}</span>
+                                </label>
+                            ))}
+                        </div>
+
+                        {os === 'macOS' && (
+                            <div style={{ marginTop: '0.75rem' }}>
+                                <label className="field-label" style={{ fontSize: '0.85rem' }}>{t('feedback.mac_chip_label')}</label>
+                                <div style={{ display: 'flex', gap: '1rem', marginTop: '0.4rem' }}>
+                                    {(['Intel', 'Apple Silicon'] as const).map(chip => (
+                                        <label key={chip} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', cursor: 'pointer' }}>
+                                            <input
+                                                type="radio"
+                                                name="mac_chip"
+                                                checked={macChip === chip}
+                                                onChange={() => setMacChip(chip)}
+                                            />
+                                            <span>{t(`feedback.mac_chip_${chip === 'Intel' ? 'intel' : 'apple_silicon'}`)}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Description textarea */}
