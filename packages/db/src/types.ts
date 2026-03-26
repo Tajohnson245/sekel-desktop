@@ -289,7 +289,7 @@ export interface UserProfile {
     language: string;
     avatar_url: string | null;
     location: string | null;
-    theme_preference: 'light' | 'dark' | 'system';
+    theme_preference: 'light' | 'dark' | 'system' | 'red' | 'purple' | 'pink' | 'turquoise';
     flip_animation: boolean;
     card_style: boolean;
     notifications_enabled: boolean;

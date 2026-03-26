@@ -66,7 +66,7 @@ export function CardCountsPieChart({ data }: CardCountsPieChartProps) {
                                 `${value} (${total > 0 ? Math.round((value / total) * 100) : 0}%)`,
                                 name,
                             ]}
-                            contentStyle={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border)' }}
+                            contentStyle={{ backgroundColor: 'var(--fog)', color: 'var(--ink)', border: '1px solid var(--border)' }}
                         />
                     </PieChart>
                 </ResponsiveContainer>

@@ -62,6 +62,7 @@
     --danger:       var(--rose);
     --radius:       var(--r-sm);
     --radius-lg:    var(--r-md);
+    --card-gradient-end: #1a1f2e;
 }
 
 :root.light {
@@ -76,6 +77,94 @@
     --paper:     #111827;
     /* Compat overrides for light mode */
     --success: #16a34a;
+    --card-gradient-end: #d1d5e0;
+}
+
+/* ── Color Waves ─────────────────────────────────────────────── */
+/* Full application themes — each defines surfaces, text, accents */
+
+:root.red {
+    --ink:       #1A0F0F;
+    --ink-soft:  #2A1518;
+    --ink-muted: #3D2225;
+    --slate:     #6B4549;
+    --mist:      #A87880;
+    --fog:       #D4B5BA;
+    --cloud:     #F0DDE0;
+    --paper:     #F8EDEF;
+    --white:     #FFFFFF;
+    --teal:        #E05252;
+    --teal-soft:   rgba(224, 82, 82, 0.10);
+    --teal-border: rgba(224, 82, 82, 0.25);
+    --teal-glow:   0 4px 20px rgba(224, 82, 82, 0.25);
+    --primary:      #E05252;
+    --primary-hover: #c94545;
+    --primary-light: rgba(224, 82, 82, 0.10);
+    --success:      #22c55e;
+    --card-gradient-end: #2A1518;
+}
+
+:root.purple {
+    --ink:       #110F1A;
+    --ink-soft:  #1C1830;
+    --ink-muted: #2E2848;
+    --slate:     #554D75;
+    --mist:      #8B82B0;
+    --fog:       #C0B9D8;
+    --cloud:     #E2DEF0;
+    --paper:     #EFECF8;
+    --white:     #FFFFFF;
+    --teal:        #8B5CF6;
+    --teal-soft:   rgba(139, 92, 246, 0.10);
+    --teal-border: rgba(139, 92, 246, 0.25);
+    --teal-glow:   0 4px 20px rgba(139, 92, 246, 0.25);
+    --primary:      #8B5CF6;
+    --primary-hover: #7c3aed;
+    --primary-light: rgba(139, 92, 246, 0.10);
+    --success:      #22c55e;
+    --card-gradient-end: #1C1830;
+}
+
+:root.pink {
+    --ink:       #1A0F15;
+    --ink-soft:  #2A1524;
+    --ink-muted: #3D2237;
+    --slate:     #6B4562;
+    --mist:      #A87898;
+    --fog:       #D4B5C8;
+    --cloud:     #F0DDE9;
+    --paper:     #F8EDF3;
+    --white:     #FFFFFF;
+    --teal:        #EC4899;
+    --teal-soft:   rgba(236, 72, 153, 0.10);
+    --teal-border: rgba(236, 72, 153, 0.25);
+    --teal-glow:   0 4px 20px rgba(236, 72, 153, 0.25);
+    --primary:      #EC4899;
+    --primary-hover: #db2777;
+    --primary-light: rgba(236, 72, 153, 0.10);
+    --success:      #22c55e;
+    --card-gradient-end: #2A1524;
+}
+
+:root.turquoise {
+    --ink:       #0B1517;
+    --ink-soft:  #132225;
+    --ink-muted: #1E3338;
+    --slate:     #3D6068;
+    --mist:      #6F9DA6;
+    --fog:       #ADD0D8;
+    --cloud:     #DAF0F4;
+    --paper:     #ECF8FA;
+    --white:     #FFFFFF;
+    --teal:        #06B6D4;
+    --teal-soft:   rgba(6, 182, 212, 0.10);
+    --teal-border: rgba(6, 182, 212, 0.25);
+    --teal-glow:   0 4px 20px rgba(6, 182, 212, 0.25);
+    --primary:      #06B6D4;
+    --primary-hover: #0891b2;
+    --primary-light: rgba(6, 182, 212, 0.10);
+    --success:      #22c55e;
+    --card-gradient-end: #132225;
 }
 
 * {
