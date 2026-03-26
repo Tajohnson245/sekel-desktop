@@ -1,6 +1,7 @@
-import { app, BrowserWindow, protocol, net } from 'electron';
+import { app, BrowserWindow, protocol } from 'electron';
 import Store from 'electron-store';
 import path from 'node:path';
+import fs from 'node:fs';
 import { createMenu } from './menu';
 import { initDatabase } from './main/db/index';
 import { setupAIHandlers } from './ipc/ai';
@@ -15,7 +16,7 @@ import { fetchMediaByFilename } from './main/db/service';
 // Register sekel-media:// as a privileged scheme before app is ready.
 // This must be called synchronously before app.whenReady().
 protocol.registerSchemesAsPrivileged([
-    { scheme: 'sekel-media', privileges: { secure: true, supportFetchAPI: true, corsEnabled: true } },
+    { scheme: 'sekel-media', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } },
 ]);
 
 import { updateElectronApp } from 'update-electron-app';
@@ -76,9 +77,20 @@ app.whenReady().then(() => {
             if (!record) {
                 return new Response(null, { status: 404 });
             }
-            // Convert Windows backslashes to forward slashes for file:// URL
-            const fileUrl = 'file:///' + record.file_path.replace(/\\/g, '/');
-            return net.fetch(fileUrl);
+            // Read file directly and return with proper headers
+            const filePath = record.file_path;
+            const fileBuffer = fs.readFileSync(filePath);
+            const ext = path.extname(filePath).toLowerCase();
+            const mimeMap: Record<string, string> = {
+                '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png',
+                '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml',
+                '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.ogg': 'audio/ogg',
+            };
+            const contentType = mimeMap[ext] || 'application/octet-stream';
+            return new Response(fileBuffer, {
+                status: 200,
+                headers: { 'Content-Type': contentType, 'Content-Length': String(fileBuffer.byteLength) },
+            });
         } catch (err) {
             console.warn('[sekel-media] failed to serve:', request.url, err);
             return new Response(null, { status: 500 });

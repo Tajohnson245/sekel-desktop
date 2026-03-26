@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCreateNote, useUpdateNote } from '../../hooks/useNotes';
 import { Button, Modal, RichTextEditor } from '../UI';
+import { resolveMediaInHtml } from '../../lib/mediaResolver';
 import type { JoinedNote } from '@sekel/db';
 
 interface NoteEditorProps {
@@ -19,8 +20,9 @@ export default function NoteEditor({ deckId, userId, noteTypeId, onClose, editin
     const isOcclusion = !!(editingNote?.fields.Image && editingNote?.fields.Rectangles);
 
     // Initialize state with editingNote values if present, otherwise empty
-    const [front, setFront] = useState(editingNote?.fields.Front || '');
-    const [back, setBack] = useState(editingNote?.fields.Back || '');
+    // Resolve bare media filenames (from Anki imports) to sekel-media:// URLs
+    const [front, setFront] = useState(editingNote ? resolveMediaInHtml(editingNote.fields.Front || '', userId) : '');
+    const [back, setBack] = useState(editingNote ? resolveMediaInHtml(editingNote.fields.Back || '', userId) : '');
     const [error, setError] = useState<string | null>(null);
 
     // Detect cloze content reactively from front field
@@ -41,13 +43,13 @@ export default function NoteEditor({ deckId, userId, noteTypeId, onClose, editin
     // Update state if editingNote changes prop (e.g. if modal is reused)
     useEffect(() => {
         if (editingNote) {
-            setFront(editingNote.fields.Front || '');
-            setBack(editingNote.fields.Back || '');
+            setFront(resolveMediaInHtml(editingNote.fields.Front || '', userId));
+            setBack(resolveMediaInHtml(editingNote.fields.Back || '', userId));
         } else {
             setFront('');
             setBack('');
         }
-    }, [editingNote]);
+    }, [editingNote, userId]);
 
     const createNote = useCreateNote();
     const updateNote = useUpdateNote();
