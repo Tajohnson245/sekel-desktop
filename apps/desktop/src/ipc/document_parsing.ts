@@ -11,9 +11,29 @@ import mammoth from 'mammoth';
 import * as XLSX from 'xlsx';
 import { XMLParser } from 'fast-xml-parser';
 import JSZip from 'jszip';
-import { YoutubeTranscript } from 'youtube-transcript';
+import {
+    YoutubeTranscript,
+    YoutubeTranscriptError,
+    YoutubeTranscriptDisabledError,
+    YoutubeTranscriptVideoUnavailableError,
+    YoutubeTranscriptTooManyRequestError,
+    YoutubeTranscriptNotAvailableError,
+    YoutubeTranscriptNotAvailableLanguageError,
+} from 'youtube-transcript';
 const pdfParse = require('pdf-parse');
 import { stripMarkdown } from '../lib/stringUtils';
+
+// YouTube guardrails
+const YOUTUBE_MAX_DURATION_SECONDS = 7200;          // 2 hours
+const YOUTUBE_MAX_TRANSCRIPT_CHARS = 50_000;        // ~12,500 words
+const YOUTUBE_ALLOWED_PARAMS = new Set(['v', 'si', 't', 'list']);
+
+class YoutubeValidationError extends Error {
+    constructor(public errorCode: string, message: string) {
+        super(message);
+        this.name = 'YoutubeValidationError';
+    }
+}
 
 // Lazy-initialize OpenAI client (avoids crash on startup when key is absent)
 let _openai: OpenAI | null = null;
@@ -91,6 +111,11 @@ export const setupDocumentHandlers = () => {
 
         } catch (error) {
             console.error(`Error parsing ${file.name}:`, error);
+            if (error instanceof YoutubeValidationError) {
+                // Encode errorCode in the message so it survives Electron IPC serialization
+                // Format: [YOUTUBE_ERROR:code] message
+                throw new Error(`[YOUTUBE_ERROR:${error.errorCode}] ${error.message}`);
+            }
             throw error;
         }
     });
@@ -234,29 +259,124 @@ export async function summarizeDocumentContent(filename: string, content: string
     return stripMarkdown(rawContent);
 }
 
-async function parseYoutubeVideo(url: string): Promise<{ title: string, text: string }> {
-    // 1. Fetch Title (basic scrape)
-    let title = "YouTube Video";
+function validateAndCanonicalizeYoutubeUrl(rawUrl: string): string {
+    let urlStr = rawUrl.trim();
+    if (!/^https?:\/\//i.test(urlStr)) {
+        urlStr = `https://${urlStr}`;
+    }
+
+    let parsed: URL;
     try {
-        const response = await fetch(url);
+        parsed = new URL(urlStr);
+    } catch {
+        throw new YoutubeValidationError('invalid_url', 'Could not parse YouTube URL.');
+    }
+
+    const hostname = parsed.hostname.toLowerCase().replace(/^www\./, '');
+    const trusted = ['youtube.com', 'm.youtube.com', 'youtu.be'];
+    if (!trusted.includes(hostname)) {
+        throw new YoutubeValidationError('invalid_domain', `Untrusted domain: ${parsed.hostname}`);
+    }
+
+    // Extract video ID
+    let videoId: string | null = null;
+    if (hostname === 'youtu.be') {
+        videoId = parsed.pathname.slice(1).split('/')[0] || null;
+    } else {
+        videoId = parsed.searchParams.get('v');
+        if (!videoId) {
+            const pathMatch = parsed.pathname.match(/^\/(?:embed|v|shorts)\/([^/]+)/);
+            if (pathMatch) videoId = pathMatch[1];
+        }
+    }
+
+    if (!videoId || !/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
+        throw new YoutubeValidationError('invalid_video_id', 'Could not extract a valid video ID.');
+    }
+
+    // Check for unexpected query params
+    for (const key of parsed.searchParams.keys()) {
+        if (!YOUTUBE_ALLOWED_PARAMS.has(key)) {
+            throw new YoutubeValidationError('suspicious_params', `Unexpected query parameter: ${key}`);
+        }
+    }
+
+    return `https://www.youtube.com/watch?v=${videoId}`;
+}
+
+function mapYoutubeTranscriptError(e: unknown): YoutubeValidationError {
+    if (e instanceof YoutubeTranscriptDisabledError) {
+        return new YoutubeValidationError('transcript_disabled', 'Captions are disabled for this video.');
+    }
+    if (e instanceof YoutubeTranscriptVideoUnavailableError) {
+        return new YoutubeValidationError('video_unavailable', 'This video is unavailable.');
+    }
+    if (e instanceof YoutubeTranscriptTooManyRequestError) {
+        return new YoutubeValidationError('rate_limited', 'YouTube is rate-limiting requests.');
+    }
+    if (e instanceof YoutubeTranscriptNotAvailableLanguageError) {
+        return new YoutubeValidationError('language_not_available', 'Transcript not available in this language.');
+    }
+    if (e instanceof YoutubeTranscriptNotAvailableError) {
+        return new YoutubeValidationError('transcript_not_available', 'No transcript available for this video.');
+    }
+    if (e instanceof YoutubeTranscriptError) {
+        return new YoutubeValidationError('transcript_not_available', e.message);
+    }
+    return new YoutubeValidationError('network_error', 'Failed to connect to YouTube.');
+}
+
+async function fetchVideoTitle(canonicalUrl: string): Promise<string> {
+    try {
+        const response = await fetch(canonicalUrl);
         const html = await response.text();
         const titleMatch = html.match(/<title>(.*?)<\/title>/);
         if (titleMatch) {
-            title = titleMatch[1].replace(' - YouTube', '');
+            return titleMatch[1].replace(' - YouTube', '');
         }
     } catch (e) {
         console.warn("Failed to fetch video title", e);
     }
+    return "YouTube Video";
+}
 
-    // 2. Fetch Transcript
+async function parseYoutubeVideo(rawUrl: string): Promise<{ title: string, text: string }> {
+    // 1. Validate & canonicalize — never pass raw input downstream
+    const canonicalUrl = validateAndCanonicalizeYoutubeUrl(rawUrl);
+
+    // 2. Fetch transcript (using canonical URL)
+    let transcriptItems;
     try {
-        const transcriptItems = await YoutubeTranscript.fetchTranscript(url);
-        const text = transcriptItems.map(item => item.text).join(' ');
-        return { title, text };
+        transcriptItems = await YoutubeTranscript.fetchTranscript(canonicalUrl);
     } catch (e) {
-        console.error("Transcript fetch error:", e);
-        throw new Error(`Failed to fetch transcript. The video might not have captions.`);
+        throw mapYoutubeTranscriptError(e);
     }
+
+    // 3. Check video duration from transcript metadata
+    if (transcriptItems.length > 0) {
+        const lastItem = transcriptItems[transcriptItems.length - 1];
+        const totalDuration = lastItem.offset + lastItem.duration;
+        if (totalDuration > YOUTUBE_MAX_DURATION_SECONDS) {
+            throw new YoutubeValidationError(
+                'video_too_long',
+                `Video is ${Math.round(totalDuration / 60)} minutes. Maximum is ${YOUTUBE_MAX_DURATION_SECONDS / 60} minutes.`
+            );
+        }
+    }
+
+    // 4. Join text & enforce transcript length cap
+    let text = transcriptItems.map(item => item.text).join(' ');
+    if (text.length > YOUTUBE_MAX_TRANSCRIPT_CHARS) {
+        console.warn(`Transcript truncated from ${text.length} to ${YOUTUBE_MAX_TRANSCRIPT_CHARS} chars`);
+        text = text.substring(0, YOUTUBE_MAX_TRANSCRIPT_CHARS);
+    }
+
+    // 5. Fetch title (using canonical URL)
+    const title = await fetchVideoTitle(canonicalUrl);
+
+    // TODO: Content category soft-warning — requires YouTube Data API key for category lookup
+
+    return { title, text };
 }
 
 // Generate a structured overview across all parsed documents (Stage 1)

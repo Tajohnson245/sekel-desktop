@@ -1,7 +1,7 @@
 import { useState, useRef, ReactNode } from 'react';
 import { Upload } from 'lucide-react';
 import { Trans, useTranslation } from 'react-i18next';
-import { Button, Input } from '../UI';
+import { Button, Input, useToast } from '../UI';
 
 interface DocumentUploadProps {
     onTextExtracted?: (text: string) => void;
@@ -13,6 +13,7 @@ interface DocumentUploadProps {
 
 export default function DocumentUpload({ onFilesSelected, onUrlSelected, isProcessing = false, children }: DocumentUploadProps) {
     const { t } = useTranslation();
+    const { showToast } = useToast();
     const [isDragging, setIsDragging] = useState<boolean>(false);
     const [urlInput, setUrlInput] = useState('');
     const inputRef = useRef<HTMLInputElement>(null);
@@ -55,7 +56,7 @@ export default function DocumentUpload({ onFilesSelected, onUrlSelected, isProce
             onUrlSelected?.(urlInput);
             setUrlInput('');
         } else {
-            alert(t('errors.invalid_youtube_url'));
+            showToast(t('errors.invalid_youtube_url'), 'error');
         }
     };
 

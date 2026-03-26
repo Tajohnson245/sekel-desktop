@@ -133,12 +133,15 @@ export default function DocumentsPage({ userId, initialDeckId, onUnfinishedWorkC
                 content: result.content,
                 name: result.filename || f.name
             } : f));
-        } catch (_error) {
-            showToast(t('ai.error_video'), 'error');
+        } catch (error: unknown) {
+            const errorCode = (error as { errorCode?: string })?.errorCode;
+            const i18nKey = errorCode ? `errors.youtube_${errorCode}` : '';
+            const message = (i18nKey && t(i18nKey) !== i18nKey) ? t(i18nKey) : t('ai.error_video');
+            showToast(message, 'error');
             setFiles(prev => prev.map(f => f.id === newFile.id ? {
                 ...f,
                 status: 'error',
-                error: t('ai.error_video')
+                error: message
             } : f));
         }
     };
