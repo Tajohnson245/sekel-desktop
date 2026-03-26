@@ -11,3 +11,19 @@
 .image-upload-btn:hover {
     opacity: 1;
 }
+
+.image-upload-preview {
+    display: inline-flex;
+    align-items: center;
+}
+
+.preview-container {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.image-attached-icon {
+    opacity: 0.7;
+    color: var(--color-primary);
+}
