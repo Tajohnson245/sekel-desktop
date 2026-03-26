@@ -1,10 +1,23 @@
 import React, { useRef, useMemo, useCallback, useEffect } from 'react';
 import ReactQuill from 'react-quill-new';
+import Quill from 'quill';
 import 'react-quill-new/dist/quill.snow.css';
 import { useTranslation } from 'react-i18next';
 import { uploadImage } from '../../lib/storage';
 import { useToast } from './Toast';
 import './RichTextEditor.css';
+
+// Override Quill's Image format to allow sekel-media:// URLs.
+// By default Quill only permits http:, https:, and data: in <img src>.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const BaseImage = Quill.import('formats/image') as any;
+class SekelImage extends BaseImage {
+    static sanitize(url: string): string {
+        if (url?.startsWith('sekel-media://')) return url;
+        return BaseImage.sanitize(url);
+    }
+}
+Quill.register('formats/image', SekelImage, true);
 
 interface RichTextEditorProps {
     value: string;
