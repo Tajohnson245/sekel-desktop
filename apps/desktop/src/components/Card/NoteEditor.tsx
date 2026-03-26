@@ -23,6 +23,21 @@ export default function NoteEditor({ deckId, userId, noteTypeId, onClose, editin
     const [back, setBack] = useState(editingNote?.fields.Back || '');
     const [error, setError] = useState<string | null>(null);
 
+    // Detect cloze content reactively from front field
+    const isCloze = /\{\{c\d+::(.+?)\}\}/.test(front);
+
+    // Extract cloze answers from Front and fill Back field
+    const fillBackFromCloze = () => {
+        const stripped = front.replace(/<[^>]*>/g, '');
+        const answers: string[] = [];
+        for (const m of stripped.matchAll(/\{\{c\d+::([^}]+)\}\}/g)) {
+            answers.push(m[1]);
+        }
+        if (answers.length > 0) {
+            setBack(answers.join(', '));
+        }
+    };
+
     // Update state if editingNote changes prop (e.g. if modal is reused)
     useEffect(() => {
         if (editingNote) {
@@ -55,16 +70,35 @@ export default function NoteEditor({ deckId, userId, noteTypeId, onClose, editin
                 return;
             }
 
-            if (isContentEmpty(back)) {
+            if (isContentEmpty(back) && !isCloze) {
                 setError(t('modals.error_back_required'));
                 return;
             }
         }
 
+        // Validate cloze syntax if present
+        if (isCloze) {
+            const stripped = front.replace(/<[^>]*>/g, '');
+            const opens = (stripped.match(/\{\{c\d+::/g) || []).length;
+            const closes = (stripped.match(/\}\}/g) || []).length;
+            if (opens !== closes) {
+                setError(t('editor.cloze_syntax_error'));
+                return;
+            }
+        }
+
+        // Auto-fill Back from cloze answer when Back is empty
+        let finalBack = back;
+        if (isCloze && isContentEmpty(back)) {
+            const stripped = front.replace(/<[^>]*>/g, '');
+            const match = stripped.match(/\{\{c1::([^}]+)\}\}/);
+            if (match) finalBack = match[1];
+        }
+
         try {
             if (editingNote) {
                 // Update existing note — preserve occlusion fields if present
-                const updatedFields: Record<string, string> = { Front: front, Back: back };
+                const updatedFields: Record<string, string> = { Front: front, Back: finalBack };
                 if (isOcclusion) {
                     updatedFields.Image = editingNote.fields.Image;
                     updatedFields.Rectangles = editingNote.fields.Rectangles;
@@ -83,7 +117,7 @@ export default function NoteEditor({ deckId, userId, noteTypeId, onClose, editin
                         user_id: userId,
                         deck_id: deckId,
                         note_type_id: noteTypeId,
-                        fields: { Front: front, Back: back },
+                        fields: { Front: front, Back: finalBack },
                         tags: [],
                     },
                     templateCount: 1,
@@ -219,6 +253,11 @@ export default function NoteEditor({ deckId, userId, noteTypeId, onClose, editin
                         <div className="form-group" style={{ marginBottom: '1.5rem' }}>
                             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
                                 {t('modals.front')}
+                                {isCloze && (
+                                    <span style={{ marginLeft: '0.5rem', fontSize: '0.75rem', color: 'var(--primary)', fontWeight: 400 }}>
+                                        {t('editor.cloze_mode')}
+                                    </span>
+                                )}
                             </label>
                             <RichTextEditor
                                 value={front}
@@ -226,12 +265,33 @@ export default function NoteEditor({ deckId, userId, noteTypeId, onClose, editin
                                 placeholder={t('modals.front_placeholder')}
                                 userId={userId}
                                 id="card-front"
+                                cloze
                             />
                         </div>
 
                         <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
+                            <label style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem', fontWeight: 500 }}>
                                 {t('modals.back')}
+                                {isCloze && (
+                                    <button
+                                        type="button"
+                                        onClick={fillBackFromCloze}
+                                        style={{
+                                            marginLeft: 'auto',
+                                            background: 'none',
+                                            border: 'none',
+                                            padding: 0,
+                                            fontSize: '0.75rem',
+                                            color: 'var(--primary)',
+                                            cursor: 'pointer',
+                                            fontWeight: 400,
+                                            textDecoration: 'underline',
+                                            textUnderlineOffset: '2px',
+                                        }}
+                                    >
+                                        {t('editor.fill_from_cloze')}
+                                    </button>
+                                )}
                             </label>
                             <RichTextEditor
                                 value={back}
