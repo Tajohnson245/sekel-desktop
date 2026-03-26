@@ -31,6 +31,14 @@ export async function parseYoutube(url: string, language?: string): Promise<{ fi
             language: language
         });
     } catch (error) {
+        // Extract errorCode from serialized IPC error message: [YOUTUBE_ERROR:code] message
+        const msg = error instanceof Error ? error.message : String(error);
+        const match = msg.match(/\[YOUTUBE_ERROR:(\w+)\]\s*(.*)/);
+        if (match) {
+            const parsed = new Error(match[2]);
+            (parsed as Error & { errorCode: string }).errorCode = match[1];
+            throw parsed;
+        }
         console.error(`Failed to parse YouTube URL ${url}:`, error);
         throw error;
     }
