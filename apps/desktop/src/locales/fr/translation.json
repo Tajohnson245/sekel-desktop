@@ -423,6 +423,13 @@
         "atLeastOne": "Sélectionnez au moins un paquet à importer.",
         "warnings": "{{count}} avertissement(s)"
     },
+    "editor": {
+        "cloze_tooltip": "Texte à trous (Ctrl+Maj+C)",
+        "cloze_select_text": "Sélectionnez du texte pour créer un texte à trous",
+        "cloze_mode": "Trous",
+        "cloze_syntax_error": "Syntaxe de texte à trous invalide — vérifiez les crochets {{c1::...}}",
+        "fill_from_cloze": "Remplir depuis le texte à trous"
+    },
     "errors": {
         "invalid_youtube_url": "Veuillez entrer une URL YouTube valide",
         "upload_image": "Échec du téléchargement de l'image",

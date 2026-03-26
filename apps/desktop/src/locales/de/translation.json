@@ -423,6 +423,13 @@
         "atLeastOne": "Wähle mindestens ein Deck zum Importieren aus.",
         "warnings": "{{count}} Warnung(en)"
     },
+    "editor": {
+        "cloze_tooltip": "Lückentext (Strg+Umschalt+C)",
+        "cloze_select_text": "Text auswählen, um einen Lückentext zu erstellen",
+        "cloze_mode": "Lückentext",
+        "cloze_syntax_error": "Lückentext-Syntax fehlerhaft — überprüfe die {{c1::...}}-Klammern",
+        "fill_from_cloze": "Aus Lückentext übernehmen"
+    },
     "errors": {
         "invalid_youtube_url": "Bitte gib eine gültige YouTube-URL ein",
         "upload_image": "Bild konnte nicht hochgeladen werden",

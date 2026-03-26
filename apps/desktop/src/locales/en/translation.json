@@ -435,6 +435,13 @@
         "atLeastOne": "Select at least one deck to import.",
         "warnings": "{{count}} warning(s)"
     },
+    "editor": {
+        "cloze_tooltip": "Cloze deletion (Ctrl+Shift+C)",
+        "cloze_select_text": "Select text to create a cloze deletion",
+        "cloze_mode": "Cloze",
+        "cloze_syntax_error": "Cloze syntax is malformed — check for unclosed {{c1::...}} brackets",
+        "fill_from_cloze": "Fill from cloze"
+    },
     "errors": {
         "invalid_youtube_url": "Please enter a valid YouTube URL",
         "upload_image": "Failed to upload image",

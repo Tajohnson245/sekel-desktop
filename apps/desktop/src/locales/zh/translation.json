@@ -423,6 +423,13 @@
         "atLeastOne": "请至少选择一个牌组进行导入。",
         "warnings": "{{count}} 条警告"
     },
+    "editor": {
+        "cloze_tooltip": "完形填空 (Ctrl+Shift+C)",
+        "cloze_select_text": "选择文本以创建完形填空",
+        "cloze_mode": "完形填空",
+        "cloze_syntax_error": "完形填空语法错误 — 请检查 {{c1::...}} 括号",
+        "fill_from_cloze": "从完形填空填充"
+    },
     "errors": {
         "invalid_youtube_url": "请输入有效的 YouTube 网址",
         "upload_image": "图片上传失败",

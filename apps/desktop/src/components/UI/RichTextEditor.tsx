@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useCallback } from 'react';
+import React, { useRef, useMemo, useCallback, useEffect } from 'react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { useTranslation } from 'react-i18next';
@@ -13,9 +13,30 @@ interface RichTextEditorProps {
     userId: string;
     id?: string;
     style?: React.CSSProperties;
+    cloze?: boolean;
 }
 
-export default function RichTextEditor({ value, onChange, placeholder, userId, id, style }: RichTextEditorProps) {
+/** Find the next cloze number (c1, c2, …) not yet used in the text */
+function getNextClozeNumber(text: string): number {
+    const used = new Set<number>();
+    for (const m of text.matchAll(/\{\{c(\d+)::/g)) used.add(Number(m[1]));
+    return used.size === 0 ? 1 : Math.max(...used) + 1;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function wrapSelectionInCloze(quill: any): boolean {
+    const range = quill.getSelection();
+    if (!range || range.length === 0) return false;
+    const selected = quill.getText(range.index, range.length);
+    const n = getNextClozeNumber(quill.getText());
+    quill.deleteText(range.index, range.length);
+    const replacement = `{{c${n}::${selected}}}`;
+    quill.insertText(range.index, replacement);
+    quill.setSelection(range.index + replacement.length, 0);
+    return true;
+}
+
+export default function RichTextEditor({ value, onChange, placeholder, userId, id, style, cloze }: RichTextEditorProps) {
     const quillRef = useRef<ReactQuill>(null);
     const { t } = useTranslation();
     const { showToast } = useToast();
@@ -44,16 +65,36 @@ export default function RichTextEditor({ value, onChange, placeholder, userId, i
         };
     }, [userId]);
 
+    // Cloze handler — wraps selected text in {{cN::…}}
+    const clozeHandler = useCallback(() => {
+        const quill = quillRef.current?.getEditor();
+        if (!quill) return;
+        if (!wrapSelectionInCloze(quill)) {
+            showToast(t('editor.cloze_select_text'), 'error');
+        }
+    }, [showToast, t]);
+
+    // Set tooltip on cloze button after mount
+    useEffect(() => {
+        if (!cloze) return;
+        const container = quillRef.current?.getEditor()?.container;
+        const toolbar = container?.previousElementSibling;
+        const btn = toolbar?.querySelector('.ql-cloze');
+        if (btn) btn.setAttribute('title', t('editor.cloze_tooltip'));
+    }, [cloze, t]);
+
     const modules = useMemo(() => ({
         toolbar: {
             container: [
                 ['bold', 'italic', 'underline', 'strike'],
                 [{ 'list': 'ordered' }, { 'list': 'bullet' }],
                 ['link', 'image'],
+                ...(cloze ? [['cloze']] : []),
                 ['clean']
             ],
             handlers: {
-                image: imageHandler
+                image: imageHandler,
+                ...(cloze ? { cloze: clozeHandler } : {}),
             }
         },
         clipboard: {
@@ -65,9 +106,6 @@ export default function RichTextEditor({ value, onChange, placeholder, userId, i
                 backspace: {
                     key: 8, // Backspace
                     handler: function (range: any) {
-                        // Check if the previous character is an image
-                        // This uses generic Quill types, so we use 'any' for the handler signature to avoid strict type errors for now
-                        // In a real app we'd define proper Quill types or extend them.
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         const quill = (this as any).quill;
                         if (range.index > 0) {
@@ -93,17 +131,23 @@ export default function RichTextEditor({ value, onChange, placeholder, userId, i
                         }
                         return true;
                     }
-                }
+                },
+                // Ctrl+Shift+C for cloze wrapping
+                ...(cloze ? {
+                    clozeShortcut: {
+                        key: 'C',
+                        shortKey: true,
+                        shiftKey: true,
+                        handler: function () {
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            wrapSelectionInCloze((this as any).quill);
+                            return false;
+                        }
+                    }
+                } : {})
             }
         }
-    }), [imageHandler]);
-
-    // Handle paste events to catch images from clipboard
-    // Note: react-quill doesn't expose a clean onPaste prop, so we could add a listener
-    // But for now, let's rely on standard browser behavior or adding a matcher if needed.
-    // Modern Quill handles image paste reasonably well as base64, but we want to upload them.
-    // A robust solution for paste interception usually requires a custom matcher or module overriding.
-    // For MVP, we stick to the toolbar handler. Enhancing paste is a "nice to have".
+    }), [imageHandler, cloze, clozeHandler]);
 
     return (
         <div className="rich-text-editor-container" id={id} style={style}>

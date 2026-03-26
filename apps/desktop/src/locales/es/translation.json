@@ -423,6 +423,13 @@
         "atLeastOne": "Selecciona al menos un mazo para importar.",
         "warnings": "{{count}} advertencia(s)"
     },
+    "editor": {
+        "cloze_tooltip": "Eliminación Cloze (Ctrl+Mayús+C)",
+        "cloze_select_text": "Seleccione texto para crear una eliminación cloze",
+        "cloze_mode": "Cloze",
+        "cloze_syntax_error": "Sintaxis cloze incorrecta — verifique los corchetes {{c1::...}}",
+        "fill_from_cloze": "Rellenar desde cloze"
+    },
     "errors": {
         "invalid_youtube_url": "Por favor ingresa una URL de YouTube válida",
         "upload_image": "Error al subir la imagen",
