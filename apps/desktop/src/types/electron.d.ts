@@ -8,6 +8,7 @@ import type {
     DraftCard, DraftCardInsert,
     InsertReviewParams, ReviewDayCount,
 } from '@sekel/db';
+import type { TimeTravelPreview, TimeTravelResult } from '../main/db/timeTravel';
 
 export type AnkiFormat = 'legacy2' | 'legacy1';
 
@@ -168,6 +169,9 @@ interface ElectronDB {
     getExportableCardCount: (deckId: string) => Promise<{ ankiCards: number; sekelCards: number }>;
     // Media
     saveMediaFile:         (params: { buffer: ArrayBuffer; filename: string; userId: string; mimeType: string }) => Promise<string>;
+    // Time Travel
+    timeTravelPreview:     (daysBack: number) => Promise<TimeTravelPreview>;
+    timeTravelExecute:     (daysBack: number) => Promise<TimeTravelResult>;
 }
 
 interface ElectronNotify {

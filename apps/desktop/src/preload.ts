@@ -74,5 +74,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         // Media
         saveMediaFile:         (params: { buffer: ArrayBuffer; filename: string; userId: string; mimeType: string }) =>
                                    ipcRenderer.invoke('db:saveMediaFile', params),
+        // Time Travel
+        timeTravelPreview:     (daysBack: number) => ipcRenderer.invoke('db:timeTravelPreview', daysBack),
+        timeTravelExecute:     (daysBack: number) => ipcRenderer.invoke('db:timeTravelExecute', daysBack),
     },
 });

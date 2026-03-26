@@ -492,5 +492,18 @@
         "button_cancel": "Cancel",
         "success": "Deck exported successfully",
         "error": "Export failed"
+    },
+    "time_travel": {
+        "title": "Time Travel",
+        "description": "Redistribute overdue review cards across upcoming days instead of facing them all at once.",
+        "days_back": "Days back",
+        "check": "Check Overdue Cards",
+        "no_overdue": "No overdue cards found for this time range.",
+        "overdue_found": "{{count}} overdue cards found",
+        "spread_across": "Will be spread across {{days}} days (~{{perDay}} cards/day)",
+        "date_count": "{{date}}: {{count}} cards",
+        "redistribute": "Redistribute Cards",
+        "success": "Cards redistributed successfully!",
+        "error": "Failed to redistribute cards. Please try again."
     }
 }
