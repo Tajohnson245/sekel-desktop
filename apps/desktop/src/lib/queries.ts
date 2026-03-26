@@ -17,6 +17,9 @@ export type {
     CardWithNote,
     InsertReviewParams,
     ReviewDayCount,
+    TodaySummary,
+    CardCountsByMaturity,
+    RetentionByMaturity,
 } from '@sekel/db';
 
 const db = () => window.electronAPI.db;
@@ -59,6 +62,11 @@ export const fetchSessionAnalytics = (sessionId: string) => db().fetchSessionAna
 // ── Reviews ───────────────────────────────────────────────────────────────────
 export const insertReview = (params: InsertReviewParams) => db().insertReview(params);
 export const fetchUserReviewHistory = (userId: string, days?: number) => db().fetchUserReviewHistory(userId, days);
+
+// ── Statistics ────────────────────────────────────────────────────────────────
+export const fetchTodaySummary = (userId: string) => db().fetchTodaySummary(userId);
+export const fetchCardCountsByMaturity = (userId: string, deckId?: string) => db().fetchCardCountsByMaturity(userId, deckId);
+export const fetchRetentionByMaturity = (userId: string, days?: number) => db().fetchRetentionByMaturity(userId, days);
 
 // ── Export ────────────────────────────────────────────────────────────────────
 export const exportDeck = (deckId: string, userId: string) => db().exportDeck(deckId, userId);

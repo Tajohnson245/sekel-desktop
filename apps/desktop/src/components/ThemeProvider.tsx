@@ -3,7 +3,9 @@ import { useProfileStore } from '../stores/profileStore';
 
 const THEME_STORAGE_KEY = 'sekel-theme';
 
-type Theme = 'dark' | 'light' | 'system';
+type Theme = 'dark' | 'light' | 'system' | 'red' | 'purple' | 'pink' | 'turquoise';
+
+const ALL_THEME_CLASSES = ['light', 'dark', 'red', 'purple', 'pink', 'turquoise'] as const;
 
 interface ThemeProviderProps {
     children: React.ReactNode;
@@ -22,10 +24,14 @@ const initialState: ThemeProviderState = {
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState);
 
+function isValidTheme(value: string): value is Theme {
+    return ['dark', 'light', 'system', 'red', 'purple', 'pink', 'turquoise'].includes(value);
+}
+
 function getStoredTheme(): Theme {
     try {
         const stored = localStorage.getItem(THEME_STORAGE_KEY);
-        if (stored === 'light' || stored === 'dark' || stored === 'system') return stored;
+        if (stored && isValidTheme(stored)) return stored;
     } catch {
         /* ignore */
     }
@@ -61,7 +67,7 @@ export function ThemeProvider({
     useLayoutEffect(() => {
         const root = window.document.documentElement;
 
-        root.classList.remove('light', 'dark');
+        root.classList.remove(...ALL_THEME_CLASSES);
 
         const resolved = theme === 'system'
             ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')

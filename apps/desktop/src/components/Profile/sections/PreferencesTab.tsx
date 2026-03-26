@@ -2,9 +2,20 @@ import React from 'react';
 import { useAuthStore } from '../../../stores/authStore';
 import { useProfileStore } from '../../../stores/profileStore';
 import { useTheme } from '../../ThemeProvider';
-import { Upload, X } from 'lucide-react';
+import { Upload, X, Monitor } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useToast, ToggleSwitch } from '../../UI';
+import type { UserProfile } from '@sekel/db';
+
+const THEME_OPTIONS: { value: UserProfile['theme_preference']; color: string; }[] = [
+    { value: 'system',    color: 'linear-gradient(135deg, #0F1117 50%, #FFFFFF 50%)' },
+    { value: 'dark',      color: '#0F1117' },
+    { value: 'light',     color: '#FFFFFF' },
+    { value: 'red',       color: '#E05252' },
+    { value: 'purple',    color: '#8B5CF6' },
+    { value: 'pink',      color: '#EC4899' },
+    { value: 'turquoise', color: '#06B6D4' },
+];
 
 export function PreferencesTab() {
     const { user } = useAuthStore();
@@ -45,24 +56,36 @@ export function PreferencesTab() {
                 </div>
 
                 {/* Theme */}
-                <div className="profile-field">
+                <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
                     <label className="field-label">{t('profile.theme')}</label>
-                    <div className="select-container">
-                        <select
-                            className="field-input custom-select"
-                            value={profile?.theme_preference || 'system'}
-                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                                const newTheme = e.target.value as 'light' | 'dark' | 'system';
-                                setTheme(newTheme);
-                                if (user?.id) {
-                                    upsertProfile(user.id, { theme_preference: newTheme });
-                                }
-                            }}
-                        >
-                            <option value="system">{t('profile.theme_system')}</option>
-                            <option value="light">{t('profile.theme_light')}</option>
-                            <option value="dark">{t('profile.theme_dark')}</option>
-                        </select>
+                    <div className="theme-swatches">
+                        {THEME_OPTIONS.map((opt) => {
+                            const active = (profile?.theme_preference || 'system') === opt.value;
+                            return (
+                                <button
+                                    key={opt.value}
+                                    type="button"
+                                    className={`theme-swatch ${active ? 'theme-swatch--active' : ''}`}
+                                    onClick={() => {
+                                        setTheme(opt.value);
+                                        if (user?.id) {
+                                            upsertProfile(user.id, { theme_preference: opt.value });
+                                        }
+                                    }}
+                                    title={t(`profile.theme_${opt.value}`)}
+                                >
+                                    <span
+                                        className="theme-swatch-color"
+                                        style={{ background: opt.color }}
+                                    >
+                                        {opt.value === 'system' && <Monitor size={14} style={{ color: '#888' }} />}
+                                    </span>
+                                    <span className="theme-swatch-label">
+                                        {t(`profile.theme_${opt.value}`)}
+                                    </span>
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 

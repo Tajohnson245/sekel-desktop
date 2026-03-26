@@ -234,6 +234,33 @@ export interface SessionAnalytics {
 }
 
 // ─────────────────────────────────────────────────────────────────
+// Statistics Types (for dedicated statistics page)
+// ─────────────────────────────────────────────────────────────────
+
+export interface TodaySummary {
+    totalReviews: number;
+    againCount: number;
+    newCount: number;
+    learnCount: number;
+    reviewCount: number;
+    relearnCount: number;
+    totalTimeMs: number;
+}
+
+export interface CardCountsByMaturity {
+    newCount: number;
+    learningCount: number;
+    youngCount: number;
+    matureCount: number;
+}
+
+export interface RetentionByMaturity {
+    youngRetention: number | null;
+    matureRetention: number | null;
+    overallRetention: number | null;
+}
+
+// ─────────────────────────────────────────────────────────────────
 // Draft Card (AI-generated, not yet in a deck)
 // ─────────────────────────────────────────────────────────────────
 export interface DraftCard {
@@ -262,7 +289,7 @@ export interface UserProfile {
     language: string;
     avatar_url: string | null;
     location: string | null;
-    theme_preference: 'light' | 'dark' | 'system';
+    theme_preference: 'light' | 'dark' | 'system' | 'red' | 'purple' | 'pink' | 'turquoise';
     flip_animation: boolean;
     card_style: boolean;
     notifications_enabled: boolean;

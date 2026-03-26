@@ -1,0 +1,75 @@
+@import '../components.css';
+
+/* ==========================================================================
+   RetentionTable
+   Classes: .retention-table-card
+   ========================================================================== */
+
+.retention-table-card {
+  background-color: var(--ink-soft);
+  border:           1px solid var(--ink-muted);
+  border-radius:    var(--r-md);
+  padding:          var(--space-xl);
+  box-shadow:       var(--shadow-sm);
+}
+
+.retention-table-card h4 {
+  font-family: var(--font-body);
+  font-size:   16px;
+  font-weight: 600;
+  color:       var(--fog);
+  margin:      0 0 var(--space-sm) 0;
+}
+
+.retention-table-card .chart-desc {
+  font-family: var(--font-mono);
+  font-size:   12px;
+  color:       var(--slate);
+  margin:      0 0 var(--space-lg) 0;
+}
+
+.retention-table {
+  width:           100%;
+  border-collapse: collapse;
+  font-family:     var(--font-mono);
+  font-size:       13px;
+}
+
+.retention-table th {
+  text-align:     left;
+  padding:        var(--space-sm) var(--space-md);
+  color:          var(--mist);
+  font-weight:    500;
+  border-bottom:  1px solid var(--ink-muted);
+  white-space:    nowrap;
+}
+
+.retention-table td {
+  padding:       var(--space-sm) var(--space-md);
+  color:         var(--fog);
+  border-bottom: 1px solid var(--ink);
+}
+
+.retention-table tr:last-child td {
+  border-bottom: none;
+}
+
+.retention-value {
+  font-weight: 600;
+}
+
+.retention-value--good {
+  color: var(--success);
+}
+
+.retention-value--warning {
+  color: var(--amber);
+}
+
+.retention-value--danger {
+  color: var(--rose);
+}
+
+.retention-value--none {
+  color: var(--slate);
+}

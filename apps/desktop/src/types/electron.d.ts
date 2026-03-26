@@ -7,6 +7,7 @@ import type {
     DeckSession, SessionAnalytics,
     DraftCard, DraftCardInsert,
     InsertReviewParams, ReviewDayCount,
+    TodaySummary, CardCountsByMaturity, RetentionByMaturity,
 } from '@sekel/db';
 import type { TimeTravelPreview, TimeTravelResult } from '../main/db/timeTravel';
 
@@ -135,6 +136,10 @@ interface ElectronDB {
     fetchDeckStats:        (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => Promise<DeckStats>;
     fetchAllDueCardsCount: (userId: string, dailyNewLimit?: number, dailyReviewLimit?: number) => Promise<number>;
     fetchGlobalRetention:  (userId: string, days?: number) => Promise<number | null>;
+    // Statistics
+    fetchTodaySummary:         (userId: string) => Promise<TodaySummary>;
+    fetchCardCountsByMaturity: (userId: string, deckId?: string) => Promise<CardCountsByMaturity>;
+    fetchRetentionByMaturity:  (userId: string, days?: number) => Promise<RetentionByMaturity>;
     // Cards
     fetchDueCards:         (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => Promise<CardWithNote[]>;
     fetchAllCardsForStudy: (deckId: string, limit?: number) => Promise<CardWithNote[]>;

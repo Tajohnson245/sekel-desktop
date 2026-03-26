@@ -1,0 +1,58 @@
+/* ==========================================================================
+   StatisticsPage
+   ========================================================================== */
+
+.statistics-page {
+  max-width:  1100px;
+  margin:     0 auto;
+  padding:    0 var(--space-xl);
+}
+
+.statistics-page .page-header {
+  margin-bottom: var(--space-xl);
+}
+
+.statistics-page .page-header h2 {
+  font-family: var(--font-display);
+  font-size:   28px;
+  font-weight: 700;
+  color:       var(--fog);
+  margin:      0;
+}
+
+.statistics-page .page-header p {
+  font-family: var(--font-mono);
+  font-size:   13px;
+  color:       var(--mist);
+  margin:      var(--space-xs) 0 0 0;
+}
+
+/* Tab content area */
+.stats-tab-content {
+  display:        flex;
+  flex-direction: column;
+  gap:            var(--space-xl);
+  padding-top:    var(--space-lg);
+}
+
+/* Two-column layout for overview */
+.stats-row {
+  display:               grid;
+  grid-template-columns: 1fr 1fr;
+  gap:                   var(--space-xl);
+}
+
+@media (max-width: 768px) {
+  .stats-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Empty state */
+.stats-empty {
+  text-align:    center;
+  padding:       var(--space-3xl);
+  color:         var(--mist);
+  font-family:   var(--font-mono);
+  font-size:     14px;
+}
