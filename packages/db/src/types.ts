@@ -287,6 +287,8 @@ export interface Feedback {
     description: string;
     screenshot_url: string | null;
     desired_fix: string | null;
+    os: string | null;
+    mac_chip: string | null;
     created_at: string;
 }
 
