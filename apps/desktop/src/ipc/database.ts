@@ -35,6 +35,16 @@ export function setupDatabaseHandlers(): void {
     ipcMain.handle('db:fetchGlobalRetention', (_e, userId: string, days?: number) =>
         dbService.fetchGlobalRetention(userId, days));
 
+    // ── Statistics ───────────────────────────────────────────────────────────────
+    ipcMain.handle('db:fetchTodaySummary', (_e, userId: string) =>
+        dbService.fetchTodaySummary(userId));
+
+    ipcMain.handle('db:fetchCardCountsByMaturity', (_e, userId: string, deckId?: string) =>
+        dbService.fetchCardCountsByMaturity(userId, deckId));
+
+    ipcMain.handle('db:fetchRetentionByMaturity', (_e, userId: string, days?: number) =>
+        dbService.fetchRetentionByMaturity(userId, days));
+
     // ── Cards ──────────────────────────────────────────────────────────────────
     ipcMain.handle('db:fetchDueCards', (_e, deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) =>
         dbService.fetchDueCards(deckId, userId, dailyNewLimit, dailyReviewLimit));

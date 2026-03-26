@@ -12,7 +12,7 @@ import type {
     SessionAnalytics,
     Rating,
 } from '@sekel/db';
-import type { DeckStats } from '@sekel/db';
+import type { DeckStats, TodaySummary, CardCountsByMaturity, RetentionByMaturity } from '@sekel/db';
 import type { CardWithNote } from '@sekel/db';
 import type { InsertReviewParams, ReviewDayCount } from '@sekel/db';
 
@@ -256,6 +256,99 @@ export function fetchGlobalRetention(userId: string, days = 30): number | null {
     if (rows.length === 0) return null;
     const nonAgain = rows.filter(r => r.rating !== 'again').length;
     return Math.round((nonAgain / rows.length) * 100);
+}
+
+// ── Statistics ────────────────────────────────────────────────────────────────
+
+export function fetchTodaySummary(userId: string): TodaySummary {
+    const midnight = todayMidnight();
+    type Row = {
+        total_reviews: number;
+        again_count: number;
+        new_count: number;
+        learn_count: number;
+        review_count: number;
+        relearn_count: number;
+        total_time_ms: number;
+    };
+    const row = getDb().prepare(`
+        SELECT
+            COUNT(*) as total_reviews,
+            SUM(CASE WHEN rating = 'again' THEN 1 ELSE 0 END) as again_count,
+            SUM(CASE WHEN state_before = 'new' THEN 1 ELSE 0 END) as new_count,
+            SUM(CASE WHEN state_before = 'learning' THEN 1 ELSE 0 END) as learn_count,
+            SUM(CASE WHEN state_before = 'review' THEN 1 ELSE 0 END) as review_count,
+            SUM(CASE WHEN state_before = 'relearning' THEN 1 ELSE 0 END) as relearn_count,
+            SUM(COALESCE(review_duration_ms, 0)) as total_time_ms
+        FROM reviews
+        WHERE user_id = ? AND review_time >= ?
+    `).get(userId, midnight) as Row;
+
+    return {
+        totalReviews: row.total_reviews,
+        againCount: row.again_count,
+        newCount: row.new_count,
+        learnCount: row.learn_count,
+        reviewCount: row.review_count,
+        relearnCount: row.relearn_count,
+        totalTimeMs: row.total_time_ms,
+    };
+}
+
+export function fetchCardCountsByMaturity(userId: string, deckId?: string): CardCountsByMaturity {
+    const params: unknown[] = [userId];
+    let deckFilter = '';
+    if (deckId) {
+        deckFilter = 'AND n.deck_id = ?';
+        params.push(deckId);
+    }
+
+    type Row = { new_count: number; learning_count: number; young_count: number; mature_count: number };
+    const row = getDb().prepare(`
+        SELECT
+            SUM(CASE WHEN c.state = 'new' THEN 1 ELSE 0 END) as new_count,
+            SUM(CASE WHEN c.state IN ('learning', 'relearning') THEN 1 ELSE 0 END) as learning_count,
+            SUM(CASE WHEN c.state = 'review' AND c.scheduled_days < 21 THEN 1 ELSE 0 END) as young_count,
+            SUM(CASE WHEN c.state = 'review' AND c.scheduled_days >= 21 THEN 1 ELSE 0 END) as mature_count
+        FROM cards c
+        JOIN notes n ON c.note_id = n.id
+        JOIN decks d ON n.deck_id = d.id
+        WHERE d.user_id = ? ${deckFilter}
+    `).get(...params) as Row;
+
+    return {
+        newCount: row.new_count ?? 0,
+        learningCount: row.learning_count ?? 0,
+        youngCount: row.young_count ?? 0,
+        matureCount: row.mature_count ?? 0,
+    };
+}
+
+export function fetchRetentionByMaturity(userId: string, days = 30): RetentionByMaturity {
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+
+    type Row = { rating: string; scheduled_days: number };
+    const rows = getDb().prepare(`
+        SELECT r.rating, r.scheduled_days
+        FROM reviews r
+        WHERE r.user_id = ? AND r.review_time >= ? AND r.state_before = 'review'
+    `).all(userId, since.toISOString()) as Row[];
+
+    const young = rows.filter(r => r.scheduled_days < 21);
+    const mature = rows.filter(r => r.scheduled_days >= 21);
+
+    const calcRetention = (list: Row[]): number | null => {
+        if (list.length === 0) return null;
+        const pass = list.filter(r => r.rating !== 'again').length;
+        return Math.round((pass / list.length) * 100);
+    };
+
+    return {
+        youngRetention: calcRetention(young),
+        matureRetention: calcRetention(mature),
+        overallRetention: calcRetention(rows),
+    };
 }
 
 // ── Cards ─────────────────────────────────────────────────────────────────────

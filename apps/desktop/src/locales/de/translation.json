@@ -29,7 +29,8 @@
         "generate": "Karten Generieren",
         "drafts": "Entwürfe",
         "new_deck": "Neuer Stapel",
-        "image_occlusion": "Visuelle Karten"
+        "image_occlusion": "Visuelle Karten",
+        "statistics": "Statistiken"
     },
     "dashboard": {
         "welcome": "Willkommen zurück, {{name}}!",
@@ -461,5 +462,32 @@
         "session_create": "Lernsitzung konnte nicht erstellt werden",
         "save_fsrs": "FSRS-Einstellungen konnten nicht gespeichert werden",
         "login_required": "Bitte melde dich an, um dein Profil zu sehen."
+    },
+    "stats": {
+        "title": "Statistiken",
+        "subtitle": "Verfolge deinen Lernfortschritt und deine Wiederholungsleistung",
+        "tab_overview": "Übersicht",
+        "tab_cards": "Karten",
+        "tab_reviews": "Wiederholungen",
+        "today": "Heute",
+        "reviews_completed": "Wiederholungen",
+        "time_spent": "Zeitaufwand",
+        "correct": "Richtig",
+        "again_count": "Nochmal",
+        "new": "Neu",
+        "learning": "Lernen",
+        "review": "Wiederholen",
+        "relearn": "Neu lernen",
+        "young": "Jung",
+        "mature": "Reif",
+        "overall": "Gesamt",
+        "total": "Gesamt",
+        "card_counts": "Kartenanzahl",
+        "card_counts_desc": "Verteilung der Karten nach Reifestadium",
+        "true_retention": "Wahre Behaltenquote",
+        "true_retention_desc": "Erfolgsrate für Wiederholungskarten nach Reife (letzte 30 Tage)",
+        "card_type": "Kartentyp",
+        "retention_rate": "Behaltenquote",
+        "more_coming_soon": "Weitere Diagramme folgen..."
     }
 }

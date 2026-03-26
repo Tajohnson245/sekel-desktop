@@ -29,7 +29,8 @@
         "generate": "Generate Flashcards",
         "drafts": "Drafts",
         "new_deck": "New Deck",
-        "image_occlusion": "Visual Cards"
+        "image_occlusion": "Visual Cards",
+        "statistics": "Statistics"
     },
     "dashboard": {
         "welcome": "Welcome back, {{name}}!",
@@ -546,5 +547,32 @@
         "redistribute": "Redistribute Cards",
         "success": "Cards redistributed successfully!",
         "error": "Failed to redistribute cards. Please try again."
+    },
+    "stats": {
+        "title": "Statistics",
+        "subtitle": "Track your learning progress and review performance",
+        "tab_overview": "Overview",
+        "tab_cards": "Cards",
+        "tab_reviews": "Reviews",
+        "today": "Today",
+        "reviews_completed": "Reviews",
+        "time_spent": "Time Spent",
+        "correct": "Correct",
+        "again_count": "Again",
+        "new": "New",
+        "learning": "Learning",
+        "review": "Review",
+        "relearn": "Relearn",
+        "young": "Young",
+        "mature": "Mature",
+        "overall": "Overall",
+        "total": "Total",
+        "card_counts": "Card Counts",
+        "card_counts_desc": "Distribution of cards by maturity stage",
+        "true_retention": "True Retention",
+        "true_retention_desc": "Pass rate for review cards by maturity (last 30 days)",
+        "card_type": "Card Type",
+        "retention_rate": "Retention",
+        "more_coming_soon": "More charts coming soon..."
     }
 }

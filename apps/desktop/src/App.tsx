@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ThemeProvider } from './components/ThemeProvider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { LayoutDashboard, Library, FileText, Plus, Inbox, Layers } from 'lucide-react';
+import { LayoutDashboard, Library, FileText, Plus, Inbox, Layers, BarChart3 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Dashboard from './components/Dashboard/Dashboard';
 import DeckList from './components/Deck/DeckList';
@@ -11,6 +11,7 @@ import StudySession from './components/Study/StudySession';
 import DocumentsPage from './components/AIStudy/DocumentsPage';
 import DraftsPage from './components/Drafts/DraftsPage';
 import ImageOcclusionEditor from './components/ImageOcclusion/ImageOcclusionEditor';
+import StatisticsPage from './components/Statistics/StatisticsPage';
 import './index.css';
 import './components/Layout/AppShell.css';
 import './components/Dashboard/Dashboard.css';
@@ -26,6 +27,7 @@ import './components/AIStudy/DocumentsPage.css';
 import './components/AIStudy/AICardGenerator.css';
 import './components/Drafts/DraftsPage.css';
 import './components/ImageOcclusion/ImageOcclusionEditor.css';
+import './components/Statistics/StatisticsPage.css';
 import './components/Auth/Auth.css';
 import { ProtectedRoute } from './components/Auth/ProtectedRoute';
 import { UserProfile } from './components/UserProfile';
@@ -66,6 +68,7 @@ function AppContent() {
         { id: 'documents', label: t('nav.generate'), icon: FileText },
         { id: 'image-occlusion', label: t('nav.image_occlusion'), icon: Layers },
         { id: 'drafts', label: t('nav.drafts'), icon: Inbox },
+        { id: 'statistics', label: t('nav.statistics'), icon: BarChart3 },
     ];
 
     const handleSelectDeck = (deckId: string) => {
@@ -155,6 +158,8 @@ function AppContent() {
                 return <DraftsPage userId={userId} />;
             case 'image-occlusion':
                 return <ImageOcclusionEditor userId={userId} />;
+            case 'statistics':
+                return <StatisticsPage />;
             case 'profile':
                 return <UserProfilePage />;
             default:

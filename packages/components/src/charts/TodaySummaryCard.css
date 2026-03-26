@@ -1,0 +1,85 @@
+@import '../components.css';
+
+/* ==========================================================================
+   TodaySummaryCard
+   Classes: .today-summary
+   ========================================================================== */
+
+.today-summary {
+  background-color: var(--ink-soft);
+  border:           1px solid var(--ink-muted);
+  border-radius:    var(--r-md);
+  padding:          var(--space-xl);
+  box-shadow:       var(--shadow-sm);
+}
+
+.today-summary h4 {
+  font-family: var(--font-body);
+  font-size:   16px;
+  font-weight: 600;
+  color:       var(--fog);
+  margin:      0 0 var(--space-lg) 0;
+}
+
+.today-summary-grid {
+  display:               grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap:                   var(--space-md);
+}
+
+.today-stat {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  padding:        var(--space-md);
+  border-radius:  var(--r-sm);
+  background:     var(--ink);
+}
+
+.today-stat-value {
+  font-family: var(--font-body);
+  font-size:   24px;
+  font-weight: 700;
+  color:       var(--fog);
+  line-height: 1.2;
+}
+
+.today-stat-label {
+  font-family: var(--font-mono);
+  font-size:   11px;
+  color:       var(--mist);
+  margin-top:  var(--space-xs);
+  text-align:  center;
+}
+
+.today-stat--accent .today-stat-value {
+  color: var(--teal);
+}
+
+.today-stat--warning .today-stat-value {
+  color: var(--rose);
+}
+
+.today-breakdown {
+  display:     flex;
+  gap:         var(--space-sm);
+  margin-top:  var(--space-lg);
+  flex-wrap:   wrap;
+}
+
+.today-breakdown-pill {
+  display:       inline-flex;
+  align-items:   center;
+  gap:           var(--space-xs);
+  padding:       var(--space-xs) var(--space-sm);
+  border-radius: var(--r-sm);
+  background:    var(--ink);
+  font-family:   var(--font-mono);
+  font-size:     12px;
+  color:         var(--mist);
+}
+
+.today-breakdown-pill .pill-count {
+  font-weight: 600;
+  color:       var(--fog);
+}

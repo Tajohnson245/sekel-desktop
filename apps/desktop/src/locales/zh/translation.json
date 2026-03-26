@@ -29,7 +29,8 @@
         "generate": "生成卡片",
         "drafts": "草稿",
         "new_deck": "新建牌组",
-        "image_occlusion": "视觉卡片"
+        "image_occlusion": "视觉卡片",
+        "statistics": "统计"
     },
     "dashboard": {
         "welcome": "欢迎回来，{{name}}！",
@@ -461,5 +462,32 @@
         "session_create": "创建学习会话失败",
         "save_fsrs": "保存 FSRS 设置失败",
         "login_required": "请登录以查看个人资料。"
+    },
+    "stats": {
+        "title": "统计",
+        "subtitle": "追踪你的学习进度和复习表现",
+        "tab_overview": "概览",
+        "tab_cards": "卡片",
+        "tab_reviews": "复习",
+        "today": "今日",
+        "reviews_completed": "复习次数",
+        "time_spent": "用时",
+        "correct": "正确率",
+        "again_count": "重来",
+        "new": "新卡",
+        "learning": "学习中",
+        "review": "复习",
+        "relearn": "重新学习",
+        "young": "年轻",
+        "mature": "成熟",
+        "overall": "整体",
+        "total": "合计",
+        "card_counts": "卡片统计",
+        "card_counts_desc": "按成熟度分布的卡片数量",
+        "true_retention": "真实记忆保持率",
+        "true_retention_desc": "按卡片成熟度的通过率（近30天）",
+        "card_type": "卡片类型",
+        "retention_rate": "保持率",
+        "more_coming_soon": "更多图表即将推出..."
     }
 }

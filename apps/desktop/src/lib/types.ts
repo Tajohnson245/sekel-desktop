@@ -314,6 +314,33 @@ export const DEFAULT_NOTE_TYPES: Omit<NoteType, 'id' | 'user_id' | 'anki_id' |'c
 ];
 
 // ─────────────────────────────────────────────────────────────────
+// Statistics Types (for dedicated statistics page)
+// ─────────────────────────────────────────────────────────────────
+
+export interface TodaySummary {
+    totalReviews: number;
+    againCount: number;
+    newCount: number;
+    learnCount: number;
+    reviewCount: number;
+    relearnCount: number;
+    totalTimeMs: number;
+}
+
+export interface CardCountsByMaturity {
+    newCount: number;
+    learningCount: number;
+    youngCount: number;
+    matureCount: number;
+}
+
+export interface RetentionByMaturity {
+    youngRetention: number | null;
+    matureRetention: number | null;
+    overallRetention: number | null;
+}
+
+// ─────────────────────────────────────────────────────────────────
 // Draft Card (AI-generated, not yet in a deck)
 // ─────────────────────────────────────────────────────────────────
 export interface DraftCard {

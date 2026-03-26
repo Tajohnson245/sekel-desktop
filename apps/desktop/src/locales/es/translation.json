@@ -29,7 +29,8 @@
         "generate": "Generar Tarjetas",
         "drafts": "Borradores",
         "new_deck": "Nuevo Mazo",
-        "image_occlusion": "Tarjetas Visuales"
+        "image_occlusion": "Tarjetas Visuales",
+        "statistics": "Estadísticas"
     },
     "dashboard": {
         "welcome": "¡Bienvenido de nuevo, {{name}}!",
@@ -461,5 +462,32 @@
         "session_create": "Error al crear la sesión de estudio",
         "save_fsrs": "Error al guardar la configuración FSRS",
         "login_required": "Inicia sesión para ver tu perfil."
+    },
+    "stats": {
+        "title": "Estadísticas",
+        "subtitle": "Sigue tu progreso de aprendizaje y rendimiento de repaso",
+        "tab_overview": "Resumen",
+        "tab_cards": "Tarjetas",
+        "tab_reviews": "Repasos",
+        "today": "Hoy",
+        "reviews_completed": "Repasos",
+        "time_spent": "Tiempo",
+        "correct": "Correctas",
+        "again_count": "Otra vez",
+        "new": "Nuevas",
+        "learning": "Aprendiendo",
+        "review": "Repaso",
+        "relearn": "Reaprender",
+        "young": "Jóvenes",
+        "mature": "Maduras",
+        "overall": "General",
+        "total": "Total",
+        "card_counts": "Conteo de tarjetas",
+        "card_counts_desc": "Distribución de tarjetas por etapa de madurez",
+        "true_retention": "Retención real",
+        "true_retention_desc": "Tasa de acierto por madurez de tarjeta (últimos 30 días)",
+        "card_type": "Tipo de tarjeta",
+        "retention_rate": "Retención",
+        "more_coming_soon": "Más gráficos próximamente..."
     }
 }

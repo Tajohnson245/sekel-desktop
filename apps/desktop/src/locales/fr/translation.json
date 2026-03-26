@@ -29,7 +29,8 @@
         "generate": "Générer des cartes",
         "drafts": "Brouillons",
         "new_deck": "Nouveau Paquet",
-        "image_occlusion": "Cartes Visuelles"
+        "image_occlusion": "Cartes Visuelles",
+        "statistics": "Statistiques"
     },
     "dashboard": {
         "welcome": "Bon retour, {{name}} !",
@@ -461,5 +462,32 @@
         "session_create": "Échec de la création de la session d'étude",
         "save_fsrs": "Échec de la sauvegarde des paramètres FSRS",
         "login_required": "Veuillez vous connecter pour voir votre profil."
+    },
+    "stats": {
+        "title": "Statistiques",
+        "subtitle": "Suivez votre progression et vos performances de révision",
+        "tab_overview": "Aperçu",
+        "tab_cards": "Cartes",
+        "tab_reviews": "Révisions",
+        "today": "Aujourd'hui",
+        "reviews_completed": "Révisions",
+        "time_spent": "Temps passé",
+        "correct": "Correct",
+        "again_count": "Encore",
+        "new": "Nouvelles",
+        "learning": "Apprentissage",
+        "review": "Révision",
+        "relearn": "Réapprentissage",
+        "young": "Jeunes",
+        "mature": "Matures",
+        "overall": "Global",
+        "total": "Total",
+        "card_counts": "Nombre de cartes",
+        "card_counts_desc": "Répartition des cartes par stade de maturité",
+        "true_retention": "Rétention réelle",
+        "true_retention_desc": "Taux de réussite par maturité de carte (30 derniers jours)",
+        "card_type": "Type de carte",
+        "retention_rate": "Rétention",
+        "more_coming_soon": "Plus de graphiques à venir..."
     }
 }
