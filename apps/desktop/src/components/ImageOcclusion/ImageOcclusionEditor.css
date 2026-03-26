@@ -33,6 +33,62 @@
     }
 }
 
+/* ── Toolbar ──────────────────────────────────────────────────── */
+
+.occlusion-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    margin-bottom: 0.5rem;
+}
+
+.occlusion-toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 0.125rem;
+}
+
+.occlusion-toolbar-divider {
+    width: 1px;
+    height: 24px;
+    background: var(--border);
+    margin: 0 0.375rem;
+}
+
+.occlusion-tool-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.occlusion-tool-btn:hover:not(.disabled) {
+    background: var(--muted);
+    color: var(--foreground);
+}
+
+.occlusion-tool-btn.active {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--primary);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.occlusion-tool-btn.disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
 /* ── Upload zone ──────────────────────────────────────────────── */
 
 .occlusion-upload-zone {
@@ -81,29 +137,31 @@
     height: 100%;
 }
 
-.occlusion-rect {
+/* ── Shape styles (editor canvas) ─────────────────────────────── */
+
+.occlusion-shape {
     fill: rgba(59, 130, 246, 0.35);
     stroke: var(--primary);
-    stroke-width: 2;
+    stroke-width: 0.5;
     cursor: pointer;
     transition: fill 0.15s;
 }
 
-.occlusion-rect:hover {
+.occlusion-shape:hover {
     fill: rgba(59, 130, 246, 0.50);
 }
 
-.occlusion-rect.selected {
+.occlusion-shape.selected {
     fill: rgba(239, 68, 68, 0.40);
     stroke: #ef4444;
-    stroke-width: 2.5;
+    stroke-width: 0.6;
 }
 
-.occlusion-rect.drawing {
+.occlusion-shape.drawing {
     fill: rgba(59, 130, 246, 0.25);
     stroke: var(--primary);
-    stroke-dasharray: 6 3;
-    stroke-width: 2;
+    stroke-dasharray: 2 1;
+    stroke-width: 0.5;
 }
 
 .occlusion-hint-overlay {
@@ -116,6 +174,49 @@
     color: var(--muted-foreground);
     font-size: 0.9rem;
     opacity: 0.7;
+}
+
+/* ── Fields view ──────────────────────────────────────────────── */
+
+.occlusion-fields-view {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1.5rem;
+    background: var(--secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    min-height: 300px;
+}
+
+.occlusion-fields-view .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.occlusion-fields-view label {
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: var(--foreground);
+}
+
+.occlusion-fields-view textarea {
+    width: 100%;
+    resize: vertical;
+    padding: 0.5rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--input);
+    color: var(--foreground);
+    font-size: 0.875rem;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.occlusion-fields-view textarea:focus {
+    outline: none;
+    border-color: var(--primary);
 }
 
 /* ── Sidebar ──────────────────────────────────────────────────── */
@@ -177,12 +278,53 @@
     border-color: var(--primary);
 }
 
-.occlusion-rect-list h4 {
+/* ── IO Mode selector ─────────────────────────────────────────── */
+
+.occlusion-mode-selector {
+    display: flex;
+    flex-direction: column;
+}
+
+.occlusion-mode-options {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.occlusion-mode-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.6rem;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: background 0.15s;
+    color: var(--foreground);
+}
+
+.occlusion-mode-option:hover {
+    background: var(--muted);
+}
+
+.occlusion-mode-option.active {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--primary);
+}
+
+.occlusion-mode-option input[type="radio"] {
+    accent-color: var(--primary);
+    margin: 0;
+}
+
+/* ── Shape list ───────────────────────────────────────────────── */
+
+.occlusion-shape-list h4 {
     margin: 0 0 0.5rem 0;
     font-size: 0.9rem;
 }
 
-.occlusion-rect-list ul {
+.occlusion-shape-list ul {
     list-style: none;
     padding: 0;
     margin: 0;
@@ -191,7 +333,7 @@
     gap: 0.25rem;
 }
 
-.rect-item {
+.shape-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -202,14 +344,38 @@
     transition: background 0.15s;
 }
 
-.rect-item:hover {
+.shape-item:hover {
     background: var(--muted);
 }
 
-.rect-item.active {
+.shape-item.active {
     background: rgba(59, 130, 246, 0.15);
     color: var(--primary);
     font-weight: 600;
+}
+
+.shape-item.grouped {
+    border-left: 3px solid var(--primary);
+    padding-left: calc(0.6rem - 3px);
+}
+
+.shape-item-label {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.shape-group-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(59, 130, 246, 0.2);
+    color: var(--primary);
+    font-size: 0.65rem;
+    font-weight: 700;
 }
 
 /* ── Study view: occlusion card rendering ─────────────────────── */
@@ -243,4 +409,19 @@
     border-radius: 4px;
     background: rgba(34, 197, 94, 0.15);
     z-index: 10;
+}
+
+.occlusion-text-above,
+.occlusion-text-below {
+    color: var(--foreground);
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.5;
+    text-align: center;
+    margin: 0.35rem 0;
+}
+
+.occlusion-text-above:empty,
+.occlusion-text-below:empty {
+    display: none;
 }

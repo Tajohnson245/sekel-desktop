@@ -4,6 +4,7 @@ import { useCreateNote, useUpdateNote } from '../../hooks/useNotes';
 import { Button, Modal, RichTextEditor } from '../UI';
 import { resolveMediaInHtml } from '../../lib/mediaResolver';
 import type { JoinedNote } from '@sekel/db';
+import type { OcclusionShape } from '../../lib/types';
 
 interface NoteEditorProps {
     deckId: string;
@@ -16,13 +17,17 @@ interface NoteEditorProps {
 export default function NoteEditor({ deckId, userId, noteTypeId, onClose, editingNote }: NoteEditorProps) {
     const { t } = useTranslation();
 
-    // Detect if this is an occlusion note
-    const isOcclusion = !!(editingNote?.fields.Image && editingNote?.fields.Rectangles);
+    // Detect if this is an occlusion note (supports both legacy and new field names)
+    const isOcclusion = !!(editingNote?.fields.Image && (editingNote?.fields.Rectangles || editingNote?.fields.Shapes));
+    const isNewOcclusion = !!(editingNote?.fields.Shapes);
 
     // Initialize state with editingNote values if present, otherwise empty
     // Resolve bare media filenames (from Anki imports) to sekel-media:// URLs
-    const [front, setFront] = useState(editingNote ? resolveMediaInHtml(editingNote.fields.Front || '', userId) : '');
-    const [back, setBack] = useState(editingNote ? resolveMediaInHtml(editingNote.fields.Back || '', userId) : '');
+    // Support both legacy (Front/Back) and new (Header/BackExtra) field names
+    const getFrontField = () => editingNote?.fields.Header || editingNote?.fields.Front || '';
+    const getBackField = () => editingNote?.fields.BackExtra || editingNote?.fields.Back || '';
+    const [front, setFront] = useState(editingNote ? resolveMediaInHtml(getFrontField(), userId) : '');
+    const [back, setBack] = useState(editingNote ? resolveMediaInHtml(getBackField(), userId) : '');
     const [error, setError] = useState<string | null>(null);
 
     // Detect cloze content reactively from front field
@@ -43,8 +48,10 @@ export default function NoteEditor({ deckId, userId, noteTypeId, onClose, editin
     // Update state if editingNote changes prop (e.g. if modal is reused)
     useEffect(() => {
         if (editingNote) {
-            setFront(resolveMediaInHtml(editingNote.fields.Front || '', userId));
-            setBack(resolveMediaInHtml(editingNote.fields.Back || '', userId));
+            const frontVal = editingNote.fields.Header || editingNote.fields.Front || '';
+            const backVal = editingNote.fields.BackExtra || editingNote.fields.Back || '';
+            setFront(resolveMediaInHtml(frontVal, userId));
+            setBack(resolveMediaInHtml(backVal, userId));
         } else {
             setFront('');
             setBack('');
@@ -100,11 +107,25 @@ export default function NoteEditor({ deckId, userId, noteTypeId, onClose, editin
         try {
             if (editingNote) {
                 // Update existing note — preserve occlusion fields if present
-                const updatedFields: Record<string, string> = { Front: front, Back: finalBack };
-                if (isOcclusion) {
+                const updatedFields: Record<string, string> = {};
+                if (isOcclusion && isNewOcclusion) {
+                    // New format: Header/BackExtra
+                    updatedFields.Header = front;
+                    updatedFields.BackExtra = finalBack;
+                    updatedFields.Image = editingNote.fields.Image;
+                    updatedFields.Shapes = editingNote.fields.Shapes;
+                    updatedFields.ActiveIndex = editingNote.fields.ActiveIndex;
+                    if (editingNote.fields.IOMode) updatedFields.IOMode = editingNote.fields.IOMode;
+                } else if (isOcclusion) {
+                    // Legacy format: Front/Back + Rectangles
+                    updatedFields.Front = front;
+                    updatedFields.Back = finalBack;
                     updatedFields.Image = editingNote.fields.Image;
                     updatedFields.Rectangles = editingNote.fields.Rectangles;
                     updatedFields.ActiveIndex = editingNote.fields.ActiveIndex;
+                } else {
+                    updatedFields.Front = front;
+                    updatedFields.Back = finalBack;
                 }
                 await updateNote.mutateAsync({
                     id: editingNote.id,
@@ -151,13 +172,33 @@ export default function NoteEditor({ deckId, userId, noteTypeId, onClose, editin
         const imageUrl = editingNote.fields.Image;
         const activeIndex = parseInt(editingNote.fields.ActiveIndex || '0', 10);
 
-        let rects: { x: number; y: number; w: number; h: number }[] = [];
+        let shapes: OcclusionShape[] = [];
         try {
-            const raw = editingNote.fields.Rectangles.replace(/&quot;/g, '"');
-            rects = JSON.parse(raw);
+            if (isNewOcclusion) {
+                const raw = editingNote.fields.Shapes.replace(/&quot;/g, '"');
+                shapes = JSON.parse(raw);
+            } else {
+                const raw = editingNote.fields.Rectangles.replace(/&quot;/g, '"');
+                const rects = JSON.parse(raw) as { x: number; y: number; w: number; h: number }[];
+                shapes = rects.map((r, i) => ({ type: 'rect' as const, id: String(i), x: r.x, y: r.y, w: r.w, h: r.h }));
+            }
         } catch {
             // noop
         }
+
+        const renderPreviewShape = (shape: OcclusionShape, isActive: boolean) => {
+            const fill = isActive ? '#3b82f6' : 'rgba(59,130,246,0.25)';
+            const stroke = isActive ? '#2563eb' : 'rgba(59,130,246,0.5)';
+            const strokeWidth = isActive ? 0.6 : 0.4;
+            switch (shape.type) {
+                case 'rect':
+                    return <rect key={shape.id} x={shape.x} y={shape.y} width={shape.w} height={shape.h} fill={fill} stroke={stroke} strokeWidth={strokeWidth} rx={0.5} />;
+                case 'ellipse':
+                    return <ellipse key={shape.id} cx={shape.cx} cy={shape.cy} rx={shape.rx} ry={shape.ry} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />;
+                case 'polygon':
+                    return <polygon key={shape.id} points={shape.points.map(p => `${p.x},${p.y}`).join(' ')} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />;
+            }
+        };
 
         return (
             <div style={{ textAlign: 'center' }}>
@@ -173,6 +214,8 @@ export default function NoteEditor({ deckId, userId, noteTypeId, onClose, editin
                         }}
                     />
                     <svg
+                        viewBox="0 0 100 100"
+                        preserveAspectRatio="none"
                         style={{
                             position: 'absolute',
                             inset: 0,
@@ -181,23 +224,11 @@ export default function NoteEditor({ deckId, userId, noteTypeId, onClose, editin
                             pointerEvents: 'none',
                         }}
                     >
-                        {rects.map((r, i) => (
-                            <rect
-                                key={i}
-                                x={`${r.x}%`}
-                                y={`${r.y}%`}
-                                width={`${r.w}%`}
-                                height={`${r.h}%`}
-                                fill={i === activeIndex ? '#3b82f6' : 'rgba(59,130,246,0.25)'}
-                                stroke={i === activeIndex ? '#2563eb' : 'rgba(59,130,246,0.5)'}
-                                strokeWidth={i === activeIndex ? 2.5 : 1.5}
-                                rx={4}
-                            />
-                        ))}
+                        {shapes.map((s, i) => renderPreviewShape(s, i === activeIndex))}
                     </svg>
                 </div>
                 <p style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: 'var(--muted-foreground)' }}>
-                    {t('occlusion.title')} — #{activeIndex + 1} of {rects.length}
+                    {t('occlusion.title')} — #{activeIndex + 1} of {shapes.length}
                 </p>
             </div>
         );

@@ -229,6 +229,40 @@ export interface SessionAnalytics {
 }
 
 // ─────────────────────────────────────────────────────────────────
+// Image Occlusion Shapes
+// ─────────────────────────────────────────────────────────────────
+
+interface OcclusionShapeBase {
+    id: string;          // crypto.randomUUID()
+    groupId?: string;    // shapes with same groupId = 1 card unit
+}
+
+export interface OcclusionRectShape extends OcclusionShapeBase {
+    type: 'rect';
+    x: number;   // percentage 0-100
+    y: number;
+    w: number;
+    h: number;
+}
+
+export interface OcclusionEllipseShape extends OcclusionShapeBase {
+    type: 'ellipse';
+    cx: number;  // center x, percentage 0-100
+    cy: number;
+    rx: number;  // radius x
+    ry: number;
+}
+
+export interface OcclusionPolygonShape extends OcclusionShapeBase {
+    type: 'polygon';
+    points: { x: number; y: number }[];  // each point percentage 0-100
+}
+
+export type OcclusionShape = OcclusionRectShape | OcclusionEllipseShape | OcclusionPolygonShape;
+
+export type IOMode = 'hide-all-guess-one' | 'hide-one-guess-one' | 'hide-all-reveal-all';
+
+// ─────────────────────────────────────────────────────────────────
 // Default Note Types (pre-populated for new users)
 // ─────────────────────────────────────────────────────────────────
 export const DEFAULT_NOTE_TYPES: Omit<NoteType, 'id' | 'user_id' | 'anki_id' |'created_at' | 'updated_at'>[] = [
@@ -262,17 +296,18 @@ export const DEFAULT_NOTE_TYPES: Omit<NoteType, 'id' | 'user_id' | 'anki_id' |'c
     {
         name: 'Image Occlusion',
         fields: [
-            { name: 'Image' },       // public URL of uploaded image
-            { name: 'Rectangles' },   // JSON array of all rects [{x,y,w,h},...]
-            { name: 'ActiveIndex' },  // which rect is masked on this card
-            { name: 'Front' },        // optional context/prompt text shown above the image
-            { name: 'Back' },         // optional explanation text shown after reveal
+            { name: 'Image' },        // public URL of uploaded image
+            { name: 'Shapes' },        // JSON array of OcclusionShape[]
+            { name: 'ActiveIndex' },   // which card unit is masked on this card
+            { name: 'IOMode' },        // 'hide-all-guess-one' | 'hide-one-guess-one'
+            { name: 'Header' },        // optional text shown above image on front + back
+            { name: 'BackExtra' },     // optional text shown below image on back only
         ],
         card_templates: [
             {
                 name: 'Occlusion Card',
-                front_template: '<div class="occlusion-text-above">{{Front}}</div><div class="occlusion-card" data-rects="{{Rectangles}}" data-active="{{ActiveIndex}}"><img src="{{Image}}" /></div>',
-                back_template: '<div class="occlusion-text-above">{{Back}}</div><div class="occlusion-card occlusion-reveal" data-rects="{{Rectangles}}" data-active="{{ActiveIndex}}"><img src="{{Image}}" /></div>',
+                front_template: '<div class="occlusion-text-above">{{Header}}</div><div class="occlusion-card" data-shapes="{{Shapes}}" data-active="{{ActiveIndex}}" data-iomode="{{IOMode}}"><img src="{{Image}}" /></div>',
+                back_template: '<div class="occlusion-text-above">{{Header}}</div><div class="occlusion-card occlusion-reveal" data-shapes="{{Shapes}}" data-active="{{ActiveIndex}}" data-iomode="{{IOMode}}"><img src="{{Image}}" /></div><div class="occlusion-text-below">{{BackExtra}}</div>',
             },
         ],
     },
