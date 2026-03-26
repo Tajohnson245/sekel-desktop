@@ -49,7 +49,7 @@ export function ImageUpload({ userId, onUpload, label, className = '', currentIm
         return (
             <div className={`image-upload-preview ${className}`}>
                 <div className="preview-container">
-                    <img src={currentImage} alt="Card attachment" className="image-preview-thumb" />
+                    <ImageIcon size={16} className="image-attached-icon" />
                     <Button
                         type="button"
                         variant="icon"
