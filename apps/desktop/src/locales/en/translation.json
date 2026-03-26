@@ -232,7 +232,7 @@
         "reminder_times": "Reminder Times",
         "add_reminder": "Add reminder",
         "daily_limits": "Daily Study Limits",
-        "daily_limits_desc": "Control how many new and review cards you see each day. Cards you're currently learning are always shown.",
+        "daily_limits_desc": "Limit how many new and review cards you see each day. Turn off to let the scheduling algorithm decide. Cards you're currently learning are always shown.",
         "new_cards_per_day": "New cards/day",
         "reviews_per_day": "Reviews/day",
         "study_timer": "Study Timer",

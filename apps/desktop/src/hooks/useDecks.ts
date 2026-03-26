@@ -59,8 +59,9 @@ export function useDeck(id: string | null) {
 export function useDeckStats(deckId: string | null) {
     const userId = useAuthStore((s) => s.user?.id);
     const profile = useProfileStore((s) => s.profile);
-    const newLimit = profile?.daily_new_limit ?? 20;
-    const reviewLimit = profile?.daily_review_limit ?? 200;
+    const limitsEnabled = profile?.daily_limits_enabled ?? true;
+    const newLimit = limitsEnabled ? (profile?.daily_new_limit ?? 20) : undefined;
+    const reviewLimit = limitsEnabled ? (profile?.daily_review_limit ?? 200) : undefined;
     return useQuery<DeckStats>({
         queryKey: [...deckKeys.stats(deckId ?? ''), newLimit, reviewLimit],
         queryFn: () => fetchDeckStats(deckId!, userId, newLimit, reviewLimit),
@@ -71,8 +72,9 @@ export function useDeckStats(deckId: string | null) {
 export function useDueCards(deckId: string | null) {
     const userId = useAuthStore((s) => s.user?.id);
     const profile = useProfileStore((s) => s.profile);
-    const newLimit = profile?.daily_new_limit ?? 20;
-    const reviewLimit = profile?.daily_review_limit ?? 200;
+    const limitsEnabled = profile?.daily_limits_enabled ?? true;
+    const newLimit = limitsEnabled ? (profile?.daily_new_limit ?? 20) : undefined;
+    const reviewLimit = limitsEnabled ? (profile?.daily_review_limit ?? 200) : undefined;
     return useQuery<CardWithNote[]>({
         queryKey: [...deckKeys.dueCards(deckId ?? ''), newLimit, reviewLimit],
         queryFn: () => fetchDueCards(deckId!, userId, newLimit, reviewLimit),

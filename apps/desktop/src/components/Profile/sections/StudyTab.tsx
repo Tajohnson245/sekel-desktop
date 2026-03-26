@@ -226,50 +226,65 @@ export function StudyTab() {
 
                 {/* Daily Study Limits */}
                 <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
-                    <label className="field-label">{t('profile.daily_limits')}</label>
-                    <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0.2rem 0 0.75rem' }}>
-                        {t('profile.daily_limits_desc')}
-                    </p>
-                    <div style={{ display: 'flex', gap: '1.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                         <div>
-                            <label className="field-label" style={{ fontSize: '0.8rem', marginBottom: '0.25rem', display: 'block' }}>
-                                {t('profile.new_cards_per_day')}
-                            </label>
-                            <input
-                                type="number"
-                                min={0}
-                                max={9999}
-                                className="field-input"
-                                value={dailyNew}
-                                onChange={(e) => setDailyNew(Number(e.target.value))}
-                                onBlur={() => {
-                                    if (user?.id) {
-                                        upsertProfile(user.id, { daily_new_limit: dailyNew });
-                                    }
-                                }}
-                                style={{ width: '90px' }}
-                            />
+                            <label className="field-label">{t('profile.daily_limits')}</label>
+                            <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0.2rem 0 0' }}>
+                                {t('profile.daily_limits_desc')}
+                            </p>
                         </div>
-                        <div>
-                            <label className="field-label" style={{ fontSize: '0.8rem', marginBottom: '0.25rem', display: 'block' }}>
-                                {t('profile.reviews_per_day')}
-                            </label>
-                            <input
-                                type="number"
-                                min={0}
-                                max={9999}
-                                className="field-input"
-                                value={dailyReview}
-                                onChange={(e) => setDailyReview(Number(e.target.value))}
-                                onBlur={() => {
-                                    if (user?.id) {
-                                        upsertProfile(user.id, { daily_review_limit: dailyReview });
-                                    }
-                                }}
-                                style={{ width: '90px' }}
-                            />
-                        </div>
+                        <ToggleSwitch
+                            checked={profile?.daily_limits_enabled ?? true}
+                            onChange={(next) => {
+                                if (user?.id) {
+                                    upsertProfile(user.id, { daily_limits_enabled: next });
+                                }
+                            }}
+                        />
                     </div>
+
+                    {(profile?.daily_limits_enabled ?? true) && (
+                        <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.75rem' }}>
+                            <div>
+                                <label className="field-label" style={{ fontSize: '0.8rem', marginBottom: '0.25rem', display: 'block' }}>
+                                    {t('profile.new_cards_per_day')}
+                                </label>
+                                <input
+                                    type="number"
+                                    min={0}
+                                    max={9999}
+                                    className="field-input"
+                                    value={dailyNew}
+                                    onChange={(e) => setDailyNew(Number(e.target.value))}
+                                    onBlur={() => {
+                                        if (user?.id) {
+                                            upsertProfile(user.id, { daily_new_limit: dailyNew });
+                                        }
+                                    }}
+                                    style={{ width: '90px' }}
+                                />
+                            </div>
+                            <div>
+                                <label className="field-label" style={{ fontSize: '0.8rem', marginBottom: '0.25rem', display: 'block' }}>
+                                    {t('profile.reviews_per_day')}
+                                </label>
+                                <input
+                                    type="number"
+                                    min={0}
+                                    max={9999}
+                                    className="field-input"
+                                    value={dailyReview}
+                                    onChange={(e) => setDailyReview(Number(e.target.value))}
+                                    onBlur={() => {
+                                        if (user?.id) {
+                                            upsertProfile(user.id, { daily_review_limit: dailyReview });
+                                        }
+                                    }}
+                                    style={{ width: '90px' }}
+                                />
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* FSRS Scheduling */}
