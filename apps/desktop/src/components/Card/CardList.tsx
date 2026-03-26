@@ -107,7 +107,7 @@ export default function CardList({ deckId, onAddCard, onGenerateAI, onEdit }: Ca
             ) : (
                 <div className="cards-grid" data-testid="cards-grid">
                     {cards.map((card: CardWithNote) => {
-                        const isOcclusion = !!card.note.fields.Image && !!card.note.fields.Rectangles;
+                        const isOcclusion = !!card.note.fields.Image && !!(card.note.fields.Rectangles || card.note.fields.Shapes);
                         const isAnki = card.note.note_type.anki_id !== null;
                         const template = card.note.note_type.card_templates[card.template_index];
 
@@ -125,8 +125,8 @@ export default function CardList({ deckId, onAddCard, onGenerateAI, onEdit }: Ca
                                                         style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 'var(--radius)', flexShrink: 0 }}
                                                     />
                                                     <span style={{ fontSize: '0.9em' }}>
-                                                        {card.note.fields.Front?.trim()
-                                                            ? <span dangerouslySetInnerHTML={{ __html: sanitize(card.note.fields.Front) }} />
+                                                        {(card.note.fields.Header || card.note.fields.Front)?.trim()
+                                                            ? <span dangerouslySetInnerHTML={{ __html: sanitize(card.note.fields.Header || card.note.fields.Front) }} />
                                                             : <span className="text-muted" style={{ fontStyle: 'italic', fontSize: '0.85em' }}>{t('occlusion.title')} #{(parseInt(card.note.fields.ActiveIndex, 10) || 0) + 1}</span>
                                                         }
                                                     </span>
@@ -134,8 +134,8 @@ export default function CardList({ deckId, onAddCard, onGenerateAI, onEdit }: Ca
                                             </div>
                                             <div className="card-back">
                                                 <span className="card-label">{t('card.back')}</span>
-                                                {card.note.fields.Back?.trim()
-                                                    ? <p style={{ margin: 0 }} dangerouslySetInnerHTML={{ __html: sanitize(card.note.fields.Back) }} />
+                                                {(card.note.fields.BackExtra || card.note.fields.Back)?.trim()
+                                                    ? <p style={{ margin: 0 }} dangerouslySetInnerHTML={{ __html: sanitize(card.note.fields.BackExtra || card.note.fields.Back) }} />
                                                     : <span className="text-muted" style={{ fontSize: '0.85em', fontStyle: 'italic' }}>{t('occlusion.title')}</span>
                                                 }
                                             </div>

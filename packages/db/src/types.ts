@@ -268,6 +268,7 @@ export interface UserProfile {
     notifications_enabled: boolean;
     reminder_times: string[];
     background_url: string | null;
+    daily_limits_enabled: boolean;
     daily_new_limit: number;
     daily_review_limit: number;
     max_answer_seconds: number;

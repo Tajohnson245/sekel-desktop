@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useProfileStore } from '../../stores/profileStore';
 import { sanitize } from '../../lib/sanitize';
+import type { OcclusionShape, IOMode } from '../../lib/types';
 
 interface CardViewerProps {
     front: string;
@@ -23,32 +24,135 @@ function renderClozeBack(html: string): string {
     return html.replace(CLOZE_RE, '<span class="cloze-reveal">$1</span>');
 }
 
+// ─── Shape SVG rendering ────────────────────────────────────────
+
+function renderShapeSVG(shape: OcclusionShape, fill: string, stroke?: string, strokeWidth = 0.5): string {
+    const strokeAttr = stroke ? ` stroke="${stroke}" stroke-width="${strokeWidth}"` : '';
+    switch (shape.type) {
+        case 'rect':
+            return `<rect x="${shape.x}" y="${shape.y}" width="${shape.w}" height="${shape.h}" fill="${fill}"${strokeAttr} rx="0.5"/>`;
+        case 'ellipse':
+            return `<ellipse cx="${shape.cx}" cy="${shape.cy}" rx="${shape.rx}" ry="${shape.ry}" fill="${fill}"${strokeAttr}/>`;
+        case 'polygon':
+            return `<polygon points="${shape.points.map(p => `${p.x},${p.y}`).join(' ')}" fill="${fill}"${strokeAttr}/>`;
+    }
+}
+
+/** Compute card units from shapes (groups + ungrouped) */
+function computeCardUnits(shapes: OcclusionShape[]): OcclusionShape[][] {
+    const units: OcclusionShape[][] = [];
+    const groupMap = new Map<string, number>();
+
+    for (const s of shapes) {
+        if (s.groupId) {
+            if (groupMap.has(s.groupId)) {
+                units[groupMap.get(s.groupId)!].push(s);
+            } else {
+                groupMap.set(s.groupId, units.length);
+                units.push([s]);
+            }
+        } else {
+            units.push([s]);
+        }
+    }
+    return units;
+}
+
+/** Convert legacy OcclusionRect[] to OcclusionShape[] */
+function legacyRectsToShapes(rects: { x: number; y: number; w: number; h: number }[]): OcclusionShape[] {
+    return rects.map((r, i) => ({
+        type: 'rect' as const,
+        id: String(i),
+        x: r.x, y: r.y, w: r.w, h: r.h,
+    }));
+}
+
 function renderOcclusionOverlay(html: string): string {
-    const occlusionRe = /<div\s+class="occlusion-card([^"]*)"[^>]*data-rects="([^"]*)"[^>]*data-active="(\d+)"[^>]*>/;
-    const match = html.match(occlusionRe);
-    if (!match) return html;
+    // Try new format first: data-shapes
+    const newFormatRe = /<div\s+class="occlusion-card([^"]*)"[^>]*data-shapes="([^"]*)"[^>]*data-active="(\d+)"[^>]*(?:data-iomode="([^"]*)")?[^>]*>/;
+    // Legacy format: data-rects
+    const legacyRe = /<div\s+class="occlusion-card([^"]*)"[^>]*data-rects="([^"]*)"[^>]*data-active="(\d+)"[^>]*>/;
+
+    let match = html.match(newFormatRe);
+    let isLegacy = false;
+
+    if (!match || !match[2].includes('type')) {
+        match = html.match(legacyRe);
+        if (!match) return html;
+        isLegacy = true;
+    }
 
     const extraClasses = match[1];
-    const rectsEncoded = match[2];
+    const encodedData = match[2];
     const activeIndex = parseInt(match[3], 10);
     const isReveal = extraClasses.includes('occlusion-reveal');
 
-    let rects: { x: number; y: number; w: number; h: number }[];
+    let shapes: OcclusionShape[];
+    let ioMode: IOMode;
+
     try {
-        const decoded = rectsEncoded.replace(/&quot;/g, '"').replace(/&amp;/g, '&');
-        rects = JSON.parse(decoded);
+        const decoded = encodedData.replace(/&quot;/g, '"').replace(/&amp;/g, '&');
+        if (isLegacy) {
+            const rects = JSON.parse(decoded) as { x: number; y: number; w: number; h: number }[];
+            shapes = legacyRectsToShapes(rects);
+            ioMode = 'hide-one-guess-one'; // preserve legacy behavior
+        } else {
+            shapes = JSON.parse(decoded) as OcclusionShape[];
+            // Extract iomode from data attribute
+            const iomodeMatch = html.match(/data-iomode="([^"]*)"/);
+            ioMode = (iomodeMatch?.[1] as IOMode) || 'hide-all-guess-one';
+        }
     } catch {
         return html;
     }
 
-    const r = rects[activeIndex];
-    if (!r) return html;
+    // Build SVG elements based on IO mode
+    let svgContent = '';
 
-    const svgRect = isReveal
-        ? `<rect x="${r.x}%" y="${r.y}%" width="${r.w}%" height="${r.h}%" fill="rgba(34,197,94,0.15)" stroke="#22c55e" stroke-width="3" rx="4"/>`
-        : `<rect x="${r.x}%" y="${r.y}%" width="${r.w}%" height="${r.h}%" fill="#3b82f6" rx="4"/>`;
+    if (ioMode === 'hide-all-reveal-all') {
+        // HARA: all shapes masked on front, all revealed on back — 1 card total
+        for (const shape of shapes) {
+            if (isReveal) {
+                svgContent += renderShapeSVG(shape, 'rgba(34,197,94,0.15)', '#22c55e', 0.8);
+            } else {
+                svgContent += renderShapeSVG(shape, '#3b82f6');
+            }
+        }
+    } else if (ioMode === 'hide-all-guess-one') {
+        const cardUnits = computeCardUnits(shapes);
+        if (activeIndex >= cardUnits.length) return html;
+        const activeShapeIds = new Set(cardUnits[activeIndex].map(s => s.id));
 
-    const svg = `<svg style="position:absolute;inset:0;width:100%;height:100%;z-index:10;pointer-events:none">${svgRect}</svg>`;
+        // HAGO: all units masked, active revealed on back
+        for (let u = 0; u < cardUnits.length; u++) {
+            for (const shape of cardUnits[u]) {
+                if (isReveal && activeShapeIds.has(shape.id)) {
+                    svgContent += renderShapeSVG(shape, 'rgba(34,197,94,0.15)', '#22c55e', 0.8);
+                } else {
+                    svgContent += renderShapeSVG(shape, '#3b82f6');
+                }
+            }
+        }
+    } else {
+        const cardUnits = computeCardUnits(shapes);
+        if (activeIndex >= cardUnits.length) return html;
+        const activeShapeIds = new Set(cardUnits[activeIndex].map(s => s.id));
+
+        // HOGO: only active unit masked
+        for (let u = 0; u < cardUnits.length; u++) {
+            for (const shape of cardUnits[u]) {
+                if (activeShapeIds.has(shape.id)) {
+                    if (isReveal) {
+                        svgContent += renderShapeSVG(shape, 'rgba(34,197,94,0.15)', '#22c55e', 0.8);
+                    } else {
+                        svgContent += renderShapeSVG(shape, '#3b82f6');
+                    }
+                }
+            }
+        }
+    }
+
+    const svg = `<svg style="position:absolute;inset:0;width:100%;height:100%;z-index:10;pointer-events:none" viewBox="0 0 100 100" preserveAspectRatio="none">${svgContent}</svg>`;
 
     return html.replace(
         /(<div\s+class="occlusion-card[^"]*"[^>]*>)([\s\S]*?)(<\/div>)/,
