@@ -95,6 +95,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
             ipcRenderer.invoke('yield:classify-card', cardId, examKey),
         classifyBatch: (cardIds: string[], examKey: string, force?: boolean) =>
             ipcRenderer.invoke('yield:classify-batch', cardIds, examKey, force),
+        getScores:     (examKey: string, cardIds?: string[]) =>
+            ipcRenderer.invoke('yield:get-scores', examKey, cardIds),
+        getExplanation: (cardId: string, examKey: string) =>
+            ipcRenderer.invoke('yield:get-explanation', cardId, examKey),
     },
 
     backup: {

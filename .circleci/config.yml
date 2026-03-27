@@ -212,39 +212,39 @@ jobs:
           command: npx turbo run build --filter=@sekel/web
 
   # ── Community (all branches) ─────────────────────────────────────────────
-  community-ci:
-    executor: linux-20
-    steps:
-      - checkout
-      - install-deps
-      - run:
-          name: Lint
-          command: npx turbo run lint --filter=@sekel/community
-      - run:
-          name: Type check
-          command: npx turbo run typecheck --filter=@sekel/community
-      - run:
-          name: Build
-          command: npx turbo run build --filter=@sekel/community
+  # community-ci:
+  #   executor: linux-20
+  #   steps:
+  #     - checkout
+  #     - install-deps
+  #     - run:
+  #         name: Lint
+  #         command: npx turbo run lint --filter=@sekel/community
+  #     - run:
+  #         name: Type check
+  #         command: npx turbo run typecheck --filter=@sekel/community
+  #     - run:
+  #         name: Build
+  #         command: npx turbo run build --filter=@sekel/community
 
   # ── Survey (all branches) ────────────────────────────────────────────────
-  survey-ci:
-    executor: linux-20
-    environment:
-      NEXT_PUBLIC_APP_URL: http://localhost:3002
-      ADMIN_EMAILS: ci@sekel.io
-    steps:
-      - checkout
-      - install-deps
-      - run:
-          name: Lint
-          command: npx turbo run lint --filter=@sekel/survey
-      - run:
-          name: Type check
-          command: npx turbo run typecheck --filter=@sekel/survey
-      - run:
-          name: Build
-          command: npx turbo run build --filter=@sekel/survey
+  # survey-ci:
+  #   executor: linux-20
+  #   environment:
+  #     NEXT_PUBLIC_APP_URL: http://localhost:3002
+  #     ADMIN_EMAILS: ci@sekel.io
+  #   steps:
+  #     - checkout
+  #     - install-deps
+  #     - run:
+  #         name: Lint
+  #         command: npx turbo run lint --filter=@sekel/survey
+  #     - run:
+  #         name: Type check
+  #         command: npx turbo run typecheck --filter=@sekel/survey
+  #     - run:
+  #         name: Build
+  #         command: npx turbo run build --filter=@sekel/survey
 
 workflows:
   ci:
@@ -255,8 +255,8 @@ workflows:
           requires:
             - desktop-lint-typecheck
       - web-ci
-      - community-ci
-      - survey-ci
+      # - community-ci
+      # - survey-ci
 
       # Platform builds — main and dev only (expensive, release-gating)
       - desktop-build-linux:

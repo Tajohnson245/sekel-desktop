@@ -253,9 +253,19 @@ interface ElectronBackup {
     onOpenRestore:  (cb: () => void) => () => void;
 }
 
+export interface YieldScoreRow {
+    cardId: string;
+    yieldScore: number | null;
+    yieldLevel: 'high' | 'medium' | 'low' | 'unclassified';
+    systemKey: string | null;
+    topicKey: string | null;
+}
+
 interface ElectronYield {
-    classifyCard:  (cardId: string, examKey: string) => Promise<ClassificationResult>;
-    classifyBatch: (cardIds: string[], examKey: string, force?: boolean) => Promise<BatchClassifyResult>;
+    classifyCard:   (cardId: string, examKey: string) => Promise<ClassificationResult>;
+    classifyBatch:  (cardIds: string[], examKey: string, force?: boolean) => Promise<BatchClassifyResult>;
+    getScores:      (examKey: string, cardIds?: string[]) => Promise<YieldScoreRow[]>;
+    getExplanation: (cardId: string, examKey: string) => Promise<string>;
 }
 
 export interface ClassificationResult {
