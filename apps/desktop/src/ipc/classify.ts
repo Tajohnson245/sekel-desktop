@@ -8,6 +8,8 @@
 import { ipcMain } from 'electron';
 import { OpenAI } from 'openai';
 import { getDb } from '../main/db/index';
+import { CARD_WITH_NOTE_SQL, buildCardWithNote } from '../main/db/service';
+import type { SessionQueueCard } from '../types/electron';
 
 // ── OpenAI lazy singleton (same pattern as ai.ts) ──────────────────────────
 
@@ -405,6 +407,122 @@ function getYieldExplanation(cardId: string, examKey: string): string {
     return `${levelLabel} yield: ${row.system_label} (${midWeight}% of ${row.exam_label}) — ${matchStrength} blueprint match, confidence ${row.confidence.toFixed(2)}`;
 }
 
+// ── Session Queue ────────────────────────────────────────────────────────────
+
+function computeTimeMultiplier(
+    profileRow: { exam_date: string; session_mode: string } | undefined,
+): { timeMultiplier: number; daysUntilExam: number | null } {
+    if (!profileRow) return { timeMultiplier: 1.0, daysUntilExam: null };
+
+    if (profileRow.session_mode === 'triage') {
+        const examDate = new Date(profileRow.exam_date);
+        const days = Math.floor((examDate.getTime() - Date.now()) / 86_400_000);
+        return { timeMultiplier: 2.5, daysUntilExam: days };
+    }
+
+    if (profileRow.session_mode === 'mixed') {
+        return { timeMultiplier: 1.0, daysUntilExam: null };
+    }
+
+    // session_mode = 'auto' or any other value — use step function
+    const examDate = new Date(profileRow.exam_date);
+    const daysUntilExam = Math.floor((examDate.getTime() - Date.now()) / 86_400_000);
+
+    let timeMultiplier = 1.0;
+    if (daysUntilExam < 7)        timeMultiplier = 2.5;
+    else if (daysUntilExam < 30)  timeMultiplier = 2.0;
+    else if (daysUntilExam < 90)  timeMultiplier = 1.5;
+    else if (daysUntilExam <= 180) timeMultiplier = 1.2;
+
+    return { timeMultiplier, daysUntilExam };
+}
+
+function buildSessionQueue(userId: string, examKey: string, limit = 200): SessionQueueCard[] {
+    const db = getDb();
+    const now = new Date().toISOString();
+
+    const examRow = db.prepare(
+        'SELECT id FROM blueprint_exams WHERE exam_key = ?'
+    ).get(examKey) as { id: number } | undefined;
+    if (!examRow) throw new Error(`Exam not found: ${examKey}`);
+
+    const profileRow = db.prepare(`
+        SELECT exam_date, session_mode
+        FROM user_exam_profiles
+        WHERE user_id = ? AND exam_id = ? AND is_primary = 1
+    `).get(userId, examRow.id) as { exam_date: string; session_mode: string } | undefined;
+
+    const { timeMultiplier, daysUntilExam } = computeTimeMultiplier(profileRow);
+
+    const rows = db.prepare(`
+        WITH yield_cte AS (
+            SELECT
+                cc.card_id,
+                ROUND(SUM(
+                    ((bs.weight_min + bs.weight_max) / 2.0)
+                    * bt.relative_weight
+                    * cc.confidence
+                    * cc.split_weight
+                    * 100
+                ), 1) AS yield_score,
+                MAX(cc.confidence) AS max_confidence,
+                (
+                    SELECT bs2.system_key
+                    FROM card_classifications cc2
+                    JOIN blueprint_systems bs2 ON bs2.id = cc2.system_id
+                    WHERE cc2.card_id = cc.card_id AND cc2.exam_id = cc.exam_id
+                    ORDER BY cc2.split_weight DESC LIMIT 1
+                ) AS system_key,
+                (
+                    SELECT bt2.topic_key
+                    FROM card_classifications cc2
+                    LEFT JOIN blueprint_topics bt2 ON bt2.id = cc2.topic_id
+                    WHERE cc2.card_id = cc.card_id AND cc2.exam_id = cc.exam_id
+                    ORDER BY cc2.split_weight DESC LIMIT 1
+                ) AS topic_key
+            FROM card_classifications cc
+            JOIN blueprint_systems bs ON bs.id = cc.system_id
+            JOIN blueprint_topics bt ON bt.id = cc.topic_id
+            WHERE cc.exam_id = ?
+            GROUP BY cc.card_id
+        )
+        SELECT base.*, ys.yield_score, ys.max_confidence, ys.system_key, ys.topic_key
+        FROM (
+            ${CARD_WITH_NOTE_SQL}
+            WHERE c.user_id = ?
+              AND (
+                  c.state IN ('learning', 'relearning', 'new')
+                  OR (c.state = 'review' AND c.due <= ?)
+              )
+        ) base
+        LEFT JOIN yield_cte ys ON ys.card_id = base.id
+        ORDER BY
+            CASE WHEN ys.yield_score IS NULL THEN 1 ELSE 0 END ASC,
+            ys.yield_score DESC
+        LIMIT ?
+    `).all(examRow.id, userId, now, limit) as Array<Record<string, unknown>>;
+
+    return rows.map(row => {
+        const card = buildCardWithNote(row);
+        const yieldScore = (row.yield_score as number | null) ?? null;
+        const maxConfidence = (row.max_confidence as number | null) ?? null;
+        const prioritizationScore = yieldScore !== null
+            ? Math.round(yieldScore * timeMultiplier * 10) / 10
+            : 0;
+
+        return {
+            ...card,
+            yield_score: yieldScore,
+            yield_level: toYieldLevel(yieldScore, maxConfidence),
+            prioritization_score: prioritizationScore,
+            system_key: (row.system_key as string | null) ?? null,
+            topic_key: (row.topic_key as string | null) ?? null,
+            time_multiplier: timeMultiplier,
+            days_until_exam: daysUntilExam,
+        };
+    });
+}
+
 // ── IPC Registration ────────────────────────────────────────────────────────
 
 export function setupClassifyHandlers(): void {
@@ -419,4 +537,7 @@ export function setupClassifyHandlers(): void {
 
     ipcMain.handle('yield:get-explanation', (_e, cardId: string, examKey: string) =>
         getYieldExplanation(cardId, examKey));
+
+    ipcMain.handle('yield:build-session-queue', (_e, userId: string, examKey: string, limit?: number) =>
+        buildSessionQueue(userId, examKey, limit));
 }

@@ -261,11 +261,22 @@ export interface YieldScoreRow {
     topicKey: string | null;
 }
 
+export interface SessionQueueCard extends CardWithNote {
+    yield_score: number | null;
+    yield_level: 'high' | 'medium' | 'low' | 'unclassified';
+    prioritization_score: number;
+    system_key: string | null;
+    topic_key: string | null;
+    time_multiplier: number;
+    days_until_exam: number | null;
+}
+
 interface ElectronYield {
-    classifyCard:   (cardId: string, examKey: string) => Promise<ClassificationResult>;
-    classifyBatch:  (cardIds: string[], examKey: string, force?: boolean) => Promise<BatchClassifyResult>;
-    getScores:      (examKey: string, cardIds?: string[]) => Promise<YieldScoreRow[]>;
-    getExplanation: (cardId: string, examKey: string) => Promise<string>;
+    classifyCard:      (cardId: string, examKey: string) => Promise<ClassificationResult>;
+    classifyBatch:     (cardIds: string[], examKey: string, force?: boolean) => Promise<BatchClassifyResult>;
+    getScores:         (examKey: string, cardIds?: string[]) => Promise<YieldScoreRow[]>;
+    getExplanation:    (cardId: string, examKey: string) => Promise<string>;
+    buildSessionQueue: (userId: string, examKey: string, limit?: number) => Promise<SessionQueueCard[]>;
 }
 
 export interface ClassificationResult {

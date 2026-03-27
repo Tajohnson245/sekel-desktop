@@ -356,9 +356,9 @@ export function fetchRetentionByMaturity(userId: string, days = 30): RetentionBy
 
 // ── Cards ─────────────────────────────────────────────────────────────────────
 
-type CardWithNoteRow = Record<string, unknown>;
+export type CardWithNoteRow = Record<string, unknown>;
 
-function buildCardWithNote(row: CardWithNoteRow): CardWithNote {
+export function buildCardWithNote(row: CardWithNoteRow): CardWithNote {
     const noteType: NoteType = {
         id: row.nt_id as string,
         user_id: row.user_id as string,
@@ -408,7 +408,7 @@ function buildCardWithNote(row: CardWithNoteRow): CardWithNote {
     };
 }
 
-const CARD_WITH_NOTE_SQL = `
+export const CARD_WITH_NOTE_SQL = `
     SELECT
         c.id, c.user_id, c.note_id, c.template_index,
         c.state, c.due, c.stability, c.difficulty,

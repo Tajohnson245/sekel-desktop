@@ -99,6 +99,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
             ipcRenderer.invoke('yield:get-scores', examKey, cardIds),
         getExplanation: (cardId: string, examKey: string) =>
             ipcRenderer.invoke('yield:get-explanation', cardId, examKey),
+        buildSessionQueue: (userId: string, examKey: string, limit?: number) =>
+            ipcRenderer.invoke('yield:build-session-queue', userId, examKey, limit),
     },
 
     backup: {

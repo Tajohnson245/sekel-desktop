@@ -71,3 +71,8 @@ export const fetchRetentionByMaturity = (userId: string, days?: number) => db().
 // ── Export ────────────────────────────────────────────────────────────────────
 export const exportDeck = (deckId: string, userId: string) => db().exportDeck(deckId, userId);
 export const getExportableCardCount = (deckId: string) => db().getExportableCardCount(deckId);
+
+// ── Yield ─────────────────────────────────────────────────────────────────────
+export type { SessionQueueCard } from '../types/electron';
+const yieldApi = () => window.electronAPI.yield;
+export const buildSessionQueue = (userId: string, examKey: string, limit?: number) => yieldApi().buildSessionQueue(userId, examKey, limit);
