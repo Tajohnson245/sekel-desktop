@@ -8,6 +8,7 @@
 /* ── Shared layout ───────────────────────────────────────────── */
 
 .card-viewer {
+    --card-max-h: calc(70vh - 2rem);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -22,15 +23,23 @@
     line-height: 1.6;
     font-weight: 500;
     width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .flashcard-content img {
     max-width: 100%;
-    max-height: 35vh;
+    max-height: 25vh;
     object-fit: contain;
     display: block;
     margin: 0.5rem auto;
     border-radius: var(--radius);
+}
+
+/* When card has both text and image, squeeze image further */
+.flashcard-content:has(p):has(img) img,
+.flashcard-content:has(div):has(img) img {
+    max-height: 18vh;
 }
 
 .flashcard-label {
@@ -47,6 +56,7 @@
 .flashcard-container {
     width: 100%;
     min-height: 350px;
+    max-height: var(--card-max-h);
     cursor: pointer;
     margin-bottom: 1.5rem;
 }
@@ -55,6 +65,8 @@
     position: absolute;
     width: 100%;
     min-height: 350px;
+    max-height: var(--card-max-h);
+    overflow: hidden;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
     background: var(--secondary);
@@ -64,6 +76,64 @@
     display: flex;
     flex-direction: column;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* ── Inner scroll container ─────────────────────────────────── */
+
+.flashcard-face-inner {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding-bottom: 2rem;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+.flashcard-face-inner::-webkit-scrollbar {
+    width: 4px;
+}
+
+.flashcard-face-inner::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 2px;
+}
+
+.flashcard-face-inner::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* ── Scroll-fade indicator ──────────────────────────────────── */
+
+.flashcard-face::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3rem;
+    background: linear-gradient(to bottom, transparent, var(--secondary));
+    pointer-events: none;
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 1;
+}
+
+.flashcard-face-back::after {
+    background: linear-gradient(to bottom, transparent, #1a1f2e);
+}
+
+.flashcard-face.has-overflow::after {
+    opacity: 1;
+}
+
+.flashcard-face.has-overflow.scrolled-to-bottom::after {
+    opacity: 0;
 }
 
 .flashcard-face-front {
@@ -87,6 +157,10 @@
     background: linear-gradient(135deg, var(--secondary) 0%, #1a1f2e 100%);
 }
 
+.flashcard-face-back .flashcard-face-inner {
+    justify-content: flex-start;
+}
+
 .flashcard-face-back .flashcard-content {
     flex: 1;
     display: flex;
@@ -107,6 +181,7 @@
     transform: none;
     backface-visibility: visible;
     -webkit-backface-visibility: visible;
+    max-height: var(--card-max-h);
 }
 
 /* ── Animated mode — 3D flip ─────────────────────────────────── */
@@ -114,8 +189,9 @@
 .flashcard-flipper {
     position: relative;
     width: 100%;
-    height: 100%;
+    height: var(--card-max-h);
     min-height: 350px;
+    max-height: var(--card-max-h);
     transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     transform-style: preserve-3d;
 }
@@ -194,6 +270,15 @@
 .classic-back {
     text-align: center;
     padding: 0 0 1rem;
+}
+
+.classic-front .flashcard-face-inner,
+.classic-back .flashcard-face-inner {
+    max-height: 50vh;
+    justify-content: flex-start;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
 }
 
 .classic-back .flashcard-content:not(:has(.occlusion-card)) {
