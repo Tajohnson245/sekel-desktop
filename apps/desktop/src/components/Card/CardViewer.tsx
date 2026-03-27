@@ -1,3 +1,4 @@
+import { useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useProfileStore } from '../../stores/profileStore';
 import { sanitize } from '../../lib/sanitize';
@@ -187,6 +188,27 @@ export default function CardViewer({ front, back, isRevealed, onReveal, onUnreve
     const renderedFront = renderOcclusionOverlay(renderClozeFront(front));
     const renderedBack = renderOcclusionOverlay(renderClozeBack(back));
 
+    const frontInnerRef = useRef<HTMLDivElement>(null);
+    const backInnerRef = useRef<HTMLDivElement>(null);
+
+    const checkOverflow = useCallback((el: HTMLDivElement | null) => {
+        if (!el) return;
+        const face = el.closest('.flashcard-face') as HTMLElement | null;
+        if (!face) return;
+        face.classList.toggle('has-overflow', el.scrollHeight > el.clientHeight + 2);
+        const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 10;
+        face.classList.toggle('scrolled-to-bottom', atBottom);
+    }, []);
+
+    useEffect(() => {
+        checkOverflow(frontInnerRef.current);
+        checkOverflow(backInnerRef.current);
+    }, [front, back, isRevealed, checkOverflow]);
+
+    const handleInnerScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+        checkOverflow(e.currentTarget);
+    }, [checkOverflow]);
+
     const handleClick = () => {
         if (isRevealed && onUnreveal) onUnreveal();
         else if (!isRevealed) onReveal();
@@ -204,7 +226,9 @@ export default function CardViewer({ front, back, isRevealed, onReveal, onUnreve
                 style={{ cursor: 'pointer' }}
             >
                 <div className="classic-front">
-                    <div className="flashcard-content" dangerouslySetInnerHTML={{ __html: sanitize(renderedFront) }} />
+                    <div className="flashcard-face-inner">
+                        <div className="flashcard-content" dangerouslySetInnerHTML={{ __html: sanitize(renderedFront) }} />
+                    </div>
                 </div>
 
                 {isRevealed && (
@@ -212,7 +236,9 @@ export default function CardViewer({ front, back, isRevealed, onReveal, onUnreve
                         <hr className="classic-divider" />
                         <div className="classic-back">
                             <div className="flashcard-label">{t('study.answer')}</div>
-                            <div className="flashcard-content" dangerouslySetInnerHTML={{ __html: sanitize(answerOnly) }} />
+                            <div className="flashcard-face-inner">
+                                <div className="flashcard-content" dangerouslySetInnerHTML={{ __html: sanitize(answerOnly) }} />
+                            </div>
                         </div>
                     </>
                 )}
@@ -227,13 +253,17 @@ export default function CardViewer({ front, back, isRevealed, onReveal, onUnreve
                 <div className="flashcard-container" onClick={handleClick}>
                     {!isRevealed ? (
                         <div className="flashcard-face flashcard-face-front flashcard-face--static">
-                            <div className="flashcard-content" dangerouslySetInnerHTML={{ __html: sanitize(renderedFront) }} />
+                            <div className="flashcard-face-inner" ref={frontInnerRef} onScroll={handleInnerScroll}>
+                                <div className="flashcard-content" dangerouslySetInnerHTML={{ __html: sanitize(renderedFront) }} />
+                            </div>
                             <div className="tap-hint"><span>{t('study.tap_to_flip')}</span></div>
                         </div>
                     ) : (
                         <div className="flashcard-face flashcard-face-back flashcard-face--static">
-                            <div className="flashcard-label">{t('study.answer')}</div>
-                            <div className="flashcard-content" dangerouslySetInnerHTML={{ __html: sanitize(renderedBack) }} />
+                            <div className="flashcard-face-inner" ref={backInnerRef} onScroll={handleInnerScroll}>
+                                <div className="flashcard-label">{t('study.answer')}</div>
+                                <div className="flashcard-content" dangerouslySetInnerHTML={{ __html: sanitize(renderedBack) }} />
+                            </div>
                             {onUnreveal && (
                                 <div className="tap-hint"><span>{t('study.tap_to_flip')}</span></div>
                             )}
@@ -250,15 +280,19 @@ export default function CardViewer({ front, back, isRevealed, onReveal, onUnreve
             <div className={`flashcard-container ${isRevealed ? 'flipped' : ''}`} onClick={handleClick}>
                 <div className="flashcard-flipper">
                     <div className="flashcard-face flashcard-face-front">
-                        <div className="flashcard-content" dangerouslySetInnerHTML={{ __html: sanitize(renderedFront) }} />
+                        <div className="flashcard-face-inner" ref={frontInnerRef} onScroll={handleInnerScroll}>
+                            <div className="flashcard-content" dangerouslySetInnerHTML={{ __html: sanitize(renderedFront) }} />
+                        </div>
                         {!isRevealed && (
                             <div className="tap-hint"><span>{t('study.tap_to_flip')}</span></div>
                         )}
                     </div>
 
                     <div className="flashcard-face flashcard-face-back">
-                        <div className="flashcard-label">{t('study.answer')}</div>
-                        <div className="flashcard-content" dangerouslySetInnerHTML={{ __html: sanitize(renderedBack) }} />
+                        <div className="flashcard-face-inner" ref={backInnerRef} onScroll={handleInnerScroll}>
+                            <div className="flashcard-label">{t('study.answer')}</div>
+                            <div className="flashcard-content" dangerouslySetInnerHTML={{ __html: sanitize(renderedBack) }} />
+                        </div>
                         {isRevealed && onUnreveal && (
                             <div className="tap-hint"><span>{t('study.tap_to_flip')}</span></div>
                         )}
