@@ -256,7 +256,7 @@
         "new_cards_per_day": "Neue Karten pro Tag",
         "reviews_per_day": "Wiederholungen pro Tag",
         "export_collection": "Sammlung exportieren",
-        "export_collection_desc": "Exportiere alle deine Stapel, Karten und Wiederholungsverläufe als .sekel-Datei. Medien sind enthalten.",
+        "export_collection_desc": "Exportiere alle deine Stapel, Karten und Wiederholungsverläufe als .spkg-Datei. Medien sind enthalten.",
         "export_collection_btn": "Alles exportieren"
     },
     "verification": {
@@ -600,11 +600,11 @@
         "menu_label": "Exportieren",
         "modal_title": "Stapel exportieren",
         "format_label": "Exportformat",
-        "format_sekel_desc": "Alle Karten — Sekel-natives Format",
+        "format_spkg_desc": "Alle Karten — Sekel-natives Format",
         "format_apkg_desc": "Nur aus Anki importierte Karten",
-        "sekel_body": "Alle {{totalCards}} Karten werden im Sekel-Format exportiert.",
+        "spkg_body": "Alle {{totalCards}} Karten werden im Sekel-Format exportiert.",
         "modal_body": "Exportieren Sie Ihren Stapel als .apkg-Datei, kompatibel mit Anki.",
-        "modal_body_sekel_only": "Nur Sekel-native Karten exportieren",
+        "modal_body_spkg_only": "Nur Sekel-native Karten exportieren",
         "modal_no_anki_cards": "Keine Anki-Karten zum Exportieren vorhanden",
         "button_export": "Exportieren",
         "button_cancel": "Abbrechen",

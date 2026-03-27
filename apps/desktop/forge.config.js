@@ -38,11 +38,11 @@ module.exports = {
     },
     fileAssociations: [
       {
-        ext: 'sekel',
+        ext: 'spkg',
         name: 'Sekel Package',
         description: 'Sekel Flashcard Package',
         icon: path.join(__dirname, 'assets', 'sekel_logo'),
-        mimeType: 'application/x-sekel',
+        mimeType: 'application/x-spkg',
         role: 'Editor',
       },
     ],

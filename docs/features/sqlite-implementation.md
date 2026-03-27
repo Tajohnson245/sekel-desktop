@@ -154,5 +154,5 @@ Affected files: `ReviewHeatmap.tsx`, `Dashboard.tsx` (`computeStreak`), `service
 
 ## Related Documentation
 
-- **[Backup System](backup-system.md)** — automatic backups, native .sekel export/import, deletion safety, database integrity checking
+- **[Backup System](backup-system.md)** — automatic backups, native .spkg export/import, deletion safety, database integrity checking
 - **[Anki Import](anki-import.md)** — .apkg import pipeline, media extraction, Anki template rendering

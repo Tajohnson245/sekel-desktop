@@ -1,7 +1,7 @@
 /**
- * Native Sekel export/import format (.sekel)
+ * Native Sekel export/import format (.spkg)
  *
- * A .sekel file is a ZIP archive containing:
+ * A .spkg file is a ZIP archive containing:
  *   collection.json  — metadata (format version, export date, app version)
  *   decks.json       — all decks
  *   note_types.json  — all note types
@@ -28,7 +28,7 @@ interface SekelCollectionMeta {
 }
 
 /**
- * Exports a user's collection (or a single deck) as a .sekel file.
+ * Exports a user's collection (or a single deck) as a .spkg file.
  *
  * @param userId  - The user whose data to export
  * @param deckId  - Optional: export only this deck (null = entire collection)
@@ -43,18 +43,18 @@ export async function exportAsSekel(
     const db = getDb();
 
     // Build default filename
-    let defaultName = 'sekel-collection';
+    let defaultName = 'sekel-export';
     if (deckId) {
         const deck = db.prepare('SELECT name FROM decks WHERE id = ?').get(deckId) as { name: string } | undefined;
         if (deck) defaultName = deck.name.replace(/[<>:"/\\|?*]/g, '_');
     }
-    defaultName += '.sekel';
+    defaultName += '.spkg';
 
     const win = BrowserWindow.getFocusedWindow();
     const result = await dialog.showSaveDialog(win!, {
         title: 'Export as Sekel Package',
         defaultPath: defaultName,
-        filters: [{ name: 'Sekel Package', extensions: ['sekel'] }],
+        filters: [{ name: 'Sekel Package', extensions: ['spkg'] }],
     });
 
     if (result.canceled || !result.filePath) return null;

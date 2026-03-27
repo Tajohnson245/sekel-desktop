@@ -1,7 +1,7 @@
 /**
- * Import handler for .sekel package files.
+ * Import handler for .spkg package files.
  *
- * Reads a .sekel ZIP archive and inserts all data into the local database.
+ * Reads a .spkg ZIP archive and inserts all data into the local database.
  * Supports conflict resolution: skip, overwrite, or merge.
  */
 
@@ -37,18 +37,18 @@ export interface SekelImportResult {
 }
 
 /**
- * Reads a .sekel file and returns a summary without importing anything.
+ * Reads a .spkg file and returns a summary without importing anything.
  */
 export async function getSekelImportSummary(filePath: string): Promise<SekelImportSummary> {
     const buffer = fs.readFileSync(filePath);
     const zip = await JSZip.loadAsync(buffer);
 
     const metaRaw = await zip.file('collection.json')?.async('string');
-    if (!metaRaw) throw new Error('Invalid .sekel file: missing collection.json');
+    if (!metaRaw) throw new Error('Invalid .spkg file: missing collection.json');
 
     const meta = JSON.parse(metaRaw);
     if (meta.formatVersion > SUPPORTED_FORMAT_VERSION) {
-        throw new Error(`Unsupported .sekel format version ${meta.formatVersion}. Please update Sekel.`);
+        throw new Error(`Unsupported .spkg format version ${meta.formatVersion}. Please update Sekel.`);
     }
 
     const decks = JSON.parse(await zip.file('decks.json')?.async('string') ?? '[]');
@@ -74,7 +74,7 @@ export async function getSekelImportSummary(filePath: string): Promise<SekelImpo
 }
 
 /**
- * Imports data from a .sekel file into the database.
+ * Imports data from a .spkg file into the database.
  *
  * Strategy:
  * - New UUIDs are generated for all entities to avoid collisions
@@ -89,11 +89,11 @@ export async function importSekelFile(
     const zip = await JSZip.loadAsync(buffer);
 
     const metaRaw = await zip.file('collection.json')?.async('string');
-    if (!metaRaw) throw new Error('Invalid .sekel file: missing collection.json');
+    if (!metaRaw) throw new Error('Invalid .spkg file: missing collection.json');
 
     const meta = JSON.parse(metaRaw);
     if (meta.formatVersion > SUPPORTED_FORMAT_VERSION) {
-        throw new Error(`Unsupported .sekel format version ${meta.formatVersion}`);
+        throw new Error(`Unsupported .spkg format version ${meta.formatVersion}`);
     }
 
     const decks = JSON.parse(await zip.file('decks.json')?.async('string') ?? '[]') as Record<string, unknown>[];

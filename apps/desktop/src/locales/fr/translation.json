@@ -256,7 +256,7 @@
         "new_cards_per_day": "Nouvelles cartes par jour",
         "reviews_per_day": "Révisions par jour",
         "export_collection": "Exporter la collection",
-        "export_collection_desc": "Exportez tous vos paquets, cartes et historique de révision dans un fichier .sekel. Les médias sont inclus.",
+        "export_collection_desc": "Exportez tous vos paquets, cartes et historique de révision dans un fichier .spkg. Les médias sont inclus.",
         "export_collection_btn": "Tout exporter"
     },
     "verification": {
@@ -600,11 +600,11 @@
         "menu_label": "Exporter",
         "modal_title": "Exporter le paquet",
         "format_label": "Format d'exportation",
-        "format_sekel_desc": "Toutes les cartes — format natif Sekel",
+        "format_spkg_desc": "Toutes les cartes — format natif Sekel",
         "format_apkg_desc": "Cartes importées d'Anki uniquement",
-        "sekel_body": "Les {{totalCards}} cartes seront exportées au format Sekel.",
+        "spkg_body": "Les {{totalCards}} cartes seront exportées au format Sekel.",
         "modal_body": "Exportez votre paquet en fichier .apkg, compatible avec Anki.",
-        "modal_body_sekel_only": "Exporter uniquement les cartes Sekel natives",
+        "modal_body_spkg_only": "Exporter uniquement les cartes Sekel natives",
         "modal_no_anki_cards": "Aucune carte Anki à exporter",
         "button_export": "Exporter",
         "button_cancel": "Annuler",

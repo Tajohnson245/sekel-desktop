@@ -1,5 +1,5 @@
 # Backup System
-> Automatic backups, native .sekel export/import, deletion safety, and database integrity checking for the Sekel desktop app.
+> Automatic backups, native .spkg export/import, deletion safety, and database integrity checking for the Sekel desktop app.
 
 ---
 
@@ -8,7 +8,7 @@
 Sekel stores all flashcard data in a single local SQLite file (`sekel.db`). The backup system protects against data loss through four layers:
 
 1. **Automatic periodic backups** — WAL-safe `.backup()` snapshots on a configurable schedule
-2. **Native .sekel export/import** — portable ZIP-based format for all Sekel data (not just Anki-imported cards)
+2. **Native .spkg export/import** — portable ZIP-based format for all Sekel data (not just Anki-imported cards)
 3. **Deletion log** — JSONL record of deleted decks/notes for recovery
 4. **Database integrity check** — `PRAGMA integrity_check` + `PRAGMA foreign_key_check` accessible from UI
 
@@ -23,8 +23,8 @@ Sekel stores all flashcard data in a single local SQLite file (`sekel.db`). The 
   Renderer              │  backup/service.ts    ← scheduler, rotation  │
   BackupTab.tsx         │  backup/restore.ts    ← restore flow         │
   AccountTab.tsx ──IPC──│  backup/deletionLog.ts← deletion safety      │
-  ExportModal.tsx       │  export/sekel.ts      ← .sekel export        │
-                        │  import/sekel.ts      ← .sekel import        │
+  ExportModal.tsx       │  export/sekel.ts      ← .spkg export        │
+                        │  import/sekel.ts      ← .spkg import        │
                         │  db/service.ts        ← deletion log hooks   │
                         └───────────┬──────────────────────────────────┘
                                     │
@@ -45,9 +45,9 @@ Sekel stores all flashcard data in a single local SQLite file (`sekel.db`). The 
 | `backup:getSettings` | `ipc/backup.ts` | Get current backup schedule settings |
 | `backup:updateSettings` | `ipc/backup.ts` | Update backup interval and retention policy |
 | `backup:getTotalSize` | `ipc/backup.ts` | Total disk usage of all backups |
-| `db:exportSekel` | `ipc/database.ts` | Export collection or single deck as .sekel |
-| `db:getSekelImportSummary` | `ipc/database.ts` | Preview .sekel file contents before import |
-| `db:importSekel` | `ipc/database.ts` | Import a .sekel file |
+| `db:exportSekel` | `ipc/database.ts` | Export collection or single deck as .spkg |
+| `db:getSekelImportSummary` | `ipc/database.ts` | Preview .spkg file contents before import |
+| `db:importSekel` | `ipc/database.ts` | Import a .spkg file |
 | `db:getDeletedItems` | `ipc/database.ts` | Read the deletion log |
 | `db:checkIntegrity` | `ipc/database.ts` | Run SQLite integrity + FK checks |
 
@@ -60,13 +60,13 @@ Sekel stores all flashcard data in a single local SQLite file (`sekel.db`). The 
 | `apps/desktop/src/main/backup/service.ts` | Backup creation, scheduling, rotation, and pruning |
 | `apps/desktop/src/main/backup/restore.ts` | Database restore flow (safety backup, close, replace, reopen) |
 | `apps/desktop/src/main/backup/deletionLog.ts` | JSONL deletion log — records decks/notes before hard delete |
-| `apps/desktop/src/main/export/sekel.ts` | Native .sekel export — ZIP builder with JSON + optional media |
-| `apps/desktop/src/main/import/sekel.ts` | Native .sekel import — ID remapping, transaction insertion |
+| `apps/desktop/src/main/export/sekel.ts` | Native .spkg export — ZIP builder with JSON + optional media |
+| `apps/desktop/src/main/import/sekel.ts` | Native .spkg import — ID remapping, transaction insertion |
 | `apps/desktop/src/ipc/backup.ts` | IPC handler registration for all `backup:*` channels |
 | `apps/desktop/src/ipc/database.ts` | Hosts `db:exportSekel`, `db:importSekel`, `db:checkIntegrity`, `db:getDeletedItems` |
 | `apps/desktop/src/components/Profile/sections/BackupTab.tsx` | Backup management UI (list, create, restore, settings, integrity check) |
-| `apps/desktop/src/components/Deck/ExportModal.tsx` | Format selection (.sekel vs .apkg) with media toggle |
-| `apps/desktop/src/components/Profile/sections/AccountTab.tsx` | "Export Collection" button for full .sekel export |
+| `apps/desktop/src/components/Deck/ExportModal.tsx` | Format selection (.spkg vs .apkg) with media toggle |
+| `apps/desktop/src/components/Profile/sections/AccountTab.tsx` | "Export Collection" button for full .spkg export |
 | `apps/desktop/src/menu.ts` | File menu entries: "Create Backup", "Restore from Backup..." |
 | `apps/desktop/src/preload.ts` | contextBridge — exposes `window.electronAPI.backup.*` to renderer |
 | `apps/desktop/src/types/electron.d.ts` | TypeScript types: `BackupInfo`, `BackupSettings`, `RestoreResult`, `SekelImportSummary`, `SekelImportResult`, `DeletedItem` |
@@ -171,18 +171,18 @@ Backup list refreshed
 
 ---
 
-## 3. Native .sekel Export/Import
+## 3. Native .spkg Export/Import
 
 ### Why Not Just .apkg?
 
-The existing `.apkg` export only works for cards with `anki_id IS NOT NULL` — meaning only Anki-imported cards can be exported. Cards created natively in Sekel have no export path. The `.sekel` format exports everything.
+The existing `.apkg` export only works for cards with `anki_id IS NOT NULL` — meaning only Anki-imported cards can be exported. Cards created natively in Sekel have no export path. The `.spkg` format exports everything.
 
-### .sekel File Format
+### .spkg File Format
 
-A `.sekel` file is a **ZIP archive** (built with JSZip) containing:
+A `.spkg` file is a **ZIP archive** (built with JSZip) containing:
 
 ```
-mydecks.sekel (ZIP)
+mydecks.spkg (ZIP)
 ├── collection.json     — format version, export date, app version, optional deckId
 ├── decks.json          — all exported decks
 ├── note_types.json     — all note types for the user
@@ -211,14 +211,14 @@ mydecks.sekel (ZIP)
 ```
 User opens ExportModal on a deck (or "Export Collection" from AccountTab)
   ↓
-Select format: .sekel (default) or .apkg
+Select format: .spkg (default) or .apkg
   ↓
-For .sekel: toggle "Include media files"
+For .spkg: toggle "Include media files"
   ↓
 exportAsSekel(userId, deckId | null, includeMedia)
   │
   ├─ Build default filename from deck name (or "sekel-collection")
-  ├─ Show native save dialog with .sekel filter
+  ├─ Show native save dialog with .spkg filter
   ├─ Query all data scoped to user + optional deck:
   │   decks → notes (by deck_id) → cards (by note_id, batched 500)
   │   → reviews (by card_id, batched 500) → sessions (by deck_id)
@@ -237,7 +237,7 @@ Return saved file path (or null if cancelled)
 ### Import Flow
 
 ```
-User selects a .sekel file
+User selects a .spkg file
   ↓
 getSekelImportSummary(filePath)
   │
@@ -284,7 +284,7 @@ The ExportModal presents two format options as visual cards:
 
 | Format | When to Use | Notes |
 |--------|------------|-------|
-| `.sekel` (default) | All Sekel data, portable backups, sharing | Includes FSRS state, reviews, sessions, optional media |
+| `.spkg` (default) | All Sekel data, portable backups, sharing | Includes FSRS state, reviews, sessions, optional media |
 | `.apkg` | Sharing with Anki users | Only available when deck has Anki-imported cards (`anki_id IS NOT NULL`) |
 
 ---
@@ -358,11 +358,11 @@ Three sections:
 
 ### Export Modal (Deck > Export)
 
-Format selector (`.sekel` or `.apkg`), media toggle for .sekel, export button.
+Format selector (`.spkg` or `.apkg`), media toggle for .spkg, export button.
 
 ### Account Tab (Profile > Account)
 
-"Export Collection" button in Data Management section — exports entire collection as `.sekel` with media.
+"Export Collection" button in Data Management section — exports entire collection as `.spkg` with media.
 
 ### File Menu
 
@@ -378,7 +378,7 @@ Format selector (`.sekel` or `.apkg`), media toggle for .sekel, export button.
 | Automatic periodic backups | 30min default | 30min default, configurable |
 | Backup restore UI | Switch Profile > Open Backup | Profile > Backup tab |
 | Manual backup | File > Create Backup | File > Create Backup (`CmdOrCtrl+Shift+B`) |
-| Full export with media | .colpkg | .sekel (ZIP with JSON + media) |
+| Full export with media | .colpkg | .spkg (ZIP with JSON + media) |
 | Backup retention policy | Daily/weekly/monthly | Daily/weekly/monthly, configurable |
 | Backup preferences UI | In preferences | Profile > Backup tab |
 | Database integrity check | Tools > Check Database | Profile > Backup tab |
@@ -391,9 +391,9 @@ Format selector (`.sekel` or `.apkg`), media toggle for .sekel, export button.
 
 1. **`.backup()` over file copy** — WAL-mode databases can have active WAL files. `better-sqlite3`'s `.backup()` API creates a consistent snapshot regardless of WAL state.
 
-2. **JSON over SQLite dump for .sekel format** — JSON is more portable, human-inspectable, version-tolerant, and we already have TypeScript types for all entities.
+2. **JSON over SQLite dump for .spkg format** — JSON is more portable, human-inspectable, version-tolerant, and we already have TypeScript types for all entities.
 
-3. **ID remapping on import** — All entities get fresh UUIDs during .sekel import to avoid collisions. A `Map<oldId, newId>` tracks remappings so foreign keys are correctly rewritten.
+3. **ID remapping on import** — All entities get fresh UUIDs during .spkg import to avoid collisions. A `Map<oldId, newId>` tracks remappings so foreign keys are correctly rewritten.
 
 4. **Deletion log over soft delete** — A JSONL append log is simpler than adding `deleted_at` columns to every table and modifying all queries. Matches Anki's approach.
 

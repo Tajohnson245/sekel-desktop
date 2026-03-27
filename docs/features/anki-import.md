@@ -205,5 +205,5 @@ renderAnkiTemplate(template, fields, userId, frontHtml?)
 
 ## Related Documentation
 
-- **[Backup System](backup-system.md)** — automatic backups, native .sekel export/import, deletion safety, database integrity checking. The `.sekel` format is the native alternative to `.apkg` that supports all Sekel-created cards.
+- **[Backup System](backup-system.md)** — automatic backups, native .spkg export/import, deletion safety, database integrity checking. The `.spkg` format is the native alternative to `.apkg` that supports all Sekel-created cards.
 - **[SQLite Implementation](sqlite-implementation.md)** — database architecture, schema, IPC bridge, media handling

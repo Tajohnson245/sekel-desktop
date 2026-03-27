@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Modal, Button, ToggleSwitch } from '../UI';
 import { getExportableCardCount } from '../../lib/queries';
 
-type ExportFormat = 'apkg' | 'sekel';
+type ExportFormat = 'apkg' | 'spkg';
 
 interface ExportModalProps {
     isOpen: boolean;
@@ -18,7 +18,7 @@ export default function ExportModal({ isOpen, deckId, deckName, userId, onConfir
     const { t } = useTranslation();
     const [counts, setCounts] = useState<{ ankiCards: number; sekelCards: number } | null>(null);
     const [loading, setLoading] = useState(false);
-    const [format, setFormat] = useState<ExportFormat>('sekel');
+    const [format, setFormat] = useState<ExportFormat>('spkg');
     const [includeMedia, setIncludeMedia] = useState(true);
     const [exporting, setExporting] = useState(false);
 
@@ -30,19 +30,19 @@ export default function ExportModal({ isOpen, deckId, deckName, userId, onConfir
                 .finally(() => setLoading(false));
         } else {
             setCounts(null);
-            setFormat('sekel');
+            setFormat('spkg');
             setIncludeMedia(true);
         }
     }, [isOpen, deckId]);
 
     const totalCards = counts ? counts.ankiCards + counts.sekelCards : 0;
     const hasAnkiCards = (counts?.ankiCards ?? 0) > 0;
-    const canExport = format === 'sekel' ? totalCards > 0 : hasAnkiCards;
+    const canExport = format === 'spkg' ? totalCards > 0 : hasAnkiCards;
 
     const handleExport = async () => {
         setExporting(true);
         try {
-            if (format === 'sekel') {
+            if (format === 'spkg') {
                 await window.electronAPI.db.exportSekel(userId, deckId, includeMedia);
             } else {
                 onConfirm();
@@ -85,21 +85,21 @@ export default function ExportModal({ isOpen, deckId, deckName, userId, onConfir
                             </label>
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
                                 <button
-                                    onClick={() => setFormat('sekel')}
+                                    onClick={() => setFormat('spkg')}
                                     style={{
                                         flex: 1,
                                         padding: '0.6rem 0.8rem',
                                         borderRadius: '8px',
-                                        border: `2px solid ${format === 'sekel' ? 'var(--primary)' : 'var(--border)'}`,
-                                        background: format === 'sekel' ? 'var(--primary-bg, rgba(99,102,241,0.1))' : 'var(--card-bg)',
+                                        border: `2px solid ${format === 'spkg' ? 'var(--primary)' : 'var(--border)'}`,
+                                        background: format === 'spkg' ? 'var(--primary-bg, rgba(99,102,241,0.1))' : 'var(--card-bg)',
                                         color: 'var(--text)',
                                         cursor: 'pointer',
                                         textAlign: 'left',
                                     }}
                                 >
-                                    <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>.sekel</div>
+                                    <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>.spkg</div>
                                     <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>
-                                        {t('export.format_sekel_desc')}
+                                        {t('export.format_spkg_desc')}
                                     </div>
                                 </button>
                                 <button
@@ -128,13 +128,13 @@ export default function ExportModal({ isOpen, deckId, deckName, userId, onConfir
                         {/* Card counts */}
                         {counts && (
                             <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                                {format === 'sekel' ? (
-                                    <p>{t('export.sekel_body', { totalCards })}</p>
+                                {format === 'spkg' ? (
+                                    <p>{t('export.spkg_body', { totalCards })}</p>
                                 ) : hasAnkiCards ? (
                                     <>
                                         <p>{t('export.modal_body', { ankiCards: counts.ankiCards, totalCards, deckName })}</p>
                                         <p style={{ fontSize: '0.8125rem', marginTop: '0.25rem' }}>
-                                            {t('export.modal_body_sekel_only')}
+                                            {t('export.modal_body_spkg_only')}
                                         </p>
                                     </>
                                 ) : (
@@ -143,8 +143,8 @@ export default function ExportModal({ isOpen, deckId, deckName, userId, onConfir
                             </div>
                         )}
 
-                        {/* Include media toggle (sekel format only) */}
-                        {format === 'sekel' && (
+                        {/* Include media toggle (spkg format only) */}
+                        {format === 'spkg' && (
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <div>
                                     <label className="field-label">{t('export.include_media')}</label>

@@ -297,7 +297,7 @@
         "new_cards_per_day": "Tarjetas nuevas por día",
         "reviews_per_day": "Repasos por día",
         "export_collection": "Exportar colección",
-        "export_collection_desc": "Exporta todos tus mazos, tarjetas e historial de repasos como un archivo .sekel. Incluye multimedia.",
+        "export_collection_desc": "Exporta todos tus mazos, tarjetas e historial de repasos como un archivo .spkg. Incluye multimedia.",
         "export_collection_btn": "Exportar todo"
     },
     "verification": {
@@ -600,11 +600,11 @@
         "menu_label": "Exportar",
         "modal_title": "Exportar mazo",
         "format_label": "Formato de exportación",
-        "format_sekel_desc": "Todas las tarjetas — formato nativo de Sekel",
+        "format_spkg_desc": "Todas las tarjetas — formato nativo de Sekel",
         "format_apkg_desc": "Solo tarjetas importadas de Anki",
-        "sekel_body": "Se exportarán las {{totalCards}} tarjetas en formato Sekel.",
+        "spkg_body": "Se exportarán las {{totalCards}} tarjetas en formato Sekel.",
         "modal_body": "Exporta tu mazo como archivo .apkg, compatible con Anki.",
-        "modal_body_sekel_only": "Exportar solo tarjetas nativas de Sekel",
+        "modal_body_spkg_only": "Exportar solo tarjetas nativas de Sekel",
         "modal_no_anki_cards": "No hay tarjetas de Anki para exportar",
         "button_export": "Exportar",
         "button_cancel": "Cancelar",
