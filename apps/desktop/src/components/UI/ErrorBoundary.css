@@ -1,0 +1,85 @@
+/* ── Page variant (full-screen fallback) ──────────────────── */
+.error-boundary--page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 60vh;
+    padding: var(--space-3xl);
+    text-align: center;
+    color: var(--fg);
+}
+
+.error-boundary__icon {
+    color: var(--rose);
+    margin-bottom: var(--space-lg);
+}
+
+.error-boundary__title {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    margin-bottom: var(--space-sm);
+    color: var(--fg);
+}
+
+.error-boundary__message {
+    font-size: 0.925rem;
+    color: var(--text-secondary);
+    max-width: 420px;
+    line-height: 1.5;
+    margin-bottom: var(--space-xl);
+}
+
+.error-boundary__details {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: var(--space-sm) var(--space-md);
+    max-width: 480px;
+    overflow-x: auto;
+    margin-bottom: var(--space-xl);
+    cursor: pointer;
+}
+
+.error-boundary__details pre {
+    font-family: var(--font-mono);
+    margin: var(--space-sm) 0 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.error-boundary__actions {
+    display: flex;
+    gap: var(--space-sm);
+}
+
+.error-boundary__actions .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+}
+
+/* ── Inline variant (contextual card fallback) ────────────── */
+.error-boundary--inline {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-2xl) var(--space-xl);
+    text-align: center;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    margin: var(--space-lg);
+}
+
+.error-boundary--inline .error-boundary__title {
+    font-size: 1.125rem;
+}
+
+.error-boundary--inline .error-boundary__message {
+    font-size: 0.875rem;
+}

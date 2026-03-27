@@ -642,5 +642,14 @@
         "redistribute": "Redistribuer",
         "success": "Cartes redistribuées avec succès",
         "error": "Erreur lors de la redistribution"
+    },
+    "error_boundary": {
+        "page_title": "Une erreur est survenue",
+        "page_message": "Une erreur inattendue s'est produite. Vos données sont en sécurité. Essayez de recharger l'application.",
+        "inline_title": "Cette section a rencontré une erreur",
+        "inline_message": "Un problème est survenu lors du chargement de cette vue. Vous pouvez réessayer ou revenir en arrière.",
+        "retry": "Réessayer",
+        "reload": "Recharger l'application",
+        "go_back": "Retour"
     }
 }

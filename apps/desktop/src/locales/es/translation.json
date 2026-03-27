@@ -642,5 +642,14 @@
         "redistribute": "Redistribuir",
         "success": "Tarjetas redistribuidas exitosamente",
         "error": "Error al redistribuir"
+    },
+    "error_boundary": {
+        "page_title": "Algo salió mal",
+        "page_message": "Ocurrió un error inesperado. Tus datos están seguros. Intenta recargar la aplicación.",
+        "inline_title": "Esta sección encontró un error",
+        "inline_message": "Algo salió mal al cargar esta vista. Puedes intentar de nuevo o volver atrás.",
+        "retry": "Intentar de nuevo",
+        "reload": "Recargar aplicación",
+        "go_back": "Volver"
     }
 }

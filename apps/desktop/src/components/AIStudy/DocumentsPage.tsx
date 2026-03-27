@@ -3,7 +3,7 @@ import { Loader, FileText, CheckCircle, AlertCircle, RefreshCw, ArrowRight, Tras
 import { useTranslation } from 'react-i18next';
 import DocumentUpload from './DocumentUpload';
 import AICardGenerator from './AICardGenerator';
-import { Button, MetaChip, YouTubeIcon, useToast } from '../UI';
+import { Button, MetaChip, YouTubeIcon, useToast, ErrorBoundary } from '../UI';
 import { parseFile, parseYoutube } from '../../lib/documentParser';
 import './DocumentsPage.css';
 
@@ -195,15 +195,17 @@ export default function DocumentsPage({ userId, initialDeckId, onUnfinishedWorkC
 
     if (step === 'generate') {
         return (
-            <AICardGenerator
-                extractedText={fullContextContent}
-                contextSummary={summaryText}
-                estimatedCardCount={estimatedCardCount}
-                userId={userId}
-                onComplete={handleRestart}
-                initialDeckId={initialDeckId}
-                onCardCountChange={setGeneratedCardCount}
-            />
+            <ErrorBoundary variant="inline" onReset={handleRestart}>
+                <AICardGenerator
+                    extractedText={fullContextContent}
+                    contextSummary={summaryText}
+                    estimatedCardCount={estimatedCardCount}
+                    userId={userId}
+                    onComplete={handleRestart}
+                    initialDeckId={initialDeckId}
+                    onCardCountChange={setGeneratedCardCount}
+                />
+            </ErrorBoundary>
         );
     }
 
