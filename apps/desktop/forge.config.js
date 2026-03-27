@@ -36,6 +36,16 @@ module.exports = {
       ProductName: 'Sekel',
       FileDescription: 'SEKEL - Intelligent Flashcards',
     },
+    fileAssociations: [
+      {
+        ext: 'sekel',
+        name: 'Sekel Package',
+        description: 'Sekel Flashcard Package',
+        icon: path.join(__dirname, 'assets', 'sekel_logo'),
+        mimeType: 'application/x-sekel',
+        role: 'Editor',
+      },
+    ],
     // The packager doesn't copy node_modules in a monorepo workspace setup.
     // Walk the full production dependency tree and copy each package from
     // wherever npm placed it (local node_modules or hoisted to monorepo root).

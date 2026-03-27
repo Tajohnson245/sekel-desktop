@@ -13,6 +13,11 @@ vi.mock('../main/db/index', () => ({
     initDatabase: vi.fn(),
 }));
 
+vi.mock('../main/backup/deletionLog', () => ({
+    logDeckDeletion: vi.fn(),
+    logNoteDeletion: vi.fn(),
+}));
+
 import {
     fetchDecks,
     fetchDeck,
