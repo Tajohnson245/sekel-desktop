@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '../../../stores/authStore';
 import { useProfileStore } from '../../../stores/profileStore';
-import { Bell, Clock, Plus, X } from 'lucide-react';
+import { Bell, Clock, GraduationCap, Plus, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button, useToast, ToggleSwitch } from '../../UI';
 import { useDecks, useUpdateDeck } from '../../../hooks/useDecks';
+import { useExamProfile, useUpdateExamProfile } from '../../../hooks/useExamProfile';
+import { isExamDateSet, EXAM_DATE_SENTINEL } from '../../../lib/queries';
+import { ExamOnboardingModal } from '../../ExamOnboarding/ExamOnboardingModal';
 
 export function StudyTab() {
     const { user } = useAuthStore();
@@ -29,6 +32,39 @@ export function StudyTab() {
     const [fsrsDropdownOpen, setFsrsDropdownOpen] = useState(false);
     const [fsrsEnabledDeckIds, setFsrsEnabledDeckIds] = useState<Set<string>>(new Set());
     const [fsrsSaving, setFsrsSaving] = useState(false);
+
+    // Exam profile state
+    const { data: examProfile } = useExamProfile();
+    const updateExamProfile = useUpdateExamProfile();
+    const [showExamModal, setShowExamModal] = useState(false);
+    const [localExamDate, setLocalExamDate] = useState('');
+    const [localSessionMode, setLocalSessionMode] = useState<'auto' | 'mixed' | 'triage'>('auto');
+
+    useEffect(() => {
+        if (examProfile) {
+            setLocalExamDate(isExamDateSet(examProfile.exam_date) ? examProfile.exam_date : '');
+            setLocalSessionMode(examProfile.session_mode);
+        }
+    }, [examProfile]);
+
+    const handleExamDateSave = () => {
+        updateExamProfile.mutate(
+            { exam_date: localExamDate || EXAM_DATE_SENTINEL },
+            { onSuccess: () => showToast(t('exam.date_saved'), 'success') }
+        );
+    };
+
+    const handleSessionModeChange = (mode: 'auto' | 'mixed' | 'triage') => {
+        setLocalSessionMode(mode);
+        updateExamProfile.mutate(
+            { session_mode: mode },
+            { onSuccess: () => showToast(t('exam.mode_saved'), 'success') }
+        );
+    };
+
+    const handleExamSwitchComplete = async () => {
+        setShowExamModal(false);
+    };
 
     // Time Travel state
     const [ttDaysBack, setTtDaysBack] = useState(7);
@@ -106,6 +142,78 @@ export function StudyTab() {
             </div>
 
             <div className="profile-grid">
+                {/* Exam Configuration */}
+                <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                        <div>
+                            <label className="field-label">
+                                <GraduationCap size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+                                {t('exam.settings_title')}
+                            </label>
+                            <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0.2rem 0 0' }}>
+                                {t('exam.settings_desc')}
+                            </p>
+                        </div>
+                    </div>
+
+                    {examProfile ? (
+                        <div style={{ marginTop: '0.75rem' }}>
+                            <div style={{ marginBottom: '0.75rem', fontSize: '0.9rem' }}>
+                                <strong>{examProfile.exam_label}</strong>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+                                <div>
+                                    <label className="field-label" style={{ fontSize: '0.8rem', marginBottom: '0.25rem', display: 'block' }}>
+                                        {t('exam.date_label')}
+                                    </label>
+                                    <input
+                                        type="date"
+                                        className="field-input"
+                                        value={localExamDate}
+                                        onChange={(e) => setLocalExamDate(e.target.value)}
+                                        onBlur={handleExamDateSave}
+                                        min={new Date().toISOString().split('T')[0]}
+                                        style={{ width: '170px' }}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="field-label" style={{ fontSize: '0.8rem', marginBottom: '0.25rem', display: 'block' }}>
+                                        {t('exam.session_mode_label')}
+                                    </label>
+                                    <select
+                                        className="field-input"
+                                        value={localSessionMode}
+                                        onChange={(e) => handleSessionModeChange(e.target.value as 'auto' | 'mixed' | 'triage')}
+                                        style={{ width: '220px' }}
+                                    >
+                                        <option value="auto">{t('exam.mode_auto')}</option>
+                                        <option value="mixed">{t('exam.mode_mixed')}</option>
+                                        <option value="triage">{t('exam.mode_triage')}</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <Button variant="secondary" onClick={() => setShowExamModal(true)}>
+                                {t('exam.change_exam')}
+                            </Button>
+                        </div>
+                    ) : (
+                        <div style={{ marginTop: '0.75rem' }}>
+                            <Button variant="primary" onClick={() => setShowExamModal(true)}>
+                                {t('exam.setup_exam')}
+                            </Button>
+                        </div>
+                    )}
+
+                    <ExamOnboardingModal
+                        isOpen={showExamModal}
+                        onClose={() => setShowExamModal(false)}
+                        onComplete={handleExamSwitchComplete}
+                    />
+                </div>
+
                 {/* Notification Reminders */}
                 <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>

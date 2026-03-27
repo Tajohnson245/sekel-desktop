@@ -301,6 +301,33 @@ export interface BatchClassifyResult {
     errors: number;
 }
 
+export interface BlueprintExam {
+    id: number;
+    exam_key: string;
+    label: string;
+}
+
+export interface UserExamProfile {
+    id: number;
+    user_id: string;
+    exam_id: number;
+    exam_date: string;
+    is_primary: number;
+    session_mode: 'auto' | 'mixed' | 'triage';
+    created_at: string;
+    updated_at: string;
+    exam_key: string;
+    exam_label: string;
+}
+
+interface ElectronExam {
+    listExams:       () => Promise<BlueprintExam[]>;
+    getProfile:      (userId: string) => Promise<UserExamProfile | null>;
+    upsertProfile:   (userId: string, examId: number, examDate: string | null, sessionMode?: string) => Promise<UserExamProfile>;
+    updateProfile:   (userId: string, updates: { exam_date?: string; session_mode?: string }) => Promise<UserExamProfile | null>;
+    fetchAllCardIds: (userId: string) => Promise<string[]>;
+}
+
 interface ElectronAPI {
     generateCards: (text: string, count?: number, language?: string, options?: AIGenerationOptions) => Promise<GeneratedCard[]>;
     generateCardsFromContext: (summary: string, content: string, count: number, language?: string, options?: AIGenerationOptions) => Promise<GeneratedCard[]>;
@@ -312,6 +339,7 @@ interface ElectronAPI {
     db: ElectronDB;
     yield: ElectronYield;
     backup: ElectronBackup;
+    exam: ElectronExam;
 }
 
 declare global {

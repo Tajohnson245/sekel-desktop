@@ -123,4 +123,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
             return () => ipcRenderer.removeListener('backup:open-restore', listener);
         },
     },
+
+    exam: {
+        listExams:       () => ipcRenderer.invoke('exam:list-exams'),
+        getProfile:      (userId: string) => ipcRenderer.invoke('exam:get-profile', userId),
+        upsertProfile:   (userId: string, examId: number, examDate: string | null, sessionMode?: string) =>
+                             ipcRenderer.invoke('exam:upsert-profile', userId, examId, examDate, sessionMode),
+        updateProfile:   (userId: string, updates: { exam_date?: string; session_mode?: string }) =>
+                             ipcRenderer.invoke('exam:update-profile', userId, updates),
+        fetchAllCardIds: (userId: string) => ipcRenderer.invoke('exam:fetch-all-card-ids', userId),
+    },
 });

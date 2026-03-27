@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ThemeProvider } from './components/ThemeProvider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LayoutDashboard, Library, FileText, Plus, Inbox, Layers, BarChart3 } from 'lucide-react';
@@ -36,6 +36,8 @@ import { UserProfilePage } from './components/Profile/UserProfilePage';
 import { useAuthStore } from './stores/authStore';
 import { useProfileStore } from './stores/profileStore';
 import { useDrafts } from './hooks/useDrafts';
+import { useExamProfile } from './hooks/useExamProfile';
+import { ExamOnboardingModal } from './components/ExamOnboarding/ExamOnboardingModal';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -61,6 +63,17 @@ function AppContent() {
     const [hasUnfinishedDocsWork, setHasUnfinishedDocsWork] = useState(false);
     const { t } = useTranslation();
     const { data: drafts = [] } = useDrafts();
+
+    // Exam onboarding auto-show
+    const { data: examProfile, isLoading: examProfileLoading } = useExamProfile();
+    const [showExamOnboarding, setShowExamOnboarding] = useState(false);
+    const [onboardingDismissed, setOnboardingDismissed] = useState(false);
+
+    useEffect(() => {
+        if (!examProfileLoading && examProfile === null && !onboardingDismissed) {
+            setShowExamOnboarding(true);
+        }
+    }, [examProfile, examProfileLoading, onboardingDismissed]);
 
     const navItems = [
         { id: 'dashboard', label: t('nav.dashboard'), icon: LayoutDashboard },
@@ -237,6 +250,18 @@ function AppContent() {
                     onClose={() => setShowDeckEditor(false)}
                 />
             )}
+
+            <ExamOnboardingModal
+                isOpen={showExamOnboarding}
+                onClose={() => {
+                    setShowExamOnboarding(false);
+                    setOnboardingDismissed(true);
+                }}
+                onComplete={() => {
+                    setShowExamOnboarding(false);
+                    setOnboardingDismissed(true);
+                }}
+            />
         </div>
     );
 }

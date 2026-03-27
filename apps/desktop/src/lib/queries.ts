@@ -76,3 +76,16 @@ export const getExportableCardCount = (deckId: string) => db().getExportableCard
 export type { SessionQueueCard } from '../types/electron';
 const yieldApi = () => window.electronAPI.yield;
 export const buildSessionQueue = (userId: string, examKey: string, limit?: number) => yieldApi().buildSessionQueue(userId, examKey, limit);
+
+// ── Exam ──────────────────────────────────────────────────────────────────────
+export type { BlueprintExam, UserExamProfile } from '../types/electron';
+export const EXAM_DATE_SENTINEL = '9999-12-31';
+export const isExamDateSet = (date: string) => date !== EXAM_DATE_SENTINEL;
+const examApi = () => window.electronAPI.exam;
+export const listExams         = () => examApi().listExams();
+export const getExamProfile    = (userId: string) => examApi().getProfile(userId);
+export const upsertExamProfile = (userId: string, examId: number, examDate: string | null, sessionMode?: string) =>
+    examApi().upsertProfile(userId, examId, examDate, sessionMode);
+export const updateExamProfile = (userId: string, updates: { exam_date?: string; session_mode?: string }) =>
+    examApi().updateProfile(userId, updates);
+export const fetchAllCardIds   = (userId: string) => examApi().fetchAllCardIds(userId);
