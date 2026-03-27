@@ -172,16 +172,85 @@ interface ElectronDB {
     // Export
     exportDeck:            (deckId: string, userId: string) => Promise<string | null>;
     getExportableCardCount: (deckId: string) => Promise<{ ankiCards: number; sekelCards: number }>;
+    exportSekel:           (userId: string, deckId: string | null, includeMedia: boolean) => Promise<string | null>;
+    getSekelImportSummary: (filePath: string) => Promise<SekelImportSummary>;
+    importSekel:           (filePath: string, userId: string) => Promise<SekelImportResult>;
     // Media
     saveMediaFile:         (params: { buffer: ArrayBuffer; filename: string; userId: string; mimeType: string }) => Promise<string>;
     // Time Travel
     timeTravelPreview:     (daysBack: number) => Promise<TimeTravelPreview>;
     timeTravelExecute:     (daysBack: number) => Promise<TimeTravelResult>;
+    // Deletion Log
+    getDeletedItems:       () => Promise<DeletedItem[]>;
+    // Integrity
+    checkIntegrity:        () => Promise<string>;
 }
 
 interface ElectronNotify {
     configure: (config: { userId: string; enabled: boolean; reminderTimes: string[] }) => Promise<void>;
     streak: (userId: string) => Promise<number>;
+}
+
+export interface DeletedItem {
+    type: 'deck' | 'note';
+    id: string;
+    timestamp: string;
+    data: Record<string, unknown>;
+    meta?: Record<string, unknown>;
+}
+
+export interface SekelImportSummary {
+    formatVersion: number;
+    exportDate: string;
+    deckCount: number;
+    noteTypeCount: number;
+    noteCount: number;
+    cardCount: number;
+    reviewCount: number;
+    sessionCount: number;
+    hasMedia: boolean;
+    deckNames: string[];
+}
+
+export interface SekelImportResult {
+    decksCreated: number;
+    notesInserted: number;
+    cardsInserted: number;
+    reviewsInserted: number;
+    sessionsInserted: number;
+    mediaExtracted: number;
+}
+
+export interface BackupInfo {
+    filename: string;
+    filePath: string;
+    timestamp: string;
+    sizeBytes: number;
+}
+
+export interface BackupSettings {
+    intervalMinutes: number;
+    dailyRetention: number;
+    weeklyRetention: number;
+    monthlyRetention: number;
+}
+
+export interface RestoreResult {
+    success: boolean;
+    safetyBackup?: BackupInfo;
+    error?: string;
+}
+
+interface ElectronBackup {
+    list:           () => Promise<BackupInfo[]>;
+    create:         () => Promise<BackupInfo | null>;
+    restore:        (filePath: string) => Promise<RestoreResult>;
+    delete:         (filename: string) => Promise<boolean>;
+    getSettings:    () => Promise<BackupSettings>;
+    updateSettings: (settings: Partial<BackupSettings>) => Promise<BackupSettings>;
+    getTotalSize:   () => Promise<number>;
+    onCreated:      (cb: (info: BackupInfo) => void) => () => void;
+    onOpenRestore:  (cb: () => void) => () => void;
 }
 
 interface ElectronAPI {
@@ -193,6 +262,7 @@ interface ElectronAPI {
     notify: ElectronNotify;
     import: ElectronImport;
     db: ElectronDB;
+    backup: ElectronBackup;
 }
 
 declare global {

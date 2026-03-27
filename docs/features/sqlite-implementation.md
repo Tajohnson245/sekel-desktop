@@ -36,10 +36,10 @@ User profile path (Supabase only):
 
 | File | Role |
 |------|------|
-| `apps/desktop/src/main/db/index.ts` | Opens the SQLite file, sets WAL + FK pragmas, runs migrations |
+| `apps/desktop/src/main/db/index.ts` | Opens the SQLite file, sets WAL + FK pragmas, runs migrations. Exports `getDbPath()` for backup/restore. Supports safe reopen via `initDatabase()`. |
 | `apps/desktop/src/main/db/migrations.ts` | Ordered SQL migration strings; `schema_version` table tracks applied migrations |
-| `apps/desktop/src/main/db/service.ts` | All SQLite query/write functions (better-sqlite3 synchronous API) |
-| `apps/desktop/src/ipc/database.ts` | IPC handler registration (`db:*` channels) including `db:saveMediaFile` |
+| `apps/desktop/src/main/db/service.ts` | All SQLite query/write functions (better-sqlite3 synchronous API). Hooks into deletion log before hard deletes. |
+| `apps/desktop/src/ipc/database.ts` | IPC handler registration (`db:*` channels) including `db:saveMediaFile`, `db:exportSekel`, `db:importSekel`, `db:checkIntegrity`, `db:getDeletedItems` |
 | `apps/desktop/src/preload.ts` | contextBridge — exposes `window.electronAPI.db.*` to renderer |
 | `apps/desktop/src/types/electron.d.ts` | TypeScript types for the entire `db` API surface |
 | `apps/desktop/src/stores/profileStore.ts` | Calls Supabase directly for user profile reads/writes |
@@ -149,3 +149,10 @@ const localDate = (d: Date) =>
 `toISOString()` returns UTC — on DST transition days this diverges from local date and produces duplicate or missing date keys.
 
 Affected files: `ReviewHeatmap.tsx`, `Dashboard.tsx` (`computeStreak`), `service.ts` (`fetchUserReviewHistory`).
+
+---
+
+## Related Documentation
+
+- **[Backup System](backup-system.md)** — automatic backups, native .spkg export/import, deletion safety, database integrity checking
+- **[Anki Import](anki-import.md)** — .apkg import pipeline, media extraction, Anki template rendering

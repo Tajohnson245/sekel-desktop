@@ -4,7 +4,11 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import * as dbService from '../main/db/service';
 import * as timeTravel from '../main/db/timeTravel';
+import { getDb } from '../main/db/index';
+import { readDeletedItems } from '../main/backup/deletionLog';
 import { exportDeckAsApkg, getExportableCardCount } from '../main/export/index';
+import { exportAsSekel } from '../main/export/sekel';
+import { getSekelImportSummary, importSekelFile } from '../main/import/sekel';
 
 export function setupDatabaseHandlers(): void {
     // ── Decks ──────────────────────────────────────────────────────────────────
@@ -127,6 +131,15 @@ export function setupDatabaseHandlers(): void {
     ipcMain.handle('db:getExportableCardCount', (_e, deckId: string) =>
         getExportableCardCount(deckId));
 
+    ipcMain.handle('db:exportSekel', (_e, userId: string, deckId: string | null, includeMedia: boolean) =>
+        exportAsSekel(userId, deckId, includeMedia));
+
+    ipcMain.handle('db:getSekelImportSummary', (_e, filePath: string) =>
+        getSekelImportSummary(filePath));
+
+    ipcMain.handle('db:importSekel', (_e, filePath: string, userId: string) =>
+        importSekelFile(filePath, userId));
+
     // ── Media ──────────────────────────────────────────────────────────────────
     ipcMain.handle('db:saveMediaFile', async (_e, params: {
         buffer: ArrayBuffer;
@@ -168,4 +181,19 @@ export function setupDatabaseHandlers(): void {
 
     ipcMain.handle('db:timeTravelExecute', (_e, daysBack: number) =>
         timeTravel.timeTravelExecute(daysBack));
+
+    // ── Deletion Log ──────────────────────────────────────────────────────
+    ipcMain.handle('db:getDeletedItems', () =>
+        readDeletedItems());
+
+    // ── Integrity ────────────────────────────────────────────────────────
+    ipcMain.handle('db:checkIntegrity', () => {
+        const db = getDb();
+        const result = db.pragma('integrity_check') as { integrity_check: string }[];
+        const fkResult = db.pragma('foreign_key_check') as unknown[];
+        if (fkResult.length > 0) {
+            return `Foreign key violations: ${fkResult.length}`;
+        }
+        return result[0]?.integrity_check ?? 'unknown';
+    });
 }

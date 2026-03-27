@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '../../../stores/authStore';
-import { Lock, Trash2, Upload } from 'lucide-react';
+import { Lock, Trash2, Upload, Download } from 'lucide-react';
 import ImportAnkiButton from '../../Deck/ImportAnkiButton';
 import { useTranslation } from 'react-i18next';
 import { Modal, Button, Input, useToast } from '../../UI';
@@ -13,9 +13,12 @@ export function AccountTab() {
     const { showToast } = useToast();
     const queryClient = useQueryClient();
 
+    const { user } = useAuthStore();
+
     const [isEditingPassword, setIsEditingPassword] = useState(false);
     const [passwordForm, setPasswordForm] = useState({ newPassword: '', confirmPassword: '' });
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [exportingCollection, setExportingCollection] = useState(false);
 
     const handleChangePassword = async () => {
         if (passwordForm.newPassword !== passwordForm.confirmPassword) {
@@ -29,6 +32,19 @@ export function AccountTab() {
             showToast(t('profile.password_updated'), 'success');
         } catch (_error) {
             showToast(t('common.error'), 'error');
+        }
+    };
+
+    const handleExportCollection = async () => {
+        if (!user?.id) return;
+        setExportingCollection(true);
+        try {
+            const result = await window.electronAPI.db.exportSekel(user.id, null, true);
+            if (result) showToast(t('export.success'), 'success');
+        } catch {
+            showToast(t('export.error'), 'error');
+        } finally {
+            setExportingCollection(false);
         }
     };
 
@@ -62,6 +78,24 @@ export function AccountTab() {
                                     queryClient.invalidateQueries({ queryKey: deckKeys.all });
                                 }}
                             />
+                        </div>
+                    </div>
+                    <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div>
+                                <label className="field-label">{t('profile.export_collection')}</label>
+                                <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0.2rem 0 0' }}>
+                                    {t('profile.export_collection_desc')}
+                                </p>
+                            </div>
+                            <Button
+                                variant="secondary"
+                                onClick={handleExportCollection}
+                                disabled={exportingCollection}
+                                icon={<Download size={14} />}
+                            >
+                                {exportingCollection ? t('common.loading') : t('profile.export_collection_btn')}
+                            </Button>
                         </div>
                     </div>
                 </div>

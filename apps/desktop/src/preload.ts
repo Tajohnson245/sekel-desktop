@@ -75,11 +75,39 @@ contextBridge.exposeInMainWorld('electronAPI', {
         // Export
         exportDeck:            (deckId: string, userId: string) => ipcRenderer.invoke('db:exportDeck', deckId, userId),
         getExportableCardCount: (deckId: string) => ipcRenderer.invoke('db:getExportableCardCount', deckId),
+        exportSekel:           (userId: string, deckId: string | null, includeMedia: boolean) => ipcRenderer.invoke('db:exportSekel', userId, deckId, includeMedia),
+        getSekelImportSummary: (filePath: string) => ipcRenderer.invoke('db:getSekelImportSummary', filePath),
+        importSekel:           (filePath: string, userId: string) => ipcRenderer.invoke('db:importSekel', filePath, userId),
         // Media
         saveMediaFile:         (params: { buffer: ArrayBuffer; filename: string; userId: string; mimeType: string }) =>
                                    ipcRenderer.invoke('db:saveMediaFile', params),
         // Time Travel
         timeTravelPreview:     (daysBack: number) => ipcRenderer.invoke('db:timeTravelPreview', daysBack),
         timeTravelExecute:     (daysBack: number) => ipcRenderer.invoke('db:timeTravelExecute', daysBack),
+        // Deletion Log
+        getDeletedItems:       () => ipcRenderer.invoke('db:getDeletedItems'),
+        // Integrity
+        checkIntegrity:        () => ipcRenderer.invoke('db:checkIntegrity'),
+    },
+
+    backup: {
+        list:           () => ipcRenderer.invoke('backup:list'),
+        create:         () => ipcRenderer.invoke('backup:create'),
+        restore:        (filePath: string) => ipcRenderer.invoke('backup:restore', filePath),
+        delete:         (filename: string) => ipcRenderer.invoke('backup:delete', filename),
+        getSettings:    () => ipcRenderer.invoke('backup:getSettings'),
+        updateSettings: (settings: { intervalMinutes?: number; dailyRetention?: number; weeklyRetention?: number; monthlyRetention?: number }) =>
+                            ipcRenderer.invoke('backup:updateSettings', settings),
+        getTotalSize:   () => ipcRenderer.invoke('backup:getTotalSize'),
+        onCreated: (cb: (info: unknown) => void) => {
+            const listener = (_event: unknown, info: unknown) => cb(info);
+            ipcRenderer.on('backup:created', listener);
+            return () => ipcRenderer.removeListener('backup:created', listener);
+        },
+        onOpenRestore: (cb: () => void) => {
+            const listener = () => cb();
+            ipcRenderer.on('backup:open-restore', listener);
+            return () => ipcRenderer.removeListener('backup:open-restore', listener);
+        },
     },
 });

@@ -200,3 +200,10 @@ renderAnkiTemplate(template, fields, userId, frontHtml?)
 - **No card browser** — the deck detail page shows notes, not individual cards. A card browser showing each card's template, FSRS state, and due date is a planned follow-up.
 - **No media orphan cleanup** — deleting a deck leaves its media files and DB rows on disk. A vacuum/cleanup job is needed for decks with no remaining references to media filenames.
 - **Cloze note types** — cloze deletions are not fully rendered (cloze syntax left as-is). Full cloze support requires a dedicated renderer pass.
+
+---
+
+## Related Documentation
+
+- **[Backup System](backup-system.md)** — automatic backups, native .spkg export/import, deletion safety, database integrity checking. The `.spkg` format is the native alternative to `.apkg` that supports all Sekel-created cards.
+- **[SQLite Implementation](sqlite-implementation.md)** — database architecture, schema, IPC bridge, media handling

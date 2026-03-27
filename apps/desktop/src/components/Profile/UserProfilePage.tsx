@@ -8,6 +8,7 @@ import { ProfileTab } from './sections/ProfileTab';
 import { PreferencesTab } from './sections/PreferencesTab';
 import { StudyTab } from './sections/StudyTab';
 import { AccountTab } from './sections/AccountTab';
+import { BackupTab } from './sections/BackupTab';
 import './UserProfilePage.css';
 
 export const UserProfilePage: React.FC = () => {
@@ -84,12 +85,14 @@ export const UserProfilePage: React.FC = () => {
                     <Tab id="profile">{t('profile.tab_profile')}</Tab>
                     <Tab id="preferences">{t('profile.tab_preferences')}</Tab>
                     <Tab id="study">{t('profile.tab_study')}</Tab>
+                    <Tab id="backup">{t('profile.tab_backup')}</Tab>
                     <Tab id="account">{t('profile.tab_account')}</Tab>
                 </TabList>
 
                 <TabPanel id="profile"><ProfileTab /></TabPanel>
                 <TabPanel id="preferences"><PreferencesTab /></TabPanel>
                 <TabPanel id="study"><StudyTab /></TabPanel>
+                <TabPanel id="backup"><BackupTab /></TabPanel>
                 <TabPanel id="account"><AccountTab /></TabPanel>
             </Tabs>
         </div>

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { getDb } from './index';
+import { logDeckDeletion, logNoteDeletion } from '../backup/deletionLog';
 import type {
     Deck, DeckInsert, DeckUpdate,
     Note, NoteInsert, NoteUpdate,
@@ -99,11 +100,13 @@ export function updateDeck(id: string, updates: DeckUpdate): Deck {
 }
 
 export function deleteDeck(id: string): void {
+    logDeckDeletion(id);
     getDb().prepare('DELETE FROM decks WHERE id = ?').run(id);
 }
 
 export function deleteDecks(ids: string[]): void {
     if (ids.length === 0) return;
+    for (const id of ids) logDeckDeletion(id);
     const placeholders = ids.map(() => '?').join(', ');
     getDb().prepare(`DELETE FROM decks WHERE id IN (${placeholders})`).run(...ids);
 }
@@ -593,6 +596,7 @@ export function updateNote(id: string, updates: NoteUpdate): Note {
 }
 
 export function deleteNote(id: string): void {
+    logNoteDeletion(id);
     getDb().prepare('DELETE FROM notes WHERE id = ?').run(id);
 }
 
