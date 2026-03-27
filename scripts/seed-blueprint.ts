@@ -40,16 +40,32 @@ interface BlueprintFile {
 }
 
 // ── Resolve Electron userData path without Electron ─────────────────────────
+// In production the folder is "Sekel" (from forge packagerConfig.name).
+// In dev mode Electron derives it from package.json name → "@sekel/desktop".
+// We check both paths and prefer whichever exists.
 
 function getUserDataPath(): string {
     const platform = os.platform();
+
+    let base: string;
     if (platform === 'win32') {
-        return path.join(process.env.APPDATA!, 'Sekel');
+        base = process.env.APPDATA!;
     } else if (platform === 'darwin') {
-        return path.join(os.homedir(), 'Library', 'Application Support', 'Sekel');
+        base = path.join(os.homedir(), 'Library', 'Application Support');
     } else {
-        return path.join(os.homedir(), '.config', 'Sekel');
+        base = path.join(os.homedir(), '.config');
     }
+
+    // Dev mode path (scoped package name)
+    const devPath = path.join(base, '@sekel', 'desktop');
+    // Production path (forge packagerConfig.name)
+    const prodPath = path.join(base, 'Sekel');
+
+    if (fs.existsSync(path.join(devPath, 'sekel.db'))) return devPath;
+    if (fs.existsSync(path.join(prodPath, 'sekel.db'))) return prodPath;
+
+    // Fallback: return prod path (will show "not found" error with correct hint)
+    return prodPath;
 }
 
 // ── CLI arg parsing ─────────────────────────────────────────────────────────

@@ -260,4 +260,29 @@ export const MIGRATIONS: string[] = [
     CREATE INDEX IF NOT EXISTS idx_user_exam_profiles_user_id ON user_exam_profiles(user_id);
     CREATE UNIQUE INDEX IF NOT EXISTS idx_user_exam_profiles_user_exam ON user_exam_profiles(user_id, exam_id);
     `,
+    // Migration 012 — add last_notified_threshold to user_exam_profiles
+    `
+    ALTER TABLE user_exam_profiles ADD COLUMN last_notified_threshold REAL;
+    `,
+    // Migration 013 — recreate card_classifications with ON DELETE CASCADE on card_id
+    // and fix decks.parent_id self-reference to CASCADE
+    `
+    CREATE TABLE IF NOT EXISTS card_classifications_new (
+        id            INTEGER PRIMARY KEY,
+        card_id       TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+        exam_id       INTEGER NOT NULL REFERENCES blueprint_exams(id),
+        system_id     INTEGER REFERENCES blueprint_systems(id),
+        topic_id      INTEGER REFERENCES blueprint_topics(id),
+        confidence    REAL,
+        split_weight  REAL NOT NULL DEFAULT 1.0,
+        classified_at TEXT NOT NULL,
+        model_version TEXT,
+        UNIQUE(card_id, exam_id, system_id)
+    );
+    INSERT INTO card_classifications_new SELECT * FROM card_classifications;
+    DROP TABLE card_classifications;
+    ALTER TABLE card_classifications_new RENAME TO card_classifications;
+    CREATE INDEX IF NOT EXISTS idx_card_classifications_card_id ON card_classifications(card_id);
+    CREATE INDEX IF NOT EXISTS idx_card_classifications_exam_id ON card_classifications(exam_id);
+    `,
 ];

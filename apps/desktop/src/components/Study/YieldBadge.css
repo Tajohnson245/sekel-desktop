@@ -1,0 +1,82 @@
+/* Yield Badge — pill on each flashcard showing yield level */
+
+.yield-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: var(--space-xs) var(--space-md);
+    border-radius: 999px;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.15s ease;
+    user-select: none;
+    background: none;
+    line-height: 1;
+}
+
+.yield-badge:hover {
+    opacity: 0.85;
+}
+
+/* ── Level variants ──────────────────────────────────────────────── */
+
+.yield-badge--high {
+    background: var(--teal-soft);
+    border: 1px solid rgba(43, 191, 164, 0.22);
+    color: var(--teal);
+}
+
+.yield-badge--medium {
+    background: var(--amber-soft);
+    border: 1px solid rgba(240, 165, 0, 0.22);
+    color: var(--amber);
+}
+
+.yield-badge--low {
+    background: rgba(139, 147, 168, 0.08);
+    border: 1px solid rgba(139, 147, 168, 0.15);
+    color: var(--mist);
+}
+
+.yield-badge--unclassified {
+    background: rgba(74, 82, 112, 0.06);
+    border: 1px solid rgba(74, 82, 112, 0.10);
+    color: var(--slate);
+    opacity: 0.6;
+}
+
+/* ── Dot indicator ───────────────────────────────────────────────── */
+
+.yield-badge__dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+}
+
+.yield-badge__label {
+    font-weight: 500;
+}
+
+/* ── Tooltip ─────────────────────────────────────────────────────── */
+
+.yield-tooltip {
+    position: fixed;
+    z-index: 9999;
+    background: var(--ink);
+    color: var(--fog);
+    border: 1px solid var(--ink-muted);
+    border-radius: var(--r-sm);
+    padding: var(--space-sm) var(--space-md);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    max-width: 320px;
+    line-height: 1.4;
+    transform: translate(-50%, -100%);
+    pointer-events: none;
+    box-shadow: var(--shadow-md);
+    white-space: normal;
+}

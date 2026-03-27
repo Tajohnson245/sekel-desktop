@@ -147,6 +147,23 @@
         "timer": {
             "auto_flipped": "Temps écoulé — réponse révélée",
             "auto_graded_again": "Temps écoulé — noté À revoir"
+        },
+        "yield": {
+            "high": "Haut rendement",
+            "medium": "Rendement moyen",
+            "low": "Faible rendement",
+            "unclassified": "Non classifié",
+            "loading_explanation": "Chargement...",
+            "badge_aria": "Classification de rendement : {{level}}"
+        },
+        "urgency": {
+            "standard_mode": "Mode standard",
+            "active_mode": "Mode actif",
+            "focused_mode": "Mode concentré",
+            "intensive_mode": "Mode intensif",
+            "final_sprint": "Sprint final",
+            "next_shift": "Prochain changement dans ~{{days}} jours",
+            "max_urgency": "Urgence maximale"
         }
     },
     "auth": {

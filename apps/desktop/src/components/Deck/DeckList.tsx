@@ -165,6 +165,13 @@ export default function DeckList({ onSelectDeck, onCreateDeck }: DeckListProps) 
                 }
             >
                 <p>{t('decks.delete_message', { count: selectedDeckIds.size })}</p>
+                <ul className="delete-warning-list">
+                    <li>{t('decks.delete_warn_cards')}</li>
+                    <li>{t('decks.delete_warn_reviews')}</li>
+                    <li>{t('decks.delete_warn_classifications')}</li>
+                    <li>{t('decks.delete_warn_sessions')}</li>
+                </ul>
+                <p className="text-muted">{t('decks.delete_warn_irreversible')}</p>
             </Modal>
         </div>
     );

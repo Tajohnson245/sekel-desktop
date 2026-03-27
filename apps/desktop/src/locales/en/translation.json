@@ -87,7 +87,13 @@
         "delete_confirm_message": "Are you sure you want to delete this deck? This action cannot be undone.",
         "delete_multiple_confirm_message": "Are you sure you want to delete the selected decks?",
         "delete_confirm": "Delete {{count}} Decks",
-        "delete_message": "Are you sure you want to delete {{count}} deck(s)?",
+        "delete_message": "Are you sure you want to delete {{count}} deck(s)? This will permanently remove:",
+        "delete_cards_message": "Are you sure you want to delete all {{count}} card(s) in this deck? This will permanently remove:",
+        "delete_warn_cards": "All cards and notes in the deck",
+        "delete_warn_reviews": "Review history and scheduling data",
+        "delete_warn_classifications": "Exam yield classifications and scores",
+        "delete_warn_sessions": "Study session records",
+        "delete_warn_irreversible": "This action cannot be undone.",
         "study": "Study",
         "study_now": "Study Now",
         "review_all": "Review All",
@@ -147,6 +153,23 @@
         "timer": {
             "auto_flipped": "Time's up — answer revealed",
             "auto_graded_again": "Time's up — graded as Again"
+        },
+        "yield": {
+            "high": "High Yield",
+            "medium": "Medium Yield",
+            "low": "Low Yield",
+            "unclassified": "Unclassified",
+            "loading_explanation": "Loading...",
+            "badge_aria": "Yield classification: {{level}}"
+        },
+        "urgency": {
+            "standard_mode": "Standard Mode",
+            "active_mode": "Active Mode",
+            "focused_mode": "Focused Mode",
+            "intensive_mode": "Intensive Mode",
+            "final_sprint": "Final Sprint",
+            "next_shift": "Next shift in ~{{days}} days",
+            "max_urgency": "Max urgency"
         }
     },
     "auth": {
@@ -371,7 +394,9 @@
         "one_image_added": "(One image added)",
         "no_cards": "No cards yet",
         "no_cards_desc": "Add your first card to get started!",
-        "delete_confirm_message": "This action cannot be undone. The card will be permanently removed from your deck.",
+        "delete_confirm_message": "This card will be permanently removed from your deck, along with:",
+        "delete_warn_reviews": "Review history and scheduling data",
+        "delete_warn_classifications": "Exam yield classifications and scores",
         "edit_card": "Edit card",
         "delete_card": "Delete card",
         "image_badge": "Image"
@@ -629,7 +654,9 @@
     "exam": {
         "onboarding_step_exam": "Choose Your Exam",
         "onboarding_step_date": "Set Your Exam Date",
+        "onboarding_step_deck": "Select a Deck",
         "select_exam_prompt": "Which exam are you preparing for?",
+        "select_deck_prompt": "Which deck should be classified for this exam?",
         "date_prompt": "When is your exam?",
         "date_hint": "You can change this later in Study settings.",
         "date_skip": "Skip for now",

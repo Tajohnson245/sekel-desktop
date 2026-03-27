@@ -79,6 +79,10 @@ export default function CardList({ deckId, onAddCard, onGenerateAI, onEdit }: Ca
                         <AlertTriangle size={28} />
                     </div>
                     <p>{t('card.delete_confirm_message')}</p>
+                    <ul className="delete-warning-list">
+                        <li>{t('card.delete_warn_reviews')}</li>
+                        <li>{t('card.delete_warn_classifications')}</li>
+                    </ul>
                 </div>
             </Modal>
 

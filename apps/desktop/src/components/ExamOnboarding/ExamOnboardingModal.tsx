@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, Button, Loader, useToast } from '../UI';
-import { useExamList, useUpsertExamProfile, fetchAllCardIds } from '../../hooks/useExamProfile';
+import { useExamList, useUpsertExamProfile } from '../../hooks/useExamProfile';
+import { useDecks } from '../../hooks/useDecks';
+import { fetchAllCardsForDeck } from '../../lib/queries';
 import { useAuthStore } from '../../stores/authStore';
 import './ExamOnboardingModal.css';
 
@@ -17,10 +19,12 @@ export function ExamOnboardingModal({ isOpen, onClose, onComplete }: ExamOnboard
     const userId = useAuthStore(s => s.user?.id);
 
     const { data: exams = [], isLoading: examsLoading } = useExamList();
+    const { data: decks = [], isLoading: decksLoading } = useDecks();
     const upsertProfile = useUpsertExamProfile();
 
-    const [step, setStep] = useState<'select-exam' | 'pick-date'>('select-exam');
+    const [step, setStep] = useState<'select-exam' | 'select-deck' | 'pick-date'>('select-exam');
     const [selectedExamId, setSelectedExamId] = useState<number | null>(null);
+    const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
     const [examDate, setExamDate] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -29,6 +33,7 @@ export function ExamOnboardingModal({ isOpen, onClose, onComplete }: ExamOnboard
     const handleReset = () => {
         setStep('select-exam');
         setSelectedExamId(null);
+        setSelectedDeckId(null);
         setExamDate('');
         setIsSubmitting(false);
     };
@@ -39,7 +44,7 @@ export function ExamOnboardingModal({ isOpen, onClose, onComplete }: ExamOnboard
     };
 
     const handleSubmit = async (skipDate: boolean) => {
-        if (!userId || !selectedExamId || !selectedExam) return;
+        if (!userId || !selectedExamId || !selectedExam || !selectedDeckId) return;
         setIsSubmitting(true);
 
         try {
@@ -50,8 +55,9 @@ export function ExamOnboardingModal({ isOpen, onClose, onComplete }: ExamOnboard
                 examDate: dateValue,
             });
 
-            // Fire-and-forget background classification
-            const cardIds = await fetchAllCardIds(userId);
+            // Fire-and-forget background classification for the selected deck
+            const cards = await fetchAllCardsForDeck(selectedDeckId);
+            const cardIds = cards.map(c => c.id);
             if (cardIds.length > 0) {
                 window.electronAPI.yield.classifyBatch(cardIds, selectedExam.exam_key);
             }
@@ -94,7 +100,36 @@ export function ExamOnboardingModal({ isOpen, onClose, onComplete }: ExamOnboard
         );
     };
 
-    const renderStepTwo = () => (
+    const renderStepDeck = () => {
+        if (decksLoading) {
+            return (
+                <div className="exam-onboarding-loading">
+                    <Loader />
+                </div>
+            );
+        }
+
+        return (
+            <div className="exam-onboarding-content">
+                <p className="exam-onboarding-prompt">{t('exam.select_deck_prompt')}</p>
+                <ul className="exam-list">
+                    {decks.map(deck => (
+                        <li key={deck.id}>
+                            <button
+                                type="button"
+                                className={`exam-list-item ${selectedDeckId === deck.id ? 'selected' : ''}`}
+                                onClick={() => setSelectedDeckId(deck.id)}
+                            >
+                                {deck.name}
+                            </button>
+                        </li>
+                    ))}
+                </ul>
+            </div>
+        );
+    };
+
+    const renderStepDate = () => (
         <div className="exam-onboarding-content">
             <p className="exam-onboarding-prompt">{t('exam.date_prompt')}</p>
             <input
@@ -115,7 +150,7 @@ export function ExamOnboardingModal({ isOpen, onClose, onComplete }: ExamOnboard
             </Button>
             <Button
                 variant="primary"
-                onClick={() => setStep('pick-date')}
+                onClick={() => setStep('select-deck')}
                 disabled={selectedExamId === null}
             >
                 {t('exam.next')}
@@ -123,9 +158,24 @@ export function ExamOnboardingModal({ isOpen, onClose, onComplete }: ExamOnboard
         </>
     );
 
-    const stepTwoFooter = (
+    const stepDeckFooter = (
         <>
             <Button variant="secondary" onClick={() => setStep('select-exam')}>
+                {t('exam.back')}
+            </Button>
+            <Button
+                variant="primary"
+                onClick={() => setStep('pick-date')}
+                disabled={selectedDeckId === null}
+            >
+                {t('exam.next')}
+            </Button>
+        </>
+    );
+
+    const stepDateFooter = (
+        <>
+            <Button variant="secondary" onClick={() => setStep('select-deck')}>
                 {t('exam.back')}
             </Button>
             <Button
@@ -146,15 +196,29 @@ export function ExamOnboardingModal({ isOpen, onClose, onComplete }: ExamOnboard
         </>
     );
 
+    const stepTitles = {
+        'select-exam': t('exam.onboarding_step_exam'),
+        'select-deck': t('exam.onboarding_step_deck'),
+        'pick-date': t('exam.onboarding_step_date'),
+    };
+
+    const stepFooters = {
+        'select-exam': stepOneFooter,
+        'select-deck': stepDeckFooter,
+        'pick-date': stepDateFooter,
+    };
+
     return (
         <Modal
             isOpen={isOpen}
             onClose={handleClose}
-            title={step === 'select-exam' ? t('exam.onboarding_step_exam') : t('exam.onboarding_step_date')}
-            footer={step === 'select-exam' ? stepOneFooter : stepTwoFooter}
+            title={stepTitles[step]}
+            footer={stepFooters[step]}
             size="md"
         >
-            {step === 'select-exam' ? renderStepOne() : renderStepTwo()}
+            {step === 'select-exam' && renderStepOne()}
+            {step === 'select-deck' && renderStepDeck()}
+            {step === 'pick-date' && renderStepDate()}
         </Modal>
     );
 }

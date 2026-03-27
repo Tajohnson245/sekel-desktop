@@ -100,15 +100,41 @@ export function updateDeck(id: string, updates: DeckUpdate): Deck {
 }
 
 export function deleteDeck(id: string): void {
+    const db = getDb();
     logDeckDeletion(id);
-    getDb().prepare('DELETE FROM decks WHERE id = ?').run(id);
+    db.transaction(() => {
+        // Remove classifications for cards in this deck (before CASCADE deletes the cards)
+        db.prepare(`
+            DELETE FROM card_classifications WHERE card_id IN (
+                SELECT c.id FROM cards c
+                JOIN notes n ON c.note_id = n.id
+                WHERE n.deck_id = ?
+            )
+        `).run(id);
+        // Unlink child decks so parent delete doesn't cascade children
+        db.prepare('UPDATE decks SET parent_id = NULL WHERE parent_id = ?').run(id);
+        db.prepare('DELETE FROM decks WHERE id = ?').run(id);
+    })();
 }
 
 export function deleteDecks(ids: string[]): void {
     if (ids.length === 0) return;
+    const db = getDb();
     for (const id of ids) logDeckDeletion(id);
     const placeholders = ids.map(() => '?').join(', ');
-    getDb().prepare(`DELETE FROM decks WHERE id IN (${placeholders})`).run(...ids);
+    db.transaction(() => {
+        // Remove classifications for cards in these decks
+        db.prepare(`
+            DELETE FROM card_classifications WHERE card_id IN (
+                SELECT c.id FROM cards c
+                JOIN notes n ON c.note_id = n.id
+                WHERE n.deck_id IN (${placeholders})
+            )
+        `).run(...ids);
+        // Unlink child decks
+        db.prepare(`UPDATE decks SET parent_id = NULL WHERE parent_id IN (${placeholders})`).run(...ids);
+        db.prepare(`DELETE FROM decks WHERE id IN (${placeholders})`).run(...ids);
+    })();
 }
 
 export function fetchDecksByAnkiIds(userId: string, ankiIds: number[]): Deck[] {

@@ -1,13 +1,19 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useDueCards, useAllCardsForStudy, useUpdateCard, useDeck } from '../../hooks/useDecks';
 import { useCreateSession, useCompleteSession, useInsertReview } from '../../hooks/useSessions';
+import { useExamProfile } from '../../hooks/useExamProfile';
+import { useYieldScores } from '../../hooks/useYield';
 import { getSchedulingOptions } from '../../lib/fsrs';
+import { isExamDateSet } from '../../lib/queries';
+import type { YieldScoreRow } from '../../lib/queries';
 import { useProfileStore } from '../../stores/profileStore';
 import CardViewer from '../Card/CardViewer';
 import RatingButtons from './RatingButtons';
 import StudyTimer from './StudyTimer';
+import YieldBadge from './YieldBadge';
+import UrgencyChip from './UrgencyChip';
 import { Button, SessionAnalytics, useToast } from '../UI';
 import type { Rating, CardUpdate } from '../../lib/types';
 import { DEFAULT_NOTE_TYPES } from '../../lib/types';
@@ -54,6 +60,17 @@ export default function StudySession({ deckId, userId, mode = 'due', onBack }: S
     const isEmpty = cards.length === 0 && !isLoading;
     const fsrsEnabled = deck?.algorithm === 'fsrs';
 
+    // ── Yield data overlay ──────────────────────────────────────────
+    const { data: examProfile } = useExamProfile();
+    const examKey = examProfile?.exam_key;
+    const cardIds = useMemo(() => cards.map(c => c.id), [cards]);
+    const { data: yieldScores } = useYieldScores(examKey, cardIds.length > 0 ? cardIds : undefined);
+    const yieldMap = useMemo(() => {
+        if (!yieldScores) return new Map<string, YieldScoreRow>();
+        return new Map(yieldScores.map(s => [s.cardId, s]));
+    }, [yieldScores]);
+    const currentYield = currentCard ? yieldMap.get(currentCard.id) : undefined;
+
     useEffect(() => {
         setCurrentIndex(0);
         setReviewedCount(0);
@@ -68,6 +85,13 @@ export default function StudySession({ deckId, userId, mode = 'due', onBack }: S
                 .catch(() => showToast(t('errors.session_create'), 'error'));
         }
     }, [cards.length, isLoading, userId, deckId, sessionId]);
+
+    // Fire threshold-shift notification once per session
+    useEffect(() => {
+        if (sessionId && userId && examProfile && isExamDateSet(examProfile.exam_date)) {
+            window.electronAPI?.notify.thresholdShift(userId);
+        }
+    }, [sessionId]);
 
     useEffect(() => {
         if (currentCard) {
@@ -304,6 +328,12 @@ export default function StudySession({ deckId, userId, mode = 'due', onBack }: S
                     maxSeconds={maxSeconds}
                     visible={showTimer}
                 />
+                {examProfile && isExamDateSet(examProfile.exam_date) && (
+                    <UrgencyChip
+                        examDate={examProfile.exam_date}
+                        sessionMode={examProfile.session_mode}
+                    />
+                )}
                 <span className="progress-text">
                     {currentIndex + 1} / {cards.length}
                 </span>
@@ -314,6 +344,14 @@ export default function StudySession({ deckId, userId, mode = 'due', onBack }: S
                 onClick={() => { if (!isRevealed) handleReveal(); else handleUnreveal(); }}
                 style={{ cursor: 'pointer' }}
             >
+                {currentYield && examKey && (
+                    <YieldBadge
+                        level={currentYield.yieldLevel}
+                        score={currentYield.yieldScore}
+                        cardId={currentYield.cardId}
+                        examKey={examKey}
+                    />
+                )}
                 <CardViewer
                     front={frontContent}
                     back={backContent}
