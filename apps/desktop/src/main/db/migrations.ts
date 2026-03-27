@@ -199,4 +199,65 @@ export const MIGRATIONS: string[] = [
         daily_target INTEGER NOT NULL
     );
     `,
+    // Migration 011 — blueprint tables for exam-aware study scheduling
+    `
+    CREATE TABLE IF NOT EXISTS blueprint_exams (
+        id         INTEGER PRIMARY KEY,
+        exam_key   TEXT UNIQUE NOT NULL,
+        label      TEXT NOT NULL,
+        source_url TEXT,
+        version    TEXT,
+        updated_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS blueprint_systems (
+        id         INTEGER PRIMARY KEY,
+        exam_id    INTEGER NOT NULL REFERENCES blueprint_exams(id),
+        system_key TEXT NOT NULL,
+        label      TEXT NOT NULL,
+        weight_min REAL,
+        weight_max REAL,
+        UNIQUE(exam_id, system_key)
+    );
+    CREATE INDEX IF NOT EXISTS idx_blueprint_systems_exam_id ON blueprint_systems(exam_id);
+
+    CREATE TABLE IF NOT EXISTS blueprint_topics (
+        id              INTEGER PRIMARY KEY,
+        system_id       INTEGER NOT NULL REFERENCES blueprint_systems(id),
+        topic_key       TEXT NOT NULL,
+        label           TEXT NOT NULL,
+        physician_task  TEXT,
+        relative_weight REAL,
+        UNIQUE(system_id, topic_key)
+    );
+    CREATE INDEX IF NOT EXISTS idx_blueprint_topics_system_id ON blueprint_topics(system_id);
+
+    CREATE TABLE IF NOT EXISTS card_classifications (
+        id            INTEGER PRIMARY KEY,
+        card_id       TEXT NOT NULL REFERENCES cards(id),
+        exam_id       INTEGER NOT NULL REFERENCES blueprint_exams(id),
+        system_id     INTEGER REFERENCES blueprint_systems(id),
+        topic_id      INTEGER REFERENCES blueprint_topics(id),
+        confidence    REAL,
+        split_weight  REAL NOT NULL DEFAULT 1.0,
+        classified_at TEXT NOT NULL,
+        model_version TEXT,
+        UNIQUE(card_id, exam_id, system_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_card_classifications_card_id ON card_classifications(card_id);
+    CREATE INDEX IF NOT EXISTS idx_card_classifications_exam_id ON card_classifications(exam_id);
+
+    CREATE TABLE IF NOT EXISTS user_exam_profiles (
+        id           INTEGER PRIMARY KEY,
+        user_id      TEXT NOT NULL,
+        exam_id      INTEGER NOT NULL REFERENCES blueprint_exams(id),
+        exam_date    TEXT NOT NULL,
+        is_primary   INTEGER DEFAULT 1,
+        session_mode TEXT NOT NULL DEFAULT 'auto',
+        created_at   TEXT NOT NULL,
+        updated_at   TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_user_exam_profiles_user_id ON user_exam_profiles(user_id);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_user_exam_profiles_user_exam ON user_exam_profiles(user_id, exam_id);
+    `,
 ];
