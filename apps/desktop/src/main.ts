@@ -1,7 +1,8 @@
-import { app, BrowserWindow, protocol } from 'electron';
+import { app, BrowserWindow, dialog, protocol } from 'electron';
 import Store from 'electron-store';
 import path from 'node:path';
 import fs from 'node:fs';
+import os from 'node:os';
 import { createMenu } from './menu';
 import { initDatabase } from './main/db/index';
 import { setupAIHandlers } from './ipc/ai';
@@ -24,6 +25,73 @@ protocol.registerSchemesAsPrivileged([
 ]);
 
 import { updateElectronApp } from 'update-electron-app';
+
+// ---------------------------------------------------------------------------
+// Global crash handlers – registered early so they catch startup errors too.
+// ---------------------------------------------------------------------------
+
+function getCrashLogPath(): string {
+    try {
+        return path.join(app.getPath('userData'), 'crash.log');
+    } catch {
+        return path.join(os.homedir(), '.sekel-crash.log');
+    }
+}
+
+function rotateCrashLogIfNeeded(logPath: string): void {
+    try {
+        const stats = fs.statSync(logPath);
+        if (stats.size > 1_048_576) { // 1 MB
+            fs.renameSync(logPath, logPath + '.old');
+        }
+    } catch {
+        // File doesn't exist yet or can't stat — that's fine
+    }
+}
+
+function logCrashAndExit(source: string, error: unknown): void {
+    const timestamp = new Date().toISOString();
+    const appVersion = app.isReady() ? app.getVersion() : 'unknown';
+    const electronVersion = process.versions.electron;
+    const platform = `${process.platform} ${process.arch}`;
+
+    const errMsg = error instanceof Error
+        ? `${error.message}\n${error.stack ?? '(no stack)'}`
+        : String(error);
+
+    const entry = [
+        `--- CRASH [${source}] ${timestamp} ---`,
+        `Sekel v${appVersion} | Electron ${electronVersion} | ${platform}`,
+        errMsg,
+        '---',
+        '',
+    ].join('\n');
+
+    process.stderr.write(entry);
+
+    const logPath = getCrashLogPath();
+    try {
+        rotateCrashLogIfNeeded(logPath);
+        fs.appendFileSync(logPath, entry);
+    } catch {
+        // If we can't write the crash log, there's nothing more we can do
+    }
+
+    dialog.showErrorBox(
+        'Sekel - Unexpected Error',
+        `Sekel encountered a fatal error and needs to close.\n\n${error instanceof Error ? error.message : String(error)}\n\nA crash log has been saved to:\n${logPath}`,
+    );
+
+    process.exit(1);
+}
+
+process.on('uncaughtException', (error) => {
+    logCrashAndExit('uncaughtException', error);
+});
+
+process.on('unhandledRejection', (reason) => {
+    logCrashAndExit('unhandledRejection', reason);
+});
 
 const createWindow = () => {
     const store = new Store();
@@ -142,6 +210,21 @@ app.whenReady().then(() => {
     }
 
     createWindow();
+
+    app.on('render-process-gone', (_event, _webContents, details) => {
+        if (details.reason === 'clean-exit') return;
+
+        const timestamp = new Date().toISOString();
+        const entry = `--- RENDERER CRASH ${timestamp} ---\nReason: ${details.reason} | Exit code: ${details.exitCode}\n---\n\n`;
+        const logPath = getCrashLogPath();
+        try { fs.appendFileSync(logPath, entry); } catch { /* ignore */ }
+
+        dialog.showErrorBox(
+            'Sekel - Renderer Error',
+            'The application window has crashed. Sekel will attempt to reload.',
+        );
+        createWindow();
+    });
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {
