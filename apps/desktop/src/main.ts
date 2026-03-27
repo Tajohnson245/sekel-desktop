@@ -42,6 +42,12 @@ const createWindow = () => {
         icon: path.join(__dirname, '..', '..', 'assets', 'sekel_logo_draft copy.ico'),
         webPreferences: {
             preload: path.join(__dirname, '../preload/preload.js'),
+            contextIsolation: true,
+            nodeIntegration: false,
+            sandbox: true,
+            webSecurity: true,
+            allowRunningInsecureContent: false,
+            navigateOnDragDrop: false,
         },
     });
 
@@ -81,6 +87,15 @@ app.whenReady().then(() => {
             if (!record) {
                 return new Response(null, { status: 404 });
             }
+
+            // Path confinement: ensure file_path is inside the media directory
+            const mediaDir = path.join(app.getPath('userData'), 'media');
+            const resolved = path.resolve(record.file_path);
+            if (!resolved.startsWith(mediaDir + path.sep) && resolved !== mediaDir) {
+                console.warn('[sekel-media] blocked path escape attempt:', resolved);
+                return new Response(null, { status: 403 });
+            }
+
             // Read file directly and return with proper headers
             const filePath = record.file_path;
             const fileBuffer = fs.readFileSync(filePath);

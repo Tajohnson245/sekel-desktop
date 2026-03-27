@@ -11,6 +11,26 @@ import { app } from 'electron';
 import { createHash, randomUUID } from 'node:crypto';
 import JSZip from 'jszip';
 import { getDb } from '../db/index';
+import {
+    validateCollection,
+    validateDecks,
+    validateNoteTypes,
+    validateNotes,
+    validateCards,
+    validateReviews,
+    validateSessions,
+    validateMediaMeta,
+} from './spkgSchema';
+import type { SpkgDeck, SpkgNoteType, SpkgNote, SpkgCard, SpkgReview, SpkgSession, SpkgMediaRecord } from './spkgSchema';
+import {
+    assertArchiveSize,
+    assertJsonSize,
+    assertMediaFileSize,
+    MAX_DECOMPRESSED_BYTES,
+    MAX_ENTRY_COUNT,
+} from './limits';
+import { sanitizeNoteFields, sanitizeCardTemplates } from './sanitizeFields';
+import { validateMediaBuffer } from './mediaValidation';
 
 const SUPPORTED_FORMAT_VERSION = 1;
 
@@ -40,23 +60,51 @@ export interface SekelImportResult {
  * Reads a .spkg file and returns a summary without importing anything.
  */
 export async function getSekelImportSummary(filePath: string): Promise<SekelImportSummary> {
+    // Size check before loading into memory
+    const stat = fs.statSync(filePath);
+    assertArchiveSize(stat.size, path.basename(filePath));
+
     const buffer = fs.readFileSync(filePath);
     const zip = await JSZip.loadAsync(buffer);
+
+    // Validate entry count
+    const entryCount = Object.keys(zip.files).length;
+    if (entryCount > MAX_ENTRY_COUNT) {
+        throw new Error(`Archive has ${entryCount} entries, max allowed is ${MAX_ENTRY_COUNT}.`);
+    }
 
     const metaRaw = await zip.file('collection.json')?.async('string');
     if (!metaRaw) throw new Error('Invalid .spkg file: missing collection.json');
 
-    const meta = JSON.parse(metaRaw);
+    const meta = validateCollection(JSON.parse(metaRaw));
     if (meta.formatVersion > SUPPORTED_FORMAT_VERSION) {
         throw new Error(`Unsupported .spkg format version ${meta.formatVersion}. Please update Sekel.`);
     }
 
-    const decks = JSON.parse(await zip.file('decks.json')?.async('string') ?? '[]');
-    const noteTypes = JSON.parse(await zip.file('note_types.json')?.async('string') ?? '[]');
-    const notes = JSON.parse(await zip.file('notes.json')?.async('string') ?? '[]');
-    const cards = JSON.parse(await zip.file('cards.json')?.async('string') ?? '[]');
-    const reviews = JSON.parse(await zip.file('reviews.json')?.async('string') ?? '[]');
-    const sessions = JSON.parse(await zip.file('sessions.json')?.async('string') ?? '[]');
+    const decksRaw = await zip.file('decks.json')?.async('string') ?? '[]';
+    assertJsonSize(decksRaw, 'decks.json');
+    const decks = validateDecks(JSON.parse(decksRaw));
+
+    const noteTypesRaw = await zip.file('note_types.json')?.async('string') ?? '[]';
+    assertJsonSize(noteTypesRaw, 'note_types.json');
+    const noteTypes = validateNoteTypes(JSON.parse(noteTypesRaw));
+
+    const notesRaw = await zip.file('notes.json')?.async('string') ?? '[]';
+    assertJsonSize(notesRaw, 'notes.json');
+    const notes = validateNotes(JSON.parse(notesRaw));
+
+    const cardsRaw = await zip.file('cards.json')?.async('string') ?? '[]';
+    assertJsonSize(cardsRaw, 'cards.json');
+    const cards = validateCards(JSON.parse(cardsRaw));
+
+    const reviewsRaw = await zip.file('reviews.json')?.async('string') ?? '[]';
+    assertJsonSize(reviewsRaw, 'reviews.json');
+    const reviews = validateReviews(JSON.parse(reviewsRaw));
+
+    const sessionsRaw = await zip.file('sessions.json')?.async('string') ?? '[]';
+    assertJsonSize(sessionsRaw, 'sessions.json');
+    const sessions = validateSessions(JSON.parse(sessionsRaw));
+
     const hasMedia = zip.folder('media') !== null && Object.keys(zip.folder('media')!.files).length > 0;
 
     return {
@@ -69,7 +117,7 @@ export async function getSekelImportSummary(filePath: string): Promise<SekelImpo
         reviewCount: reviews.length,
         sessionCount: sessions.length,
         hasMedia,
-        deckNames: decks.map((d: { name: string }) => d.name),
+        deckNames: decks.map((d) => d.name),
     };
 }
 
@@ -85,23 +133,50 @@ export async function importSekelFile(
     filePath: string,
     userId: string,
 ): Promise<SekelImportResult> {
+    // Size check before loading into memory
+    const stat = fs.statSync(filePath);
+    assertArchiveSize(stat.size, path.basename(filePath));
+
     const buffer = fs.readFileSync(filePath);
     const zip = await JSZip.loadAsync(buffer);
+
+    // Validate entry count
+    const entryCount = Object.keys(zip.files).length;
+    if (entryCount > MAX_ENTRY_COUNT) {
+        throw new Error(`Archive has ${entryCount} entries, max allowed is ${MAX_ENTRY_COUNT}.`);
+    }
 
     const metaRaw = await zip.file('collection.json')?.async('string');
     if (!metaRaw) throw new Error('Invalid .spkg file: missing collection.json');
 
-    const meta = JSON.parse(metaRaw);
+    const meta = validateCollection(JSON.parse(metaRaw));
     if (meta.formatVersion > SUPPORTED_FORMAT_VERSION) {
         throw new Error(`Unsupported .spkg format version ${meta.formatVersion}`);
     }
 
-    const decks = JSON.parse(await zip.file('decks.json')?.async('string') ?? '[]') as Record<string, unknown>[];
-    const noteTypes = JSON.parse(await zip.file('note_types.json')?.async('string') ?? '[]') as Record<string, unknown>[];
-    const notes = JSON.parse(await zip.file('notes.json')?.async('string') ?? '[]') as Record<string, unknown>[];
-    const cards = JSON.parse(await zip.file('cards.json')?.async('string') ?? '[]') as Record<string, unknown>[];
-    const reviews = JSON.parse(await zip.file('reviews.json')?.async('string') ?? '[]') as Record<string, unknown>[];
-    const sessions = JSON.parse(await zip.file('sessions.json')?.async('string') ?? '[]') as Record<string, unknown>[];
+    const decksRaw = await zip.file('decks.json')?.async('string') ?? '[]';
+    assertJsonSize(decksRaw, 'decks.json');
+    const decks: SpkgDeck[] = validateDecks(JSON.parse(decksRaw));
+
+    const noteTypesRaw = await zip.file('note_types.json')?.async('string') ?? '[]';
+    assertJsonSize(noteTypesRaw, 'note_types.json');
+    const noteTypes: SpkgNoteType[] = validateNoteTypes(JSON.parse(noteTypesRaw));
+
+    const notesRaw = await zip.file('notes.json')?.async('string') ?? '[]';
+    assertJsonSize(notesRaw, 'notes.json');
+    const notes: SpkgNote[] = validateNotes(JSON.parse(notesRaw));
+
+    const cardsRaw = await zip.file('cards.json')?.async('string') ?? '[]';
+    assertJsonSize(cardsRaw, 'cards.json');
+    const cards: SpkgCard[] = validateCards(JSON.parse(cardsRaw));
+
+    const reviewsRaw = await zip.file('reviews.json')?.async('string') ?? '[]';
+    assertJsonSize(reviewsRaw, 'reviews.json');
+    const reviews: SpkgReview[] = validateReviews(JSON.parse(reviewsRaw));
+
+    const sessionsRaw = await zip.file('sessions.json')?.async('string') ?? '[]';
+    assertJsonSize(sessionsRaw, 'sessions.json');
+    const sessions: SpkgSession[] = validateSessions(JSON.parse(sessionsRaw));
 
     const db = getDb();
     const result: SekelImportResult = {
@@ -131,11 +206,11 @@ export async function importSekelFile(
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
         for (const nt of noteTypes) {
-            const newId = mapId(nt.id as string);
+            const newId = mapId(nt.id);
             insertNoteType.run(
                 newId, userId, nt.name,
                 typeof nt.fields === 'string' ? nt.fields : JSON.stringify(nt.fields),
-                typeof nt.card_templates === 'string' ? nt.card_templates : JSON.stringify(nt.card_templates),
+                sanitizeCardTemplates(nt.card_templates),
                 nt.anki_id ?? null, nt.anki_meta ?? null,
                 nt.created_at ?? now, nt.updated_at ?? now,
             );
@@ -147,8 +222,8 @@ export async function importSekelFile(
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
         for (const d of decks) {
-            const newId = mapId(d.id as string);
-            const parentId = d.parent_id ? mapId(d.parent_id as string) : null;
+            const newId = mapId(d.id);
+            const parentId = d.parent_id ? mapId(d.parent_id) : null;
             insertDeck.run(
                 newId, userId, d.name, d.description ?? null,
                 d.algorithm ?? 'fsrs', parentId,
@@ -164,12 +239,12 @@ export async function importSekelFile(
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
         for (const n of notes) {
-            const newId = mapId(n.id as string);
-            const deckId = mapId(n.deck_id as string);
-            const noteTypeId = mapId(n.note_type_id as string);
+            const newId = mapId(n.id);
+            const deckId = mapId(n.deck_id);
+            const noteTypeId = mapId(n.note_type_id);
             insertNote.run(
                 newId, userId, deckId, noteTypeId,
-                typeof n.fields === 'string' ? n.fields : JSON.stringify(n.fields),
+                sanitizeNoteFields(n.fields),
                 typeof n.tags === 'string' ? n.tags : JSON.stringify(n.tags ?? []),
                 n.anki_id ?? null, n.anki_guid ?? null, n.anki_meta ?? null,
                 n.created_at ?? now, n.updated_at ?? now,
@@ -184,8 +259,8 @@ export async function importSekelFile(
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
         for (const c of cards) {
-            const newId = mapId(c.id as string);
-            const noteId = mapId(c.note_id as string);
+            const newId = mapId(c.id);
+            const noteId = mapId(c.note_id);
             insertCard.run(
                 newId, userId, noteId, c.template_index ?? 0,
                 c.state ?? 'new', c.due, c.stability ?? 0, c.difficulty ?? 0,
@@ -206,10 +281,10 @@ export async function importSekelFile(
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
         for (const r of reviews) {
-            const newId = mapId(r.id as string);
-            const cardId = mapId(r.card_id as string);
-            const sessionId = r.session_id ? mapId(r.session_id as string) : null;
-            const deckId = r.deck_id ? mapId(r.deck_id as string) : null;
+            const newId = mapId(r.id);
+            const cardId = mapId(r.card_id);
+            const sessionId = r.session_id ? mapId(r.session_id) : null;
+            const deckId = r.deck_id ? mapId(r.deck_id) : null;
             insertReview.run(
                 newId, userId, cardId, r.rating, r.review_time, r.review_duration_ms ?? null,
                 r.state_before, r.stability_before, r.difficulty_before,
@@ -227,8 +302,8 @@ export async function importSekelFile(
             VALUES (?, ?, ?, ?, ?, ?, ?)
         `);
         for (const s of sessions) {
-            const newId = mapId(s.id as string);
-            const deckId = mapId(s.deck_id as string);
+            const newId = mapId(s.id);
+            const deckId = mapId(s.deck_id);
             insertSession.run(
                 newId, userId, deckId, s.status, s.started_at, s.completed_at ?? null, s.created_at ?? now,
             );
@@ -247,22 +322,45 @@ export async function importSekelFile(
         }
 
         const mediaMetaRaw = await zip.file('media.json')?.async('string');
-        const mediaRecords = mediaMetaRaw ? JSON.parse(mediaMetaRaw) as Record<string, unknown>[] : [];
+        let mediaRecords: SpkgMediaRecord[] = [];
+        if (mediaMetaRaw) {
+            assertJsonSize(mediaMetaRaw, 'media.json');
+            mediaRecords = validateMediaMeta(JSON.parse(mediaMetaRaw));
+        }
+
+        let decompressedBytes = 0;
 
         for (const entry of Object.values(mediaFolder.files)) {
             if (entry.dir) continue;
             const filename = path.basename(entry.name);
             const buf = Buffer.from(await entry.async('nodebuffer'));
-            const hash = createHash('sha1').update(buf).digest('hex');
+
+            // Per-file and cumulative size checks
+            assertMediaFileSize(buf.length, filename);
+            decompressedBytes += buf.length;
+            if (decompressedBytes > MAX_DECOMPRESSED_BYTES) {
+                throw new Error('Cumulative decompressed media size exceeds the 2 GB limit.');
+            }
+
+            // Validate file type via magic bytes
+            const validation = await validateMediaBuffer(buf, filename);
+            if (!validation.valid) {
+                // Skip invalid media files silently
+                continue;
+            }
+
+            // For SVG files, use the sanitized content
+            const writeBuf = validation.sanitizedBuffer ?? buf;
+            const hash = createHash('sha1').update(writeBuf).digest('hex');
             const ext = path.extname(filename);
             const destPath = path.join(mediaDir, hash + ext);
 
             if (!fs.existsSync(destPath)) {
-                fs.writeFileSync(destPath, buf);
+                fs.writeFileSync(destPath, writeBuf);
             }
 
             // Find matching metadata record
-            const metaRecord = mediaRecords.find((m) => path.basename(m.file_path as string) === filename);
+            const metaRecord = mediaRecords.find((m) => path.basename(m.file_path) === filename);
 
             // Insert media record (skip duplicates by hash)
             const existing = db.prepare('SELECT id FROM media WHERE user_id = ? AND file_hash = ?').get(userId, hash);
@@ -272,9 +370,9 @@ export async function importSekelFile(
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 `).run(
                     randomUUID(), userId,
-                    (metaRecord?.filename as string) ?? filename,
-                    destPath, hash, buf.length,
-                    (metaRecord?.mime_type as string) ?? null,
+                    metaRecord?.filename ?? filename,
+                    destPath, hash, writeBuf.length,
+                    validation.detectedMime ?? metaRecord?.mime_type ?? null,
                     null, new Date().toISOString(),
                 );
             }
