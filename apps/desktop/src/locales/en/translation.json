@@ -312,6 +312,7 @@
         "cards_to_generate": "Cards to Generate",
         "generate_button": "Generate Cards",
         "generated_cards": "Generated Cards ({{count}})",
+        "generation_stats": "Generated {{generated}} cards ({{filtered}} filtered for quality)",
         "add_all": "Add All to Deck",
         "done": "Done - Upload Another",
         "added_badge": "Added",

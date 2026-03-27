@@ -142,7 +142,20 @@ Return a JSON object with a "chunks" array only. No preamble, no explanation.
 
 function distributeCards(chunks: Chunk[], total: number): number[] {
     const totalLength = chunks.reduce((sum, c) => sum + c.text.length, 0);
-    return chunks.map(c => Math.max(1, Math.round((c.text.length / totalLength) * total)));
+    const exactShares = chunks.map(c => (c.text.length / totalLength) * total);
+    const floored = exactShares.map(s => Math.max(1, Math.floor(s)));
+
+    let residual = total - floored.reduce((sum, n) => sum + n, 0);
+    const remainders = exactShares.map((s, i) => ({ index: i, remainder: s - floored[i] }));
+    remainders.sort((a, b) => b.remainder - a.remainder);
+
+    for (const { index } of remainders) {
+        if (residual <= 0) break;
+        floored[index]++;
+        residual--;
+    }
+
+    return floored;
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -472,10 +485,47 @@ ${formatRules}
                 return evaluatedCards;
             }));
 
-            const allCards = chunkResults.flat();
+            let allCards = chunkResults.flat();
 
+            // Backfill: generate additional cards if evaluation dropped some
+            const MAX_BACKFILL_ROUNDS = 2;
+            let backfillRound = 0;
 
-            return allCards;
+            while (allCards.length < count && backfillRound < MAX_BACKFILL_ROUNDS) {
+                backfillRound++;
+                const deficit = count - allCards.length;
+
+                const chunksByLength = [...chunks].sort((a, b) => b.text.length - a.text.length);
+                const backfillCounts = distributeCards(chunksByLength, deficit);
+
+                const backfillResults = await Promise.all(
+                    chunksByLength.map(async (chunk, i) => {
+                        if (backfillCounts[i] <= 0) return [];
+                        const rawCards = await generateCardsForChunk(
+                            chunk, backfillCounts[i], cardFormat, difficulty, interpretedInstruction, language,
+                        );
+                        stats.cardsGenerated += rawCards.length;
+                        return evaluateAndRefineCards(
+                            rawCards, chunk, cardFormat, difficulty, interpretedInstruction, language, stats,
+                        );
+                    }),
+                );
+
+                allCards = allCards.concat(backfillResults.flat());
+            }
+
+            if (allCards.length > count) {
+                allCards = allCards.slice(0, count);
+            }
+
+            return {
+                cards: allCards,
+                stats: {
+                    generated: stats.cardsGenerated,
+                    kept: stats.cardsKept,
+                    filtered: stats.cardsGenerated - allCards.length,
+                },
+            };
 
         } catch (error) {
             console.error('Error generating cards from context:', error);
