@@ -257,6 +257,154 @@ async function classifyCardsBatch(
     return { classified, skipped, errors };
 }
 
+// ── Yield Scores ────────────────────────────────────────────────────────────
+
+export interface YieldScoreRow {
+    cardId: string;
+    yieldScore: number | null;
+    yieldLevel: 'high' | 'medium' | 'low' | 'unclassified';
+    systemKey: string | null;
+    topicKey: string | null;
+}
+
+function toYieldLevel(score: number | null, confidence: number | null): YieldScoreRow['yieldLevel'] {
+    if (score === null || confidence === null || confidence < 0.5) return 'unclassified';
+    if (score >= 70) return 'high';
+    if (score >= 40) return 'medium';
+    return 'low';
+}
+
+function getYieldScores(examKey: string, cardIds?: string[]): YieldScoreRow[] {
+    const db = getDb();
+
+    const examRow = db.prepare(
+        'SELECT id FROM blueprint_exams WHERE exam_key = ?'
+    ).get(examKey) as { id: number } | undefined;
+    if (!examRow) throw new Error(`Exam not found: ${examKey}`);
+
+    let cardFilter = '';
+    const params: unknown[] = [examRow.id];
+
+    if (cardIds && cardIds.length > 0) {
+        const placeholders = cardIds.map(() => '?').join(',');
+        cardFilter = `AND cc.card_id IN (${placeholders})`;
+        params.push(...cardIds);
+    }
+
+    const rows = db.prepare(`
+        SELECT
+            cc.card_id,
+            ROUND(
+                SUM(
+                    ((bs.weight_min + bs.weight_max) / 2.0)
+                    * bt.relative_weight
+                    * cc.confidence
+                    * cc.split_weight
+                    * 100
+                ), 1
+            ) AS yield_score,
+            MAX(cc.confidence) AS max_confidence,
+            (
+                SELECT bs2.system_key
+                FROM card_classifications cc2
+                JOIN blueprint_systems bs2 ON bs2.id = cc2.system_id
+                WHERE cc2.card_id = cc.card_id AND cc2.exam_id = cc.exam_id
+                ORDER BY cc2.split_weight DESC LIMIT 1
+            ) AS system_key,
+            (
+                SELECT bt2.topic_key
+                FROM card_classifications cc2
+                LEFT JOIN blueprint_topics bt2 ON bt2.id = cc2.topic_id
+                WHERE cc2.card_id = cc.card_id AND cc2.exam_id = cc.exam_id
+                ORDER BY cc2.split_weight DESC LIMIT 1
+            ) AS topic_key
+        FROM card_classifications cc
+        JOIN blueprint_systems bs ON bs.id = cc.system_id
+        JOIN blueprint_topics bt ON bt.id = cc.topic_id
+        WHERE cc.exam_id = ? ${cardFilter}
+        GROUP BY cc.card_id
+    `).all(...params) as Array<{
+        card_id: string;
+        yield_score: number | null;
+        max_confidence: number | null;
+        system_key: string | null;
+        topic_key: string | null;
+    }>;
+
+    const resultMap = new Map<string, YieldScoreRow>();
+    for (const row of rows) {
+        resultMap.set(row.card_id, {
+            cardId: row.card_id,
+            yieldScore: row.yield_score,
+            yieldLevel: toYieldLevel(row.yield_score, row.max_confidence),
+            systemKey: row.system_key,
+            topicKey: row.topic_key,
+        });
+    }
+
+    if (cardIds) {
+        for (const id of cardIds) {
+            if (!resultMap.has(id)) {
+                resultMap.set(id, {
+                    cardId: id,
+                    yieldScore: null,
+                    yieldLevel: 'unclassified',
+                    systemKey: null,
+                    topicKey: null,
+                });
+            }
+        }
+    }
+
+    return Array.from(resultMap.values());
+}
+
+function getYieldExplanation(cardId: string, examKey: string): string {
+    const db = getDb();
+
+    const row = db.prepare(`
+        SELECT
+            cc.confidence,
+            cc.split_weight,
+            bs.label AS system_label,
+            bs.weight_min,
+            bs.weight_max,
+            bt.relative_weight,
+            be.label AS exam_label
+        FROM card_classifications cc
+        JOIN blueprint_exams be ON be.id = cc.exam_id
+        JOIN blueprint_systems bs ON bs.id = cc.system_id
+        LEFT JOIN blueprint_topics bt ON bt.id = cc.topic_id
+        WHERE cc.card_id = ? AND be.exam_key = ?
+        ORDER BY cc.split_weight DESC
+        LIMIT 1
+    `).get(cardId, examKey) as {
+        confidence: number;
+        split_weight: number;
+        system_label: string;
+        weight_min: number;
+        weight_max: number;
+        relative_weight: number | null;
+        exam_label: string;
+    } | undefined;
+
+    if (!row) return 'Unclassified: no blueprint classification found for this card.';
+
+    const scores = getYieldScores(examKey, [cardId]);
+    const score = scores[0];
+    const level = score?.yieldLevel ?? 'unclassified';
+
+    if (level === 'unclassified') {
+        return `Unclassified: ${row.system_label} — low confidence (${row.confidence.toFixed(2)}).`;
+    }
+
+    const midWeight = ((row.weight_min + row.weight_max) / 2).toFixed(0);
+    const levelLabel = level.charAt(0).toUpperCase() + level.slice(1);
+    const matchStrength = row.confidence >= 0.85 ? 'strong' : row.confidence >= 0.6 ? 'moderate' : 'weak';
+
+    return `${levelLabel} yield: ${row.system_label} (${midWeight}% of ${row.exam_label}) — ${matchStrength} blueprint match, confidence ${row.confidence.toFixed(2)}`;
+}
+
 // ── IPC Registration ────────────────────────────────────────────────────────
 
 export function setupClassifyHandlers(): void {
@@ -265,4 +413,10 @@ export function setupClassifyHandlers(): void {
 
     ipcMain.handle('yield:classify-batch', (_e, cardIds: string[], examKey: string, force?: boolean) =>
         classifyCardsBatch(cardIds, examKey, force));
+
+    ipcMain.handle('yield:get-scores', (_e, examKey: string, cardIds?: string[]) =>
+        getYieldScores(examKey, cardIds));
+
+    ipcMain.handle('yield:get-explanation', (_e, cardId: string, examKey: string) =>
+        getYieldExplanation(cardId, examKey));
 }
