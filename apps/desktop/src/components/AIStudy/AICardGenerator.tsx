@@ -39,6 +39,7 @@ export default function AICardGenerator({ extractedText, contextSummary, estimat
     const [showDeckEditor, setShowDeckEditor] = useState(false);
     const [isGen, setIsGen] = useState(false);
     const [hasGenerated, setHasGenerated] = useState(false);
+    const [generationStats, setGenerationStats] = useState<{ generated: number; kept: number; filtered: number } | null>(null);
 
     // Generation options
     const [cardFormat, setCardFormat] = useState<AIGenerationOptions['cardFormat']>('basic');
@@ -73,9 +74,12 @@ export default function AICardGenerator({ extractedText, contextSummary, estimat
             setIsGen(true);
 
             let result: GeneratedCard[] = [];
+            let statsResult: { generated: number; kept: number; filtered: number } | null = null;
 
             if (contextSummary) {
-                result = await window.electronAPI.generateCardsFromContext(contextSummary, extractedText, cardCount, i18n.language, generationOptions);
+                const response = await window.electronAPI.generateCardsFromContext(contextSummary, extractedText, cardCount, i18n.language, generationOptions);
+                result = response.cards;
+                statsResult = response.stats;
             } else {
                 result = await generateCards.mutateAsync({
                     text: extractedText,
@@ -86,6 +90,7 @@ export default function AICardGenerator({ extractedText, contextSummary, estimat
             }
 
             setCards(result);
+            setGenerationStats(statsResult);
             setHasGenerated(true);
         } catch (_error) {
             showToast(t('errors.generate_cards'), 'error');
@@ -293,7 +298,14 @@ export default function AICardGenerator({ extractedText, contextSummary, estimat
                 cards.length > 0 && (
                     <div className="ai-cards-preview">
                         <div className="ai-cards-header">
-                            <h3>{t('ai.generated_cards', { count: cards.length })}</h3>
+                            <div>
+                                <h3>{t('ai.generated_cards', { count: cards.length })}</h3>
+                                {generationStats && generationStats.filtered > 0 && (
+                                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                                        {t('ai.generation_stats', { generated: generationStats.generated, filtered: generationStats.filtered })}
+                                    </p>
+                                )}
+                            </div>
                             <Button
                                 variant="primary"
                                 onClick={handleAddAll}

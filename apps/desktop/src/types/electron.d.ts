@@ -119,6 +119,15 @@ export interface GeneratedCard {
     back: string;
 }
 
+export interface GenerationResult {
+    cards: GeneratedCard[];
+    stats: {
+        generated: number;
+        kept: number;
+        filtered: number;
+    };
+}
+
 export interface AIGenerationOptions {
     cardFormat: 'basic' | 'cloze' | 'reversed';
     difficulty: 'essential' | 'detailed';
@@ -337,7 +346,7 @@ interface ElectronExam {
 
 interface ElectronAPI {
     generateCards: (text: string, count?: number, language?: string, options?: AIGenerationOptions) => Promise<GeneratedCard[]>;
-    generateCardsFromContext: (summary: string, content: string, count: number, language?: string, options?: AIGenerationOptions) => Promise<GeneratedCard[]>;
+    generateCardsFromContext: (summary: string, content: string, count: number, language?: string, options?: AIGenerationOptions) => Promise<GenerationResult>;
     parseDocument: (file: { name: string, buffer?: ArrayBuffer, url?: string, type: string, language?: string }) => Promise<{ filename: string, content: string }>;
     generateSummary: (documents: Record<string, string>, language?: string) => Promise<DocumentOverview>;
     getSupabaseConfig: () => Promise<{ url: string; anonKey: string }>;

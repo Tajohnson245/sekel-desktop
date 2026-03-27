@@ -40,9 +40,9 @@ let _openai: OpenAI | null = null;
 
 function getOpenAI(): OpenAI {
     if (!_openai) {
-        const apiKey = import.meta.env.VITE_OPENAI_API_KEY || process.env.VITE_OPENAI_API_KEY;
+        const apiKey = process.env.OPENAI_API_KEY;
         if (!apiKey) {
-            throw new Error('Missing VITE_OPENAI_API_KEY. Set it in your .env.local file.');
+            throw new Error('Missing OPENAI_API_KEY. Set it in your .env.local file.');
         }
         _openai = new OpenAI({ apiKey });
     }
