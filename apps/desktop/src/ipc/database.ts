@@ -9,6 +9,13 @@ import { readDeletedItems } from '../main/backup/deletionLog';
 import { exportDeckAsApkg, getExportableCardCount } from '../main/export/index';
 import { exportAsSekel } from '../main/export/sekel';
 import { getSekelImportSummary, importSekelFile } from '../main/import/sekel';
+import {
+    validate,
+    createDeckRules,
+    createNoteRules,
+    updateCardAfterReviewRules,
+    insertReviewRules,
+} from './validation';
 
 export function setupDatabaseHandlers(): void {
     // ── Decks ──────────────────────────────────────────────────────────────────
@@ -18,8 +25,10 @@ export function setupDatabaseHandlers(): void {
     ipcMain.handle('db:fetchDeck', (_e, id: string) =>
         dbService.fetchDeck(id));
 
-    ipcMain.handle('db:createDeck', (_e, deck) =>
-        dbService.createDeck(deck));
+    ipcMain.handle('db:createDeck', (_e, deck) => {
+        validate('db:createDeck', deck, createDeckRules);
+        return dbService.createDeck(deck);
+    });
 
     ipcMain.handle('db:updateDeck', (_e, id: string, updates) =>
         dbService.updateDeck(id, updates));
@@ -59,8 +68,13 @@ export function setupDatabaseHandlers(): void {
     ipcMain.handle('db:fetchAllCardsForDeck', (_e, deckId: string) =>
         dbService.fetchAllCardsForDeck(deckId));
 
-    ipcMain.handle('db:updateCardAfterReview', (_e, cardId: string, updates) =>
-        dbService.updateCardAfterReview(cardId, updates));
+    ipcMain.handle('db:updateCardAfterReview', (_e, cardId: string, updates) => {
+        if (typeof cardId !== 'string' || cardId.length === 0) {
+            throw new Error('IPC validation failed (db:updateCardAfterReview): cardId must be a non-empty string');
+        }
+        validate('db:updateCardAfterReview', updates, updateCardAfterReviewRules);
+        return dbService.updateCardAfterReview(cardId, updates);
+    });
 
     ipcMain.handle('db:createCard', (_e, card) =>
         dbService.createCard(card));
@@ -72,8 +86,10 @@ export function setupDatabaseHandlers(): void {
     ipcMain.handle('db:fetchNotesByDeck', (_e, deckId: string) =>
         dbService.fetchNotesByDeck(deckId));
 
-    ipcMain.handle('db:createNote', (_e, note) =>
-        dbService.createNote(note));
+    ipcMain.handle('db:createNote', (_e, note) => {
+        validate('db:createNote', note, createNoteRules);
+        return dbService.createNote(note);
+    });
 
     ipcMain.handle('db:updateNote', (_e, id: string, updates) =>
         dbService.updateNote(id, updates));
@@ -92,8 +108,10 @@ export function setupDatabaseHandlers(): void {
         dbService.createNoteType(noteType));
 
     // ── Reviews ────────────────────────────────────────────────────────────────
-    ipcMain.handle('db:insertReview', (_e, params) =>
-        dbService.insertReview(params));
+    ipcMain.handle('db:insertReview', (_e, params) => {
+        validate('db:insertReview', params, insertReviewRules);
+        return dbService.insertReview(params);
+    });
 
     ipcMain.handle('db:fetchUserReviewHistory', (_e, userId: string, days?: number) =>
         dbService.fetchUserReviewHistory(userId, days));
