@@ -239,8 +239,13 @@ export default function DeckDetail({ deckId, userId, onBack, onStudy, onNavigate
                             <h2>{t('decks.delete_decks')}</h2>
                         </div>
                         <p>
-                            {t('decks.delete_message', { count: totalCards })}
+                            {t('decks.delete_cards_message', { count: totalCards })}
                         </p>
+                        <ul className="delete-warning-list">
+                            <li>{t('decks.delete_warn_reviews')}</li>
+                            <li>{t('decks.delete_warn_classifications')}</li>
+                        </ul>
+                        <p className="text-muted">{t('decks.delete_warn_irreversible')}</p>
                         <div className="modal-actions">
                             <Button
                                 variant="secondary"
