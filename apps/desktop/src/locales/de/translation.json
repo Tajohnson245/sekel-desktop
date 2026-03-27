@@ -147,6 +147,23 @@
         "timer": {
             "auto_flipped": "Zeit abgelaufen — Antwort aufgedeckt",
             "auto_graded_again": "Zeit abgelaufen — als Nochmal bewertet"
+        },
+        "yield": {
+            "high": "Hohe Relevanz",
+            "medium": "Mittlere Relevanz",
+            "low": "Niedrige Relevanz",
+            "unclassified": "Nicht klassifiziert",
+            "loading_explanation": "Laden...",
+            "badge_aria": "Relevanz-Klassifizierung: {{level}}"
+        },
+        "urgency": {
+            "standard_mode": "Standardmodus",
+            "active_mode": "Aktiver Modus",
+            "focused_mode": "Fokussierter Modus",
+            "intensive_mode": "Intensivmodus",
+            "final_sprint": "Endspurt",
+            "next_shift": "Nächste Stufe in ~{{days}} Tagen",
+            "max_urgency": "Maximale Dringlichkeit"
         }
     },
     "auth": {

@@ -73,9 +73,11 @@ export const exportDeck = (deckId: string, userId: string) => db().exportDeck(de
 export const getExportableCardCount = (deckId: string) => db().getExportableCardCount(deckId);
 
 // ── Yield ─────────────────────────────────────────────────────────────────────
-export type { SessionQueueCard } from '../types/electron';
+export type { SessionQueueCard, YieldScoreRow } from '../types/electron';
 const yieldApi = () => window.electronAPI.yield;
 export const buildSessionQueue = (userId: string, examKey: string, limit?: number) => yieldApi().buildSessionQueue(userId, examKey, limit);
+export const getYieldScores = (examKey: string, cardIds?: string[]) => yieldApi().getScores(examKey, cardIds);
+export const getYieldExplanation = (cardId: string, examKey: string) => yieldApi().getExplanation(cardId, examKey);
 
 // ── Exam ──────────────────────────────────────────────────────────────────────
 export type { BlueprintExam, UserExamProfile } from '../types/electron';

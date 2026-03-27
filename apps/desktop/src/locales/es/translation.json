@@ -188,6 +188,23 @@
         "timer": {
             "auto_flipped": "Se acabó el tiempo — respuesta revelada",
             "auto_graded_again": "Se acabó el tiempo — calificado como Otra vez"
+        },
+        "yield": {
+            "high": "Alto rendimiento",
+            "medium": "Rendimiento medio",
+            "low": "Bajo rendimiento",
+            "unclassified": "Sin clasificar",
+            "loading_explanation": "Cargando...",
+            "badge_aria": "Clasificación de rendimiento: {{level}}"
+        },
+        "urgency": {
+            "standard_mode": "Modo estándar",
+            "active_mode": "Modo activo",
+            "focused_mode": "Modo enfocado",
+            "intensive_mode": "Modo intensivo",
+            "final_sprint": "Sprint final",
+            "next_shift": "Próximo cambio en ~{{days}} días",
+            "max_urgency": "Urgencia máxima"
         }
     },
     "auth": {

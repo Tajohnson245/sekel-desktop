@@ -1,13 +1,15 @@
 /**
  * Desktop Notifications — IPC handlers + scheduler
  *
- * Two notification types:
+ * Three notification types:
  *   1. Cards Due Reminder — fires at user-configured times, checks due card count
  *   2. Study Streak — triggered from renderer after a study session completes
+ *   3. Threshold Shift — fires once when the user crosses a yield-multiplier tier
  */
 
 import { ipcMain, Notification, BrowserWindow } from 'electron';
 import { fetchAllDueCardsCount, fetchUserReviewHistory } from '../main/db/service';
+import { getDb } from '../main/db/index';
 import type { ReviewDayCount } from '@sekel/db';
 
 // ── State ────────────────────────────────────────────────────────────────────
@@ -142,4 +144,114 @@ export function setupNotificationHandlers() {
             return 0;
         }
     });
+
+    // Check for yield-multiplier threshold crossing on session start
+    ipcMain.handle('notify:threshold-shift', (_e, userId: string) => {
+        try {
+            return checkThresholdShift(userId);
+        } catch {
+            return { shifted: false, multiplier: 1.0, daysUntilExam: null };
+        }
+    });
+}
+
+// ── Threshold Shift ─────────────────────────────────────────────────────────
+
+const EXAM_DATE_SENTINEL = '9999-12-31';
+
+function computeMultiplier(
+    examDate: string,
+    sessionMode: string,
+): { multiplier: number; daysUntilExam: number | null } {
+    if (examDate === EXAM_DATE_SENTINEL) return { multiplier: 1.0, daysUntilExam: null };
+
+    if (sessionMode === 'triage') {
+        const days = Math.floor((new Date(examDate).getTime() - Date.now()) / 86_400_000);
+        return { multiplier: 2.5, daysUntilExam: days };
+    }
+    if (sessionMode === 'mixed') {
+        return { multiplier: 1.0, daysUntilExam: null };
+    }
+
+    const daysUntilExam = Math.floor((new Date(examDate).getTime() - Date.now()) / 86_400_000);
+    let multiplier = 1.0;
+    if (daysUntilExam < 7)        multiplier = 2.5;
+    else if (daysUntilExam < 30)  multiplier = 2.0;
+    else if (daysUntilExam < 90)  multiplier = 1.5;
+    else if (daysUntilExam <= 180) multiplier = 1.2;
+
+    return { multiplier, daysUntilExam };
+}
+
+interface ThresholdShiftResult {
+    shifted: boolean;
+    multiplier: number;
+    daysUntilExam: number | null;
+}
+
+const THRESHOLD_COPY: Record<number, { title: string; body: string }> = {
+    2.5: {
+        title: 'Final Sprint',
+        body: 'Your exam is less than a week away. SEKEL will now prioritize high-yield cards in your sessions \u2014 your full deck is always available to browse.',
+    },
+    2.0: {
+        title: 'Crunch Time',
+        body: 'Your exam is less than 30 days away. SEKEL will now prioritize high-yield cards in your sessions \u2014 your full deck is always available to browse.',
+    },
+    1.5: {
+        title: 'Getting Closer',
+        body: 'Your exam is less than 90 days away. SEKEL will now prioritize high-yield cards in your sessions \u2014 your full deck is always available to browse.',
+    },
+    1.2: {
+        title: 'Exam Awareness',
+        body: 'Your exam is less than 6 months away. SEKEL will now prioritize high-yield cards in your sessions \u2014 your full deck is always available to browse.',
+    },
+};
+
+function checkThresholdShift(userId: string): ThresholdShiftResult {
+    const db = getDb();
+    const row = db.prepare(`
+        SELECT exam_date, session_mode, last_notified_threshold
+        FROM user_exam_profiles
+        WHERE user_id = ? AND is_primary = 1
+    `).get(userId) as { exam_date: string; session_mode: string; last_notified_threshold: number | null } | undefined;
+
+    if (!row || row.exam_date === EXAM_DATE_SENTINEL) {
+        return { shifted: false, multiplier: 1.0, daysUntilExam: null };
+    }
+
+    const { multiplier, daysUntilExam } = computeMultiplier(row.exam_date, row.session_mode);
+    const result: ThresholdShiftResult = { shifted: false, multiplier, daysUntilExam };
+
+    // First run: seed the threshold without notifying
+    if (row.last_notified_threshold === null) {
+        db.prepare(
+            'UPDATE user_exam_profiles SET last_notified_threshold = ?, updated_at = ? WHERE user_id = ? AND is_primary = 1'
+        ).run(multiplier, new Date().toISOString(), userId);
+        return result;
+    }
+
+    // Threshold crossed upward — fire notification
+    if (multiplier > row.last_notified_threshold) {
+        const copy = THRESHOLD_COPY[multiplier];
+        if (copy) {
+            const notification = new Notification({
+                title: copy.title,
+                body: copy.body,
+                silent: false,
+            });
+            notification.on('click', () => {
+                const win = BrowserWindow.getAllWindows()[0];
+                if (win) { win.show(); win.focus(); }
+            });
+            notification.show();
+        }
+
+        db.prepare(
+            'UPDATE user_exam_profiles SET last_notified_threshold = ?, updated_at = ? WHERE user_id = ? AND is_primary = 1'
+        ).run(multiplier, new Date().toISOString(), userId);
+        result.shifted = true;
+    }
+
+    return result;
 }

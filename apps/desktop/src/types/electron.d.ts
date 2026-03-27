@@ -186,9 +186,16 @@ interface ElectronDB {
     checkIntegrity:        () => Promise<string>;
 }
 
+export interface ThresholdShiftResult {
+    shifted: boolean;
+    multiplier: number;
+    daysUntilExam: number | null;
+}
+
 interface ElectronNotify {
     configure: (config: { userId: string; enabled: boolean; reminderTimes: string[] }) => Promise<void>;
     streak: (userId: string) => Promise<number>;
+    thresholdShift: (userId: string) => Promise<ThresholdShiftResult>;
 }
 
 export interface DeletedItem {

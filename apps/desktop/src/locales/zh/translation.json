@@ -147,6 +147,23 @@
         "timer": {
             "auto_flipped": "时间到——已显示答案",
             "auto_graded_again": "时间到——已评为重来"
+        },
+        "yield": {
+            "high": "高权重",
+            "medium": "中权重",
+            "low": "低权重",
+            "unclassified": "未分类",
+            "loading_explanation": "加载中...",
+            "badge_aria": "权重分类：{{level}}"
+        },
+        "urgency": {
+            "standard_mode": "标准模式",
+            "active_mode": "主动模式",
+            "focused_mode": "专注模式",
+            "intensive_mode": "强化模式",
+            "final_sprint": "冲刺模式",
+            "next_shift": "~{{days}}天后进入下一阶段",
+            "max_urgency": "最高紧迫度"
         }
     },
     "auth": {

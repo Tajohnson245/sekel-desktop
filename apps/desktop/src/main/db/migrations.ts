@@ -260,4 +260,8 @@ export const MIGRATIONS: string[] = [
     CREATE INDEX IF NOT EXISTS idx_user_exam_profiles_user_id ON user_exam_profiles(user_id);
     CREATE UNIQUE INDEX IF NOT EXISTS idx_user_exam_profiles_user_exam ON user_exam_profiles(user_id, exam_id);
     `,
+    // Migration 012 — add last_notified_threshold to user_exam_profiles
+    `
+    ALTER TABLE user_exam_profiles ADD COLUMN last_notified_threshold REAL;
+    `,
 ];

@@ -1,0 +1,33 @@
+/* Urgency Chip — T-minus indicator in the session header */
+
+.urgency-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+    padding: var(--space-xs) var(--space-md);
+    background: var(--ink-muted);
+    border: 1px solid var(--ink-muted);
+    border-radius: var(--r-sm);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    white-space: nowrap;
+    color: var(--fog);
+    line-height: 1;
+}
+
+.urgency-chip__emoji {
+    font-style: normal;
+    line-height: 1;
+}
+
+.urgency-chip__label {
+    font-weight: 500;
+}
+
+.urgency-chip__sep {
+    color: var(--mist);
+}
+
+.urgency-chip__shift {
+    color: var(--mist);
+}

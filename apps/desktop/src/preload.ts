@@ -26,6 +26,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         configure: (config: { userId: string; enabled: boolean; reminderTimes: string[] }) =>
             ipcRenderer.invoke('notify:configure', config),
         streak: (userId: string) => ipcRenderer.invoke('notify:streak', userId),
+        thresholdShift: (userId: string) => ipcRenderer.invoke('notify:threshold-shift', userId),
     },
 
     db: {
