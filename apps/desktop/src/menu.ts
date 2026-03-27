@@ -1,4 +1,5 @@
-import { app, Menu, shell, MenuItemConstructorOptions } from 'electron';
+import { app, BrowserWindow, Menu, shell, MenuItemConstructorOptions } from 'electron';
+import { createBackup } from './main/backup/service';
 
 const isMac = process.platform === 'darwin';
 
@@ -24,6 +25,25 @@ const template: MenuItemConstructorOptions[] = [
     {
         label: 'File',
         submenu: [
+            {
+                label: 'Create Backup',
+                accelerator: 'CmdOrCtrl+Shift+B',
+                click: async () => {
+                    const result = await createBackup();
+                    if (result) {
+                        const win = BrowserWindow.getFocusedWindow();
+                        win?.webContents.send('backup:created', result);
+                    }
+                },
+            },
+            {
+                label: 'Restore from Backup...',
+                click: () => {
+                    const win = BrowserWindow.getFocusedWindow();
+                    win?.webContents.send('backup:open-restore');
+                },
+            },
+            { type: 'separator' },
             isMac ? { role: 'close' } : { role: 'quit' }
         ]
     },

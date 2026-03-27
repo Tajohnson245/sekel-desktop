@@ -10,6 +10,8 @@ import { setupDocumentHandlers } from './ipc/document_parsing';
 import { setupDatabaseHandlers } from './ipc/database';
 import { setupImportHandlers } from './ipc/import';
 import { setupNotificationHandlers } from './ipc/notifications';
+import { setupBackupHandlers } from './ipc/backup';
+import { startBackupScheduler, stopBackupScheduler } from './main/backup/service';
 import { cleanupStaleTempDirs } from './main/import/tempCleanup';
 import { fetchMediaByFilename } from './main/db/service';
 
@@ -106,7 +108,11 @@ app.whenReady().then(() => {
     try { setupDatabaseHandlers(); } catch (err) { console.error('[main] database handler setup failed:', err); }
     try { setupImportHandlers(); } catch (err) { console.error('[main] import handler setup failed:', err); }
     try { setupNotificationHandlers(); } catch (err) { console.error('[main] notification handler setup failed:', err); }
+    try { setupBackupHandlers(); } catch (err) { console.error('[main] backup handler setup failed:', err); }
     cleanupStaleTempDirs().catch((err) => console.error('[main] temp cleanup failed:', err));
+
+    // Start automatic backup scheduler
+    try { startBackupScheduler(); } catch (err) { console.error('[main] backup scheduler failed:', err); }
 
     // Check for updates only in production (packaged app)
     if (app.isPackaged) {
@@ -129,4 +135,8 @@ app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
         app.quit();
     }
+});
+
+app.on('will-quit', () => {
+    stopBackupScheduler();
 });

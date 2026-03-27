@@ -6,6 +6,11 @@ import { MIGRATIONS } from './migrations';
 let db: Database.Database;
 
 export function initDatabase(): Database.Database {
+    // Close existing connection if reinitializing (e.g. after restore)
+    if (db && db.open) {
+        db.close();
+    }
+
     const dbPath = path.join(app.getPath('userData'), 'sekel.db');
     db = new Database(dbPath, { timeout: 5000 });
 
@@ -19,6 +24,11 @@ export function initDatabase(): Database.Database {
 export function getDb(): Database.Database {
     if (!db) throw new Error('Database not initialized. Call initDatabase() first.');
     return db;
+}
+
+/** Returns the file path of the current database. */
+export function getDbPath(): string {
+    return path.join(app.getPath('userData'), 'sekel.db');
 }
 
 function runMigrations(database: Database.Database): void {

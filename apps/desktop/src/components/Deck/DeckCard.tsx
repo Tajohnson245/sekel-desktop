@@ -220,6 +220,7 @@ export default function DeckCard({
                 isOpen={showExportModal}
                 deckId={deck.id}
                 deckName={deck.name}
+                userId={user?.id ?? ''}
                 onConfirm={handleExport}
                 onClose={() => setShowExportModal(false)}
             />
