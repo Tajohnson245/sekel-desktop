@@ -5,6 +5,8 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { createMedia, fetchMediaByHash } from '../db/service';
 import type { MediaExtractionResult } from './types';
+import { assertMediaFileSize } from './limits';
+import { validateMediaBuffer } from './mediaValidation';
 
 const MIME_MAP: Record<string, string> = {
     '.jpg': 'image/jpeg',
@@ -87,6 +89,14 @@ export async function extractMedia(
                 }
 
                 const { buffer, sha1 } = await readAndHash(sourcePath);
+
+                // Enforce per-file size limit
+                try {
+                    assertMediaFileSize(buffer.length, originalFilename);
+                } catch {
+                    return { numericKey, originalFilename, missing: true as const };
+                }
+
                 return { numericKey, originalFilename, missing: false as const, buffer, sha1 };
             }),
         );
@@ -109,21 +119,38 @@ export async function extractMedia(
                 continue;
             }
 
+            // Validate file type via magic bytes
+            const validation = await validateMediaBuffer(item.buffer, item.originalFilename);
+            if (!validation.valid) {
+                warnings.push(`[media] Rejected "${item.originalFilename}": ${validation.warning}`);
+                processed++;
+                continue;
+            }
+            if (validation.warning) {
+                warnings.push(`[media] ${validation.warning}`);
+            }
+
             const ext = path.extname(item.originalFilename);
             const destPath = path.join(mediaDir, item.sha1 + ext);
 
-            await copyFile(
-                path.join(tempDir, item.numericKey),
-                destPath,
-            );
+            // For SVG files, write the sanitized content instead of the original
+            if (validation.sanitizedBuffer) {
+                const { writeFile } = await import('node:fs/promises');
+                await writeFile(destPath, validation.sanitizedBuffer);
+            } else {
+                await copyFile(
+                    path.join(tempDir, item.numericKey),
+                    destPath,
+                );
+            }
 
             const record = createMedia({
                 user_id: userId,
                 filename: item.originalFilename,
                 file_path: destPath,
                 file_hash: item.sha1,
-                file_size: item.buffer.length,
-                mime_type: getMimeType(item.originalFilename),
+                file_size: validation.sanitizedBuffer?.length ?? item.buffer.length,
+                mime_type: validation.detectedMime ?? getMimeType(item.originalFilename),
                 import_id: importId,
             });
 

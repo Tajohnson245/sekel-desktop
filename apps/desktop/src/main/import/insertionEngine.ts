@@ -20,6 +20,7 @@ import type {
     AnkiCard,
     AnkiReviewLog,
 } from './types';
+import { sanitizeNoteFields, sanitizeTemplateHtml } from './sanitizeFields';
 
 // Anki stores review-card due dates as "days since 2006-01-01 UTC"
 const ANKI_EPOCH_MS = 1136073600000;
@@ -207,8 +208,8 @@ export function executeImport(
                         fields: model.flds.map(f => ({ name: f.name })),
                         card_templates: model.tmpls.map(t => ({
                             name: t.name,
-                            front_template: t.qfmt,
-                            back_template: t.afmt,
+                            front_template: sanitizeTemplateHtml(t.qfmt),
+                            back_template: sanitizeTemplateHtml(t.afmt),
                         })),
                         anki_meta: JSON.stringify({
                             css: model.css,
@@ -228,7 +229,7 @@ export function executeImport(
                     userId,
                     sekelDeckId,
                     noteType.id,
-                    JSON.stringify(ankiNote.fields),
+                    sanitizeNoteFields(ankiNote.fields),
                     JSON.stringify(ankiNote.tags),
                     ankiNoteId,
                     ankiNote.guid,

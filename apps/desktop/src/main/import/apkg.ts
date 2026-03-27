@@ -12,6 +12,12 @@ import {
     ValidationError,
 } from './types';
 import { makeTempDirPath, removeTempDir } from './tempCleanup';
+import {
+    assertArchiveSize,
+    ImportSizeLimitError,
+    MAX_DECOMPRESSED_BYTES,
+    MAX_ENTRY_COUNT,
+} from './limits';
 
 const ANKI_DB_FILES = ['collection.anki21b', 'collection.anki21', 'collection.anki2'] as const;
 type AnkiDbFilename = typeof ANKI_DB_FILES[number];
@@ -25,6 +31,10 @@ const REQUIRED_TABLES = ['col', 'notes', 'cards', 'revlog'] as const;
  * On any error the temp dir is cleaned up before rethrowing.
  */
 export async function processApkgFile(apkgPath: string): Promise<ApkgImportResult> {
+    // Size check before extraction
+    const stat = fs.statSync(apkgPath);
+    assertArchiveSize(stat.size, path.basename(apkgPath));
+
     const tempDir = makeTempDirPath();
     await fsPromises.mkdir(tempDir, { recursive: true });
 
@@ -55,6 +65,9 @@ async function extractApkg(apkgPath: string, destDir: string): Promise<Set<strin
                 return reject(new CorruptedZipError(err?.message));
             }
 
+            let entryCount = 0;
+            let decompressedBytes = 0;
+
             zipfile.readEntry();
 
             zipfile.on('entry', (entry: yauzl.Entry) => {
@@ -62,6 +75,24 @@ async function extractApkg(apkgPath: string, destDir: string): Promise<Set<strin
                 if (/\/$/.test(entry.fileName)) {
                     zipfile.readEntry();
                     return;
+                }
+
+                // Enforce entry count limit
+                entryCount++;
+                if (entryCount > MAX_ENTRY_COUNT) {
+                    zipfile.close();
+                    return reject(new ImportSizeLimitError(
+                        `Archive has more than ${MAX_ENTRY_COUNT} entries.`,
+                    ));
+                }
+
+                // Track cumulative decompressed size
+                decompressedBytes += entry.uncompressedSize;
+                if (decompressedBytes > MAX_DECOMPRESSED_BYTES) {
+                    zipfile.close();
+                    return reject(new ImportSizeLimitError(
+                        'Cumulative decompressed size exceeds the 2 GB limit.',
+                    ));
                 }
 
                 zipfile.openReadStream(entry, (streamErr, readStream) => {
