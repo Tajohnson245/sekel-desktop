@@ -678,5 +678,14 @@
         "switch_complete": "Exam switched! Re-classifying cards in the background.",
         "date_saved": "Exam date updated",
         "mode_saved": "Session mode updated"
+    },
+    "error_boundary": {
+        "page_title": "Something went wrong",
+        "page_message": "An unexpected error occurred. Your data is safe. Try reloading the app.",
+        "inline_title": "This section encountered an error",
+        "inline_message": "Something went wrong while loading this view. You can try again or go back.",
+        "retry": "Try Again",
+        "reload": "Reload App",
+        "go_back": "Go Back"
     }
 }

@@ -29,9 +29,10 @@ import './components/Drafts/DraftsPage.css';
 import './components/ImageOcclusion/ImageOcclusionEditor.css';
 import './components/Statistics/StatisticsPage.css';
 import './components/Auth/Auth.css';
+import './components/UI/ErrorBoundary.css';
 import { ProtectedRoute } from './components/Auth/ProtectedRoute';
 import { UserProfile } from './components/UserProfile';
-import { ToastProvider } from './components/UI';
+import { ToastProvider, ErrorBoundary } from './components/UI';
 import { UserProfilePage } from './components/Profile/UserProfilePage';
 import { useAuthStore } from './stores/authStore';
 import { useProfileStore } from './stores/profileStore';
@@ -123,12 +124,14 @@ function AppContent() {
                 if (selectedDeckId) {
                     if (isStudying) {
                         return (
-                            <StudySession
-                                deckId={selectedDeckId}
-                                userId={userId}
-                                mode={studyMode}
-                                onBack={() => setIsStudying(false)}
-                            />
+                            <ErrorBoundary variant="inline" onReset={() => setIsStudying(false)}>
+                                <StudySession
+                                    deckId={selectedDeckId}
+                                    userId={userId}
+                                    mode={studyMode}
+                                    onBack={() => setIsStudying(false)}
+                                />
+                            </ErrorBoundary>
                         );
                     }
                     return (
@@ -150,12 +153,14 @@ function AppContent() {
             case 'study':
                 if (selectedDeckId) {
                     return (
-                        <StudySession
-                            deckId={selectedDeckId}
-                            userId={userId}
-                            mode={studyMode}
-                            onBack={() => handleNavigate('decks')}
-                        />
+                        <ErrorBoundary variant="inline" onReset={() => handleNavigate('decks')}>
+                            <StudySession
+                                deckId={selectedDeckId}
+                                userId={userId}
+                                mode={studyMode}
+                                onBack={() => handleNavigate('decks')}
+                            />
+                        </ErrorBoundary>
                     );
                 }
                 return (
@@ -170,7 +175,11 @@ function AppContent() {
             case 'drafts':
                 return <DraftsPage userId={userId} />;
             case 'image-occlusion':
-                return <ImageOcclusionEditor userId={userId} />;
+                return (
+                    <ErrorBoundary variant="inline" onReset={() => handleNavigate('image-occlusion')}>
+                        <ImageOcclusionEditor userId={userId} />
+                    </ErrorBoundary>
+                );
             case 'statistics':
                 return <StatisticsPage />;
             case 'profile':
@@ -272,7 +281,9 @@ export default function App() {
             <ThemeProvider>
                 <ToastProvider>
                     <ProtectedRoute>
-                        <AppContent />
+                        <ErrorBoundary variant="page" onReset={() => window.location.reload()}>
+                            <AppContent />
+                        </ErrorBoundary>
                     </ProtectedRoute>
                 </ToastProvider>
             </ThemeProvider>
