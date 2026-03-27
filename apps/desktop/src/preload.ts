@@ -90,6 +90,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
         checkIntegrity:        () => ipcRenderer.invoke('db:checkIntegrity'),
     },
 
+    yield: {
+        classifyCard:  (cardId: string, examKey: string) =>
+            ipcRenderer.invoke('yield:classify-card', cardId, examKey),
+        classifyBatch: (cardIds: string[], examKey: string, force?: boolean) =>
+            ipcRenderer.invoke('yield:classify-batch', cardIds, examKey, force),
+    },
+
     backup: {
         list:           () => ipcRenderer.invoke('backup:list'),
         create:         () => ipcRenderer.invoke('backup:create'),

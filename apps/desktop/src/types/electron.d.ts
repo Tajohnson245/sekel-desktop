@@ -253,6 +253,33 @@ interface ElectronBackup {
     onOpenRestore:  (cb: () => void) => () => void;
 }
 
+interface ElectronYield {
+    classifyCard:  (cardId: string, examKey: string) => Promise<ClassificationResult>;
+    classifyBatch: (cardIds: string[], examKey: string, force?: boolean) => Promise<BatchClassifyResult>;
+}
+
+export interface ClassificationResult {
+    exam_key: string;
+    system_key: string;
+    topic_key: string;
+    confidence: number;
+    reasoning: string;
+    multi_system?: true;
+    classifications?: Array<{
+        system_key: string;
+        topic_key: string;
+        confidence: number;
+        split_weight: number;
+        reasoning: string;
+    }>;
+}
+
+export interface BatchClassifyResult {
+    classified: number;
+    skipped: number;
+    errors: number;
+}
+
 interface ElectronAPI {
     generateCards: (text: string, count?: number, language?: string, options?: AIGenerationOptions) => Promise<GeneratedCard[]>;
     generateCardsFromContext: (summary: string, content: string, count: number, language?: string, options?: AIGenerationOptions) => Promise<GeneratedCard[]>;
@@ -262,6 +289,7 @@ interface ElectronAPI {
     notify: ElectronNotify;
     import: ElectronImport;
     db: ElectronDB;
+    yield: ElectronYield;
     backup: ElectronBackup;
 }
 
