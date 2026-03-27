@@ -625,5 +625,31 @@
         "card_type": "Card Type",
         "retention_rate": "Retention",
         "more_coming_soon": "More charts coming soon..."
+    },
+    "exam": {
+        "onboarding_step_exam": "Choose Your Exam",
+        "onboarding_step_date": "Set Your Exam Date",
+        "select_exam_prompt": "Which exam are you preparing for?",
+        "date_prompt": "When is your exam?",
+        "date_hint": "You can change this later in Study settings.",
+        "date_skip": "Skip for now",
+        "confirm": "Confirm",
+        "next": "Next",
+        "back": "Back",
+        "onboarding_complete": "Exam profile created! SEKEL is scoring your cards in the background.",
+        "onboarding_error": "Failed to create exam profile. Please try again.",
+        "settings_title": "Exam Configuration",
+        "settings_desc": "Your active exam determines how cards are prioritized during study sessions.",
+        "date_label": "Exam Date",
+        "date_not_set": "Not set",
+        "session_mode_label": "Session Mode",
+        "mode_auto": "Auto (adjusts by time to exam)",
+        "mode_mixed": "Mixed (balanced review)",
+        "mode_triage": "Triage (high-yield focus)",
+        "change_exam": "Change Exam",
+        "setup_exam": "Set Up Exam",
+        "switch_complete": "Exam switched! Re-classifying cards in the background.",
+        "date_saved": "Exam date updated",
+        "mode_saved": "Session mode updated"
     }
 }
