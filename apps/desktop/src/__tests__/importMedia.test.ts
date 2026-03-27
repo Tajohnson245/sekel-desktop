@@ -45,6 +45,18 @@ vi.mock('node:fs', () => ({
     existsSync: (...args: unknown[]) => mockExistsSync(...args),
 }));
 
+// ── Security layer mocks (magic-byte validation + size limits) ──────────────
+
+const mockValidateMediaBuffer = vi.fn().mockResolvedValue({ valid: true });
+
+vi.mock('../main/import/mediaValidation', () => ({
+    validateMediaBuffer: (...args: unknown[]) => mockValidateMediaBuffer(...args),
+}));
+
+vi.mock('../main/import/limits', () => ({
+    assertMediaFileSize: vi.fn(),
+}));
+
 // ── Subject under test (imported after mocks are set up) ──────────────────────
 
 import { extractMedia } from '../main/import/media';
@@ -73,6 +85,7 @@ beforeEach(() => {
     mockMkdir.mockResolvedValue(undefined);
     mockCopyFile.mockResolvedValue(undefined);
     mockExistsSync.mockReturnValue(true);
+    mockValidateMediaBuffer.mockResolvedValue({ valid: true });
 });
 
 afterEach(() => {
