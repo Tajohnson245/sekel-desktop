@@ -11,6 +11,7 @@ import { setupDatabaseHandlers } from './ipc/database';
 import { setupImportHandlers } from './ipc/import';
 import { setupNotificationHandlers } from './ipc/notifications';
 import { setupBackupHandlers } from './ipc/backup';
+import { setupClassifyHandlers } from './ipc/classify';
 import { startBackupScheduler, stopBackupScheduler } from './main/backup/service';
 import { cleanupStaleTempDirs } from './main/import/tempCleanup';
 import { fetchMediaByFilename } from './main/db/service';
@@ -109,6 +110,7 @@ app.whenReady().then(() => {
     try { setupImportHandlers(); } catch (err) { console.error('[main] import handler setup failed:', err); }
     try { setupNotificationHandlers(); } catch (err) { console.error('[main] notification handler setup failed:', err); }
     try { setupBackupHandlers(); } catch (err) { console.error('[main] backup handler setup failed:', err); }
+    try { setupClassifyHandlers(); } catch (err) { console.error('[main] classify handler setup failed:', err); }
     cleanupStaleTempDirs().catch((err) => console.error('[main] temp cleanup failed:', err));
 
     // Start automatic backup scheduler
