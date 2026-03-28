@@ -89,7 +89,7 @@ export default function DocumentUpload({ onFilesSelected, onUrlSelected, isProce
                         <Trans
                             i18nKey="ai.drag_drop"
                             components={[
-                                <span className="action-link" onClick={() => inputRef.current?.click()}>text</span>
+                                <button type="button" className="action-link" onClick={() => inputRef.current?.click()}>text</button>
                             ]}
                         />
                     </p>

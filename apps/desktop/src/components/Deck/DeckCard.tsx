@@ -99,9 +99,23 @@ export default function DeckCard({
         : (deck.description || t('dashboard.no_description'));
 
     return (
-        <div
+        <article
             className={`deck-card ${isDeleteMode ? 'delete-mode' : ''} ${isSelected ? 'selected' : ''}`}
+            role="button"
+            tabIndex={0}
+            aria-label={displayDeckName}
+            aria-pressed={isDeleteMode ? isSelected : undefined}
             onClick={handleCardClick}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    if (isDeleteMode) {
+                        onToggleSelect?.(deck.id);
+                    } else {
+                        onClick();
+                    }
+                }
+            }}
             data-testid={`deck-card-${deck.id}`}
         >
             {isDeleteMode && (
@@ -232,6 +246,6 @@ export default function DeckCard({
                     onClose={() => setShowDeckEditor(false)}
                 />
             )}
-        </div>
+        </article>
     );
 }
