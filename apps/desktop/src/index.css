@@ -317,7 +317,7 @@ body,
     border: none;
     font: inherit;
     text-align: left;
-    width: 100%;
+    white-space: nowrap;
 }
 
 .nav-link:hover,
