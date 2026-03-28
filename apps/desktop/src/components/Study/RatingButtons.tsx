@@ -2,6 +2,7 @@ import { formatInterval } from '../../lib/fsrs';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../UI';
 import type { Rating, CardUpdate } from '../../lib/types';
+import './RatingButtons.css';
 
 interface RatingButtonsProps {
     options: Record<Rating, CardUpdate>;

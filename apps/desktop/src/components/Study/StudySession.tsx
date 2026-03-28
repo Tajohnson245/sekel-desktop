@@ -22,6 +22,7 @@ import type { Rating, CardUpdate } from '../../lib/types';
 import { DEFAULT_NOTE_TYPES } from '../../lib/types';
 import type { CardWithNote } from '../../lib/queries';
 import { renderAnkiTemplate } from '../../lib/mediaResolver';
+import './StudySession.css';
 
 export default function StudySession() {
     const { deckId: deckIdParam } = useParams<{ deckId: string }>();

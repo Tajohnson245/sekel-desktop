@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useProfileStore } from '../../stores/profileStore';
 import { sanitize } from '../../lib/sanitize';
 import type { OcclusionShape, IOMode } from '../../lib/types';
+import './CardViewer.css';
 
 interface CardViewerProps {
     front: string;
