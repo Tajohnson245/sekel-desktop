@@ -105,6 +105,7 @@ export interface ElectronImport {
     }) => Promise<ImportSummary>;
     confirmImport: (payload: ImportOptionsPayload) => Promise<ImportResult>;
     cancel: (tempDir: string) => void;
+    cleanup: (tempDir: string) => Promise<void>;
     onImportProgress: (cb: (progress: ImportProgress) => void) => () => void;
 }
 
