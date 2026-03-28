@@ -11,7 +11,7 @@
     display: flex;
     align-items: center;
     gap: 1rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.5rem;
 }
 
 .study-header h2 {
@@ -50,13 +50,13 @@
 }
 
 .study-content {
-    flex: 1;
+    flex: 1 1 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    padding-top: 2rem;
-    gap: 1.5rem;
+    padding-top: 0.5rem;
+    gap: 1rem;
     position: relative;
     overflow-y: auto;
     overflow-x: hidden;

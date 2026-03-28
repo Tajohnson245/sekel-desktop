@@ -75,7 +75,7 @@
     font-size: 0.75rem;
     max-width: 320px;
     line-height: 1.4;
-    transform: translate(-50%, -100%);
+    transform: translate(-50%, 0);
     pointer-events: none;
     box-shadow: var(--shadow-md);
     white-space: normal;

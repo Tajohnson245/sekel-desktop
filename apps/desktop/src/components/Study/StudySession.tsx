@@ -337,6 +337,14 @@ export default function StudySession() {
                         sessionMode={examProfile.session_mode}
                     />
                 )}
+                {currentYield && examKey && (
+                    <YieldBadge
+                        level={currentYield.yieldLevel}
+                        score={currentYield.yieldScore}
+                        cardId={currentYield.cardId}
+                        examKey={examKey}
+                    />
+                )}
                 <span className="progress-text">
                     {currentIndex + 1} / {cards.length}
                 </span>
@@ -350,14 +358,6 @@ export default function StudySession() {
                 onClick={() => { if (!isRevealed) handleReveal(); else handleUnreveal(); }}
                 onKeyDown={(e) => { if (e.key === 'Enter') { if (!isRevealed) handleReveal(); else handleUnreveal(); } }}
             >
-                {currentYield && examKey && (
-                    <YieldBadge
-                        level={currentYield.yieldLevel}
-                        score={currentYield.yieldScore}
-                        cardId={currentYield.cardId}
-                        examKey={examKey}
-                    />
-                )}
                 <CardViewer
                     front={frontContent}
                     back={backContent}
