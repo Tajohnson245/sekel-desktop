@@ -7,6 +7,7 @@ import ImportProgressModal from '../Import/ImportProgressModal';
 import ImportSuccessModal from '../Import/ImportSuccessModal';
 import ImportErrorModal from '../Import/ImportErrorModal';
 import { useAuthStore } from '../../stores/authStore';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
 import type {
     ApkgImportResult,
     ImportSummary,
@@ -27,13 +28,13 @@ type Phase =
 
 interface ImportAnkiButtonProps {
     onSuccess: (result: ImportResult) => void;
-    onNavigateToDeck?: () => void;
 }
 
-export default function ImportAnkiButton({ onSuccess, onNavigateToDeck }: ImportAnkiButtonProps) {
+export default function ImportAnkiButton({ onSuccess }: ImportAnkiButtonProps) {
     const [phase, setPhase] = useState<Phase>({ name: 'idle' });
     const { t } = useTranslation();
     const user = useAuthStore(s => s.user);
+    const { goToDecks } = useAppNavigation();
 
     // Track the current failed stage for the error modal
     const lastStageRef = useRef<ImportStage | undefined>(undefined);
@@ -147,7 +148,7 @@ export default function ImportAnkiButton({ onSuccess, onNavigateToDeck }: Import
                 <ImportSuccessModal
                     result={phase.result}
                     deckOptions={phase.deckOptions}
-                    onGoToDeck={onNavigateToDeck}
+                    onGoToDeck={goToDecks}
                     onClose={handleClose}
                 />
             )}

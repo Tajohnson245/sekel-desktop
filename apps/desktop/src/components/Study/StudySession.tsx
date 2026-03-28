@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useDueCards, useAllCardsForStudy, useUpdateCard, useDeck } from '../../hooks/useDecks';
@@ -9,6 +10,8 @@ import { getSchedulingOptions } from '../../lib/fsrs';
 import { isExamDateSet } from '../../lib/queries';
 import type { YieldScoreRow } from '../../lib/queries';
 import { useProfileStore } from '../../stores/profileStore';
+import { useAuthStore } from '../../stores/authStore';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
 import CardViewer from '../Card/CardViewer';
 import RatingButtons from './RatingButtons';
 import StudyTimer from './StudyTimer';
@@ -20,14 +23,13 @@ import { DEFAULT_NOTE_TYPES } from '../../lib/types';
 import type { CardWithNote } from '../../lib/queries';
 import { renderAnkiTemplate } from '../../lib/mediaResolver';
 
-interface StudySessionProps {
-    deckId: string;
-    userId: string;
-    mode?: 'due' | 'all';
-    onBack: () => void;
-}
-
-export default function StudySession({ deckId, userId, mode = 'due', onBack }: StudySessionProps) {
+export default function StudySession() {
+    const { deckId: deckIdParam } = useParams<{ deckId: string }>();
+    const deckId = deckIdParam!;
+    const [searchParams] = useSearchParams();
+    const mode = (searchParams.get('mode') as 'due' | 'all') || 'due';
+    const userId = useAuthStore((s) => s.user?.id ?? '');
+    const { goToDeck } = useAppNavigation();
     const { data: deck } = useDeck(deckId);
     const dueCardsResult = useDueCards(mode === 'due' ? deckId : null);
     const allCardsResult = useAllCardsForStudy(mode === 'all' ? deckId : null);
@@ -244,7 +246,7 @@ export default function StudySession({ deckId, userId, mode = 'due', onBack }: S
         return (
             <div className="study-session" data-testid="study-session">
                 <div className="study-header">
-                    <Button variant="secondary" onClick={onBack} icon={<ArrowLeft size={16} />}>
+                    <Button variant="secondary" onClick={() => goToDeck(deckId)} icon={<ArrowLeft size={16} />}>
                         {t('common.back')}
                     </Button>
                 </div>
@@ -262,7 +264,7 @@ export default function StudySession({ deckId, userId, mode = 'due', onBack }: S
             <SessionAnalytics
                 sessionId={sessionId}
                 reviewedCount={reviewedCount}
-                onBack={onBack}
+                onBack={() => goToDeck(deckId)}
                 onStudyAgain={handleStudyAgain}
             />
         );
@@ -277,7 +279,7 @@ export default function StudySession({ deckId, userId, mode = 'due', onBack }: S
                         {t('study.cards_studied')}: {reviewedCount}
                     </p>
                     <div className="complete-actions">
-                        <Button variant="secondary" onClick={onBack}>
+                        <Button variant="secondary" onClick={() => goToDeck(deckId)}>
                             {t('study.back_to_decks')}
                         </Button>
                         <Button variant="primary" onClick={handleStudyAgain}>
@@ -320,7 +322,7 @@ export default function StudySession({ deckId, userId, mode = 'due', onBack }: S
     return (
         <div className="study-session" data-testid="study-session">
             <div className="study-header">
-                <Button variant="secondary" onClick={onBack} data-testid="back-btn" icon={<ArrowLeft size={16} />}>
+                <Button variant="secondary" onClick={() => goToDeck(deckId)} data-testid="back-btn" icon={<ArrowLeft size={16} />}>
                     {t('common.back')}
                 </Button>
                 <StudyTimer

@@ -3,6 +3,7 @@ import { Inbox, Trash2, ChevronRight, Clock, FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useDrafts, useDeleteDraft, useClearDrafts, usePromoteDraftToDeck, DRAFT_LIMIT } from '../../hooks/useDrafts';
 import { useDecks } from '../../hooks/useDecks';
+import { useAuthStore } from '../../stores/authStore';
 import { Button } from '../UI';
 import './DraftsPage.css';
 
@@ -13,11 +14,8 @@ function formatDate(iso: string) {
     });
 }
 
-interface DraftsPageProps {
-    userId: string;
-}
-
-export default function DraftsPage({ userId }: DraftsPageProps) {
+export default function DraftsPage() {
+    const userId = useAuthStore((s) => s.user?.id ?? '');
     const { t } = useTranslation();
     const [selectedDeckIds, setSelectedDeckIds] = useState<Record<string, string>>({});
     const [promotedIds, setPromotedIds] = useState<Set<string>>(new Set());

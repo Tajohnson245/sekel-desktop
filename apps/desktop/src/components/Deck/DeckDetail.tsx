@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { ArrowLeft, BookOpen, Trash2, Zap, Plus, Pencil } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useDeck, useDeckStats } from '../../hooks/useDecks';
 import { useNoteTypes, useCreateNoteType, useNotesByDeck, useDeleteNote } from '../../hooks/useNotes';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
+import { useAuthStore } from '../../stores/authStore';
 import CardList from '../Card/CardList';
 import NoteEditor from '../Card/NoteEditor';
 import DeckEditor from './DeckEditor';
@@ -10,19 +13,15 @@ import { Button, useToast } from '../UI';
 import { DEFAULT_NOTE_TYPES } from '../../lib/types';
 import './DeckDetail.css';
 
-interface DeckDetailProps {
-    deckId: string;
-    userId: string;
-    onBack: () => void;
-    onStudy: (mode?: 'due' | 'all') => void;
-    onNavigate: (view: string) => void;
-}
-
-export default function DeckDetail({ deckId, userId, onBack, onStudy, onNavigate }: DeckDetailProps) {
-    const { data: deck, isLoading: deckLoading } = useDeck(deckId);
-    const { data: stats } = useDeckStats(deckId);
+export default function DeckDetail() {
+    const { deckId } = useParams<{ deckId: string }>();
+    const userId = useAuthStore((s) => s.user?.id ?? '');
+    const { goToDecks, goToStudy, goToDocuments } = useAppNavigation();
+    const id = deckId!;
+    const { data: deck, isLoading: deckLoading } = useDeck(id);
+    const { data: stats } = useDeckStats(id);
     const { data: noteTypes = [] } = useNoteTypes(userId);
-    const { data: notes = [] } = useNotesByDeck(deckId);
+    const { data: notes = [] } = useNotesByDeck(id);
     const createNoteType = useCreateNoteType();
     const deleteNote = useDeleteNote();
     const { t } = useTranslation();
@@ -61,7 +60,7 @@ export default function DeckDetail({ deckId, userId, onBack, onStudy, onNavigate
         try {
             // Delete all notes (cards are cascade deleted)
             for (const note of notes) {
-                await deleteNote.mutateAsync({ id: note.id, deckId });
+                await deleteNote.mutateAsync({ id: note.id, deckId: id });
             }
             setShowDeleteConfirm(false);
         } catch (_error) {
@@ -105,7 +104,7 @@ export default function DeckDetail({ deckId, userId, onBack, onStudy, onNavigate
                 <div className="header-left">
                     <Button
                         variant="secondary"
-                        onClick={onBack}
+                        onClick={goToDecks}
                         data-testid="back-btn"
                         icon={<ArrowLeft size={18} />}
                     >
@@ -146,7 +145,7 @@ export default function DeckDetail({ deckId, userId, onBack, onStudy, onNavigate
                         <>
                             <Button
                                 variant="secondary"
-                                onClick={() => onStudy('all')}
+                                onClick={() => goToStudy(id, 'all')}
                                 disabled={totalCards === 0}
                                 data-testid="review-all-btn"
                                 icon={<Zap size={18} />}
@@ -155,7 +154,7 @@ export default function DeckDetail({ deckId, userId, onBack, onStudy, onNavigate
                             </Button>
                             <Button
                                 variant="primary"
-                                onClick={() => onStudy('due')}
+                                onClick={() => goToStudy(id, 'due')}
                                 disabled={totalCards === 0 || dueCards === 0}
                                 data-testid="study-btn"
                                 icon={<BookOpen size={18} />}
@@ -167,7 +166,7 @@ export default function DeckDetail({ deckId, userId, onBack, onStudy, onNavigate
                         <Button
                             variant="primary"
                             className="study-all-btn-flashcards"
-                            onClick={() => onStudy('all')}
+                            onClick={() => goToStudy(id, 'all')}
                             disabled={totalCards === 0}
                             data-testid="study-all-btn"
                             icon={<Zap size={18} />}
@@ -207,15 +206,15 @@ export default function DeckDetail({ deckId, userId, onBack, onStudy, onNavigate
             </div>
 
             <CardList
-                deckId={deckId}
+                deckId={id}
                 onAddCard={handleAddNote}
-                onGenerateAI={() => onNavigate('documents')}
+                onGenerateAI={() => goToDocuments(id)}
                 onEdit={handleEditNote}
             />
 
             {showNoteEditor && defaultNoteTypeId && (
                 <NoteEditor
-                    deckId={deckId}
+                    deckId={id}
                     userId={userId}
                     noteTypeId={defaultNoteTypeId}
                     onClose={() => setShowNoteEditor(false)}

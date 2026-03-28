@@ -5,6 +5,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useProfileStore } from '../../stores/profileStore';
 import { useDecks } from '../../hooks/useDecks';
 import { useReviewHistory, useGlobalDashboardStats } from '../../hooks/useSessions';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
 import type { Deck } from '../../lib/types';
 import { Button, ReviewHeatmap } from '@sekel/components';
 import type { ReviewDayCount } from '@sekel/components';
@@ -36,12 +37,8 @@ function computeStreak(history: ReviewDayCount[]): number {
     return streak;
 }
 
-interface DashboardProps {
-    onSelectDeck: (deckId: string) => void;
-    onNavigate: (view: string) => void;
-}
-
-export default function Dashboard({ onSelectDeck, onNavigate }: DashboardProps) {
+export default function Dashboard() {
+    const { goToDeck, goToDecks } = useAppNavigation();
     const { data: decks = [], isLoading: decksLoading } = useDecks();
     const { user } = useAuthStore();
     const { profile, fetchProfile, isLoading: profileLoading } = useProfileStore();
@@ -119,7 +116,7 @@ export default function Dashboard({ onSelectDeck, onNavigate }: DashboardProps) 
                     <Button
                         variant="primary"
                         size="lg"
-                        onClick={() => onNavigate('study')}
+                        onClick={() => goToDecks()}
                         data-testid="start-studying-btn"
                         icon={<BookOpen size={18} />}
                     >
@@ -128,7 +125,7 @@ export default function Dashboard({ onSelectDeck, onNavigate }: DashboardProps) 
                     <Button
                         variant="secondary"
                         size="lg"
-                        onClick={() => onNavigate('decks')}
+                        onClick={() => goToDecks()}
                         data-testid="view-decks-btn"
                         icon={<LayoutDashboard size={18} />}
                     >
@@ -154,7 +151,7 @@ export default function Dashboard({ onSelectDeck, onNavigate }: DashboardProps) 
                                 <div
                                     key={deck.id}
                                     className="recent-deck-item"
-                                    onClick={() => onSelectDeck(deck.id)}
+                                    onClick={() => goToDeck(deck.id)}
                                     data-testid={`deck-${deck.id}`}
                                 >
                                     <span className="deck-name">
