@@ -195,6 +195,42 @@ jobs:
           path: apps/desktop/out/make
           destination: desktop-macos
 
+  desktop-build-macos-x64:
+    executor: macos-exec
+    steps:
+      - checkout
+      - node/install:
+          node-version: '22'
+      - run:
+          name: Generate .icns from PNG
+          command: |
+            ICONSET=apps/desktop/assets/sekel_logo.iconset
+            mkdir -p "$ICONSET"
+            SRC=apps/desktop/assets/sekel_logo_draft.png
+            for SIZE in 16 32 128 256 512; do
+              sips -z $SIZE $SIZE "$SRC" --out "$ICONSET/icon_${SIZE}x${SIZE}.png" > /dev/null
+              DOUBLE=$((SIZE * 2))
+              sips -z $DOUBLE $DOUBLE "$SRC" --out "$ICONSET/icon_${SIZE}x${SIZE}@2x.png" > /dev/null
+            done
+            iconutil -c icns "$ICONSET" -o apps/desktop/assets/sekel_logo.icns
+            rm -rf "$ICONSET"
+      - run:
+          name: Install dependencies
+          command: npm install
+      - run:
+          name: Install Rollup native binary
+          command: npm install --no-save rollup
+          working_directory: apps/desktop
+      - run:
+          name: Build & package installer (x64)
+          command: npm run make
+          working_directory: apps/desktop
+          environment:
+            FORGE_ARCH: x64
+      - store_artifacts:
+          path: apps/desktop/out/make
+          destination: desktop-macos-x64
+
   # ── Web (all branches) ───────────────────────────────────────────────────
   web-ci:
     executor: linux-20
@@ -272,6 +308,12 @@ workflows:
             branches:
               only: [main, dev]
       - desktop-build-macos:
+          requires:
+            - desktop-unit-tests
+          filters:
+            branches:
+              only: [main, dev]
+      - desktop-build-macos-x64:
           requires:
             - desktop-unit-tests
           filters:
