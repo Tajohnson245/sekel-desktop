@@ -345,6 +345,11 @@ interface ElectronExam {
     fetchAllCardIds: (userId: string) => Promise<string[]>;
 }
 
+interface ElectronObs {
+    getMetrics: () => Promise<import('@sekel/observability').MetricSnapshot>;
+    isAdmin:    (email: string) => Promise<boolean>;
+}
+
 interface ElectronAPI {
     generateCards: (text: string, count?: number, language?: string, options?: AIGenerationOptions) => Promise<GeneratedCard[]>;
     generateCardsFromContext: (summary: string, content: string, count: number, language?: string, options?: AIGenerationOptions) => Promise<GenerationResult>;
@@ -354,6 +359,7 @@ interface ElectronAPI {
     notify: ElectronNotify;
     import: ElectronImport;
     db: ElectronDB;
+    obs: ElectronObs;
     yield: ElectronYield;
     backup: ElectronBackup;
     exam: ElectronExam;

@@ -1,7 +1,10 @@
 import React from 'react';
 import { AlertTriangle, RefreshCw, ArrowLeft } from 'lucide-react';
+import { createLogger, consoleTransport } from '@sekel/observability';
 import i18n from '../../i18n';
 import './ErrorBoundary.css';
+
+const log = createLogger({ module: 'ErrorBoundary', transports: [consoleTransport] });
 
 interface ErrorBoundaryProps {
     children: React.ReactNode;
@@ -27,8 +30,11 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     }
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
-        console.error('[ErrorBoundary] Caught error:', error);
-        console.error('[ErrorBoundary] Component stack:', errorInfo.componentStack);
+        log.error('Caught render error', {
+            error: error.message,
+            stack: error.stack,
+            componentStack: errorInfo.componentStack,
+        });
     }
 
     handleRetry = (): void => {

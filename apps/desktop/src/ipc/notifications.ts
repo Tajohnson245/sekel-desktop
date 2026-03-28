@@ -7,7 +7,8 @@
  *   3. Threshold Shift — fires once when the user crosses a yield-multiplier tier
  */
 
-import { ipcMain, Notification, BrowserWindow } from 'electron';
+import { Notification, BrowserWindow } from 'electron';
+import { instrumentedHandle } from '@sekel/observability';
 import { fetchAllDueCardsCount, fetchUserReviewHistory } from '../main/db/service';
 import { getDb } from '../main/db/index';
 import type { ReviewDayCount } from '@sekel/db';
@@ -105,7 +106,7 @@ function stopScheduler() {
 
 export function setupNotificationHandlers() {
     // Update scheduler config when profile settings change
-    ipcMain.handle('notify:configure', (_e, config: {
+    instrumentedHandle('notify:configure', (_e, config: {
         userId: string;
         enabled: boolean;
         reminderTimes: string[];
@@ -123,7 +124,7 @@ export function setupNotificationHandlers() {
     });
 
     // Show a study streak notification (called from renderer after session complete)
-    ipcMain.handle('notify:streak', (_e, userId: string) => {
+    instrumentedHandle('notify:streak', (_e, userId: string) => {
         try {
             const history = fetchUserReviewHistory(userId, 365);
             const streak = calculateStreak(history);
@@ -146,7 +147,7 @@ export function setupNotificationHandlers() {
     });
 
     // Check for yield-multiplier threshold crossing on session start
-    ipcMain.handle('notify:threshold-shift', (_e, userId: string) => {
+    instrumentedHandle('notify:threshold-shift', (_e, userId: string) => {
         try {
             return checkThresholdShift(userId);
         } catch {

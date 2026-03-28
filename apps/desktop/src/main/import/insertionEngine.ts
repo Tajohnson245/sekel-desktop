@@ -6,6 +6,9 @@
 
 import { randomUUID } from 'node:crypto';
 import { getDb } from '../db/index';
+import { metrics, createLogger, consoleTransport } from '@sekel/observability';
+
+const log = createLogger({ module: 'import', transports: [consoleTransport] });
 import {
     createDeck,
     fetchDecksByAnkiIds,
@@ -338,7 +341,17 @@ export function executeImport(
         }
     });
 
+    const endTimer = metrics.startTimer('import.transaction_ms');
     tx();
+    const ms = endTimer();
+    log.info('Import transaction completed', {
+        durationMs: Math.round(ms),
+        decksCreated: result.decksCreated,
+        cardsInserted: result.cardsInserted,
+        notesInserted: result.notesInserted,
+        reviewsInserted: result.reviewsInserted,
+    });
+    metrics.increment('import.cards_inserted', {}, result.cardsInserted);
     return result;
 }
 

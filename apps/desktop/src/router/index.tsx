@@ -9,6 +9,7 @@ import DraftsPage from '../components/Drafts/DraftsPage';
 import ImageOcclusionEditor from '../components/ImageOcclusion/ImageOcclusionEditor';
 import StatisticsPage from '../components/Statistics/StatisticsPage';
 import { UserProfilePage } from '../components/Profile/UserProfilePage';
+import AdminDashboard from '../components/Admin/AdminDashboard';
 
 export const router = createMemoryRouter([
     {
@@ -37,6 +38,7 @@ export const router = createMemoryRouter([
                 ),
             },
             { path: 'statistics', element: <StatisticsPage /> },
+            { path: 'admin', element: <AdminDashboard /> },
             { path: 'profile', element: <UserProfilePage /> },
             { path: '*', element: <Navigate to="/" replace /> },
         ],

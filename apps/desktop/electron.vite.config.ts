@@ -3,14 +3,15 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 
 export default defineConfig(({ mode }) => {
-    const env = loadEnv(mode, '.', ['VITE_', 'OPENAI_']);
+    const env = loadEnv(mode, '.', ['VITE_', 'OPENAI_', 'ADMIN_']);
 
     return {
         main: {
-            plugins: [externalizeDepsPlugin({ exclude: ['electron-store'] })],
+            plugins: [externalizeDepsPlugin({ exclude: ['electron-store', '@sekel/observability'] })],
             define: {
                 'process.env.OPENAI_API_KEY': JSON.stringify(env.OPENAI_API_KEY ?? ''),
                 'process.env.OPENAI_MODEL': JSON.stringify(env.OPENAI_MODEL ?? ''),
+                'process.env.ADMIN_EMAIL': JSON.stringify(env.ADMIN_EMAIL ?? ''),
             },
             build: {
                 outDir: 'dist/main',

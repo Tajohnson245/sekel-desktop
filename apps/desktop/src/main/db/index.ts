@@ -3,6 +3,9 @@ import { app } from 'electron';
 import path from 'node:path';
 import { MIGRATIONS } from './migrations';
 import { STEP1_BLUEPRINT } from './blueprints';
+import { createLogger, consoleTransport } from '@sekel/observability';
+
+const log = createLogger({ module: 'db', transports: [consoleTransport] });
 
 let db: Database.Database;
 
@@ -49,7 +52,7 @@ function runMigrations(database: Database.Database): void {
             database.prepare('INSERT INTO schema_version (version) VALUES (?)').run(i + 1);
         });
         applyMigration();
-        console.log(`[DB] Applied migration ${i + 1}`);
+        log.info('Applied migration', { version: i + 1 });
     }
 }
 
@@ -104,5 +107,5 @@ function seedBlueprints(database: Database.Database): void {
     });
 
     seed();
-    console.log(`[DB] Seeded blueprint: ${bp.label} (${bp.systems.length} systems)`);
+    log.info('Seeded blueprint', { label: bp.label, systems: bp.systems.length });
 }

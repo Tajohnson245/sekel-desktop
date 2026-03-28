@@ -126,6 +126,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
         },
     },
 
+    obs: {
+        getMetrics: () => ipcRenderer.invoke('obs:getMetrics'),
+        isAdmin:    (email: string) => ipcRenderer.invoke('obs:isAdmin', email),
+    },
+
     exam: {
         listExams:       () => ipcRenderer.invoke('exam:list-exams'),
         getProfile:      (userId: string) => ipcRenderer.invoke('exam:get-profile', userId),

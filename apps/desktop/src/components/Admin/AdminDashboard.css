@@ -1,0 +1,146 @@
+/* ==========================================================================
+   AdminDashboard — observability metrics panel
+   ========================================================================== */
+
+.admin-dashboard {
+  max-width:  1100px;
+  margin:     0 auto;
+  padding:    0 var(--space-xl);
+}
+
+.admin-dashboard .page-header {
+  margin-bottom: var(--space-xl);
+}
+
+.admin-dashboard .page-header h2 {
+  font-family: var(--font-display);
+  font-size:   28px;
+  font-weight: 700;
+  color:       var(--fog);
+  margin:      0;
+}
+
+.admin-dashboard .page-header p {
+  font-family: var(--font-mono);
+  font-size:   13px;
+  color:       var(--mist);
+  margin:      var(--space-xs) 0 0 0;
+}
+
+/* Toolbar */
+.admin-toolbar {
+  display:         flex;
+  justify-content: space-between;
+  align-items:     center;
+  margin-bottom:   var(--space-xl);
+}
+
+.admin-toolbar__info {
+  font-family: var(--font-mono);
+  font-size:   12px;
+  color:       var(--mist);
+}
+
+.admin-toolbar .btn {
+  font-size: 13px;
+}
+
+/* Metric sections */
+.admin-section {
+  margin-bottom: var(--space-2xl);
+}
+
+.admin-section__title {
+  font-family:    var(--font-body);
+  font-size:      16px;
+  font-weight:    600;
+  color:          var(--fog);
+  margin:         0 0 var(--space-lg) 0;
+  padding-bottom: var(--space-sm);
+  border-bottom:  1px solid var(--border);
+}
+
+/* Table */
+.admin-table {
+  width:           100%;
+  border-collapse: collapse;
+  font-family:     var(--font-mono);
+  font-size:       13px;
+}
+
+.admin-table th {
+  text-align:    left;
+  font-weight:   500;
+  color:         var(--mist);
+  padding:       var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--border);
+  white-space:   nowrap;
+}
+
+.admin-table td {
+  padding:       var(--space-sm) var(--space-md);
+  border-bottom: 1px solid var(--ink-muted);
+  color:         var(--fog);
+}
+
+.admin-table tr:hover td {
+  background: var(--ink-soft);
+}
+
+.admin-table .metric-name {
+  color: var(--teal);
+}
+
+.admin-table .metric-value {
+  font-weight: 600;
+  text-align:  right;
+}
+
+.admin-table .metric-avg {
+  text-align: right;
+  color:      var(--mist);
+}
+
+.admin-table .metric-max {
+  text-align: right;
+  color:      var(--amber);
+}
+
+/* Empty state */
+.admin-empty {
+  text-align:  center;
+  padding:     var(--space-3xl);
+  color:       var(--mist);
+  font-family: var(--font-mono);
+  font-size:   14px;
+}
+
+/* Access denied */
+.admin-denied {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  justify-content: center;
+  gap:            var(--space-lg);
+  padding:        var(--space-3xl);
+  text-align:     center;
+  color:          var(--mist);
+  min-height:     300px;
+}
+
+.admin-denied__icon {
+  color: var(--rose);
+}
+
+.admin-denied h2 {
+  font-family: var(--font-display);
+  font-size:   24px;
+  color:       var(--fog);
+  margin:      0;
+}
+
+.admin-denied p {
+  font-family: var(--font-mono);
+  font-size:   13px;
+  margin:      0;
+}

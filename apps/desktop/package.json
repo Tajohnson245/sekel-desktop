@@ -72,6 +72,7 @@
   },
   "dependencies": {
     "@sekel/db": "*",
+    "@sekel/observability": "*",
     "@supabase/supabase-js": "^2.95.3",
     "@tanstack/react-query": "^5.90.20",
     "better-sqlite3": "^12.6.2",

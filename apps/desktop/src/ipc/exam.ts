@@ -1,17 +1,17 @@
-import { ipcMain } from 'electron';
+import { instrumentedHandle } from '@sekel/observability';
 import { getDb } from '../main/db/index';
 
 const EXAM_DATE_SENTINEL = '9999-12-31';
 
 export function setupExamHandlers(): void {
 
-    ipcMain.handle('exam:list-exams', () => {
+    instrumentedHandle('exam:list-exams', () => {
         return getDb().prepare(
             'SELECT id, exam_key, label FROM blueprint_exams ORDER BY label'
         ).all();
     });
 
-    ipcMain.handle('exam:get-profile', (_e, userId: string) => {
+    instrumentedHandle('exam:get-profile', (_e, userId: string) => {
         return getDb().prepare(`
             SELECT uep.*, be.exam_key, be.label AS exam_label
             FROM user_exam_profiles uep
@@ -20,7 +20,7 @@ export function setupExamHandlers(): void {
         `).get(userId) ?? null;
     });
 
-    ipcMain.handle('exam:upsert-profile',
+    instrumentedHandle('exam:upsert-profile',
         (_e, userId: string, examId: number, examDate: string | null, sessionMode?: string) => {
             const db = getDb();
             const now = new Date().toISOString();
@@ -52,7 +52,7 @@ export function setupExamHandlers(): void {
         }
     );
 
-    ipcMain.handle('exam:update-profile',
+    instrumentedHandle('exam:update-profile',
         (_e, userId: string, updates: { exam_date?: string; session_mode?: string }) => {
             const db = getDb();
             const now = new Date().toISOString();
@@ -82,7 +82,7 @@ export function setupExamHandlers(): void {
         }
     );
 
-    ipcMain.handle('exam:fetch-all-card-ids', (_e, userId: string) => {
+    instrumentedHandle('exam:fetch-all-card-ids', (_e, userId: string) => {
         const rows = getDb().prepare(
             'SELECT id FROM cards WHERE user_id = ?'
         ).all(userId) as Array<{ id: string }>;
