@@ -23,7 +23,7 @@
     "build": "electron-vite build",
     "typecheck": "tsc --noEmit",
     "package": "node -e \"delete process.env.ELECTRON_RUN_AS_NODE;require('child_process').execSync('electron-vite build && electron-forge package',{stdio:'inherit'})\"",
-    "make": "node -e \"delete process.env.ELECTRON_RUN_AS_NODE;require('child_process').execSync('electron-vite build && electron-forge make',{stdio:'inherit'})\"",
+    "make": "node -e \"delete process.env.ELECTRON_RUN_AS_NODE;const arch=process.env.FORGE_ARCH?(' --arch='+process.env.FORGE_ARCH):'';require('child_process').execSync('electron-vite build && electron-forge make'+arch,{stdio:'inherit'})\"",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "test": "vitest run",
