@@ -285,6 +285,11 @@
     padding: 0 0 1rem;
 }
 
+.classic-divider--hidden,
+.classic-back--hidden {
+    visibility: hidden;
+}
+
 .classic-front .flashcard-face-inner,
 .classic-back .flashcard-face-inner {
     max-height: 50vh;

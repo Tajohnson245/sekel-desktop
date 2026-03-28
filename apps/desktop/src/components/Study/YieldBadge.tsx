@@ -24,7 +24,7 @@ export default function YieldBadge({ level, score, cardId, examKey }: YieldBadge
             const rect = badgeRef.current.getBoundingClientRect();
             setTooltipPos({
                 x: rect.left + rect.width / 2,
-                y: rect.top - 8,
+                y: rect.bottom + 8,
             });
         }
         setTooltipOpen(prev => !prev);

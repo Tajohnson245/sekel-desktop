@@ -38,6 +38,8 @@ export default function ImportAnkiButton({ onSuccess }: ImportAnkiButtonProps) {
 
     // Track the current failed stage for the error modal
     const lastStageRef = useRef<ImportStage | undefined>(undefined);
+    // Track the active temp directory so we can clean up on cancel/error
+    const tempDirRef = useRef<string | null>(null);
 
     // Subscribe to progress events while in 'progress' phase
     useEffect(() => {
@@ -68,6 +70,7 @@ export default function ImportAnkiButton({ onSuccess }: ImportAnkiButtonProps) {
             }
 
             const apkgResult = await window.electronAPI.import.processApkg(filePath);
+            tempDirRef.current = apkgResult.tempDir;
             const summary = await window.electronAPI.import.getSummary({
                 dbFilePath: apkgResult.dbFilePath,
                 mediaMap: apkgResult.mediaMap,
@@ -94,6 +97,7 @@ export default function ImportAnkiButton({ onSuccess }: ImportAnkiButtonProps) {
 
         try {
             const result = await window.electronAPI.import.confirmImport(fullPayload);
+            tempDirRef.current = null;
             setPhase({ name: 'success', result, deckOptions });
             onSuccess(result);
         } catch (err) {
@@ -108,9 +112,17 @@ export default function ImportAnkiButton({ onSuccess }: ImportAnkiButtonProps) {
         setPhase(prev => prev.name === 'progress' ? { ...prev, isCancelling: true } : prev);
     };
 
-    const handleOptionsCancel = () => setPhase({ name: 'idle' });
-    const handleClose = () => setPhase({ name: 'idle' });
-    const handleRetry = () => setPhase({ name: 'idle' });
+    const cleanupAndReset = () => {
+        if (tempDirRef.current) {
+            window.electronAPI.import.cleanup(tempDirRef.current);
+            tempDirRef.current = null;
+        }
+        setPhase({ name: 'idle' });
+    };
+
+    const handleOptionsCancel = () => cleanupAndReset();
+    const handleClose = () => cleanupAndReset();
+    const handleRetry = () => cleanupAndReset();
 
     return (
         <div className="import-anki-button-wrapper">

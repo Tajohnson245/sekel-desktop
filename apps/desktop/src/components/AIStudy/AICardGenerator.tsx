@@ -8,6 +8,7 @@ import { useDecks } from '../../hooks/useDecks';
 import { DEFAULT_NOTE_TYPES } from '../../lib/types';
 import DeckEditor from '../Deck/DeckEditor';
 import { Button, Input, Select, ImageUpload, useToast } from '../UI';
+import './AICardGenerator.css';
 
 interface AICardGeneratorProps {
     extractedText: string;

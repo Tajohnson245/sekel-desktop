@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useProfileStore } from '../../stores/profileStore';
 import { sanitize } from '../../lib/sanitize';
 import type { OcclusionShape, IOMode } from '../../lib/types';
+import './CardViewer.css';
 
 interface CardViewerProps {
     front: string;
@@ -234,17 +235,13 @@ export default function CardViewer({ front, back, isRevealed, onReveal, onUnreve
                     </div>
                 </div>
 
-                {isRevealed && (
-                    <>
-                        <hr className="classic-divider" />
-                        <div className="classic-back">
-                            <div className="flashcard-label">{t('study.answer')}</div>
-                            <div className="flashcard-face-inner">
-                                <div className="flashcard-content" dangerouslySetInnerHTML={{ __html: sanitize(answerOnly) }} />
-                            </div>
-                        </div>
-                    </>
-                )}
+                <hr className={`classic-divider${isRevealed ? '' : ' classic-divider--hidden'}`} />
+                <div className={`classic-back${isRevealed ? '' : ' classic-back--hidden'}`}>
+                    <div className="flashcard-label">{t('study.answer')}</div>
+                    <div className="flashcard-face-inner">
+                        <div className="flashcard-content" dangerouslySetInnerHTML={{ __html: sanitize(answerOnly) }} />
+                    </div>
+                </div>
             </div>
         );
     }

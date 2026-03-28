@@ -15,6 +15,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
                            ipcRenderer.invoke('import:get-summary', args),
         confirmImport: (payload: unknown) => ipcRenderer.invoke('import:confirm', payload),
         cancel:        (tempDir: string) => ipcRenderer.invoke('import:cancel', tempDir),
+        cleanup:       (tempDir: string) => ipcRenderer.invoke('import:cleanup', tempDir),
         onImportProgress: (cb: (progress: unknown) => void) => {
             const listener = (_event: unknown, progress: unknown) => cb(progress);
             ipcRenderer.on('import:progress', listener);

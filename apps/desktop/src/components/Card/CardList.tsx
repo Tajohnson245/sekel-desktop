@@ -9,6 +9,7 @@ import { renderAnkiTemplate } from '../../lib/mediaResolver';
 import type { CardWithNote } from '../../lib/queries';
 import type { JoinedNote } from '@sekel/db';
 import { Button, Modal } from '../UI';
+import './CardList.css';
 
 interface CardListProps {
     deckId: string;

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LoginForm } from './LoginForm';
 import { SignupForm } from './SignupForm';
+import './Auth.css';
 
 export const AuthPage: React.FC = () => {
     const [isLogin, setIsLogin] = useState(true);

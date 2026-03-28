@@ -2,6 +2,7 @@ import { useState, useRef, ReactNode } from 'react';
 import { Upload } from 'lucide-react';
 import { Trans, useTranslation } from 'react-i18next';
 import { Button, Input, useToast } from '../UI';
+import './DocumentUpload.css';
 
 interface DocumentUploadProps {
     onTextExtracted?: (text: string) => void;

@@ -332,6 +332,29 @@ export function StudyTab() {
                     )}
                 </div>
 
+                {/* Study Timer */}
+                <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div>
+                            <label className="field-label">
+                                <Clock size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+                                {t('profile.show_timer')}
+                            </label>
+                            <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0.2rem 0 0' }}>
+                                {t('profile.show_timer_desc')}
+                            </p>
+                        </div>
+                        <ToggleSwitch
+                            checked={profile?.show_timer ?? true}
+                            onChange={(next) => {
+                                if (user?.id) {
+                                    upsertProfile(user.id, { show_timer: next });
+                                }
+                            }}
+                        />
+                    </div>
+                </div>
+
                 {/* Daily Study Limits */}
                 <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertTriangle, RefreshCw, ArrowLeft } from 'lucide-react';
 import i18n from '../../i18n';
+import './ErrorBoundary.css';
 
 interface ErrorBoundaryProps {
     children: React.ReactNode;

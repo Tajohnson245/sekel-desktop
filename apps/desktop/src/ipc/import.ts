@@ -1,4 +1,4 @@
-import { ipcMain, dialog, WebContents } from 'electron';
+import { app, ipcMain, dialog, WebContents } from 'electron';
 import { randomUUID } from 'node:crypto';
 import { getDb } from '../main/db/index';
 import { processApkgFile } from '../main/import/apkg';
@@ -16,9 +16,16 @@ import type {
 import { CancelledError } from '../main/import/types';
 import type { ImportProgress, ImportResult, ImportStage } from '../types/electron';
 
-// In-memory cache: tempDir → AnkiCollection.
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+interface CacheEntry {
+    collection: AnkiCollection;
+    cachedAt: number;
+}
+
+// In-memory cache: tempDir → AnkiCollection (with TTL).
 // Populated by import:get-summary and consumed by import:confirm.
-const collectionCache = new Map<string, AnkiCollection>();
+const collectionCache = new Map<string, CacheEntry>();
 
 // Cancellation flags: tempDir → cancelled. Set by import:cancel handler.
 const cancellationFlags = new Map<string, boolean>();
@@ -62,14 +69,19 @@ export function setupImportHandlers(): void {
             },
         ): Promise<ImportSummary> => {
             const collection = await parseAnkiDatabase(args.dbFilePath);
-            collectionCache.set(args.tempDir, collection);
+            collectionCache.set(args.tempDir, { collection, cachedAt: Date.now() });
 
-            const ankiDeckIds = Array.from(collection.decks.values())
-                .filter(d => d.id !== 1)
-                .map(d => d.id);
-            const existingDecks = fetchDecksByAnkiIds(args.userId, ankiDeckIds);
+            try {
+                const ankiDeckIds = Array.from(collection.decks.values())
+                    .filter(d => d.id !== 1)
+                    .map(d => d.id);
+                const existingDecks = fetchDecksByAnkiIds(args.userId, ankiDeckIds);
 
-            return buildImportSummary(collection, args.mediaMap, existingDecks);
+                return buildImportSummary(collection, args.mediaMap, existingDecks);
+            } catch (err) {
+                collectionCache.delete(args.tempDir);
+                throw err;
+            }
         },
     );
 
@@ -78,19 +90,27 @@ export function setupImportHandlers(): void {
         cancellationFlags.set(tempDir, true);
     });
 
+    // Cleans up cached collection and temp directory for an abandoned import.
+    ipcMain.handle('import:cleanup', async (_event, tempDir: string) => {
+        collectionCache.delete(tempDir);
+        cancellationFlags.delete(tempDir);
+        await removeTempDir(tempDir);
+    });
+
     // Receives ImportOptionsPayload from the renderer, runs Phases 5 & 6,
     // emits progress events, and returns counts. Cleans up temp dir in finally.
     ipcMain.handle(
         'import:confirm',
         async (event, payload: ImportOptionsPayload): Promise<ImportResult> => {
-            const collection = collectionCache.get(payload.tempDir);
-            if (!collection) {
+            const entry = collectionCache.get(payload.tempDir);
+            if (!entry) {
                 throw new Error(
                     '[import] No cached collection found for tempDir. ' +
                     'Was import:get-summary called first?',
                 );
             }
             collectionCache.delete(payload.tempDir);
+            const collection = entry.collection;
             cancellationFlags.set(payload.tempDir, false);
 
             const importId = randomUUID();
@@ -176,4 +196,18 @@ export function setupImportHandlers(): void {
             };
         },
     );
+
+    // Periodic sweep: evict cache entries older than CACHE_TTL_MS.
+    const sweepInterval = setInterval(() => {
+        const now = Date.now();
+        for (const [key, entry] of collectionCache) {
+            if (now - entry.cachedAt > CACHE_TTL_MS) {
+                collectionCache.delete(key);
+                cancellationFlags.delete(key);
+                removeTempDir(key).catch(() => {});
+            }
+        }
+    }, 60_000);
+
+    app.on('will-quit', () => clearInterval(sweepInterval));
 }
