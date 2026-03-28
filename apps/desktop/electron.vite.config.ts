@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 
 export default defineConfig(({ mode }) => {
-    const env = loadEnv(mode, '.', ['VITE_', 'OPENAI_', 'ADMIN_']);
+    const env = loadEnv(mode, '.', ['VITE_', 'OPENAI_', 'ADMIN_', 'SUPABASE_']);
 
     return {
         main: {
@@ -12,6 +12,9 @@ export default defineConfig(({ mode }) => {
                 'process.env.OPENAI_API_KEY': JSON.stringify(env.OPENAI_API_KEY ?? ''),
                 'process.env.OPENAI_MODEL': JSON.stringify(env.OPENAI_MODEL ?? ''),
                 'process.env.ADMIN_EMAIL': JSON.stringify(env.ADMIN_EMAIL ?? ''),
+                'process.env.SUPABASE_SERVICE_ROLE_KEY': JSON.stringify(env.SUPABASE_SERVICE_ROLE_KEY ?? ''),
+                'process.env.VITE_SUPABASE_PROJECT_URL': JSON.stringify(env.VITE_SUPABASE_PROJECT_URL ?? ''),
+                'process.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY ?? ''),
             },
             build: {
                 outDir: 'dist/main',

@@ -131,6 +131,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
         isAdmin:    (email: string) => ipcRenderer.invoke('obs:isAdmin', email),
     },
 
+    admin: {
+        getOverview:   (email: string) => ipcRenderer.invoke('admin:getOverview', email),
+        getUsers:      (email: string) => ipcRenderer.invoke('admin:getUsers', email),
+        getUserDetail: (email: string, userId: string) => ipcRenderer.invoke('admin:getUserDetail', email, userId),
+        getFeedback:   (email: string) => ipcRenderer.invoke('admin:getFeedback', email),
+    },
+
     exam: {
         listExams:       () => ipcRenderer.invoke('exam:list-exams'),
         getProfile:      (userId: string) => ipcRenderer.invoke('exam:get-profile', userId),
