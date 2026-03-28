@@ -61,6 +61,12 @@
     margin-bottom: 1.5rem;
 }
 
+.flashcard-container:focus-visible {
+    outline: 2px solid var(--teal);
+    outline-offset: 2px;
+    border-radius: var(--radius-lg);
+}
+
 .flashcard-face {
     position: absolute;
     width: 100%;
@@ -227,6 +233,13 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
+    cursor: pointer;
+}
+
+.card-viewer--classic:focus-visible {
+    outline: 2px solid var(--teal);
+    outline-offset: 2px;
+    border-radius: var(--radius-lg);
 }
 
 .classic-front {

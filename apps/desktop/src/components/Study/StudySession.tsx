@@ -343,8 +343,11 @@ export default function StudySession() {
 
             <div
                 className="study-content"
+                role="button"
+                tabIndex={0}
+                aria-label={isRevealed ? t('study.tap_to_flip') : t('study.show_answer')}
                 onClick={() => { if (!isRevealed) handleReveal(); else handleUnreveal(); }}
-                style={{ cursor: 'pointer' }}
+                onKeyDown={(e) => { if (e.key === 'Enter') { if (!isRevealed) handleReveal(); else handleUnreveal(); } }}
             >
                 {currentYield && examKey && (
                     <YieldBadge

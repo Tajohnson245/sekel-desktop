@@ -41,10 +41,11 @@ function NavBar() {
                 const isDrafts = item.id === 'drafts';
                 const isDocs = item.id === 'documents';
                 return (
-                    <div
+                    <button
                         key={item.id}
                         className={`nav-link ${isActive(item.path) ? 'active' : ''}`}
                         onClick={() => navigate(item.path)}
+                        aria-current={isActive(item.path) ? 'page' : undefined}
                         data-testid={`nav-${item.id}`}
                     >
                         <Icon size={18} />
@@ -55,7 +56,7 @@ function NavBar() {
                         {isDocs && hasUnfinishedDocsWork && (
                             <span className="nav-alert-badge" title="Unfinished work">!</span>
                         )}
-                    </div>
+                    </button>
                 );
             })}
         </nav>

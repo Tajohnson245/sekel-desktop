@@ -222,8 +222,11 @@ export default function CardViewer({ front, back, isRevealed, onReveal, onUnreve
             <div
                 className="card-viewer card-viewer--classic"
                 data-testid="card-viewer"
+                role="button"
+                tabIndex={0}
+                aria-label={isRevealed ? t('study.tap_to_flip') : t('study.show_answer')}
                 onClick={handleClick}
-                style={{ cursor: 'pointer' }}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleClick(); } }}
             >
                 <div className="classic-front">
                     <div className="flashcard-face-inner">
@@ -250,7 +253,14 @@ export default function CardViewer({ front, back, isRevealed, onReveal, onUnreve
     if (!animationEnabled) {
         return (
             <div className="card-viewer" data-testid="card-viewer">
-                <div className="flashcard-container" onClick={handleClick}>
+                <div
+                    className="flashcard-container"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={isRevealed ? t('study.tap_to_flip') : t('study.show_answer')}
+                    onClick={handleClick}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleClick(); } }}
+                >
                     {!isRevealed ? (
                         <div className="flashcard-face flashcard-face-front flashcard-face--static">
                             <div className="flashcard-face-inner" ref={frontInnerRef} onScroll={handleInnerScroll}>
@@ -277,7 +287,14 @@ export default function CardViewer({ front, back, isRevealed, onReveal, onUnreve
     // ── Animated mode (3D flip) ──────────────────────────────────
     return (
         <div className="card-viewer" data-testid="card-viewer">
-            <div className={`flashcard-container ${isRevealed ? 'flipped' : ''}`} onClick={handleClick}>
+            <div
+                className={`flashcard-container ${isRevealed ? 'flipped' : ''}`}
+                role="button"
+                tabIndex={0}
+                aria-label={isRevealed ? t('study.tap_to_flip') : t('study.show_answer')}
+                onClick={handleClick}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleClick(); } }}
+            >
                 <div className="flashcard-flipper">
                     <div className="flashcard-face flashcard-face-front">
                         <div className="flashcard-face-inner" ref={frontInnerRef} onScroll={handleInnerScroll}>

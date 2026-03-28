@@ -148,10 +148,11 @@ export default function Dashboard() {
                     {decks.length > 0 ? (
                         <div className="recent-decks">
                             {decks.slice(0, 3).map((deck: Deck) => (
-                                <div
+                                <button
                                     key={deck.id}
                                     className="recent-deck-item"
                                     onClick={() => goToDeck(deck.id)}
+                                    aria-label={deck.name === 'Testing Deck' ? t('decks.demo_deck_name') : deck.name}
                                     data-testid={`deck-${deck.id}`}
                                 >
                                     <span className="deck-name">
@@ -163,7 +164,7 @@ export default function Dashboard() {
                                             : (deck.description || t('dashboard.no_description'))
                                         }
                                     </span>
-                                </div>
+                                </button>
                             ))}
                         </div>
                     ) : (
