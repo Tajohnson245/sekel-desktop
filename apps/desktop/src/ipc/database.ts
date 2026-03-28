@@ -1,4 +1,5 @@
-import { app, ipcMain } from 'electron';
+import { app } from 'electron';
+import { instrumentedHandle } from '@sekel/observability';
 import { createHash } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -19,56 +20,56 @@ import {
 
 export function setupDatabaseHandlers(): void {
     // ── Decks ──────────────────────────────────────────────────────────────────
-    ipcMain.handle('db:fetchDecks', (_e, userId: string) =>
+    instrumentedHandle('db:fetchDecks', (_e, userId: string) =>
         dbService.fetchDecks(userId));
 
-    ipcMain.handle('db:fetchDeck', (_e, id: string) =>
+    instrumentedHandle('db:fetchDeck', (_e, id: string) =>
         dbService.fetchDeck(id));
 
-    ipcMain.handle('db:createDeck', (_e, deck) => {
+    instrumentedHandle('db:createDeck', (_e, deck) => {
         validate('db:createDeck', deck, createDeckRules);
         return dbService.createDeck(deck);
     });
 
-    ipcMain.handle('db:updateDeck', (_e, id: string, updates) =>
+    instrumentedHandle('db:updateDeck', (_e, id: string, updates) =>
         dbService.updateDeck(id, updates));
 
-    ipcMain.handle('db:deleteDeck', (_e, id: string) =>
+    instrumentedHandle('db:deleteDeck', (_e, id: string) =>
         dbService.deleteDeck(id));
 
-    ipcMain.handle('db:deleteDecks', (_e, ids: string[]) =>
+    instrumentedHandle('db:deleteDecks', (_e, ids: string[]) =>
         dbService.deleteDecks(ids));
 
-    ipcMain.handle('db:fetchDeckStats', (_e, deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) =>
+    instrumentedHandle('db:fetchDeckStats', (_e, deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) =>
         dbService.fetchDeckStats(deckId, userId, dailyNewLimit, dailyReviewLimit));
 
-    ipcMain.handle('db:fetchAllDueCardsCount', (_e, userId: string, dailyNewLimit?: number, dailyReviewLimit?: number) =>
+    instrumentedHandle('db:fetchAllDueCardsCount', (_e, userId: string, dailyNewLimit?: number, dailyReviewLimit?: number) =>
         dbService.fetchAllDueCardsCount(userId, dailyNewLimit, dailyReviewLimit));
 
-    ipcMain.handle('db:fetchGlobalRetention', (_e, userId: string, days?: number) =>
+    instrumentedHandle('db:fetchGlobalRetention', (_e, userId: string, days?: number) =>
         dbService.fetchGlobalRetention(userId, days));
 
     // ── Statistics ───────────────────────────────────────────────────────────────
-    ipcMain.handle('db:fetchTodaySummary', (_e, userId: string) =>
+    instrumentedHandle('db:fetchTodaySummary', (_e, userId: string) =>
         dbService.fetchTodaySummary(userId));
 
-    ipcMain.handle('db:fetchCardCountsByMaturity', (_e, userId: string, deckId?: string) =>
+    instrumentedHandle('db:fetchCardCountsByMaturity', (_e, userId: string, deckId?: string) =>
         dbService.fetchCardCountsByMaturity(userId, deckId));
 
-    ipcMain.handle('db:fetchRetentionByMaturity', (_e, userId: string, days?: number) =>
+    instrumentedHandle('db:fetchRetentionByMaturity', (_e, userId: string, days?: number) =>
         dbService.fetchRetentionByMaturity(userId, days));
 
     // ── Cards ──────────────────────────────────────────────────────────────────
-    ipcMain.handle('db:fetchDueCards', (_e, deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) =>
+    instrumentedHandle('db:fetchDueCards', (_e, deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) =>
         dbService.fetchDueCards(deckId, userId, dailyNewLimit, dailyReviewLimit));
 
-    ipcMain.handle('db:fetchAllCardsForStudy', (_e, deckId: string, limit?: number) =>
+    instrumentedHandle('db:fetchAllCardsForStudy', (_e, deckId: string, limit?: number) =>
         dbService.fetchAllCardsForStudy(deckId, limit));
 
-    ipcMain.handle('db:fetchAllCardsForDeck', (_e, deckId: string) =>
+    instrumentedHandle('db:fetchAllCardsForDeck', (_e, deckId: string) =>
         dbService.fetchAllCardsForDeck(deckId));
 
-    ipcMain.handle('db:updateCardAfterReview', (_e, cardId: string, updates) => {
+    instrumentedHandle('db:updateCardAfterReview', (_e, cardId: string, updates) => {
         if (typeof cardId !== 'string' || cardId.length === 0) {
             throw new Error('IPC validation failed (db:updateCardAfterReview): cardId must be a non-empty string');
         }
@@ -76,90 +77,90 @@ export function setupDatabaseHandlers(): void {
         return dbService.updateCardAfterReview(cardId, updates);
     });
 
-    ipcMain.handle('db:createCard', (_e, card) =>
+    instrumentedHandle('db:createCard', (_e, card) =>
         dbService.createCard(card));
 
-    ipcMain.handle('db:fetchCardsByNote', (_e, noteId: string) =>
+    instrumentedHandle('db:fetchCardsByNote', (_e, noteId: string) =>
         dbService.fetchCardsByNote(noteId));
 
     // ── Notes ──────────────────────────────────────────────────────────────────
-    ipcMain.handle('db:fetchNotesByDeck', (_e, deckId: string) =>
+    instrumentedHandle('db:fetchNotesByDeck', (_e, deckId: string) =>
         dbService.fetchNotesByDeck(deckId));
 
-    ipcMain.handle('db:createNote', (_e, note) => {
+    instrumentedHandle('db:createNote', (_e, note) => {
         validate('db:createNote', note, createNoteRules);
         return dbService.createNote(note);
     });
 
-    ipcMain.handle('db:updateNote', (_e, id: string, updates) =>
+    instrumentedHandle('db:updateNote', (_e, id: string, updates) =>
         dbService.updateNote(id, updates));
 
-    ipcMain.handle('db:deleteNote', (_e, id: string) =>
+    instrumentedHandle('db:deleteNote', (_e, id: string) =>
         dbService.deleteNote(id));
 
-    ipcMain.handle('db:createNoteWithCards', (_e, note, templateCount?: number) =>
+    instrumentedHandle('db:createNoteWithCards', (_e, note, templateCount?: number) =>
         dbService.createNoteWithCards(note, templateCount));
 
     // ── Note Types ─────────────────────────────────────────────────────────────
-    ipcMain.handle('db:fetchNoteTypes', (_e, userId: string) =>
+    instrumentedHandle('db:fetchNoteTypes', (_e, userId: string) =>
         dbService.fetchNoteTypes(userId));
 
-    ipcMain.handle('db:createNoteType', (_e, noteType) =>
+    instrumentedHandle('db:createNoteType', (_e, noteType) =>
         dbService.createNoteType(noteType));
 
     // ── Reviews ────────────────────────────────────────────────────────────────
-    ipcMain.handle('db:insertReview', (_e, params) => {
+    instrumentedHandle('db:insertReview', (_e, params) => {
         validate('db:insertReview', params, insertReviewRules);
         return dbService.insertReview(params);
     });
 
-    ipcMain.handle('db:fetchUserReviewHistory', (_e, userId: string, days?: number) =>
+    instrumentedHandle('db:fetchUserReviewHistory', (_e, userId: string, days?: number) =>
         dbService.fetchUserReviewHistory(userId, days));
 
     // ── Deck Sessions ──────────────────────────────────────────────────────────
-    ipcMain.handle('db:createDeckSession', (_e, userId: string, deckId: string) =>
+    instrumentedHandle('db:createDeckSession', (_e, userId: string, deckId: string) =>
         dbService.createDeckSession(userId, deckId));
 
-    ipcMain.handle('db:completeDeckSession', (_e, sessionId: string) =>
+    instrumentedHandle('db:completeDeckSession', (_e, sessionId: string) =>
         dbService.completeDeckSession(sessionId));
 
-    ipcMain.handle('db:fetchSessionAnalytics', (_e, sessionId: string) =>
+    instrumentedHandle('db:fetchSessionAnalytics', (_e, sessionId: string) =>
         dbService.fetchSessionAnalytics(sessionId));
 
     // ── Drafts ─────────────────────────────────────────────────────────────────
-    ipcMain.handle('db:fetchDrafts', (_e, userId: string) =>
+    instrumentedHandle('db:fetchDrafts', (_e, userId: string) =>
         dbService.fetchDrafts(userId));
 
-    ipcMain.handle('db:saveDraft', (_e, userId: string, draft) =>
+    instrumentedHandle('db:saveDraft', (_e, userId: string, draft) =>
         dbService.saveDraft(userId, draft));
 
-    ipcMain.handle('db:updateDraft', (_e, id: string, updates) =>
+    instrumentedHandle('db:updateDraft', (_e, id: string, updates) =>
         dbService.updateDraft(id, updates));
 
-    ipcMain.handle('db:deleteDraft', (_e, id: string) =>
+    instrumentedHandle('db:deleteDraft', (_e, id: string) =>
         dbService.deleteDraft(id));
 
-    ipcMain.handle('db:clearDrafts', (_e, userId: string) =>
+    instrumentedHandle('db:clearDrafts', (_e, userId: string) =>
         dbService.clearDrafts(userId));
 
     // ── Export ─────────────────────────────────────────────────────────────────
-    ipcMain.handle('db:exportDeck', (_e, deckId: string, userId: string) =>
+    instrumentedHandle('db:exportDeck', (_e, deckId: string, userId: string) =>
         exportDeckAsApkg(deckId, userId));
 
-    ipcMain.handle('db:getExportableCardCount', (_e, deckId: string) =>
+    instrumentedHandle('db:getExportableCardCount', (_e, deckId: string) =>
         getExportableCardCount(deckId));
 
-    ipcMain.handle('db:exportSekel', (_e, userId: string, deckId: string | null, includeMedia: boolean) =>
+    instrumentedHandle('db:exportSekel', (_e, userId: string, deckId: string | null, includeMedia: boolean) =>
         exportAsSekel(userId, deckId, includeMedia));
 
-    ipcMain.handle('db:getSekelImportSummary', (_e, filePath: string) =>
+    instrumentedHandle('db:getSekelImportSummary', (_e, filePath: string) =>
         getSekelImportSummary(filePath));
 
-    ipcMain.handle('db:importSekel', (_e, filePath: string, userId: string) =>
+    instrumentedHandle('db:importSekel', (_e, filePath: string, userId: string) =>
         importSekelFile(filePath, userId));
 
     // ── Media ──────────────────────────────────────────────────────────────────
-    ipcMain.handle('db:saveMediaFile', async (_e, params: {
+    instrumentedHandle('db:saveMediaFile', async (_e, params: {
         buffer: ArrayBuffer;
         filename: string;
         userId: string;
@@ -194,18 +195,18 @@ export function setupDatabaseHandlers(): void {
     });
 
     // ── Time Travel ─────────────────────────────────────────────────────────
-    ipcMain.handle('db:timeTravelPreview', (_e, daysBack: number) =>
+    instrumentedHandle('db:timeTravelPreview', (_e, daysBack: number) =>
         timeTravel.timeTravelPreview(daysBack));
 
-    ipcMain.handle('db:timeTravelExecute', (_e, daysBack: number) =>
+    instrumentedHandle('db:timeTravelExecute', (_e, daysBack: number) =>
         timeTravel.timeTravelExecute(daysBack));
 
     // ── Deletion Log ──────────────────────────────────────────────────────
-    ipcMain.handle('db:getDeletedItems', () =>
+    instrumentedHandle('db:getDeletedItems', () =>
         readDeletedItems());
 
     // ── Integrity ────────────────────────────────────────────────────────
-    ipcMain.handle('db:checkIntegrity', () => {
+    instrumentedHandle('db:checkIntegrity', () => {
         const db = getDb();
         const result = db.pragma('integrity_check') as { integrity_check: string }[];
         const fkResult = db.pragma('foreign_key_check') as unknown[];

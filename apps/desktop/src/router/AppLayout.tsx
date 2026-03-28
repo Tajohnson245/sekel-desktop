@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Library, FileText, Plus, Inbox, Layers, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, Library, FileText, Plus, Inbox, Layers, BarChart3, Activity } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../stores/authStore';
 import { useProfileStore } from '../stores/profileStore';
@@ -13,12 +13,26 @@ import { ExamOnboardingModal } from '../components/ExamOnboarding/ExamOnboarding
 import { DeckEditorProvider } from '../contexts/DeckEditorContext';
 import { useDeckEditor } from '../contexts/DeckEditorContext';
 
+function useIsAdmin() {
+    const { user } = useAuthStore();
+    const [isAdmin, setIsAdmin] = useState(false);
+    useEffect(() => {
+        if (user?.email) {
+            window.electronAPI.obs.isAdmin(user.email).then(setIsAdmin);
+        } else {
+            setIsAdmin(false);
+        }
+    }, [user?.email]);
+    return isAdmin;
+}
+
 function NavBar() {
     const { t } = useTranslation();
     const location = useLocation();
     const navigate = useNavigate();
     const { data: drafts = [] } = useDrafts();
     const hasUnfinishedDocsWork = useDocsWorkStore((s) => s.hasUnfinishedWork);
+    const isAdmin = useIsAdmin();
 
     const navItems = [
         { id: 'dashboard', path: '/', label: t('nav.dashboard'), icon: LayoutDashboard },
@@ -27,6 +41,7 @@ function NavBar() {
         { id: 'image-occlusion', path: '/image-occlusion', label: t('nav.image_occlusion'), icon: Layers },
         { id: 'drafts', path: '/drafts', label: t('nav.drafts'), icon: Inbox },
         { id: 'statistics', path: '/statistics', label: t('nav.statistics'), icon: BarChart3 },
+        ...(isAdmin ? [{ id: 'admin', path: '/admin', label: 'Diagnostics', icon: Activity }] : []),
     ];
 
     const isActive = (path: string) => {

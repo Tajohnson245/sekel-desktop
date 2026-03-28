@@ -7,8 +7,10 @@
  *   Stage 4 — Evaluation: LLM-as-judge filters and revises cards
  */
 
-import { ipcMain } from 'electron';
+import { instrumentedHandle, trackedCompletion, createLogger, consoleTransport } from '@sekel/observability';
 import { OpenAI } from "openai";
+
+const log = createLogger({ module: 'ai', transports: [consoleTransport] });
 
 // Lazy-initialize OpenAI client (avoids crash on startup when key is absent)
 let _openai: OpenAI | null = null;
@@ -110,12 +112,15 @@ function buildFormatRules(options: GenerationOptions): string {
 
 async function chunkDocument(text: string): Promise<Chunk[]> {
     try {
-        const response = await getOpenAI().chat.completions.create({
-            model: MODEL,
-            messages: [
-                {
-                    role: 'system',
-                    content: `You are a document chunker for flashcard generation.
+        const response = await trackedCompletion({
+            operation: 'chunk',
+            logger: log,
+            call: getOpenAI().chat.completions.create({
+                model: MODEL,
+                messages: [
+                    {
+                        role: 'system',
+                        content: `You are a document chunker for flashcard generation.
 
 Split the following document into discrete concept chunks. Each chunk should:
 - Represent one coherent topic or concept
@@ -125,10 +130,11 @@ Split the following document into discrete concept chunks. Each chunk should:
 Return a JSON object with a "chunks" array only. No preamble, no explanation.
 
 { "chunks": [{ "id": 1, "text": "..." }, { "id": 2, "text": "..." }] }`,
-                },
-                { role: 'user', content: text },
-            ],
-            response_format: { type: 'json_object' },
+                    },
+                    { role: 'user', content: text },
+                ],
+                response_format: { type: 'json_object' },
+            }),
         });
 
         const raw = response.choices[0].message.content || '{}';
@@ -165,19 +171,23 @@ function distributeCards(chunks: Chunk[], total: number): number[] {
 async function interpretCustomInstruction(raw: string): Promise<string> {
     if (!raw.trim()) return 'No additional instruction.';
 
-    const response = await getOpenAI().chat.completions.create({
-        model: MODEL,
-        messages: [
-            {
-                role: 'system',
-                content: `Interpret this user instruction in the context of medical flashcard generation:
+    const response = await trackedCompletion({
+        operation: 'interpret-instruction',
+        logger: log,
+        call: getOpenAI().chat.completions.create({
+            model: MODEL,
+            messages: [
+                {
+                    role: 'system',
+                    content: `Interpret this user instruction in the context of medical flashcard generation:
 
 "${raw.trim()}"
 
 Restate it as a specific, actionable constraint for a flashcard generator.
 Return one sentence only. No preamble.`,
-            },
-        ],
+                },
+            ],
+        }),
     });
 
     return response.choices[0].message.content?.trim() || raw.trim();
@@ -288,13 +298,17 @@ async function generateCardsForChunk(
 ): Promise<GeneratedCard[]> {
     const prompt = buildCardTypePrompt(cardFormat, count, interpretedInstruction, chunk.text, difficulty, revisionReason);
 
-    const response = await getOpenAI().chat.completions.create({
-        model: MODEL,
-        messages: [
-            { role: 'system', content: prompt },
-            ...(language !== 'English' ? [{ role: 'user' as const, content: `Output all cards in ${language}.` }] : []),
-        ],
-        response_format: { type: 'json_object' },
+    const response = await trackedCompletion({
+        operation: 'generate',
+        logger: log,
+        call: getOpenAI().chat.completions.create({
+            model: MODEL,
+            messages: [
+                { role: 'system', content: prompt },
+                ...(language !== 'English' ? [{ role: 'user' as const, content: `Output all cards in ${language}.` }] : []),
+            ],
+            response_format: { type: 'json_object' },
+        }),
     });
 
     const raw = JSON.parse(response.choices[0].message.content || '{}');
@@ -320,12 +334,15 @@ async function evaluateCard(card: GeneratedCard, cardFormat: string): Promise<Ca
         : card.back;
 
     try {
-        const response = await getOpenAI().chat.completions.create({
-            model: MODEL,
-            messages: [
-                {
-                    role: 'system',
-                    content: `You are a flashcard quality reviewer.
+        const response = await trackedCompletion({
+            operation: 'evaluate',
+            logger: log,
+            call: getOpenAI().chat.completions.create({
+                model: MODEL,
+                messages: [
+                    {
+                        role: 'system',
+                        content: `You are a flashcard quality reviewer.
 
 Score this flashcard on each criterion from 1 to 3:
 - 1 = fails
@@ -346,9 +363,10 @@ Back: ${backDisplay}
 Return JSON only. No preamble, no explanation.
 
 { "scores": { "atomicity": 1, "testability": 1, "clarity": 1, "nontriviality": 1 }, "total": 4, "verdict": "keep", "reason": "one sentence" }`,
-                },
-            ],
-            response_format: { type: 'json_object' },
+                    },
+                ],
+                response_format: { type: 'json_object' },
+            }),
         });
 
         const parsed = JSON.parse(response.choices[0].message.content || '{}');
@@ -419,26 +437,30 @@ async function evaluateAndRefineCards(
 
 export const setupAIHandlers = () => {
     // Basic text-to-cards generation (Legacy)
-    ipcMain.handle('generate-cards', async (_event, text: string, count: number = 5, language: string = 'English', options?: GenerationOptions) => {
+    instrumentedHandle('generate-cards', async (_event, text: string, count: number = 5, language: string = 'English', options?: GenerationOptions) => {
         try {
             getOpenAI(); // fail early if API key is missing
 
             const formatRules = buildFormatRules(options ?? {});
 
-            const response = await getOpenAI().chat.completions.create({
-                model: MODEL,
-                messages: [
-                    {
-                        role: 'system',
-                        content: `You are a flashcard creator. Generate ${count} flashcards from the given text in the ${language} language.
+            const response = await trackedCompletion({
+                operation: 'generate-legacy',
+                logger: log,
+                call: getOpenAI().chat.completions.create({
+                    model: MODEL,
+                    messages: [
+                        {
+                            role: 'system',
+                            content: `You are a flashcard creator. Generate ${count} flashcards from the given text in the ${language} language.
 
 Rules:
 ${formatRules}
 - Ensure all content is in ${language}.`,
-                    },
-                    { role: 'user', content: text },
-                ],
-                response_format: { type: 'json_object' },
+                        },
+                        { role: 'user', content: text },
+                    ],
+                    response_format: { type: 'json_object' },
+                }),
             });
             const content = response.choices[0].message.content;
             const parsed = JSON.parse(content || '{}');
@@ -450,7 +472,7 @@ ${formatRules}
     });
 
     // Four-stage pipeline: chunk → generate → evaluate → return
-    ipcMain.handle('generate-cards-from-context', async (_event, { content, count, language = 'English', options }: { summary: string, content: string, count: number, language?: string, options?: GenerationOptions }) => {
+    instrumentedHandle('generate-cards-from-context', async (_event, { content, count, language = 'English', options }: { summary: string, content: string, count: number, language?: string, options?: GenerationOptions }) => {
         try {
             getOpenAI(); // fail early if API key is missing
 

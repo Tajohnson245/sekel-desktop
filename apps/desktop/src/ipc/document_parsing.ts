@@ -5,8 +5,10 @@
  * and generates summaries using OpenAI.
  */
 
-import { ipcMain } from 'electron';
+import { instrumentedHandle, trackedCompletion, createLogger, consoleTransport } from '@sekel/observability';
 import { OpenAI } from "openai";
+
+const log = createLogger({ module: 'document-parsing', transports: [consoleTransport] });
 import mammoth from 'mammoth';
 import * as XLSX from 'xlsx';
 import { XMLParser } from 'fast-xml-parser';
@@ -51,7 +53,7 @@ function getOpenAI(): OpenAI {
 
 export const setupDocumentHandlers = () => {
     // Handle document parsing requests from renderer
-    ipcMain.handle('parse-document', async (event, file: { name: string, buffer?: ArrayBuffer, url?: string, type: string, language?: string }) => {
+    instrumentedHandle('parse-document', async (event, file: { name: string, buffer?: ArrayBuffer, url?: string, type: string, language?: string }) => {
         try {
             const language = file.language || 'English';
             if (file.type === 'youtube' && file.url) {
@@ -121,7 +123,7 @@ export const setupDocumentHandlers = () => {
     });
 
     // Handle global summary generation for multiple documents
-    ipcMain.handle('generate-summary', async (_event, documents: Record<string, string>, language: string = 'English') => {
+    instrumentedHandle('generate-summary', async (_event, documents: Record<string, string>, language: string = 'English') => {
         return generateGlobalSummary(documents, language);
     });
 };
@@ -146,10 +148,14 @@ export async function parseWithOpenAIVision(filename: string, buffer: Buffer, ex
             }
         ];
 
-        const response = await getOpenAI().chat.completions.create({
-            model: "gpt-4o",
-            messages: [{ role: "user", content }],
-            max_tokens: 4000,
+        const response = await trackedCompletion({
+            operation: 'parse-image',
+            logger: log,
+            call: getOpenAI().chat.completions.create({
+                model: "gpt-4o",
+                messages: [{ role: "user", content }],
+                max_tokens: 4000,
+            }),
         });
 
         return response.choices[0].message.content || "";
@@ -242,18 +248,22 @@ function extractValuesByKey(obj: any, key: string): string[] {
 
 // Summarize a single document's content
 export async function summarizeDocumentContent(filename: string, content: string, language: string = 'English'): Promise<string> {
-    const response = await getOpenAI().chat.completions.create({
-        model: "gpt-4.1-mini",
-        messages: [
-            {
-                role: "system",
-                content: `You are a document analyzer. Extract key concepts, definitions, and important facts from the text. Preserve logical structure. Output clean human readable PLAIN TEXT without markdown formatting (no #, **, _, etc.). Use indentation for hierarchy. Output summary in ${language}.`
-            },
-            {
-                role: "user",
-                content: `Document: ${filename}\n\nContent:\n${content.substring(0, 100000)}`
-            }
-        ]
+    const response = await trackedCompletion({
+        operation: 'summarize',
+        logger: log,
+        call: getOpenAI().chat.completions.create({
+            model: "gpt-4.1-mini",
+            messages: [
+                {
+                    role: "system",
+                    content: `You are a document analyzer. Extract key concepts, definitions, and important facts from the text. Preserve logical structure. Output clean human readable PLAIN TEXT without markdown formatting (no #, **, _, etc.). Use indentation for hierarchy. Output summary in ${language}.`
+                },
+                {
+                    role: "user",
+                    content: `Document: ${filename}\n\nContent:\n${content.substring(0, 100000)}`
+                }
+            ]
+        }),
     });
     const rawContent = response.choices[0].message.content || "";
     return stripMarkdown(rawContent);
@@ -385,12 +395,15 @@ export async function generateGlobalSummary(documents: Record<string, string>, l
         return `--- File: ${name} ---\n\n${content}\n\n`;
     }).join("\n\n");
 
-    const response = await getOpenAI().chat.completions.create({
-        model: "gpt-4.1-mini",
-        messages: [
-            {
-                role: "system",
-                content: `You are a study assistant analyzing documents for flashcard generation.
+    const response = await trackedCompletion({
+        operation: 'global-summary',
+        logger: log,
+        call: getOpenAI().chat.completions.create({
+            model: "gpt-4.1-mini",
+            messages: [
+                {
+                    role: "system",
+                    content: `You are a study assistant analyzing documents for flashcard generation.
 
 Given the documents below, produce a brief overview with:
 1. A 2-3 sentence summary of what the documents cover
@@ -402,13 +415,14 @@ Be concise. Do not add commentary or suggestions. Output summary in ${language}.
 Return JSON only. No preamble, no explanation.
 
 { "summary": "...", "topics": ["...", "..."], "estimatedCardCount": 42 }`
-            },
-            {
-                role: "user",
-                content: combinedContent
-            }
-        ],
-        response_format: { type: 'json_object' },
+                },
+                {
+                    role: "user",
+                    content: combinedContent
+                }
+            ],
+            response_format: { type: 'json_object' },
+        }),
     });
 
     const rawContent = response.choices[0].message.content || "{}";

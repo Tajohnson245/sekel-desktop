@@ -1,8 +1,18 @@
-import { app, BrowserWindow, dialog, protocol } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, protocol } from 'electron';
 import Store from 'electron-store';
 import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';
+import {
+    createLogger,
+    consoleTransport,
+    createFileTransport,
+    createRingBuffer,
+    createRingBufferTransport,
+    initCrashReporter,
+    initIpcInstrumentation,
+    metrics,
+} from '@sekel/observability';
 import { createMenu } from './menu';
 import { initDatabase } from './main/db/index';
 import { setupAIHandlers } from './ipc/ai';
@@ -14,6 +24,7 @@ import { setupNotificationHandlers } from './ipc/notifications';
 import { setupBackupHandlers } from './ipc/backup';
 import { setupClassifyHandlers } from './ipc/classify';
 import { setupExamHandlers } from './ipc/exam';
+import { setupAdminHandlers } from './ipc/admin';
 import { startBackupScheduler, stopBackupScheduler } from './main/backup/service';
 import { cleanupStaleTempDirs } from './main/import/tempCleanup';
 import { fetchMediaByFilename } from './main/db/service';
@@ -27,71 +38,40 @@ protocol.registerSchemesAsPrivileged([
 import { updateElectronApp } from 'update-electron-app';
 
 // ---------------------------------------------------------------------------
-// Global crash handlers – registered early so they catch startup errors too.
+// Observability — structured logger + crash reporter, registered early.
 // ---------------------------------------------------------------------------
 
-function getCrashLogPath(): string {
+function getLogDir(): string {
     try {
-        return path.join(app.getPath('userData'), 'crash.log');
+        return app.getPath('userData');
     } catch {
-        return path.join(os.homedir(), '.sekel-crash.log');
+        return os.homedir();
     }
 }
 
-function rotateCrashLogIfNeeded(logPath: string): void {
-    try {
-        const stats = fs.statSync(logPath);
-        if (stats.size > 1_048_576) { // 1 MB
-            fs.renameSync(logPath, logPath + '.old');
-        }
-    } catch {
-        // File doesn't exist yet or can't stat — that's fine
-    }
-}
+const ringBuffer = createRingBuffer(500);
 
-function logCrashAndExit(source: string, error: unknown): void {
-    const timestamp = new Date().toISOString();
-    const appVersion = app.isReady() ? app.getVersion() : 'unknown';
-    const electronVersion = process.versions.electron;
-    const platform = `${process.platform} ${process.arch}`;
-
-    const errMsg = error instanceof Error
-        ? `${error.message}\n${error.stack ?? '(no stack)'}`
-        : String(error);
-
-    const entry = [
-        `--- CRASH [${source}] ${timestamp} ---`,
-        `Sekel v${appVersion} | Electron ${electronVersion} | ${platform}`,
-        errMsg,
-        '---',
-        '',
-    ].join('\n');
-
-    process.stderr.write(entry);
-
-    const logPath = getCrashLogPath();
-    try {
-        rotateCrashLogIfNeeded(logPath);
-        fs.appendFileSync(logPath, entry);
-    } catch {
-        // If we can't write the crash log, there's nothing more we can do
-    }
-
-    dialog.showErrorBox(
-        'Sekel - Unexpected Error',
-        `Sekel encountered a fatal error and needs to close.\n\n${error instanceof Error ? error.message : String(error)}\n\nA crash log has been saved to:\n${logPath}`,
-    );
-
-    process.exit(1);
-}
-
-process.on('uncaughtException', (error) => {
-    logCrashAndExit('uncaughtException', error);
+const log = createLogger({
+    module: 'main',
+    transports: [
+        consoleTransport,
+        createRingBufferTransport(ringBuffer),
+        createFileTransport({ filePath: path.join(getLogDir(), 'sekel.log'), fs, path }),
+    ],
 });
 
-process.on('unhandledRejection', (reason) => {
-    logCrashAndExit('unhandledRejection', reason);
+initCrashReporter({
+    getLogPath: () => {
+        try { return path.join(app.getPath('userData'), 'crash.log'); }
+        catch { return path.join(os.homedir(), '.sekel-crash.log'); }
+    },
+    ringBuffer,
+    getVersion: () => app.isReady() ? app.getVersion() : 'unknown',
+    fs,
+    showErrorDialog: (title, message) => dialog.showErrorBox(title, message),
 });
+
+initIpcInstrumentation(ipcMain, log);
 
 const createWindow = () => {
     const store = new Store();
@@ -141,7 +121,7 @@ app.whenReady().then(() => {
     try {
         initDatabase();
     } catch (err) {
-        console.error('[main] database initialization failed — app will run without DB:', err);
+        log.error('Database initialization failed — app will run without DB', { error: err instanceof Error ? err.message : String(err) });
     }
 
     // Handle sekel-media://{userId}/{filename} — serves imported media files from disk.
@@ -160,7 +140,7 @@ app.whenReady().then(() => {
             const mediaDir = path.join(app.getPath('userData'), 'media');
             const resolved = path.resolve(record.file_path);
             if (!resolved.startsWith(mediaDir + path.sep) && resolved !== mediaDir) {
-                console.warn('[sekel-media] blocked path escape attempt:', resolved);
+                log.warn('Blocked path escape attempt', { resolved });
                 return new Response(null, { status: 403 });
             }
 
@@ -179,7 +159,7 @@ app.whenReady().then(() => {
                 headers: { 'Content-Type': contentType, 'Content-Length': String(fileBuffer.byteLength) },
             });
         } catch (err) {
-            console.warn('[sekel-media] failed to serve:', request.url, err);
+            log.warn('Failed to serve media', { url: request.url, error: err instanceof Error ? err.message : String(err) });
             return new Response(null, { status: 500 });
         }
     });
@@ -187,19 +167,25 @@ app.whenReady().then(() => {
     // Register IPC handlers unconditionally so the renderer always has targets
     // to invoke. If the DB failed to initialize, individual handlers will throw
     // "Database not initialized" instead of the opaque "No handler registered".
-    try { setupAIHandlers(); } catch (err) { console.error('[main] AI handler setup failed:', err); }
-    try { setupAuthHandlers(); } catch (err) { console.error('[main] auth handler setup failed:', err); }
-    try { setupDocumentHandlers(); } catch (err) { console.error('[main] document handler setup failed:', err); }
-    try { setupDatabaseHandlers(); } catch (err) { console.error('[main] database handler setup failed:', err); }
-    try { setupImportHandlers(); } catch (err) { console.error('[main] import handler setup failed:', err); }
-    try { setupNotificationHandlers(); } catch (err) { console.error('[main] notification handler setup failed:', err); }
-    try { setupBackupHandlers(); } catch (err) { console.error('[main] backup handler setup failed:', err); }
-    try { setupClassifyHandlers(); } catch (err) { console.error('[main] classify handler setup failed:', err); }
-    try { setupExamHandlers(); } catch (err) { console.error('[main] exam handler setup failed:', err); }
-    cleanupStaleTempDirs().catch((err) => console.error('[main] temp cleanup failed:', err));
+    const handlers = [
+        ['AI', setupAIHandlers],
+        ['auth', setupAuthHandlers],
+        ['document', setupDocumentHandlers],
+        ['database', setupDatabaseHandlers],
+        ['import', setupImportHandlers],
+        ['notification', setupNotificationHandlers],
+        ['backup', setupBackupHandlers],
+        ['classify', setupClassifyHandlers],
+        ['exam', setupExamHandlers],
+        ['admin', setupAdminHandlers],
+    ] as const;
+    for (const [name, setup] of handlers) {
+        try { setup(); } catch (err) { log.error(`${name} handler setup failed`, { error: err instanceof Error ? err.message : String(err) }); }
+    }
+    cleanupStaleTempDirs().catch((err) => log.error('Temp cleanup failed', { error: err instanceof Error ? err.message : String(err) }));
 
     // Start automatic backup scheduler
-    try { startBackupScheduler(); } catch (err) { console.error('[main] backup scheduler failed:', err); }
+    try { startBackupScheduler(); } catch (err) { log.error('Backup scheduler failed', { error: err instanceof Error ? err.message : String(err) }); }
 
     // Check for updates only in production (packaged app)
     if (app.isPackaged) {
@@ -209,15 +195,20 @@ app.whenReady().then(() => {
         });
     }
 
+    // Expose metrics snapshot for diagnostics
+    ipcMain.handle('obs:getMetrics', () => metrics.getSnapshot());
+    ipcMain.handle('obs:isAdmin', (_e, email: string) =>
+        typeof process.env.ADMIN_EMAIL === 'string' &&
+        process.env.ADMIN_EMAIL.length > 0 &&
+        email === process.env.ADMIN_EMAIL,
+    );
+
     createWindow();
 
     app.on('render-process-gone', (_event, _webContents, details) => {
         if (details.reason === 'clean-exit') return;
 
-        const timestamp = new Date().toISOString();
-        const entry = `--- RENDERER CRASH ${timestamp} ---\nReason: ${details.reason} | Exit code: ${details.exitCode}\n---\n\n`;
-        const logPath = getCrashLogPath();
-        try { fs.appendFileSync(logPath, entry); } catch { /* ignore */ }
+        log.fatal('Renderer process crashed', { reason: details.reason, exitCode: details.exitCode });
 
         dialog.showErrorBox(
             'Sekel - Renderer Error',

@@ -1,4 +1,5 @@
-import { app, ipcMain, dialog, WebContents } from 'electron';
+import { app, dialog, WebContents } from 'electron';
+import { instrumentedHandle } from '@sekel/observability';
 import { randomUUID } from 'node:crypto';
 import { getDb } from '../main/db/index';
 import { processApkgFile } from '../main/import/apkg';
@@ -40,7 +41,7 @@ function checkCancelled(tempDir: string): void {
 
 export function setupImportHandlers(): void {
     // Opens native file dialog filtered to .apkg — returns selected path or null if cancelled
-    ipcMain.handle('import:select-file', async () => {
+    instrumentedHandle('import:select-file', async () => {
         const result = await dialog.showOpenDialog({
             title: 'Import Anki Deck',
             filters: [{ name: 'Anki Package', extensions: ['apkg'] }],
@@ -50,13 +51,13 @@ export function setupImportHandlers(): void {
     });
 
     // Runs the full extraction + format detection + validation pipeline for a given .apkg path
-    ipcMain.handle('import:process-apkg', async (_event, filePath: string) => {
+    instrumentedHandle('import:process-apkg', async (_event, filePath: string) => {
         return processApkgFile(filePath);
     });
 
     // Parses the Anki database, caches the AnkiCollection, performs conflict detection,
     // and returns a renderer-safe ImportSummary (no Maps, fully JSON-serializable).
-    ipcMain.handle(
+    instrumentedHandle(
         'import:get-summary',
         async (
             _event,
@@ -86,12 +87,12 @@ export function setupImportHandlers(): void {
     );
 
     // Cancels an in-progress import for a given tempDir.
-    ipcMain.handle('import:cancel', (_event, tempDir: string) => {
+    instrumentedHandle('import:cancel', (_event, tempDir: string) => {
         cancellationFlags.set(tempDir, true);
     });
 
     // Cleans up cached collection and temp directory for an abandoned import.
-    ipcMain.handle('import:cleanup', async (_event, tempDir: string) => {
+    instrumentedHandle('import:cleanup', async (_event, tempDir: string) => {
         collectionCache.delete(tempDir);
         cancellationFlags.delete(tempDir);
         await removeTempDir(tempDir);
@@ -99,7 +100,7 @@ export function setupImportHandlers(): void {
 
     // Receives ImportOptionsPayload from the renderer, runs Phases 5 & 6,
     // emits progress events, and returns counts. Cleans up temp dir in finally.
-    ipcMain.handle(
+    instrumentedHandle(
         'import:confirm',
         async (event, payload: ImportOptionsPayload): Promise<ImportResult> => {
             const entry = collectionCache.get(payload.tempDir);

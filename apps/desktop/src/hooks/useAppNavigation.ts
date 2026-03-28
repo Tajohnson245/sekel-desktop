@@ -14,6 +14,7 @@ export function useAppNavigation() {
         goToDrafts: () => navigate('/drafts'),
         goToImageOcclusion: () => navigate('/image-occlusion'),
         goToStatistics: () => navigate('/statistics'),
+        goToAdmin: () => navigate('/admin'),
         goToProfile: () => navigate('/profile'),
         goBack: () => navigate(-1),
     };

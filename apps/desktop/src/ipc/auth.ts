@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron';
+import { instrumentedHandle } from '@sekel/observability';
 
 // We initialize a separate client for the main process if needed for admin tasks,
 // but for standard auth we usually proxy the renderer's requests or handle session persistence.
@@ -12,7 +12,7 @@ export const setupAuthHandlers = () => {
     // manage the session exclusively in the main process.
     // For now, we'll keep it simple and handle the basic session retrieve/set if needed.
 
-    ipcMain.handle('get-supabase-config', () => ({
+    instrumentedHandle('get-supabase-config', () => ({
         url: supabaseUrl,
         anonKey: supabaseAnonKey,
     }));

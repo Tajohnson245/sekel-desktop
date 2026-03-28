@@ -5,8 +5,10 @@
  * Writes results to the card_classifications table in SQLite.
  */
 
-import { ipcMain } from 'electron';
+import { instrumentedHandle, trackedCompletion, createLogger, consoleTransport } from '@sekel/observability';
 import { OpenAI } from 'openai';
+
+const log = createLogger({ module: 'classify', transports: [consoleTransport] });
 import { getDb } from '../main/db/index';
 import { CARD_WITH_NOTE_SQL, buildCardWithNote } from '../main/db/service';
 import type { SessionQueueCard } from '../types/electron';
@@ -197,16 +199,20 @@ async function classifyCard(
     const { front, back } = fetchCardContent(cardId);
     const { examId, taxonomy } = loadBlueprintTaxonomy(examKey);
 
-    const response = await getOpenAI().chat.completions.create({
-        model: MODEL,
-        messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
-            {
-                role: 'user',
-                content: `Card Front: ${front}\nCard Back: ${back}\n\nBlueprint Taxonomy:\n${JSON.stringify(taxonomy)}`,
-            },
-        ],
-        response_format: { type: 'json_object' },
+    const response = await trackedCompletion({
+        operation: 'classify',
+        logger: log,
+        call: getOpenAI().chat.completions.create({
+            model: MODEL,
+            messages: [
+                { role: 'system', content: SYSTEM_PROMPT },
+                {
+                    role: 'user',
+                    content: `Card Front: ${front}\nCard Back: ${back}\n\nBlueprint Taxonomy:\n${JSON.stringify(taxonomy)}`,
+                },
+            ],
+            response_format: { type: 'json_object' },
+        }),
     });
 
     const raw = JSON.parse(response.choices[0].message.content || '{}') as ClassificationResponse;
@@ -526,18 +532,18 @@ function buildSessionQueue(userId: string, examKey: string, limit = 200): Sessio
 // ── IPC Registration ────────────────────────────────────────────────────────
 
 export function setupClassifyHandlers(): void {
-    ipcMain.handle('yield:classify-card', (_e, cardId: string, examKey: string) =>
+    instrumentedHandle('yield:classify-card', (_e, cardId: string, examKey: string) =>
         classifyCard(cardId, examKey));
 
-    ipcMain.handle('yield:classify-batch', (_e, cardIds: string[], examKey: string, force?: boolean) =>
+    instrumentedHandle('yield:classify-batch', (_e, cardIds: string[], examKey: string, force?: boolean) =>
         classifyCardsBatch(cardIds, examKey, force));
 
-    ipcMain.handle('yield:get-scores', (_e, examKey: string, cardIds?: string[]) =>
+    instrumentedHandle('yield:get-scores', (_e, examKey: string, cardIds?: string[]) =>
         getYieldScores(examKey, cardIds));
 
-    ipcMain.handle('yield:get-explanation', (_e, cardId: string, examKey: string) =>
+    instrumentedHandle('yield:get-explanation', (_e, cardId: string, examKey: string) =>
         getYieldExplanation(cardId, examKey));
 
-    ipcMain.handle('yield:build-session-queue', (_e, userId: string, examKey: string, limit?: number) =>
+    instrumentedHandle('yield:build-session-queue', (_e, userId: string, examKey: string, limit?: number) =>
         buildSessionQueue(userId, examKey, limit));
 }

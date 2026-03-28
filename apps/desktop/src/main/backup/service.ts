@@ -7,6 +7,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { app } from 'electron';
 import { getDb } from '../db/index';
+import { createLogger, consoleTransport, metrics } from '@sekel/observability';
+
+const log = createLogger({ module: 'backup', transports: [consoleTransport] });
 
 export interface BackupInfo {
     filename: string;
@@ -75,10 +78,11 @@ export async function createBackup(): Promise<BackupInfo | null> {
             sizeBytes: stat.size,
         };
 
-        console.log(`[Backup] Created: ${filename} (${formatBytes(stat.size)})`);
+        log.info('Backup created', { filename, size: formatBytes(stat.size) });
+        metrics.increment('backup.created_total');
         return info;
     } catch (err) {
-        console.error('[Backup] Failed to create backup:', err);
+        log.error('Failed to create backup', { error: err instanceof Error ? err.message : String(err) });
         return null;
     }
 }
@@ -110,20 +114,20 @@ const BACKUP_FILENAME_RE = /^sekel-backup-\d{4}-\d{2}-\d{2}T[\d-]+Z\.db$/;
 /** Deletes a specific backup file. */
 export function deleteBackup(filename: string): boolean {
     if (!BACKUP_FILENAME_RE.test(filename)) {
-        console.warn('[Backup] rejected invalid backup filename:', filename);
+        log.warn('Rejected invalid backup filename', { filename });
         return false;
     }
 
     const backupDir = getBackupDir();
     const resolved = path.resolve(path.join(backupDir, filename));
     if (!resolved.startsWith(backupDir + path.sep)) {
-        console.warn('[Backup] blocked path escape attempt:', resolved);
+        log.warn('Blocked path escape attempt', { resolved });
         return false;
     }
 
     if (!fs.existsSync(resolved)) return false;
     fs.unlinkSync(resolved);
-    console.log(`[Backup] Deleted: ${filename}`);
+    log.info('Backup deleted', { filename });
     return true;
 }
 
@@ -198,7 +202,8 @@ export function pruneBackups(settings: BackupSettings = currentSettings): void {
     }
 
     if (deleted > 0) {
-        console.log(`[Backup] Pruned ${deleted} old backup(s)`);
+        log.info('Pruned old backups', { count: deleted });
+        metrics.increment('backup.pruned_total', {}, deleted);
     }
 }
 
@@ -211,7 +216,7 @@ export function startBackupScheduler(settings?: Partial<BackupSettings>): void {
     stopBackupScheduler();
 
     if (currentSettings.intervalMinutes <= 0) {
-        console.log('[Backup] Automatic backups disabled (interval = 0)');
+        log.info('Automatic backups disabled (interval = 0)');
         return;
     }
 
@@ -225,7 +230,7 @@ export function startBackupScheduler(settings?: Partial<BackupSettings>): void {
         pruneBackups();
     }, intervalMs);
 
-    console.log(`[Backup] Scheduler started (every ${currentSettings.intervalMinutes} min)`);
+    log.info('Scheduler started', { intervalMinutes: currentSettings.intervalMinutes });
 }
 
 /** Stops the automatic backup scheduler. */
@@ -233,7 +238,7 @@ export function stopBackupScheduler(): void {
     if (backupInterval) {
         clearInterval(backupInterval);
         backupInterval = null;
-        console.log('[Backup] Scheduler stopped');
+        log.info('Scheduler stopped');
     }
 }
 
