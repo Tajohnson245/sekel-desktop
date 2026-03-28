@@ -2,16 +2,15 @@ import { useState } from 'react';
 import { Plus, Trash2, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useDecks, useBulkDeleteDecks } from '../../hooks/useDecks';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
+import { useDeckEditor } from '../../contexts/DeckEditorContext';
 import { Button, Loader, Modal, useToast } from '../UI';
 import DeckCard from './DeckCard';
 import type { Deck } from '../../lib/types';
 
-interface DeckListProps {
-    onSelectDeck: (deckId: string) => void;
-    onCreateDeck: () => void;
-}
-
-export default function DeckList({ onSelectDeck, onCreateDeck }: DeckListProps) {
+export default function DeckList() {
+    const { goToDeck } = useAppNavigation();
+    const { openDeckEditor } = useDeckEditor();
     const { data: decks = [], isLoading, error } = useDecks();
     const bulkDelete = useBulkDeleteDecks();
     const { t } = useTranslation();
@@ -80,7 +79,7 @@ export default function DeckList({ onSelectDeck, onCreateDeck }: DeckListProps) 
                             </Button>
                             <Button
                                 variant="primary"
-                                onClick={onCreateDeck}
+                                onClick={openDeckEditor}
                                 data-testid="create-deck-btn"
                                 icon={<Plus size={16} />}
                             >
@@ -121,7 +120,7 @@ export default function DeckList({ onSelectDeck, onCreateDeck }: DeckListProps) 
                     <Button
                         variant="primary"
                         size="lg"
-                        onClick={onCreateDeck}
+                        onClick={openDeckEditor}
                         icon={<Plus size={16} />}
                     >
                         {t('decks.create_deck')}
@@ -133,7 +132,7 @@ export default function DeckList({ onSelectDeck, onCreateDeck }: DeckListProps) 
                         <DeckCard
                             key={deck.id}
                             deck={deck}
-                            onClick={() => onSelectDeck(deck.id)}
+                            onClick={() => goToDeck(deck.id)}
                             isDeleteMode={isDeleteMode}
                             isSelected={selectedDeckIds.has(deck.id)}
                             onToggleSelect={toggleDeckSelection}

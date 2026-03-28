@@ -1,17 +1,9 @@
-import { useState, useEffect } from 'react';
 import { ThemeProvider } from './components/ThemeProvider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { LayoutDashboard, Library, FileText, Plus, Inbox, Layers, BarChart3 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import Dashboard from './components/Dashboard/Dashboard';
-import DeckList from './components/Deck/DeckList';
-import DeckDetail from './components/Deck/DeckDetail';
-import DeckEditor from './components/Deck/DeckEditor';
-import StudySession from './components/Study/StudySession';
-import DocumentsPage from './components/AIStudy/DocumentsPage';
-import DraftsPage from './components/Drafts/DraftsPage';
-import ImageOcclusionEditor from './components/ImageOcclusion/ImageOcclusionEditor';
-import StatisticsPage from './components/Statistics/StatisticsPage';
+import { RouterProvider } from 'react-router-dom';
+import { router } from './router';
+import { ProtectedRoute } from './components/Auth/ProtectedRoute';
+import { ToastProvider, ErrorBoundary } from './components/UI';
 import './index.css';
 import './components/Layout/AppShell.css';
 import './components/Dashboard/Dashboard.css';
@@ -30,15 +22,6 @@ import './components/ImageOcclusion/ImageOcclusionEditor.css';
 import './components/Statistics/StatisticsPage.css';
 import './components/Auth/Auth.css';
 import './components/UI/ErrorBoundary.css';
-import { ProtectedRoute } from './components/Auth/ProtectedRoute';
-import { UserProfile } from './components/UserProfile';
-import { ToastProvider, ErrorBoundary } from './components/UI';
-import { UserProfilePage } from './components/Profile/UserProfilePage';
-import { useAuthStore } from './stores/authStore';
-import { useProfileStore } from './stores/profileStore';
-import { useDrafts } from './hooks/useDrafts';
-import { useExamProfile } from './hooks/useExamProfile';
-import { ExamOnboardingModal } from './components/ExamOnboarding/ExamOnboardingModal';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -49,232 +32,6 @@ const queryClient = new QueryClient({
     },
 });
 
-
-
-function AppContent() {
-    const { user } = useAuthStore();
-    const { profile } = useProfileStore();
-    const userId = user?.id || '';
-    const backgroundUrl = profile?.background_url;
-    const [activeView, setActiveView] = useState('dashboard');
-    const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
-    const [studyMode, setStudyMode] = useState<'due' | 'all'>('due');
-    const [showDeckEditor, setShowDeckEditor] = useState(false);
-    const [isStudying, setIsStudying] = useState(false);
-    const [hasUnfinishedDocsWork, setHasUnfinishedDocsWork] = useState(false);
-    const { t } = useTranslation();
-    const { data: drafts = [] } = useDrafts();
-
-    // Exam onboarding auto-show
-    const { data: examProfile, isLoading: examProfileLoading } = useExamProfile();
-    const [showExamOnboarding, setShowExamOnboarding] = useState(false);
-    const [onboardingDismissed, setOnboardingDismissed] = useState(false);
-
-    useEffect(() => {
-        if (!examProfileLoading && examProfile === null && !onboardingDismissed) {
-            setShowExamOnboarding(true);
-        }
-    }, [examProfile, examProfileLoading, onboardingDismissed]);
-
-    const navItems = [
-        { id: 'dashboard', label: t('nav.dashboard'), icon: LayoutDashboard },
-        { id: 'decks', label: t('nav.decks'), icon: Library },
-        { id: 'documents', label: t('nav.generate'), icon: FileText },
-        { id: 'image-occlusion', label: t('nav.image_occlusion'), icon: Layers },
-        { id: 'drafts', label: t('nav.drafts'), icon: Inbox },
-        { id: 'statistics', label: t('nav.statistics'), icon: BarChart3 },
-    ];
-
-    const handleSelectDeck = (deckId: string) => {
-        setSelectedDeckId(deckId);
-        setIsStudying(false);
-        setActiveView('deck-detail');
-    };
-
-    const handleStartStudy = (mode: 'due' | 'all' = 'due') => {
-        setStudyMode(mode);
-        setIsStudying(true);
-    };
-
-    const handleNavigate = (view: string) => {
-        setActiveView(view);
-        if (view !== 'deck-detail' && view !== 'study') {
-            setSelectedDeckId(null);
-            setIsStudying(false);
-        }
-    };
-
-    const renderView = () => {
-        switch (activeView) {
-            case 'dashboard':
-                return (
-                    <Dashboard
-                        onSelectDeck={handleSelectDeck}
-                        onNavigate={handleNavigate}
-                    />
-                );
-            case 'decks':
-                return (
-                    <DeckList
-                        onSelectDeck={handleSelectDeck}
-                        onCreateDeck={() => setShowDeckEditor(true)}
-                    />
-                );
-            case 'deck-detail':
-                if (selectedDeckId) {
-                    if (isStudying) {
-                        return (
-                            <ErrorBoundary variant="inline" onReset={() => setIsStudying(false)}>
-                                <StudySession
-                                    deckId={selectedDeckId}
-                                    userId={userId}
-                                    mode={studyMode}
-                                    onBack={() => setIsStudying(false)}
-                                />
-                            </ErrorBoundary>
-                        );
-                    }
-                    return (
-                        <DeckDetail
-                            deckId={selectedDeckId}
-                            userId={userId}
-                            onBack={() => handleNavigate('decks')}
-                            onStudy={handleStartStudy}
-                            onNavigate={handleNavigate}
-                        />
-                    );
-                }
-                return (
-                    <DeckList
-                        onSelectDeck={handleSelectDeck}
-                        onCreateDeck={() => setShowDeckEditor(true)}
-                    />
-                );
-            case 'study':
-                if (selectedDeckId) {
-                    return (
-                        <ErrorBoundary variant="inline" onReset={() => handleNavigate('decks')}>
-                            <StudySession
-                                deckId={selectedDeckId}
-                                userId={userId}
-                                mode={studyMode}
-                                onBack={() => handleNavigate('decks')}
-                            />
-                        </ErrorBoundary>
-                    );
-                }
-                return (
-                    <DeckList
-                        onSelectDeck={handleSelectDeck}
-                        onCreateDeck={() => setShowDeckEditor(true)}
-                    />
-                );
-            case 'documents':
-                // Handled by always-mounted DocumentsPage below
-                return null;
-            case 'drafts':
-                return <DraftsPage userId={userId} />;
-            case 'image-occlusion':
-                return (
-                    <ErrorBoundary variant="inline" onReset={() => handleNavigate('image-occlusion')}>
-                        <ImageOcclusionEditor userId={userId} />
-                    </ErrorBoundary>
-                );
-            case 'statistics':
-                return <StatisticsPage />;
-            case 'profile':
-                return <UserProfilePage />;
-            default:
-                return null;
-        }
-    };
-
-    return (
-        <div
-            className={`app-shell ${backgroundUrl ? 'has-background' : ''}`}
-            style={backgroundUrl ? {
-                backgroundImage: `url(${backgroundUrl})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundAttachment: 'fixed',
-            } : undefined}
-        >
-            <header className="header">
-                <div className="header-left">
-                    <h1>Sekel</h1>
-                    <nav className="top-nav">
-                        {navItems.map((item) => {
-                            const Icon = item.icon;
-                            const isDrafts = item.id === 'drafts';
-                            const isDocs = item.id === 'documents';
-                            return (
-                                <div
-                                    key={item.id}
-                                    className={`nav-link ${activeView === item.id ? 'active' : ''}`}
-                                    onClick={() => handleNavigate(item.id)}
-                                    data-testid={`nav-${item.id}`}
-                                >
-                                    <Icon size={18} />
-                                    {item.label}
-                                    {isDrafts && drafts.length > 0 && (
-                                        <span className="nav-draft-badge">{drafts.length}</span>
-                                    )}
-                                    {isDocs && hasUnfinishedDocsWork && (
-                                        <span className="nav-alert-badge" title="Unfinished work">!</span>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </nav>
-                </div>
-
-                <div className="header-right">
-                    <button
-                        className="btn btn-primary"
-                        onClick={() => setShowDeckEditor(true)}
-                        data-testid="header-new-deck-btn"
-                    >
-                        <Plus size={16} />
-                        {t('nav.new_deck')}
-                    </button>
-                    <UserProfile onNavigate={handleNavigate} />
-                </div>
-            </header>
-
-            <main className="main-content" data-testid="main-content">
-                {/* Always mounted so generated cards survive navigation */}
-                <div style={{ display: activeView === 'documents' ? 'contents' : 'none' }}>
-                    <DocumentsPage
-                        userId={userId}
-                        initialDeckId={selectedDeckId || undefined}
-                        onUnfinishedWorkChange={setHasUnfinishedDocsWork}
-                    />
-                </div>
-                {activeView !== 'documents' && renderView()}
-            </main>
-
-            {showDeckEditor && (
-                <DeckEditor
-                    userId={userId}
-                    onClose={() => setShowDeckEditor(false)}
-                />
-            )}
-
-            <ExamOnboardingModal
-                isOpen={showExamOnboarding}
-                onClose={() => {
-                    setShowExamOnboarding(false);
-                    setOnboardingDismissed(true);
-                }}
-                onComplete={() => {
-                    setShowExamOnboarding(false);
-                    setOnboardingDismissed(true);
-                }}
-            />
-        </div>
-    );
-}
-
 export default function App() {
     return (
         <QueryClientProvider client={queryClient}>
@@ -282,7 +39,7 @@ export default function App() {
                 <ToastProvider>
                     <ProtectedRoute>
                         <ErrorBoundary variant="page" onReset={() => window.location.reload()}>
-                            <AppContent />
+                            <RouterProvider router={router} />
                         </ErrorBoundary>
                     </ProtectedRoute>
                 </ToastProvider>

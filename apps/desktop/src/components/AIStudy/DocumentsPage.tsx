@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Loader, FileText, CheckCircle, AlertCircle, RefreshCw, ArrowRight, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import DocumentUpload from './DocumentUpload';
 import AICardGenerator from './AICardGenerator';
 import { Button, MetaChip, YouTubeIcon, useToast, ErrorBoundary } from '../UI';
+import { useDocsWorkStore } from '../../stores/docsWorkStore';
 import { parseFile, parseYoutube } from '../../lib/documentParser';
 import './DocumentsPage.css';
 
 interface DocumentsPageProps {
     userId: string;
-    initialDeckId?: string;
-    onUnfinishedWorkChange?: (hasWork: boolean) => void;
 }
 
 type ParsingStatus = 'idle' | 'parsing' | 'success' | 'error';
@@ -42,9 +42,12 @@ function SectionItem({ index, label }: SectionItemProps) {
     );
 }
 
-export default function DocumentsPage({ userId, initialDeckId, onUnfinishedWorkChange }: DocumentsPageProps) {
+export default function DocumentsPage({ userId }: DocumentsPageProps) {
     const { t, i18n } = useTranslation();
     const { showToast } = useToast();
+    const [searchParams] = useSearchParams();
+    const initialDeckId = searchParams.get('deckId') || undefined;
+    const setHasUnfinishedWork = useDocsWorkStore((s) => s.setHasUnfinishedWork);
     const [files, setFiles] = useState<ParsedFile[]>([]);
     const [summaryText, setSummaryText] = useState<string>('');
     const [summaryTopics, setSummaryTopics] = useState<string[]>([]);
@@ -65,8 +68,8 @@ export default function DocumentsPage({ userId, initialDeckId, onUnfinishedWorkC
         if (step === 'review') hasUnfinished = true;
         if (step === 'generate' && generatedCardCount > 0) hasUnfinished = true;
 
-        onUnfinishedWorkChange?.(hasUnfinished);
-    }, [files.length, step, generatedCardCount, onUnfinishedWorkChange]);
+        setHasUnfinishedWork(hasUnfinished);
+    }, [files.length, step, generatedCardCount, setHasUnfinishedWork]);
 
     const isProcessing = files.some(f => f.status === 'parsing');
 

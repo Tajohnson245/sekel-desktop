@@ -93,6 +93,7 @@
     "react-dom": "^19.2.4",
     "react-i18next": "^16.5.4",
     "react-quill-new": "^3.8.3",
+    "react-router-dom": "^7.13.2",
     "recharts": "^2.15.4",
     "ts-fsrs": "^5.2.3",
     "update-electron-app": "^3.1.2",

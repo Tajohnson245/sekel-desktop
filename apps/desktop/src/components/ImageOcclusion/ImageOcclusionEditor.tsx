@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { uploadImage } from '../../lib/storage';
 import { useDecks } from '../../hooks/useDecks';
 import { useCreateNote, useNoteTypes, useCreateNoteType } from '../../hooks/useNotes';
+import { useAuthStore } from '../../stores/authStore';
 import { DEFAULT_NOTE_TYPES } from '../../lib/types';
 import type { OcclusionShape, OcclusionRectShape, OcclusionEllipseShape, OcclusionPolygonShape, IOMode } from '../../lib/types';
 import DeckEditor from '../Deck/DeckEditor';
@@ -17,9 +18,7 @@ import './ImageOcclusionEditor.css';
 type ShapeTool = 'rect' | 'ellipse' | 'polygon';
 type EditorView = 'mask' | 'fields';
 
-interface ImageOcclusionEditorProps {
-    userId: string;
-}
+// No props needed — userId comes from auth store
 
 // ─────────────────────────────────────────────────────────────────
 // Helpers
@@ -95,7 +94,8 @@ function renderShapeElement(
 // Component
 // ─────────────────────────────────────────────────────────────────
 
-export default function ImageOcclusionEditor({ userId }: ImageOcclusionEditorProps) {
+export default function ImageOcclusionEditor() {
+    const userId = useAuthStore((s) => s.user?.id ?? '');
     const { t } = useTranslation();
     const { showToast } = useToast();
 

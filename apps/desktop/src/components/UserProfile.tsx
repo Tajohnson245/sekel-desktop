@@ -2,12 +2,14 @@ import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../stores/authStore';
 import { useProfileStore } from '../stores/profileStore';
+import { useAppNavigation } from '../hooks/useAppNavigation';
 import { LogOut, User as UserIcon } from 'lucide-react';
 
-export const UserProfile: React.FC<{ onNavigate?: (view: string) => void }> = ({ onNavigate }) => {
+export const UserProfile: React.FC = () => {
     const { user, signOut } = useAuthStore();
     const { profile, fetchProfile } = useProfileStore();
     const { t } = useTranslation();
+    const { goToProfile } = useAppNavigation();
 
     useEffect(() => {
         if (user?.id && !profile) {
@@ -22,7 +24,7 @@ export const UserProfile: React.FC<{ onNavigate?: (view: string) => void }> = ({
             <div
                 className="user-icon-badge clickable"
                 title={user.email || t('auth.profile')}
-                onClick={() => onNavigate?.('profile')}
+                onClick={goToProfile}
                 style={{ cursor: 'pointer', overflow: 'hidden' }}
             >
                 {profile?.avatar_url ? (
