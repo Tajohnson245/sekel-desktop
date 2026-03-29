@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { getDb } from './index';
 import { logDeckDeletion, logNoteDeletion } from '../backup/deletionLog';
+import { getRetrievability } from '../../lib/fsrs';
 import type {
     Deck, DeckInsert, DeckUpdate,
     Note, NoteInsert, NoteUpdate,
@@ -467,11 +468,12 @@ export function fetchDueCards(
     userId?: string,
     dailyNewLimit?: number,
     dailyReviewLimit?: number,
+    examKey = 'step1',
 ): CardWithNote[] {
     const now = new Date().toISOString();
     const db = getDb();
 
-    // If no limits provided, fall back to original behavior
+    // If no limits provided, fall back to original behavior (no yield ordering)
     if (!userId || dailyNewLimit == null || dailyReviewLimit == null) {
         const rows = db.prepare(`
             ${CARD_WITH_NOTE_SQL}
@@ -487,24 +489,64 @@ export function fetchDueCards(
     const remainingNew = Math.max(0, dailyNewLimit - studied.newStudied);
     const remainingReview = Math.max(0, dailyReviewLimit - studied.reviewStudied);
 
-    // Learning/relearning: always shown (no limit)
+    // Learning/relearning: always shown (no limit), ordered by due date
     const learningRows = db.prepare(`
         ${CARD_WITH_NOTE_SQL}
         WHERE n.deck_id = ? AND c.state IN ('learning', 'relearning')
         ORDER BY c.due ASC
     `).all(deckId) as CardWithNoteRow[];
 
-    // New cards: capped by daily limit
+    // New cards: ordered by yield score descending, unclassified cards fall to the end
     const newRows = remainingNew > 0
         ? db.prepare(`
-            ${CARD_WITH_NOTE_SQL}
+            WITH yield_proxy AS (
+                SELECT cc.card_id,
+                    MAX(
+                        ((bs.weight_min + bs.weight_max) / 2.0)
+                        * cc.confidence
+                        * cc.split_weight
+                    ) AS proxy
+                FROM card_classifications cc
+                JOIN blueprint_systems bs ON bs.id = cc.system_id
+                WHERE cc.exam_id = (SELECT id FROM blueprint_exams WHERE exam_key = ? LIMIT 1)
+                GROUP BY cc.card_id
+            )
+            SELECT
+                c.id, c.user_id, c.note_id, c.template_index,
+                c.state, c.due, c.stability, c.difficulty,
+                c.elapsed_days, c.scheduled_days, c.reps, c.lapses,
+                c.last_review, c.created_at, c.updated_at,
+                c.anki_meta    AS card_anki_meta,
+                n.id       AS note_id,
+                n.deck_id  AS deck_id,
+                n.note_type_id,
+                n.fields   AS note_fields,
+                n.tags     AS note_tags,
+                n.anki_meta AS note_anki_meta,
+                n.created_at AS note_created_at,
+                n.updated_at AS note_updated_at,
+                nt.id          AS nt_id,
+                nt.anki_id     AS nt_anki_id,
+                nt.anki_meta   AS nt_anki_meta,
+                nt.name        AS nt_name,
+                nt.fields      AS nt_fields,
+                nt.card_templates AS nt_templates,
+                nt.created_at  AS nt_created_at,
+                nt.updated_at  AS nt_updated_at
+            FROM cards c
+            JOIN notes n  ON c.note_id = n.id
+            JOIN note_types nt ON n.note_type_id = nt.id
+            LEFT JOIN yield_proxy yp ON yp.card_id = c.id
             WHERE n.deck_id = ? AND c.state = 'new'
-            ORDER BY c.due ASC
+            ORDER BY
+                CASE WHEN yp.proxy IS NULL THEN 1 ELSE 0 END ASC,
+                yp.proxy DESC,
+                c.due ASC
             LIMIT ?
-        `).all(deckId, remainingNew) as CardWithNoteRow[]
+        `).all(examKey, deckId, remainingNew) as CardWithNoteRow[]
         : [];
 
-    // Review cards: capped by daily limit
+    // Review cards: capped by daily limit, ordered by due date
     const reviewRows = remainingReview > 0
         ? db.prepare(`
             ${CARD_WITH_NOTE_SQL}
@@ -920,4 +962,116 @@ export function deleteDraft(id: string): void {
 
 export function clearDrafts(userId: string): void {
     getDb().prepare('DELETE FROM card_drafts WHERE user_id = ?').run(userId);
+}
+
+// ── Performance Needs ─────────────────────────────────────────────────────────
+
+export interface SystemPerformanceNeed {
+    system_key: string;
+    blueprint_weight_midpoint: number;
+    performance_need: number;
+    total_reviews: number;
+}
+
+/**
+ * Compute per-system performance need for a user.
+ *
+ * performance_need = lapse_rate * 0.5 + (1 - avg_retrievability) * 0.5
+ *
+ * Returns 0–1 per system where 1 = poor performance, 0 = strong performance.
+ * Sorted by performance_need DESC. Systems with no reviewed cards get
+ * avg_retrievability = 1.0 (assumed strong, not penalized for being unstarted).
+ */
+export function getSystemPerformanceNeeds(
+    userId: string,
+    examKey: string,
+): SystemPerformanceNeed[] {
+    const db = getDb();
+
+    const examRow = db.prepare('SELECT id FROM blueprint_exams WHERE exam_key = ?')
+        .get(examKey) as { id: number } | undefined;
+    if (!examRow) return [];
+
+    type SystemRow = { id: number; system_key: string; weight_min: number | null; weight_max: number | null };
+    const systems = db.prepare(
+        'SELECT id, system_key, weight_min, weight_max FROM blueprint_systems WHERE exam_id = ?'
+    ).all(examRow.id) as SystemRow[];
+
+    if (systems.length === 0) return [];
+
+    type ReviewStatRow = { system_id: number; total_reviews: number; lapse_count: number };
+    const reviewStats = db.prepare(`
+        SELECT
+            cc.system_id,
+            COUNT(*)                                                        AS total_reviews,
+            SUM(CASE WHEN r.rating = 'again' THEN 1 ELSE 0 END)            AS lapse_count
+        FROM reviews r
+        JOIN card_classifications cc ON cc.card_id = r.card_id AND cc.exam_id = ?
+        WHERE r.user_id = ?
+        GROUP BY cc.system_id
+    `).all(examRow.id, userId) as ReviewStatRow[];
+
+    const reviewMap = new Map(reviewStats.map(r => [r.system_id, r]));
+
+    type CardRow = {
+        system_id: number;
+        state: string;
+        due: string;
+        stability: number;
+        difficulty: number;
+        elapsed_days: number;
+        scheduled_days: number;
+        reps: number;
+        lapses: number;
+        last_review: string | null;
+    };
+
+    const cardRows = db.prepare(`
+        SELECT
+            cc.system_id,
+            c.state, c.due, c.stability, c.difficulty,
+            c.elapsed_days, c.scheduled_days, c.reps, c.lapses, c.last_review
+        FROM cards c
+        JOIN card_classifications cc ON cc.card_id = c.id AND cc.exam_id = ?
+        WHERE c.user_id = ? AND c.state != 'new'
+    `).all(examRow.id, userId) as CardRow[];
+
+    const systemCards = new Map<number, Card[]>();
+    for (const row of cardRows) {
+        if (!systemCards.has(row.system_id)) systemCards.set(row.system_id, []);
+        systemCards.get(row.system_id)!.push({
+            state: row.state,
+            due: row.due,
+            stability: row.stability,
+            difficulty: row.difficulty,
+            elapsed_days: row.elapsed_days,
+            scheduled_days: row.scheduled_days,
+            reps: row.reps,
+            lapses: row.lapses,
+            last_review: row.last_review,
+        } as unknown as Card);
+    }
+
+    return systems.map(sys => {
+        const stats = reviewMap.get(sys.id);
+        const total_reviews = stats?.total_reviews ?? 0;
+        const lapse_count = stats?.lapse_count ?? 0;
+        const lapse_rate = total_reviews > 0 ? lapse_count / total_reviews : 0;
+
+        const cards = systemCards.get(sys.id) ?? [];
+        const avg_retrievability = cards.length > 0
+            ? cards.reduce((sum, c) => sum + getRetrievability(c), 0) / cards.length
+            : 1.0;
+
+        const performance_need = lapse_rate * 0.5 + (1 - avg_retrievability) * 0.5;
+        const weight_min = sys.weight_min ?? 0;
+        const weight_max = sys.weight_max ?? 0;
+
+        return {
+            system_key: sys.system_key,
+            blueprint_weight_midpoint: (weight_min + weight_max) / 2,
+            performance_need,
+            total_reviews,
+        };
+    }).sort((a, b) => b.performance_need - a.performance_need);
 }
