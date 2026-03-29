@@ -27,6 +27,172 @@ export interface BlueprintFile {
     systems: BlueprintSystem[];
 }
 
+export const STEP2CK_BLUEPRINT: BlueprintFile = {
+    exam_key: 'step2ck',
+    label: 'USMLE Step 2 CK',
+    source_url: 'https://www.usmle.org/prepare-your-exam/step-2-ck-materials/step-2-ck-content-outline',
+    version: '2025',
+    systems: [
+        {
+            system_key: 'human-development', label: 'Human Development', weight_min: 2, weight_max: 4,
+            topics: [
+                { topic_key: 'pediatric-well-care', label: 'Pediatric Well-Care & Immunizations', physician_task: 'management', relative_weight: 0.25 },
+                { topic_key: 'adolescent-health', label: 'Adolescent Health & Development', physician_task: 'management', relative_weight: 0.25 },
+                { topic_key: 'adult-preventive-care', label: 'Adult Preventive Care & Screening', physician_task: 'management', relative_weight: 0.25 },
+                { topic_key: 'geriatric-care', label: 'Geriatric Care & Elder Health', physician_task: 'management', relative_weight: 0.25 },
+            ],
+        },
+        {
+            system_key: 'immune-system', label: 'Immune System', weight_min: 3, weight_max: 5,
+            topics: [
+                { topic_key: 'hypersensitivity', label: 'Hypersensitivity Reactions & Allergy Management', physician_task: 'mixed-management', relative_weight: 0.25 },
+                { topic_key: 'transplant-rejection', label: 'Transplant Rejection & Immunosuppression', physician_task: 'management', relative_weight: 0.25 },
+                { topic_key: 'immunodeficiency', label: 'Immunodeficiency Clinical Presentations', physician_task: 'diagnosis', relative_weight: 0.25 },
+                { topic_key: 'hiv-aids-management', label: 'HIV/AIDS Diagnosis & Management', physician_task: 'mixed-management', relative_weight: 0.25 },
+            ],
+        },
+        {
+            system_key: 'blood-lymphoreticular', label: 'Blood & Lymphoreticular System', weight_min: 3, weight_max: 6,
+            topics: [
+                { topic_key: 'anemia-workup', label: 'Anemia Workup & Management', physician_task: 'mixed-management', relative_weight: 0.30 },
+                { topic_key: 'coagulation-clinical', label: 'Coagulation Disorders & Anticoagulation', physician_task: 'mixed-management', relative_weight: 0.25 },
+                { topic_key: 'hematologic-malignancy', label: 'Leukemia, Lymphoma & Myeloma Presentation', physician_task: 'diagnosis', relative_weight: 0.25 },
+                { topic_key: 'transfusion-medicine', label: 'Transfusion Medicine & Blood Products', physician_task: 'management', relative_weight: 0.20 },
+            ],
+        },
+        {
+            system_key: 'behavioral-health', label: 'Behavioral Health', weight_min: 5, weight_max: 10,
+            topics: [
+                { topic_key: 'mood-disorders', label: 'Mood Disorders Diagnosis & Treatment', physician_task: 'mixed-management', relative_weight: 0.20 },
+                { topic_key: 'psychotic-disorders', label: 'Psychotic Disorders Diagnosis & Treatment', physician_task: 'mixed-management', relative_weight: 0.15 },
+                { topic_key: 'anxiety-disorders', label: 'Anxiety & Related Disorders', physician_task: 'mixed-management', relative_weight: 0.15 },
+                { topic_key: 'substance-use-disorders', label: 'Substance Use Disorders & Withdrawal', physician_task: 'mixed-management', relative_weight: 0.20 },
+                { topic_key: 'eating-disorders', label: 'Eating Disorders & Management', physician_task: 'diagnosis', relative_weight: 0.10 },
+                { topic_key: 'somatic-disorders', label: 'Somatic Symptom & Related Disorders', physician_task: 'diagnosis', relative_weight: 0.10 },
+                { topic_key: 'psychopharmacology-clinical', label: 'Clinical Psychopharmacology', physician_task: 'management', relative_weight: 0.10 },
+            ],
+        },
+        {
+            system_key: 'nervous-system-special-senses', label: 'Nervous System & Special Senses', weight_min: 5, weight_max: 10,
+            topics: [
+                { topic_key: 'stroke-management', label: 'Stroke Diagnosis & Acute Management', physician_task: 'mixed-management', relative_weight: 0.25 },
+                { topic_key: 'seizure-management', label: 'Seizure Disorders & Management', physician_task: 'mixed-management', relative_weight: 0.15 },
+                { topic_key: 'headache-evaluation', label: 'Headache Evaluation & Treatment', physician_task: 'mixed-management', relative_weight: 0.10 },
+                { topic_key: 'dementia-cognitive', label: 'Dementia & Cognitive Disorders', physician_task: 'mixed-management', relative_weight: 0.15 },
+                { topic_key: 'peripheral-neuropathy-clinical', label: 'Peripheral Neuropathy & Neuromuscular Disease', physician_task: 'diagnosis', relative_weight: 0.15 },
+                { topic_key: 'eye-disorders', label: 'Eye Disorders & Ophthalmologic Emergencies', physician_task: 'mixed-management', relative_weight: 0.10 },
+                { topic_key: 'ear-disorders', label: 'Ear Disorders & Hearing Loss', physician_task: 'mixed-management', relative_weight: 0.10 },
+            ],
+        },
+        {
+            system_key: 'musculoskeletal-skin', label: 'Musculoskeletal System, Skin & Subcutaneous Tissue', weight_min: 6, weight_max: 12,
+            topics: [
+                { topic_key: 'fracture-management', label: 'Fracture Evaluation & Management', physician_task: 'management', relative_weight: 0.20 },
+                { topic_key: 'arthritis-clinical', label: 'Arthritis Diagnosis & Management', physician_task: 'mixed-management', relative_weight: 0.20 },
+                { topic_key: 'dermatologic-diagnosis', label: 'Dermatologic Diagnosis & Treatment', physician_task: 'mixed-management', relative_weight: 0.20 },
+                { topic_key: 'wound-care', label: 'Wound Care & Soft Tissue Infections', physician_task: 'management', relative_weight: 0.15 },
+                { topic_key: 'orthopedic-emergencies', label: 'Orthopedic Emergencies', physician_task: 'management', relative_weight: 0.15 },
+                { topic_key: 'rheumatologic-disorders', label: 'Rheumatologic & Autoimmune Disorders', physician_task: 'mixed-management', relative_weight: 0.10 },
+            ],
+        },
+        {
+            system_key: 'cardiovascular', label: 'Cardiovascular System', weight_min: 6, weight_max: 12,
+            topics: [
+                { topic_key: 'acs-management', label: 'Acute Coronary Syndrome Management', physician_task: 'management', relative_weight: 0.25 },
+                { topic_key: 'heart-failure-management', label: 'Heart Failure Diagnosis & Management', physician_task: 'mixed-management', relative_weight: 0.20 },
+                { topic_key: 'dysrhythmia-management', label: 'Dysrhythmia Recognition & Treatment', physician_task: 'mixed-management', relative_weight: 0.20 },
+                { topic_key: 'hypertension-management', label: 'Hypertension Evaluation & Management', physician_task: 'management', relative_weight: 0.20 },
+                { topic_key: 'peripheral-vascular', label: 'Peripheral Vascular Disease', physician_task: 'mixed-management', relative_weight: 0.15 },
+            ],
+        },
+        {
+            system_key: 'respiratory', label: 'Respiratory System', weight_min: 5, weight_max: 10,
+            topics: [
+                { topic_key: 'pneumonia-management', label: 'Pneumonia Diagnosis & Management', physician_task: 'mixed-management', relative_weight: 0.25 },
+                { topic_key: 'obstructive-management', label: 'Asthma & COPD Management', physician_task: 'management', relative_weight: 0.25 },
+                { topic_key: 'pulmonary-embolism', label: 'Pulmonary Embolism Diagnosis & Treatment', physician_task: 'mixed-management', relative_weight: 0.20 },
+                { topic_key: 'respiratory-failure', label: 'Respiratory Failure & Mechanical Ventilation', physician_task: 'management', relative_weight: 0.15 },
+                { topic_key: 'pleural-disorders', label: 'Pleural Disorders & Thoracic Conditions', physician_task: 'mixed-management', relative_weight: 0.15 },
+            ],
+        },
+        {
+            system_key: 'gastrointestinal', label: 'Gastrointestinal System', weight_min: 5, weight_max: 10,
+            topics: [
+                { topic_key: 'gi-bleeding', label: 'GI Bleeding Evaluation & Management', physician_task: 'mixed-management', relative_weight: 0.20 },
+                { topic_key: 'ibd-management', label: 'IBD Diagnosis & Management', physician_task: 'mixed-management', relative_weight: 0.15 },
+                { topic_key: 'liver-cirrhosis', label: 'Liver Disease & Cirrhosis Management', physician_task: 'mixed-management', relative_weight: 0.20 },
+                { topic_key: 'pancreatitis-clinical', label: 'Pancreatitis Diagnosis & Management', physician_task: 'mixed-management', relative_weight: 0.15 },
+                { topic_key: 'bowel-obstruction', label: 'Bowel Obstruction & Surgical Abdomen', physician_task: 'management', relative_weight: 0.15 },
+                { topic_key: 'colorectal-cancer-screening', label: 'Colorectal Cancer Screening & GI Malignancies', physician_task: 'management', relative_weight: 0.15 },
+            ],
+        },
+        {
+            system_key: 'renal-reproductive', label: 'Renal & Urinary System & Reproductive Systems', weight_min: 7, weight_max: 13,
+            topics: [
+                { topic_key: 'aki-management', label: 'Acute Kidney Injury Diagnosis & Management', physician_task: 'mixed-management', relative_weight: 0.20 },
+                { topic_key: 'ckd-management', label: 'Chronic Kidney Disease Management', physician_task: 'management', relative_weight: 0.15 },
+                { topic_key: 'uti-pyelonephritis', label: 'UTI & Pyelonephritis Management', physician_task: 'management', relative_weight: 0.15 },
+                { topic_key: 'sti-management', label: 'STI Diagnosis & Management', physician_task: 'mixed-management', relative_weight: 0.15 },
+                { topic_key: 'female-reproductive-clinical', label: 'Female Reproductive Disorders', physician_task: 'mixed-management', relative_weight: 0.15 },
+                { topic_key: 'male-reproductive-clinical', label: 'Male Reproductive Disorders & Urology', physician_task: 'mixed-management', relative_weight: 0.10 },
+                { topic_key: 'urologic-conditions', label: 'Urologic Conditions & Nephrolithiasis', physician_task: 'mixed-management', relative_weight: 0.10 },
+            ],
+        },
+        {
+            system_key: 'pregnancy-childbirth', label: 'Pregnancy, Childbirth & the Puerperium', weight_min: 3, weight_max: 7,
+            topics: [
+                { topic_key: 'prenatal-care', label: 'Prenatal Care & Antenatal Screening', physician_task: 'management', relative_weight: 0.25 },
+                { topic_key: 'obstetric-complications', label: 'Obstetric Complications', physician_task: 'diagnosis', relative_weight: 0.25 },
+                { topic_key: 'labor-delivery', label: 'Labor & Delivery Management', physician_task: 'management', relative_weight: 0.20 },
+                { topic_key: 'postpartum-care', label: 'Postpartum Complications & Care', physician_task: 'management', relative_weight: 0.15 },
+                { topic_key: 'newborn-care', label: 'Newborn Assessment & Care', physician_task: 'management', relative_weight: 0.15 },
+            ],
+        },
+        {
+            system_key: 'endocrine', label: 'Endocrine System', weight_min: 3, weight_max: 7,
+            topics: [
+                { topic_key: 'diabetes-clinical', label: 'Diabetes Management & Complications', physician_task: 'management', relative_weight: 0.30 },
+                { topic_key: 'thyroid-clinical', label: 'Thyroid Disorder Diagnosis & Treatment', physician_task: 'mixed-management', relative_weight: 0.25 },
+                { topic_key: 'adrenal-clinical', label: 'Adrenal Disorder Diagnosis & Treatment', physician_task: 'mixed-management', relative_weight: 0.15 },
+                { topic_key: 'pituitary-clinical', label: 'Pituitary Disorder Diagnosis & Treatment', physician_task: 'diagnosis', relative_weight: 0.15 },
+                { topic_key: 'metabolic-syndrome-clinical', label: 'Metabolic Syndrome & Obesity Management', physician_task: 'management', relative_weight: 0.15 },
+            ],
+        },
+        {
+            system_key: 'multisystem', label: 'Multisystem Processes & Disorders', weight_min: 4, weight_max: 8,
+            topics: [
+                { topic_key: 'sepsis-management', label: 'Sepsis & Infectious Emergency Management', physician_task: 'management', relative_weight: 0.20 },
+                { topic_key: 'shock-management', label: 'Shock Types & Resuscitation', physician_task: 'management', relative_weight: 0.20 },
+                { topic_key: 'autoimmune-clinical', label: 'Autoimmune Disorder Clinical Presentations', physician_task: 'diagnosis', relative_weight: 0.15 },
+                { topic_key: 'nutrition-clinical', label: 'Nutrition Disorders & Enteral/Parenteral Nutrition', physician_task: 'management', relative_weight: 0.15 },
+                { topic_key: 'fluid-electrolytes-clinical', label: 'Fluid & Electrolyte Management', physician_task: 'management', relative_weight: 0.15 },
+                { topic_key: 'trauma-clinical', label: 'Trauma Evaluation & Emergency Management', physician_task: 'management', relative_weight: 0.15 },
+            ],
+        },
+        {
+            system_key: 'biostatistics-epidemiology', label: 'Biostatistics & Epidemiology/Population Health', weight_min: 3, weight_max: 5,
+            topics: [
+                { topic_key: 'study-design-interpretation', label: 'Study Design Interpretation & Bias', physician_task: 'diagnosis', relative_weight: 0.30 },
+                { topic_key: 'screening-statistics', label: 'Screening Test Statistics & Clinical Utility', physician_task: 'diagnosis', relative_weight: 0.30 },
+                { topic_key: 'clinical-decision-making', label: 'Clinical Decision Making & Diagnostic Reasoning', physician_task: 'mixed-management', relative_weight: 0.25 },
+                { topic_key: 'evidence-based-practice', label: 'Evidence-Based Medicine & Guidelines', physician_task: 'mixed-management', relative_weight: 0.15 },
+            ],
+        },
+        {
+            system_key: 'social-sciences-ethics', label: 'Social Sciences, Legal/Ethical Issues & Systems-based Practice', weight_min: 10, weight_max: 15,
+            topics: [
+                { topic_key: 'informed-consent', label: 'Informed Consent & Decision-Making Capacity', physician_task: 'professionalism', relative_weight: 0.15 },
+                { topic_key: 'confidentiality-privacy', label: 'Confidentiality, Privacy & Disclosure', physician_task: 'professionalism', relative_weight: 0.15 },
+                { topic_key: 'end-of-life-care', label: 'End-of-Life Care & Advance Directives', physician_task: 'professionalism', relative_weight: 0.15 },
+                { topic_key: 'patient-autonomy', label: 'Patient Autonomy & Shared Decision Making', physician_task: 'professionalism', relative_weight: 0.10 },
+                { topic_key: 'healthcare-systems-clinical', label: 'Healthcare Systems & Resource Allocation', physician_task: 'systems-practice', relative_weight: 0.15 },
+                { topic_key: 'patient-safety-clinical', label: 'Patient Safety & Medical Errors', physician_task: 'systems-practice', relative_weight: 0.15 },
+                { topic_key: 'quality-improvement', label: 'Quality Improvement & Evidence-Based Practice', physician_task: 'systems-practice', relative_weight: 0.15 },
+            ],
+        },
+    ],
+};
+
 export const STEP1_BLUEPRINT: BlueprintFile = {
     exam_key: 'step1',
     label: 'USMLE Step 1',

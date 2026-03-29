@@ -69,6 +69,22 @@ interface TaxonomySystem {
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
+/**
+ * Look up the primary exam key for the user who owns a given card.
+ * Falls back to 'step1' if the user has no exam profile.
+ */
+function resolveExamKeyForCard(cardId: string): string {
+    const row = getDb().prepare(`
+        SELECT be.exam_key
+        FROM cards c
+        JOIN user_exam_profiles uep ON uep.user_id = c.user_id AND uep.is_primary = 1
+        JOIN blueprint_exams be ON be.id = uep.exam_id
+        WHERE c.id = ?
+        LIMIT 1
+    `).get(cardId) as { exam_key: string } | undefined;
+    return row?.exam_key ?? 'step1';
+}
+
 function fetchCardContent(cardId: string): { front: string; back: string } {
     const row = getDb().prepare(`
         SELECT n.fields AS note_fields
@@ -194,10 +210,11 @@ function upsertClassification(
 
 async function classifyCard(
     cardId: string,
-    examKey: string,
+    examKey?: string,
 ): Promise<ClassificationResponse> {
+    const resolvedExamKey = examKey ?? resolveExamKeyForCard(cardId);
     const { front, back } = fetchCardContent(cardId);
-    const { examId, taxonomy } = loadBlueprintTaxonomy(examKey);
+    const { examId, taxonomy } = loadBlueprintTaxonomy(resolvedExamKey);
 
     const response = await trackedCompletion({
         operation: 'classify',
@@ -222,13 +239,14 @@ async function classifyCard(
 
 async function classifyCardsBatch(
     cardIds: string[],
-    examKey: string,
+    examKey?: string,
     force: boolean = false,
 ): Promise<{ classified: number; skipped: number; errors: number }> {
+    const resolvedExamKey = examKey ?? (cardIds.length > 0 ? resolveExamKeyForCard(cardIds[0]) : 'step1');
     const examRow = getDb().prepare(
         'SELECT id FROM blueprint_exams WHERE exam_key = ?'
-    ).get(examKey) as { id: number } | undefined;
-    if (!examRow) throw new Error(`Exam not found: ${examKey}`);
+    ).get(resolvedExamKey) as { id: number } | undefined;
+    if (!examRow) throw new Error(`Exam not found: ${resolvedExamKey}`);
 
     let remaining = cardIds;
     let skipped = 0;
@@ -250,7 +268,7 @@ async function classifyCardsBatch(
     for (let i = 0; i < remaining.length; i++) {
         console.log(`[classify] ${i + 1}/${remaining.length}: ${remaining[i]}`);
         try {
-            await classifyCard(remaining[i], examKey);
+            await classifyCard(remaining[i], resolvedExamKey);
             classified++;
         } catch (err) {
             console.error(`[classify] failed for ${remaining[i]}:`, err);
@@ -532,10 +550,10 @@ function buildSessionQueue(userId: string, examKey: string, limit = 200): Sessio
 // ── IPC Registration ────────────────────────────────────────────────────────
 
 export function setupClassifyHandlers(): void {
-    instrumentedHandle('yield:classify-card', (_e, cardId: string, examKey: string) =>
+    instrumentedHandle('yield:classify-card', (_e, cardId: string, examKey?: string) =>
         classifyCard(cardId, examKey));
 
-    instrumentedHandle('yield:classify-batch', (_e, cardIds: string[], examKey: string, force?: boolean) =>
+    instrumentedHandle('yield:classify-batch', (_e, cardIds: string[], examKey?: string, force?: boolean) =>
         classifyCardsBatch(cardIds, examKey, force));
 
     instrumentedHandle('yield:get-scores', (_e, examKey: string, cardIds?: string[]) =>
