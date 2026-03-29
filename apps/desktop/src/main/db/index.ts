@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import { app } from 'electron';
 import path from 'node:path';
 import { MIGRATIONS } from './migrations';
-import { STEP1_BLUEPRINT, STEP2CK_BLUEPRINT } from './blueprints';
+import { STEP1_BLUEPRINT, STEP2CK_BLUEPRINT, STEP3_BLUEPRINT } from './blueprints';
 import { createLogger, consoleTransport } from '@sekel/observability';
 
 const log = createLogger({ module: 'db', transports: [consoleTransport] });
@@ -87,7 +87,7 @@ function seedBlueprints(database: Database.Database): void {
             relative_weight = excluded.relative_weight
     `);
 
-    for (const bp of [STEP1_BLUEPRINT, STEP2CK_BLUEPRINT]) {
+    for (const bp of [STEP1_BLUEPRINT, STEP2CK_BLUEPRINT, STEP3_BLUEPRINT]) {
         // Check per exam_key so existing Step 1 installs still get Step 2 CK seeded
         const existing = selectExam.get(bp.exam_key) as { id: number } | undefined;
         if (existing) continue;
