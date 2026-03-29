@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import { app } from 'electron';
 import path from 'node:path';
 import { MIGRATIONS } from './migrations';
-import { STEP1_BLUEPRINT } from './blueprints';
+import { STEP1_BLUEPRINT, STEP2CK_BLUEPRINT } from './blueprints';
 import { createLogger, consoleTransport } from '@sekel/observability';
 
 const log = createLogger({ module: 'db', transports: [consoleTransport] });
@@ -60,12 +60,9 @@ function runMigrations(database: Database.Database): void {
 // Seeds exam blueprint data on first run. Idempotent via ON CONFLICT.
 
 function seedBlueprints(database: Database.Database): void {
-    const row = database.prepare('SELECT COUNT(*) as c FROM blueprint_exams').get() as { c: number };
-    if (row.c > 0) return; // already seeded
-
-    const bp = STEP1_BLUEPRINT;
     const now = new Date().toISOString();
 
+    const selectExam = database.prepare('SELECT id FROM blueprint_exams WHERE exam_key = ?');
     const upsertExam = database.prepare(`
         INSERT INTO blueprint_exams (exam_key, label, source_url, version, updated_at)
         VALUES (?, ?, ?, ?, ?)
@@ -73,7 +70,6 @@ function seedBlueprints(database: Database.Database): void {
             label = excluded.label, source_url = excluded.source_url,
             version = excluded.version, updated_at = excluded.updated_at
     `);
-    const selectExamId = database.prepare('SELECT id FROM blueprint_exams WHERE exam_key = ?');
     const upsertSystem = database.prepare(`
         INSERT INTO blueprint_systems (exam_id, system_key, label, weight_min, weight_max)
         VALUES (?, ?, ?, ?, ?)
@@ -91,21 +87,27 @@ function seedBlueprints(database: Database.Database): void {
             relative_weight = excluded.relative_weight
     `);
 
-    const seed = database.transaction(() => {
-        upsertExam.run(bp.exam_key, bp.label, bp.source_url ?? null, bp.version ?? null, now);
-        const examId = (selectExamId.get(bp.exam_key) as { id: number }).id;
+    for (const bp of [STEP1_BLUEPRINT, STEP2CK_BLUEPRINT]) {
+        // Check per exam_key so existing Step 1 installs still get Step 2 CK seeded
+        const existing = selectExam.get(bp.exam_key) as { id: number } | undefined;
+        if (existing) continue;
 
-        for (const sys of bp.systems) {
-            upsertSystem.run(examId, sys.system_key, sys.label, sys.weight_min ?? null, sys.weight_max ?? null);
-            const systemId = (selectSystemId.get(examId, sys.system_key) as { id: number }).id;
+        const seed = database.transaction(() => {
+            upsertExam.run(bp.exam_key, bp.label, bp.source_url ?? null, bp.version ?? null, now);
+            const examId = (selectExam.get(bp.exam_key) as { id: number }).id;
 
-            for (const topic of sys.topics) {
-                upsertTopic.run(systemId, topic.topic_key, topic.label,
-                    topic.physician_task ?? null, topic.relative_weight ?? null);
+            for (const sys of bp.systems) {
+                upsertSystem.run(examId, sys.system_key, sys.label, sys.weight_min ?? null, sys.weight_max ?? null);
+                const systemId = (selectSystemId.get(examId, sys.system_key) as { id: number }).id;
+
+                for (const topic of sys.topics) {
+                    upsertTopic.run(systemId, topic.topic_key, topic.label,
+                        topic.physician_task ?? null, topic.relative_weight ?? null);
+                }
             }
-        }
-    });
+        });
 
-    seed();
-    log.info('Seeded blueprint', { label: bp.label, systems: bp.systems.length });
+        seed();
+        log.info('Seeded blueprint', { label: bp.label, systems: bp.systems.length });
+    }
 }
