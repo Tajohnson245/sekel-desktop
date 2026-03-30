@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CalendarDays, Plus, ChevronDown, ChevronUp, RotateCcw, Archive, Trash2 } from 'lucide-react';
+import { CalendarDays, Plus, ChevronDown, ChevronUp, RotateCcw, Archive, Trash2, BookOpen } from 'lucide-react';
 import { useExamProfile } from '../../hooks/useExamProfile';
 import {
     useComputedSuggestion,
@@ -175,6 +175,7 @@ function ActivePlanDetail({ plan, examLabel }: { plan: Plan; examLabel: string }
     const coveragePct = Math.round(snapshot.projectedCoverage * 100);
     const diverged    = plan.cardsPerDay !== plan.suggestedPerDay;
     const { data: progress } = usePlanProgress(plan);
+    const hasClassifiedCards = snapshot.systemCoverage.some(s => s.totalCards > 0);
 
     return (
         <>
@@ -323,24 +324,32 @@ function ActivePlanDetail({ plan, examLabel }: { plan: Plan; examLabel: string }
             {snapshot.systemCoverage.length > 0 && (
                 <section className="plan-card">
                     <h3 className="plan-section-title">{t('plan.system_coverage_title')}</h3>
-                    <div className="plan-table-wrap">
-                        <table className="plan-table plan-sys-table">
-                            <thead>
-                                <tr>
-                                    <th>{t('plan.col_system')}</th>
-                                    <th>{t('plan.col_blueprint_pct')}</th>
-                                    <th>{t('plan.col_cards_in_plan')}</th>
-                                    <th>{t('plan.col_coverage')}</th>
-                                    <th>{t('plan.col_performance_need')}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {snapshot.systemCoverage.map(sys => (
-                                    <SystemRow key={sys.systemKey} sys={sys} />
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                    {hasClassifiedCards ? (
+                        <div className="plan-table-wrap">
+                            <table className="plan-table plan-sys-table">
+                                <thead>
+                                    <tr>
+                                        <th>{t('plan.col_system')}</th>
+                                        <th>{t('plan.col_blueprint_pct')}</th>
+                                        <th>{t('plan.col_cards_in_plan')}</th>
+                                        <th>{t('plan.col_coverage')}</th>
+                                        <th>{t('plan.col_performance_need')}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {snapshot.systemCoverage.map(sys => (
+                                        <SystemRow key={sys.systemKey} sys={sys} />
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <div className="plan-coverage-empty">
+                            <BookOpen size={32} className="plan-coverage-empty-icon" />
+                            <p className="plan-coverage-empty-title">{t('plan.coverage_unclassified_title')}</p>
+                            <p className="plan-coverage-empty-desc">{t('plan.coverage_unclassified_desc')}</p>
+                        </div>
+                    )}
                 </section>
             )}
         </>

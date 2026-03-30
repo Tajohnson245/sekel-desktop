@@ -698,6 +698,38 @@
   border-color: var(--accent);
 }
 
+/* ── System coverage empty state ─────────────────────────────────────────── */
+
+.plan-coverage-empty {
+  display:        flex;
+  flex-direction: column;
+  align-items:    center;
+  text-align:     center;
+  padding:        var(--space-xl) var(--space-lg);
+  gap:            var(--space-sm);
+}
+
+.plan-coverage-empty-icon {
+  color:   var(--mist);
+  opacity: 0.6;
+  margin-bottom: var(--space-xs);
+}
+
+.plan-coverage-empty-title {
+  font-size:   15px;
+  font-weight: 600;
+  color:       var(--fog);
+  margin:      0;
+}
+
+.plan-coverage-empty-desc {
+  font-size:  13px;
+  color:      var(--mist);
+  max-width:  420px;
+  line-height: 1.5;
+  margin:     0;
+}
+
 /* ── Live progress section ────────────────────────────────────────────────── */
 
 .plan-progress-section {
