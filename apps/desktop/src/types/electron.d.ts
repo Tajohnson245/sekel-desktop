@@ -285,6 +285,7 @@ interface ElectronYield {
     getScores:         (examKey: string, cardIds?: string[]) => Promise<YieldScoreRow[]>;
     getExplanation:    (cardId: string, examKey: string) => Promise<string>;
     buildSessionQueue: (userId: string, examKey: string, limit?: number) => Promise<SessionQueueCard[]>;
+    getDeckClassificationCount: (deckId: string, examKey: string) => Promise<{ classified: number; total: number }>;
 }
 
 export interface ClassificationResult {

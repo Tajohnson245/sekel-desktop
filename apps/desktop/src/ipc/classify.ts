@@ -547,6 +547,24 @@ function buildSessionQueue(userId: string, examKey: string, limit = 200): Sessio
     });
 }
 
+// ── Per-deck classification count ────────────────────────────────────────────
+
+function getDeckClassificationCount(deckId: string, examKey: string): { classified: number; total: number } {
+    const row = getDb().prepare(`
+        SELECT
+            COUNT(DISTINCT c.id)       AS total,
+            COUNT(DISTINCT cc.card_id) AS classified
+        FROM cards c
+        JOIN notes n ON c.note_id = n.id
+        JOIN blueprint_exams be ON be.exam_key = ?
+        LEFT JOIN card_classifications cc
+            ON cc.card_id = c.id AND cc.exam_id = be.id
+        WHERE n.deck_id = ?
+    `).get(examKey, deckId) as { total: number; classified: number } | undefined;
+
+    return { classified: row?.classified ?? 0, total: row?.total ?? 0 };
+}
+
 // ── IPC Registration ────────────────────────────────────────────────────────
 
 export function setupClassifyHandlers(): void {
@@ -567,4 +585,7 @@ export function setupClassifyHandlers(): void {
 
     instrumentedHandle('classify:getSystemPerformanceNeeds', (_e, userId: string, examKey: string) =>
         getSystemPerformanceNeeds(userId, examKey));
+
+    instrumentedHandle('yield:getDeckClassificationCount', (_e, deckId: string, examKey: string) =>
+        getDeckClassificationCount(deckId, examKey));
 }
