@@ -598,17 +598,16 @@
   margin-bottom: var(--space-sm);
 }
 
-.plan-slider-ticks {
-  display:         flex;
-  justify-content: space-between;
-  font-family:     var(--font-mono);
-  font-size:       11px;
-  color:           var(--mist);
+.plan-slider-label-group {
+  display:        flex;
+  flex-direction: column;
+  gap:            2px;
 }
 
-.plan-slider-tick-suggested {
+.plan-slider-suggested {
+  font-family: var(--font-mono);
+  font-size:   11px;
   color:       var(--accent);
-  font-weight: 600;
 }
 
 /* Live preview */
