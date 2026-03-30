@@ -640,7 +640,10 @@ function CreatePlanPanel({
                 {/* ── Slider ───────────────────────────────────────────────── */}
                 <div className="plan-slider-section">
                     <div className="plan-slider-header">
-                        <span className="plan-slider-label">{t('plan.adjust_label')}</span>
+                        <div className="plan-slider-label-group">
+                            <span className="plan-slider-label">{t('plan.adjust_label')}</span>
+                            <span className="plan-slider-suggested">{t('plan.suggested')}: {suggestedRate}</span>
+                        </div>
                         <span className="plan-slider-value">{effectiveRate}</span>
                     </div>
                     <input
@@ -651,12 +654,6 @@ function CreatePlanPanel({
                         onChange={e => setCardsPerDay(Number(e.target.value))}
                         className="plan-slider"
                     />
-                    <div className="plan-slider-ticks">
-                        <span>1</span>
-                        <span>{Math.round(suggestedRate / 2)}</span>
-                        <span className="plan-slider-tick-suggested">{suggestedRate} ({t('plan.suggested')})</span>
-                        <span>{Math.min(100, suggestedRate * 2)}</span>
-                    </div>
                 </div>
 
                 {/* ── Live preview ──────────────────────────────────────────── */}
