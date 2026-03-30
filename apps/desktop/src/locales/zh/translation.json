@@ -145,6 +145,12 @@
             "slowest_cards": "最慢的卡片",
             "seconds_abbrev": "秒"
         },
+        "missed_deck": {
+            "button": "从 {{count}} 张遗忘卡片创建牌组",
+            "create": "创建牌组",
+            "success": "牌组「{{name}}」已创建",
+            "error": "创建遗忘卡片牌组失败"
+        },
         "timer": {
             "auto_flipped": "时间到——已显示答案",
             "auto_graded_again": "时间到——已评为重来"

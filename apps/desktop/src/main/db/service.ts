@@ -7,6 +7,7 @@ import type {
     Note, NoteInsert, NoteUpdate,
     NoteType, NoteTypeInsert,
     Card, CardInsert,
+    CardTemplate,
     Review,
     Media, MediaInsert,
     DeckSession,
@@ -795,7 +796,7 @@ export function fetchSessionAnalytics(sessionId: string): SessionAnalytics | nul
         return {
             retentionTrend: [],
             ratingDistribution: [],
-            lapseStats: { lapseCount: 0, lapseRate: 0, totalReviews: 0, topForgottenCards: [] },
+            lapseStats: { lapseCount: 0, lapseRate: 0, totalReviews: 0, topForgottenCards: [], missedCardIds: [] },
         };
     }
 
@@ -901,9 +902,64 @@ export function fetchSessionAnalytics(sessionId: string): SessionAnalytics | nul
             lapseRate: totalReviews > 0 ? (againCount / totalReviews) * 100 : 0,
             totalReviews,
             topForgottenCards,
+            missedCardIds: [...cardAgainCounts.keys()],
         },
         timeStats,
     };
+}
+
+export function createDeckFromMissedCards(userId: string, deckName: string, cardIds: string[]): Deck {
+    const db = getDb();
+    let newDeck!: Deck;
+
+    db.transaction(() => {
+        newDeck = createDeck({ user_id: userId, name: deckName, description: null, algorithm: 'fsrs', anki_id: null, parent_id: null });
+
+        for (const cardId of cardIds) {
+            type Row = { note_type_id: string; note_fields: string; note_tags: string; nt_templates: string };
+            const row = db.prepare(`
+                SELECT n.note_type_id, n.fields AS note_fields, n.tags AS note_tags,
+                       nt.card_templates AS nt_templates
+                FROM cards c
+                JOIN notes n ON c.note_id = n.id
+                JOIN note_types nt ON n.note_type_id = nt.id
+                WHERE c.id = ?
+            `).get(cardId) as Row | undefined;
+
+            if (!row) continue;
+
+            const fields = j<Record<string, string>>(row.note_fields);
+            const tags = j<string[]>(row.note_tags);
+            const templates = j<CardTemplate[]>(row.nt_templates);
+
+            const note = createNote({
+                user_id: userId,
+                deck_id: newDeck.id,
+                note_type_id: row.note_type_id,
+                fields,
+                tags,
+            });
+
+            for (let i = 0; i < templates.length; i++) {
+                createCard({
+                    user_id: userId,
+                    note_id: note.id,
+                    template_index: i,
+                    state: 'new',
+                    due: new Date().toISOString(),
+                    stability: 0,
+                    difficulty: 0,
+                    elapsed_days: 0,
+                    scheduled_days: 0,
+                    reps: 0,
+                    lapses: 0,
+                    last_review: null,
+                });
+            }
+        }
+    })();
+
+    return newDeck;
 }
 
 // ── Media ─────────────────────────────────────────────────────────────────────

@@ -15,6 +15,7 @@ import {
     fetchAllCardsForStudy,
     fetchAllCardsForDeck,
     updateCardAfterReview,
+    createDeckFromMissedCards,
     type DeckStats,
     type CardWithNote,
 } from '../lib/queries';
@@ -119,6 +120,18 @@ export function useCreateDeck() {
 
     return useMutation({
         mutationFn: (deck: DeckInsert) => createDeck(deck),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: deckKeys.all });
+        },
+    });
+}
+
+export function useCreateMissedCardsDeck() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ userId, deckName, cardIds }: { userId: string; deckName: string; cardIds: string[] }) =>
+            createDeckFromMissedCards(userId, deckName, cardIds),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: deckKeys.all });
         },

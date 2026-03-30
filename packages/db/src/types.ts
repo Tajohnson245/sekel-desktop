@@ -225,6 +225,7 @@ export interface SessionAnalytics {
         lapseRate: number;
         totalReviews: number;
         topForgottenCards: TopForgottenCard[];
+        missedCardIds: string[];
     };
     timeStats?: {
         averageTimeMs: number;

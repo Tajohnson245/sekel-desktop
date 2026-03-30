@@ -68,6 +68,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         createDeckSession:     (userId: string, deckId: string) => ipcRenderer.invoke('db:createDeckSession', userId, deckId),
         completeDeckSession:   (sessionId: string) => ipcRenderer.invoke('db:completeDeckSession', sessionId),
         fetchSessionAnalytics: (sessionId: string) => ipcRenderer.invoke('db:fetchSessionAnalytics', sessionId),
+        createDeckFromMissedCards: (userId: string, deckName: string, cardIds: string[]) =>
+            ipcRenderer.invoke('db:createDeckFromMissedCards', { userId, deckName, cardIds }),
         // Drafts
         fetchDrafts:           (userId: string) => ipcRenderer.invoke('db:fetchDrafts', userId),
         saveDraft:             (userId: string, draft: unknown) => ipcRenderer.invoke('db:saveDraft', userId, draft),

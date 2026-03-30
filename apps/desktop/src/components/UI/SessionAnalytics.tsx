@@ -1,11 +1,18 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle } from 'lucide-react';
 import { Button, Loader, RetentionTrendChart, RatingDistributionChart, LapseStatsChart, TimePerCardChart } from '@sekel/components';
 import { useSessionAnalytics } from '../../hooks/useSessions';
+import { useCreateMissedCardsDeck } from '../../hooks/useDecks';
+import { useToast } from './Toast';
+
+const MISSED_DECK_THRESHOLD = 5;
 
 interface SessionAnalyticsProps {
     sessionId: string;
     reviewedCount: number;
+    userId: string;
+    deckName: string;
     onBack: () => void;
     onStudyAgain: () => void;
 }
@@ -13,11 +20,33 @@ interface SessionAnalyticsProps {
 export function SessionAnalytics({
     sessionId,
     reviewedCount,
+    userId,
+    deckName,
     onBack,
     onStudyAgain,
 }: SessionAnalyticsProps) {
     const { t } = useTranslation();
     const { data: analytics, isLoading, isError } = useSessionAnalytics(sessionId, true);
+    const createMissedDeck = useCreateMissedCardsDeck();
+    const { showToast } = useToast();
+
+    const [showNameInput, setShowNameInput] = useState(false);
+    const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const [deckNameInput, setDeckNameInput] = useState(`Missed – ${deckName} – ${today}`);
+
+    const missedCardIds = analytics?.lapseStats.missedCardIds ?? [];
+    const showMissedDeckButton = missedCardIds.length >= MISSED_DECK_THRESHOLD;
+
+    async function handleCreateMissedDeck() {
+        if (!deckNameInput.trim()) return;
+        try {
+            await createMissedDeck.mutateAsync({ userId, deckName: deckNameInput.trim(), cardIds: missedCardIds });
+            showToast(t('study.missed_deck.success', { name: deckNameInput.trim() }));
+            setShowNameInput(false);
+        } catch {
+            showToast(t('study.missed_deck.error'), 'error');
+        }
+    }
 
     return (
         <div className="study-session" data-testid="study-session">
@@ -51,6 +80,43 @@ export function SessionAnalytics({
                                 <TimePerCardChart timeStats={analytics.timeStats} />
                             )}
                         </div>
+                    </div>
+                )}
+
+                {showMissedDeckButton && !isLoading && (
+                    <div className="missed-deck-section">
+                        {!showNameInput ? (
+                            <Button variant="secondary" onClick={() => setShowNameInput(true)}>
+                                {t('study.missed_deck.button', { count: missedCardIds.length })}
+                            </Button>
+                        ) : (
+                            <div className="missed-deck-form">
+                                <input
+                                    className="missed-deck-input"
+                                    type="text"
+                                    value={deckNameInput}
+                                    onChange={(e) => setDeckNameInput(e.target.value)}
+                                    maxLength={500}
+                                    autoFocus
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleCreateMissedDeck();
+                                        if (e.key === 'Escape') setShowNameInput(false);
+                                    }}
+                                />
+                                <div className="missed-deck-form-actions">
+                                    <Button
+                                        variant="primary"
+                                        onClick={handleCreateMissedDeck}
+                                        disabled={!deckNameInput.trim() || createMissedDeck.isPending}
+                                    >
+                                        {createMissedDeck.isPending ? t('common.loading') : t('study.missed_deck.create')}
+                                    </Button>
+                                    <Button variant="secondary" onClick={() => setShowNameInput(false)}>
+                                        {t('common.cancel')}
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 

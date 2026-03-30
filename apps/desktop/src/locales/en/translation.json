@@ -234,6 +234,12 @@
             "slowest_cards": "Slowest Cards",
             "seconds_abbrev": "Seconds"
         },
+        "missed_deck": {
+            "button": "Create deck from {{count}} missed cards",
+            "create": "Create Deck",
+            "success": "Deck \"{{name}}\" created",
+            "error": "Failed to create missed cards deck"
+        },
         "timer": {
             "auto_flipped": "Time's up — answer revealed",
             "auto_graded_again": "Time's up — graded as Again"

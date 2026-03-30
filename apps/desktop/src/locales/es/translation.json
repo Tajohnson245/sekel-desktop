@@ -186,6 +186,12 @@
             "slowest_cards": "Tarjetas más lentas",
             "seconds_abbrev": "Segundos"
         },
+        "missed_deck": {
+            "button": "Crear mazo de {{count}} tarjetas falladas",
+            "create": "Crear mazo",
+            "success": "Mazo \"{{name}}\" creado",
+            "error": "Error al crear el mazo de tarjetas falladas"
+        },
         "timer": {
             "auto_flipped": "Se acabó el tiempo — respuesta revelada",
             "auto_graded_again": "Se acabó el tiempo — calificado como Otra vez"
