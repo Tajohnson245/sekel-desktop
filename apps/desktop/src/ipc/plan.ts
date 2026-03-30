@@ -11,7 +11,9 @@ import {
     getPlanRebalanceDelta,
     getDeckUnseenCounts,
     getPlanProgress,
+    getPlanById,
 } from '../main/db/planService';
+import { exportPlanToFile } from '../main/plan/exportService';
 
 export function setupPlanHandlers(): void {
 
@@ -39,9 +41,17 @@ export function setupPlanHandlers(): void {
     instrumentedHandle('plan:list', (_e, userId: string) =>
         listPlans(userId));
 
-    // ── Archive a plan ────────────────────────────────────────────────────────
-    instrumentedHandle('plan:archive', (_e, userId: string, planId: string) =>
-        archivePlan(userId, planId));
+    // ── Archive a plan + auto-save JSON to userData/archived-plans/ ──────────
+    instrumentedHandle('plan:archive', (_e, userId: string, planId: string) => {
+        archivePlan(userId, planId);
+        const plan = getPlanById(userId, planId);
+        if (!plan) return '';
+        try {
+            return exportPlanToFile(plan);
+        } catch {
+            return '';
+        }
+    });
 
     // ── Delete a plan ─────────────────────────────────────────────────────────
     instrumentedHandle('plan:delete', (_e, userId: string, planId: string) =>

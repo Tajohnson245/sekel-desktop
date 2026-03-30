@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CalendarDays, Plus, ChevronDown, ChevronUp, RotateCcw, Archive, Trash2, BookOpen } from 'lucide-react';
+import { CalendarDays, Plus, ChevronDown, ChevronUp, RotateCcw, Archive, Trash2, BookOpen, LayoutList } from 'lucide-react';
+import { useToast } from '../UI';
 import { useExamProfile } from '../../hooks/useExamProfile';
 import {
     useComputedSuggestion,
@@ -732,6 +733,62 @@ function CreatePlanPanel({
     );
 }
 
+// ── All plans panel (slide-in list of all plans) ──────────────────────────────
+
+function AllPlansPanel({
+    allPlans,
+    onBack,
+}: {
+    allPlans: Plan[];
+    onBack: () => void;
+}) {
+    const { t }  = useTranslation();
+    const activePlan    = allPlans.find(p => p.status === 'active') ?? null;
+    const archivedPlans = allPlans.filter(p => p.status === 'archived');
+
+    return (
+        <div className="plan-page">
+            <div className="plan-create-header">
+                <button className="btn btn-ghost btn-sm" onClick={onBack}>
+                    ← {t('common.back')}
+                </button>
+                <h2>{t('plan.all_plans')}</h2>
+            </div>
+
+            {activePlan && (
+                <div className="plan-card plan-list-card plan-list-card--active">
+                    <div className="plan-list-card-row">
+                        <div className="plan-list-card-left">
+                            <span className="plan-list-card-name">{activePlan.name}</span>
+                            <span className="plan-list-card-meta">
+                                {fmtDate(activePlan.createdAt)} · {activePlan.cardsPerDay} {t('plan.cards_day_short')} · {Math.round(activePlan.snapshot.projectedCoverage * 100)}%
+                            </span>
+                        </div>
+                        <span className="plan-list-badge plan-list-badge--active">{t('plan.status_active')}</span>
+                    </div>
+                </div>
+            )}
+
+            {archivedPlans.length > 0 && (
+                <section className="plan-card plan-history-section">
+                    <div className="plan-history-list">
+                        {archivedPlans.map(p => (
+                            <HistoryRow key={p.id} plan={p} />
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            {allPlans.length === 0 && (
+                <div className="plan-empty-state">
+                    <CalendarDays size={48} className="plan-empty-icon" />
+                    <p>{t('plan.no_plans_desc')}</p>
+                </div>
+            )}
+        </div>
+    );
+}
+
 // ── No exam state ─────────────────────────────────────────────────────────────
 
 function NoExamState() {
@@ -776,8 +833,10 @@ function NoPlansState({ onCreatePlan }: { onCreatePlan: () => void }) {
 
 export default function PlanPage() {
     const { t } = useTranslation();
+    const { showToast } = useToast();
     const [isCreating, setIsCreating] = useState(false);
     const [historyOpen, setHistoryOpen] = useState(false);
+    const [allPlansOpen, setAllPlansOpen] = useState(false);
 
     const { data: examProfile, isLoading: examLoading } = useExamProfile();
     const examKey   = examProfile?.exam_key ?? null;
@@ -791,6 +850,11 @@ export default function PlanPage() {
     const activePlan  = activePlanResult?.plan ?? null;
     const archivedPlans = allPlans.filter(p => p.status === 'archived');
     const isLoading   = examLoading || activePlanLoading || plansLoading;
+
+    // All plans panel
+    if (allPlansOpen) {
+        return <AllPlansPanel allPlans={allPlans} onBack={() => setAllPlansOpen(false)} />;
+    }
 
     // Creation panel
     if (isCreating && examKey) {
@@ -817,8 +881,51 @@ export default function PlanPage() {
         );
     }
 
-    // No plans yet
-    if (!activePlan) return <NoPlansState onCreatePlan={() => setIsCreating(true)} />;
+    // No active plan
+    if (!activePlan) {
+        if (archivedPlans.length > 0) {
+            return (
+                <div className="plan-page">
+                    <div className="page-header plan-page-header">
+                        <div><h2>{t('plan.title')}</h2></div>
+                        <div className="plan-header-actions">
+                            <button
+                                className="btn btn-ghost btn-sm"
+                                onClick={() => setAllPlansOpen(true)}
+                            >
+                                <LayoutList size={15} />
+                                {t('plan.all_plans')}
+                            </button>
+                            <button className="btn btn-primary" onClick={() => setIsCreating(true)}>
+                                <Plus size={15} />
+                                {t('plan.new_plan')}
+                            </button>
+                        </div>
+                    </div>
+                    <div className="plan-empty-state plan-empty-no-plans">
+                        <Archive size={48} className="plan-empty-icon" />
+                        <h3>{t('plan.no_active_plan_title')}</h3>
+                        <p>{t('plan.no_active_plan_desc')}</p>
+                    </div>
+                    <section className="plan-card plan-history-section">
+                        <button
+                            className="plan-history-toggle"
+                            onClick={() => setHistoryOpen(v => !v)}
+                        >
+                            <span className="plan-section-title">{t('plan.history_title')} ({archivedPlans.length})</span>
+                            {historyOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                        </button>
+                        {historyOpen && (
+                            <div className="plan-history-list">
+                                {archivedPlans.map(p => <HistoryRow key={p.id} plan={p} />)}
+                            </div>
+                        )}
+                    </section>
+                </div>
+            );
+        }
+        return <NoPlansState onCreatePlan={() => setIsCreating(true)} />;
+    }
 
     return (
         <div className="plan-page">
@@ -831,8 +938,17 @@ export default function PlanPage() {
                 <div className="plan-header-actions">
                     <button
                         className="btn btn-ghost btn-sm"
+                        onClick={() => setAllPlansOpen(true)}
+                    >
+                        <LayoutList size={15} />
+                        {t('plan.all_plans')}
+                    </button>
+                    <button
+                        className="btn btn-ghost btn-sm"
                         title={t('plan.archive_active')}
-                        onClick={() => archivePlanMutation.mutate(activePlan.id)}
+                        onClick={() => archivePlanMutation.mutate(activePlan.id, {
+                            onSuccess: () => showToast(t('plan.archived_saved'), 'success'),
+                        })}
                         disabled={archivePlanMutation.isPending}
                     >
                         <Archive size={15} />

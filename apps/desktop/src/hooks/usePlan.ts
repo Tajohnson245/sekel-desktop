@@ -153,10 +153,13 @@ export function useArchivePlan() {
 
     return useMutation({
         mutationFn: (planId: string) => archivePlan(userId!, planId),
-        onSuccess: () => {
+        onSuccess: (_filePath, planId) => {
             clearActivePlan();
-            // Immediately clear the cache so PlanPage shows NoPlansState without a flash
             qc.setQueryData(planKeys.active(userId ?? ''), null);
+            // Immediately update list cache so archived plan stays visible without refetch delay
+            qc.setQueryData(planKeys.list(userId ?? ''), (old: Plan[] | undefined) =>
+                old?.map(p => p.id === planId ? { ...p, status: 'archived' as const } : p) ?? []
+            );
             qc.invalidateQueries({ queryKey: planKeys.list(userId ?? '') });
             qc.invalidateQueries({ queryKey: ['decks'] });
         },

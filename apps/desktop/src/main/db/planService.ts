@@ -464,6 +464,13 @@ export function archivePlan(userId: string, planId: string): void {
     ).run('archived', now, planId, userId);
 }
 
+export function getPlanById(userId: string, planId: string): Plan | null {
+    const row = getDb().prepare(
+        'SELECT * FROM plans WHERE id = ? AND user_id = ?'
+    ).get(planId, userId) as PlanRow | undefined;
+    return row ? rowToPlan(row) : null;
+}
+
 // ── deletePlan ────────────────────────────────────────────────────────────────
 
 export function deletePlan(userId: string, planId: string): void {
