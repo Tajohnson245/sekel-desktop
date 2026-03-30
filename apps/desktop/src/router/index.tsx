@@ -10,6 +10,7 @@ import ImageOcclusionEditor from '../components/ImageOcclusion/ImageOcclusionEdi
 import StatisticsPage from '../components/Statistics/StatisticsPage';
 import { UserProfilePage } from '../components/Profile/UserProfilePage';
 import AdminDashboard from '../components/Admin/AdminDashboard';
+import PlanPage from '../components/Plan/PlanPage';
 
 export const router = createMemoryRouter([
     {
@@ -17,6 +18,7 @@ export const router = createMemoryRouter([
         element: <AppLayout />,
         children: [
             { index: true, element: <Dashboard /> },
+            { path: 'plan', element: <PlanPage /> },
             { path: 'decks', element: <DeckList /> },
             { path: 'decks/:deckId', element: <DeckDetail /> },
             {

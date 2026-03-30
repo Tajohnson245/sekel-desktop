@@ -30,7 +30,8 @@
         "drafts": "Brouillons",
         "new_deck": "Nouveau Paquet",
         "image_occlusion": "Cartes Visuelles",
-        "statistics": "Statistiques"
+        "statistics": "Statistiques",
+        "plan": "Plan"
     },
     "dashboard": {
         "welcome": "Bon retour, {{name}} !",

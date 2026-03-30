@@ -91,3 +91,20 @@ export const upsertExamProfile = (userId: string, examId: number, examDate: stri
 export const updateExamProfile = (userId: string, updates: { exam_date?: string; session_mode?: string }) =>
     examApi().updateProfile(userId, updates);
 export const fetchAllCardIds   = (userId: string) => examApi().fetchAllCardIds(userId);
+
+// ── Plan ──────────────────────────────────────────────────────────────────────
+export type { PlanResult, WeeklyProjection, SystemCoverageRow, RebalanceDelta, Plan, ActivePlanResult, DeckUnseenCount, PlanProgress } from '../types/electron';
+const planApi = () => window.electronAPI.plan;
+export const computePlan          = (userId: string, examKey: string, deckIds?: string[]) => planApi().compute(userId, examKey, deckIds);
+export const getPlanProgress      = (userId: string, activatedAt: string, deckFilter: string[] | null) => planApi().getProgress(userId, activatedAt, deckFilter);
+export const getDeckUnseenCounts  = (userId: string) => planApi().getDeckUnseenCounts(userId);
+export const createPlan        = (userId: string, examKey: string, cardsPerDay: number, name: string, snapshot: import('../types/electron').PlanResult) =>
+    planApi().create(userId, examKey, cardsPerDay, name, snapshot);
+export const getActivePlan     = (userId: string, examKey?: string) => planApi().getActive(userId, examKey);
+export const listPlans         = (userId: string) => planApi().list(userId);
+export const archivePlan       = (userId: string, planId: string) => planApi().archive(userId, planId);
+export const deletePlan        = (userId: string, planId: string) => planApi().delete(userId, planId);
+export const reactivatePlan    = (userId: string, planId: string) => planApi().reactivate(userId, planId);
+export const rebalancePlan     = (userId: string, examKey: string) => planApi().rebalance(userId, examKey);
+export const setPlanOverride   = (userId: string, newPerDayOverride: number) => planApi().setOverride(userId, newPerDayOverride);
+export const clearPlanOverride = (userId: string) => planApi().clearOverride(userId);

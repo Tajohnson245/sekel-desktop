@@ -357,6 +357,112 @@ interface ElectronAdmin {
     getFeedback:   (email: string) => Promise<(import('@sekel/db').Feedback & { user_email: string })[]>;
 }
 
+// ── Plan Mode ─────────────────────────────────────────────────────────────────
+
+export interface WeeklyProjection {
+    week: number;
+    newCardsPerDay: number;
+    estimatedReviewsPerDay: number;
+    estimatedTotalMinutes: number;
+}
+
+export interface SystemCoverageRow {
+    systemKey: string;
+    label: string;
+    blueprintWeightMidpoint: number;
+    totalCards: number;
+    cardsInPlan: number;
+    cardsSkipped: number;
+    coveragePct: number;
+    performanceNeed: number;
+}
+
+export interface DeckUnseenCount {
+    deckId: string;
+    name: string;
+    unseenCount: number;
+}
+
+export interface PlanResult {
+    examKey: string;
+    examDate: string;
+    availableDays: number;
+    unseenTotal: number;
+    unseenHighYield: number;
+    unseenMediumYield: number;
+    unseenLowYield: number;
+    unseenUnclassified: number;
+    recommendedNewPerDay: number;
+    projectedCoverage: number;
+    projectedCoverageCount: number;
+    weeklyProjection: WeeklyProjection[];
+    systemCoverage: SystemCoverageRow[];
+    dailyTimeBudgetMinutes: number;
+    projectedPeakDailyMinutes: number;
+    /** Deck IDs this plan was scoped to; null = all decks. */
+    deckFilter: string[] | null;
+    generatedAt: string;
+}
+
+export interface RebalanceDelta {
+    previousNewPerDay: number;
+    newNewPerDay: number;
+    daysMissed: number;
+    availableDaysRemaining: number;
+    canExtendTimeline: boolean;
+}
+
+export interface Plan {
+    id: string;
+    userId: string;
+    examKey: string;
+    name: string;
+    /** The number the user chose to commit to. */
+    cardsPerDay: number;
+    /** What computePlan recommended at creation time. */
+    suggestedPerDay: number;
+    /** Full PlanResult snapshot at commit time. */
+    snapshot: PlanResult;
+    /** Deck IDs this plan was scoped to; null = all decks. */
+    deckFilter: string[] | null;
+    status: 'active' | 'archived';
+    activatedAt: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface ActivePlanResult {
+    plan: Plan;
+    /** plan_override_expires_at from user_profiles; null when no override is active. */
+    overrideExpiresAt: string | null;
+    /** user_profiles.daily_new_limit — equals cardsPerDay normally, override value when active. */
+    currentDailyNewLimit: number;
+}
+
+export interface PlanProgress {
+    /** New cards introduced since plan was activated. */
+    studiedSincePlanStart: number;
+    /** Cards still in state = 'new' right now (within plan scope). */
+    currentUnseen: number;
+    /** New cards introduced today. */
+    studiedToday: number;
+}
+
+interface ElectronPlan {
+    compute:              (userId: string, examKey: string, deckIds?: string[]) => Promise<PlanResult | null>;
+    getDeckUnseenCounts:  (userId: string) => Promise<DeckUnseenCount[]>;
+    create:        (userId: string, examKey: string, cardsPerDay: number, name: string, snapshot: PlanResult) => Promise<Plan | null>;
+    getActive:     (userId: string, examKey?: string) => Promise<ActivePlanResult | null>;
+    list:          (userId: string) => Promise<Plan[]>;
+    archive:       (userId: string, planId: string) => Promise<void>;
+    delete:        (userId: string, planId: string) => Promise<void>;
+    reactivate:    (userId: string, planId: string) => Promise<Plan | null>;
+    rebalance:     (userId: string, examKey: string) => Promise<RebalanceDelta | null>;
+    getProgress:   (userId: string, activatedAt: string, deckFilter: string[] | null) => Promise<PlanProgress | null>;
+    setOverride:   (userId: string, newPerDayOverride: number) => Promise<void>;
+    clearOverride: (userId: string) => Promise<void>;
+}
+
 interface ElectronAPI {
     generateCards: (text: string, count?: number, language?: string, options?: AIGenerationOptions) => Promise<GeneratedCard[]>;
     generateCardsFromContext: (summary: string, content: string, count: number, language?: string, options?: AIGenerationOptions) => Promise<GenerationResult>;
@@ -371,6 +477,7 @@ interface ElectronAPI {
     yield: ElectronYield;
     backup: ElectronBackup;
     exam: ElectronExam;
+    plan: ElectronPlan;
 }
 
 declare global {

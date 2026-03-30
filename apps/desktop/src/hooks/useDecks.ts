@@ -21,6 +21,7 @@ import {
 import type { Deck, DeckInsert, DeckUpdate, Card } from '../lib/types';
 import { useAuthStore } from '../stores/authStore';
 import { useProfileStore } from '../stores/profileStore';
+import { usePlanStore } from '../stores/planStore';
 
 // ─────────────────────────────────────────────────────────────────
 // Query Keys
@@ -72,8 +73,10 @@ export function useDeckStats(deckId: string | null) {
 export function useDueCards(deckId: string | null) {
     const userId = useAuthStore((s) => s.user?.id);
     const profile = useProfileStore((s) => s.profile);
+    const planNewPerDay = usePlanStore((s) => s.effectiveNewPerDay);
     const limitsEnabled = profile?.daily_limits_enabled ?? true;
-    const newLimit = limitsEnabled ? (profile?.daily_new_limit ?? 20) : undefined;
+    // Plan limit takes precedence over Supabase profile when a plan is active
+    const newLimit = planNewPerDay ?? (limitsEnabled ? (profile?.daily_new_limit ?? 20) : undefined);
     const reviewLimit = limitsEnabled ? (profile?.daily_review_limit ?? 200) : undefined;
     return useQuery<CardWithNote[]>({
         queryKey: [...deckKeys.dueCards(deckId ?? ''), newLimit, reviewLimit],
