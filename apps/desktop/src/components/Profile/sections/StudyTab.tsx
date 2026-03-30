@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '../../../stores/authStore';
 import { useProfileStore } from '../../../stores/profileStore';
-import { Bell, Clock, GraduationCap, Plus, X } from 'lucide-react';
+import { Bell, Brain, Clock, GraduationCap, Plus, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button, useToast, ToggleSwitch } from '../../UI';
 import { useDecks, useUpdateDeck } from '../../../hooks/useDecks';
@@ -40,6 +40,12 @@ export function StudyTab() {
     const [localExamDate, setLocalExamDate] = useState('');
     const [localSessionMode, setLocalSessionMode] = useState<'auto' | 'mixed' | 'triage'>('auto');
 
+    // Classify Cards state
+    const [classifyDeckId, setClassifyDeckId] = useState('');
+    const [classifyForce, setClassifyForce] = useState(false);
+    const [classifyRunning, setClassifyRunning] = useState(false);
+    const [classifyResult, setClassifyResult] = useState<{ classified: number; skipped: number; errors: number } | null>(null);
+
     useEffect(() => {
         if (examProfile) {
             setLocalExamDate(isExamDateSet(examProfile.exam_date) ? examProfile.exam_date : '');
@@ -64,6 +70,30 @@ export function StudyTab() {
 
     const handleExamSwitchComplete = async () => {
         setShowExamModal(false);
+    };
+
+    const handleClassify = async () => {
+        if (!classifyDeckId || !examProfile) return;
+        setClassifyRunning(true);
+        setClassifyResult(null);
+        try {
+            const cards = await window.electronAPI.db.fetchAllCardsForDeck(classifyDeckId);
+            if (cards.length === 0) {
+                setClassifyResult({ classified: 0, skipped: 0, errors: 0 });
+                return;
+            }
+            const cardIds = cards.map((c: { id: string }) => c.id);
+            const result = await window.electronAPI.yield.classifyBatch(
+                cardIds,
+                examProfile.exam_key,
+                classifyForce
+            );
+            setClassifyResult(result);
+        } catch {
+            showToast(t('classify.error'), 'error');
+        } finally {
+            setClassifyRunning(false);
+        }
     };
 
     // Time Travel state
@@ -212,6 +242,70 @@ export function StudyTab() {
                         onClose={() => setShowExamModal(false)}
                         onComplete={handleExamSwitchComplete}
                     />
+                </div>
+
+                {/* Classify Cards */}
+                <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
+                    <label className="field-label">
+                        <Brain size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+                        {t('classify.section_title')}
+                    </label>
+                    <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0.2rem 0 0.75rem' }}>
+                        {examProfile
+                            ? t('classify.section_desc', { examLabel: examProfile.exam_label })
+                            : t('classify.no_exam_hint')}
+                    </p>
+
+                    {examProfile ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            <select
+                                className="field-input"
+                                value={classifyDeckId}
+                                onChange={(e) => { setClassifyDeckId(e.target.value); setClassifyResult(null); }}
+                                style={{ width: '280px' }}
+                                disabled={classifyRunning}
+                            >
+                                <option value="">{t('classify.select_deck_placeholder')}</option>
+                                {decks.map(deck => (
+                                    <option key={deck.id} value={deck.id}>{deck.name}</option>
+                                ))}
+                            </select>
+
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', cursor: 'pointer' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={classifyForce}
+                                    onChange={(e) => setClassifyForce(e.target.checked)}
+                                    disabled={classifyRunning}
+                                />
+                                {t('classify.force_reclassify')}
+                            </label>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <Button
+                                    variant="primary"
+                                    onClick={handleClassify}
+                                    disabled={!classifyDeckId || classifyRunning}
+                                    isLoading={classifyRunning}
+                                >
+                                    {classifyRunning ? t('classify.running') : t('classify.run_button')}
+                                </Button>
+
+                                {classifyResult && (
+                                    classifyResult.classified === 0 && classifyResult.skipped === 0 && classifyResult.errors === 0
+                                        ? <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                            {t('classify.no_cards')}
+                                          </span>
+                                        : <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                            {t('classify.success', {
+                                                classified: classifyResult.classified,
+                                                skipped: classifyResult.skipped,
+                                            })}
+                                          </span>
+                                )}
+                            </div>
+                        </div>
+                    ) : null}
                 </div>
 
                 {/* Notification Reminders */}

@@ -34,6 +34,7 @@ export const deckKeys = {
     dueCards: (id: string) => ['decks', id, 'due-cards'] as const,
     allCards: (id: string) => ['decks', id, 'all-cards'] as const,
     cards: (id: string) => ['decks', id, 'cards'] as const,
+    classificationCount: (id: string, examKey: string) => ['decks', id, 'classification-count', examKey] as const,
 };
 
 // ─────────────────────────────────────────────────────────────────
@@ -90,6 +91,14 @@ export function useAllCardsForStudy(deckId: string | null) {
         queryKey: deckKeys.allCards(deckId ?? ''),
         queryFn: () => fetchAllCardsForStudy(deckId!),
         enabled: !!deckId,
+    });
+}
+
+export function useDeckClassificationCount(deckId: string | null, examKey: string | undefined) {
+    return useQuery<{ classified: number; total: number }>({
+        queryKey: deckKeys.classificationCount(deckId ?? '', examKey ?? ''),
+        queryFn: () => window.electronAPI.yield.getDeckClassificationCount(deckId!, examKey!),
+        enabled: !!deckId && !!examKey,
     });
 }
 

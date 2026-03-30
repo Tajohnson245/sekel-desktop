@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { Library, Clock, Sparkles, Pencil, MoreVertical, Download, Settings } from 'lucide-react';
+import { Library, Clock, Sparkles, Pencil, MoreVertical, Download, Settings, CheckCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Deck } from '../../lib/types';
-import { useUpdateDeck, useDeckStats } from '../../hooks/useDecks';
+import { useUpdateDeck, useDeckStats, useDeckClassificationCount } from '../../hooks/useDecks';
 import { useAuthStore } from '../../stores/authStore';
+import { useExamProfile } from '../../hooks/useExamProfile';
 import { useToast } from '../UI';
 import { exportDeck } from '../../lib/queries';
 import ExportModal from './ExportModal';
@@ -29,6 +30,8 @@ export default function DeckCard({
     const updateDeck = useUpdateDeck();
     const { data: stats } = useDeckStats(deck.id);
     const user = useAuthStore(s => s.user);
+    const { data: examProfile } = useExamProfile();
+    const { data: classificationCount } = useDeckClassificationCount(deck.id, examProfile?.exam_key);
     const { showToast } = useToast();
     const inputRef = useRef<HTMLInputElement>(null);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -174,6 +177,12 @@ export default function DeckCard({
                         <Clock size={14} />
                         <span>{t('decks.cards_due', { count: (stats?.reviewCount ?? 0) + (stats?.learningCount ?? 0) })}</span>
                     </div>
+                    {examProfile && classificationCount && classificationCount.total > 0 && (
+                        <div className="deck-stat">
+                            <CheckCircle size={14} />
+                            <span>{t('classify.deck_badge', { classified: classificationCount.classified, total: classificationCount.total })}</span>
+                        </div>
+                    )}
                 </div>
 
                 {!isDeleteMode && (
