@@ -110,9 +110,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
         create:         () => ipcRenderer.invoke('backup:create'),
         restore:        (filePath: string) => ipcRenderer.invoke('backup:restore', filePath),
         delete:         (filename: string) => ipcRenderer.invoke('backup:delete', filename),
-        getSettings:    () => ipcRenderer.invoke('backup:getSettings'),
-        updateSettings: (settings: { intervalMinutes?: number; dailyRetention?: number; weeklyRetention?: number; monthlyRetention?: number }) =>
-                            ipcRenderer.invoke('backup:updateSettings', settings),
         getTotalSize:   () => ipcRenderer.invoke('backup:getTotalSize'),
         onCreated: (cb: (info: unknown) => void) => {
             const listener = (_event: unknown, info: unknown) => cb(info);

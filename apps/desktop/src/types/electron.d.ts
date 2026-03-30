@@ -245,13 +245,6 @@ export interface BackupInfo {
     sizeBytes: number;
 }
 
-export interface BackupSettings {
-    intervalMinutes: number;
-    dailyRetention: number;
-    weeklyRetention: number;
-    monthlyRetention: number;
-}
-
 export interface RestoreResult {
     success: boolean;
     safetyBackup?: BackupInfo;
@@ -263,8 +256,6 @@ interface ElectronBackup {
     create:         () => Promise<BackupInfo | null>;
     restore:        (filePath: string) => Promise<RestoreResult>;
     delete:         (filename: string) => Promise<boolean>;
-    getSettings:    () => Promise<BackupSettings>;
-    updateSettings: (settings: Partial<BackupSettings>) => Promise<BackupSettings>;
     getTotalSize:   () => Promise<number>;
     onCreated:      (cb: (info: BackupInfo) => void) => () => void;
     onOpenRestore:  (cb: () => void) => () => void;
