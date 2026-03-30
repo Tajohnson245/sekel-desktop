@@ -145,6 +145,12 @@
             "slowest_cards": "Cartes les plus lentes",
             "seconds_abbrev": "Secondes"
         },
+        "missed_deck": {
+            "button": "Créer un paquet de {{count}} cartes ratées",
+            "create": "Créer le paquet",
+            "success": "Paquet « {{name}} » créé",
+            "error": "Échec de la création du paquet"
+        },
         "timer": {
             "auto_flipped": "Temps écoulé — réponse révélée",
             "auto_graded_again": "Temps écoulé — noté À revoir"

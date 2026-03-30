@@ -16,6 +16,7 @@ import {
     createNoteRules,
     updateCardAfterReviewRules,
     insertReviewRules,
+    createDeckFromMissedCardsRules,
 } from './validation';
 
 export function setupDatabaseHandlers(): void {
@@ -126,6 +127,12 @@ export function setupDatabaseHandlers(): void {
 
     instrumentedHandle('db:fetchSessionAnalytics', (_e, sessionId: string) =>
         dbService.fetchSessionAnalytics(sessionId));
+
+    instrumentedHandle('db:createDeckFromMissedCards', (_e, params) => {
+        validate('db:createDeckFromMissedCards', params, createDeckFromMissedCardsRules);
+        const { userId, deckName, cardIds } = params as { userId: string; deckName: string; cardIds: string[] };
+        return dbService.createDeckFromMissedCards(userId, deckName, cardIds);
+    });
 
     // ── Drafts ─────────────────────────────────────────────────────────────────
     instrumentedHandle('db:fetchDrafts', (_e, userId: string) =>

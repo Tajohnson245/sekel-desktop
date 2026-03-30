@@ -145,6 +145,12 @@
             "slowest_cards": "Langsamste Karten",
             "seconds_abbrev": "Sekunden"
         },
+        "missed_deck": {
+            "button": "Deck aus {{count}} verpassten Karten erstellen",
+            "create": "Deck erstellen",
+            "success": "Deck \"{{name}}\" erstellt",
+            "error": "Erstellen des Decks fehlgeschlagen"
+        },
         "timer": {
             "auto_flipped": "Zeit abgelaufen — Antwort aufgedeckt",
             "auto_graded_again": "Zeit abgelaufen — als Nochmal bewertet"

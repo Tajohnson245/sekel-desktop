@@ -250,3 +250,23 @@ export const insertReviewRules: Rule[] = [
         message: "field 'review_duration_ms' must be a non-negative number or null",
     },
 ];
+
+// ── Schema: createDeckFromMissedCards ───────────────────────────────
+
+export const createDeckFromMissedCardsRules: Rule[] = [
+    {
+        field: 'userId',
+        check: isNonEmptyString,
+        message: "field 'userId' must be a non-empty string",
+    },
+    {
+        field: 'deckName',
+        check: (v) => isNonEmptyString(v) && (v as string).length <= MAX_NAME_LENGTH,
+        message: `field 'deckName' must be a non-empty string (max ${MAX_NAME_LENGTH} chars)`,
+    },
+    {
+        field: 'cardIds',
+        check: (v) => isStringArray(v) && (v as string[]).length > 0,
+        message: "field 'cardIds' must be a non-empty array of strings",
+    },
+];

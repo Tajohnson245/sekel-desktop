@@ -173,6 +173,7 @@ interface ElectronDB {
     createDeckSession:     (userId: string, deckId: string) => Promise<DeckSession>;
     completeDeckSession:   (sessionId: string) => Promise<DeckSession>;
     fetchSessionAnalytics: (sessionId: string) => Promise<SessionAnalytics | null>;
+    createDeckFromMissedCards: (userId: string, deckName: string, cardIds: string[]) => Promise<Deck>;
     // Drafts
     fetchDrafts:           (userId: string) => Promise<DraftCard[]>;
     saveDraft:             (userId: string, draft: DraftCardInsert) => Promise<DraftCard>;

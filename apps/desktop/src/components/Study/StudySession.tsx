@@ -265,6 +265,8 @@ export default function StudySession() {
             <SessionAnalytics
                 sessionId={sessionId}
                 reviewedCount={reviewedCount}
+                userId={userId}
+                deckName={deck?.name ?? ''}
                 onBack={() => goToDeck(deckId)}
                 onStudyAgain={handleStudyAgain}
             />

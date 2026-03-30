@@ -57,6 +57,7 @@ export async function fetchSessionAnalytics(client: SupabaseClient, sessionId: s
                 lapseRate: 0,
                 totalReviews: 0,
                 topForgottenCards: [],
+                missedCardIds: [],
             },
         };
     }
@@ -133,6 +134,7 @@ export async function fetchSessionAnalytics(client: SupabaseClient, sessionId: s
             lapseRate: totalReviews > 0 ? (againCount / totalReviews) * 100 : 0,
             totalReviews,
             topForgottenCards,
+            missedCardIds: [...cardAgainCounts.keys()],
         },
     };
 }

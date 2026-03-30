@@ -58,6 +58,8 @@ export const createNoteType = (noteType: NoteTypeInsert) => db().createNoteType(
 export const createDeckSession = (userId: string, deckId: string) => db().createDeckSession(userId, deckId);
 export const completeDeckSession = (sessionId: string) => db().completeDeckSession(sessionId);
 export const fetchSessionAnalytics = (sessionId: string) => db().fetchSessionAnalytics(sessionId);
+export const createDeckFromMissedCards = (userId: string, deckName: string, cardIds: string[]) =>
+    db().createDeckFromMissedCards(userId, deckName, cardIds);
 
 // ── Reviews ───────────────────────────────────────────────────────────────────
 export const insertReview = (params: InsertReviewParams) => db().insertReview(params);
