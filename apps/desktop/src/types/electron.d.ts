@@ -446,7 +446,7 @@ interface ElectronPlan {
     create:        (userId: string, examKey: string, cardsPerDay: number, name: string, snapshot: PlanResult) => Promise<Plan | null>;
     getActive:     (userId: string, examKey?: string) => Promise<ActivePlanResult | null>;
     list:          (userId: string) => Promise<Plan[]>;
-    archive:       (userId: string, planId: string) => Promise<void>;
+    archive:       (userId: string, planId: string) => Promise<string>;
     delete:        (userId: string, planId: string) => Promise<void>;
     reactivate:    (userId: string, planId: string) => Promise<Plan | null>;
     rebalance:     (userId: string, examKey: string) => Promise<RebalanceDelta | null>;
