@@ -26,7 +26,6 @@ import { setupClassifyHandlers } from './ipc/classify';
 import { setupExamHandlers } from './ipc/exam';
 import { setupAdminHandlers } from './ipc/admin';
 import { setupPlanHandlers } from './ipc/plan';
-import { startBackupScheduler, stopBackupScheduler } from './main/backup/service';
 import { cleanupStaleTempDirs } from './main/import/tempCleanup';
 import { fetchMediaByFilename } from './main/db/service';
 
@@ -186,9 +185,6 @@ app.whenReady().then(() => {
     }
     cleanupStaleTempDirs().catch((err) => log.error('Temp cleanup failed', { error: err instanceof Error ? err.message : String(err) }));
 
-    // Start automatic backup scheduler
-    try { startBackupScheduler(); } catch (err) { log.error('Backup scheduler failed', { error: err instanceof Error ? err.message : String(err) }); }
-
     // Check for updates only in production (packaged app)
     if (app.isPackaged) {
         updateElectronApp({
@@ -232,6 +228,3 @@ app.on('window-all-closed', () => {
     }
 });
 
-app.on('will-quit', () => {
-    stopBackupScheduler();
-});

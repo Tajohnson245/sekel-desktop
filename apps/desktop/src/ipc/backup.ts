@@ -15,14 +15,6 @@ export function setupBackupHandlers(): void {
     instrumentedHandle('backup:delete', (_e, filename: string) =>
         backupService.deleteBackup(filename));
 
-    instrumentedHandle('backup:getSettings', () =>
-        backupService.getBackupSettings());
-
-    instrumentedHandle('backup:updateSettings', (_e, settings: Partial<backupService.BackupSettings>) => {
-        backupService.updateBackupSettings(settings);
-        return backupService.getBackupSettings();
-    });
-
     instrumentedHandle('backup:getTotalSize', () =>
         backupService.getBackupsTotalSize());
 }

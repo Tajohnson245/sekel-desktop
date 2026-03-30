@@ -1,5 +1,5 @@
 /**
- * Backup service — manages automatic and manual SQLite backups using
+ * Backup service — manages manual SQLite backups using
  * better-sqlite3's .backup() API for WAL-safe snapshots.
  */
 
@@ -17,23 +17,6 @@ export interface BackupInfo {
     timestamp: string;
     sizeBytes: number;
 }
-
-export interface BackupSettings {
-    intervalMinutes: number;
-    dailyRetention: number;
-    weeklyRetention: number;
-    monthlyRetention: number;
-}
-
-const DEFAULT_SETTINGS: BackupSettings = {
-    intervalMinutes: 30,
-    dailyRetention: 10,
-    weeklyRetention: 4,
-    monthlyRetention: 2,
-};
-
-let backupInterval: ReturnType<typeof setInterval> | null = null;
-let currentSettings: BackupSettings = { ...DEFAULT_SETTINGS };
 
 /** Returns the directory where backups are stored. */
 export function getBackupDir(): string {
@@ -131,143 +114,12 @@ export function deleteBackup(filename: string): boolean {
     return true;
 }
 
-/**
- * Prunes old backups according to the retention policy.
- *
- * Strategy:
- * - Backups < 2 days old: keep all
- * - Daily backups (2–30 days): keep one per day, up to dailyRetention
- * - Weekly backups (30–120 days): keep one per week, up to weeklyRetention
- * - Monthly backups (120+ days): keep one per month, up to monthlyRetention
- * - Everything else is deleted
- */
-export function pruneBackups(settings: BackupSettings = currentSettings): void {
-    const backups = listBackups();
-    if (backups.length === 0) return;
-
-    const now = Date.now();
-    const TWO_DAYS = 2 * 24 * 60 * 60 * 1000;
-    const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
-    const FOUR_MONTHS = 120 * 24 * 60 * 60 * 1000;
-
-    const toKeep = new Set<string>();
-    const dailyBuckets = new Map<string, BackupInfo>();
-    const weeklyBuckets = new Map<string, BackupInfo>();
-    const monthlyBuckets = new Map<string, BackupInfo>();
-
-    for (const backup of backups) {
-        const age = now - new Date(backup.timestamp).getTime();
-
-        if (age < TWO_DAYS) {
-            // Keep all recent backups
-            toKeep.add(backup.filename);
-        } else if (age < THIRTY_DAYS) {
-            // Daily bucket: one per day
-            const dayKey = backup.timestamp.slice(0, 10); // YYYY-MM-DD
-            if (!dailyBuckets.has(dayKey)) {
-                dailyBuckets.set(dayKey, backup);
-            }
-        } else if (age < FOUR_MONTHS) {
-            // Weekly bucket: one per ISO week
-            const date = new Date(backup.timestamp);
-            const weekKey = getISOWeekKey(date);
-            if (!weeklyBuckets.has(weekKey)) {
-                weeklyBuckets.set(weekKey, backup);
-            }
-        } else {
-            // Monthly bucket: one per month
-            const monthKey = backup.timestamp.slice(0, 7); // YYYY-MM
-            if (!monthlyBuckets.has(monthKey)) {
-                monthlyBuckets.set(monthKey, backup);
-            }
-        }
-    }
-
-    // Keep the most recent N from each bucket
-    const dailyKept = [...dailyBuckets.values()].slice(0, settings.dailyRetention);
-    const weeklyKept = [...weeklyBuckets.values()].slice(0, settings.weeklyRetention);
-    const monthlyKept = [...monthlyBuckets.values()].slice(0, settings.monthlyRetention);
-
-    for (const b of [...dailyKept, ...weeklyKept, ...monthlyKept]) {
-        toKeep.add(b.filename);
-    }
-
-    // Delete everything not in the keep set
-    let deleted = 0;
-    for (const backup of backups) {
-        if (!toKeep.has(backup.filename)) {
-            deleteBackup(backup.filename);
-            deleted++;
-        }
-    }
-
-    if (deleted > 0) {
-        log.info('Pruned old backups', { count: deleted });
-        metrics.increment('backup.pruned_total', {}, deleted);
-    }
-}
-
-/** Starts the automatic backup scheduler. */
-export function startBackupScheduler(settings?: Partial<BackupSettings>): void {
-    if (settings) {
-        currentSettings = { ...DEFAULT_SETTINGS, ...settings };
-    }
-
-    stopBackupScheduler();
-
-    if (currentSettings.intervalMinutes <= 0) {
-        log.info('Automatic backups disabled (interval = 0)');
-        return;
-    }
-
-    const intervalMs = currentSettings.intervalMinutes * 60 * 1000;
-
-    // Create initial backup on startup
-    createBackup().then(() => pruneBackups());
-
-    backupInterval = setInterval(async () => {
-        await createBackup();
-        pruneBackups();
-    }, intervalMs);
-
-    log.info('Scheduler started', { intervalMinutes: currentSettings.intervalMinutes });
-}
-
-/** Stops the automatic backup scheduler. */
-export function stopBackupScheduler(): void {
-    if (backupInterval) {
-        clearInterval(backupInterval);
-        backupInterval = null;
-        log.info('Scheduler stopped');
-    }
-}
-
-/** Updates backup settings and restarts the scheduler. */
-export function updateBackupSettings(settings: Partial<BackupSettings>): void {
-    currentSettings = { ...currentSettings, ...settings };
-    startBackupScheduler(currentSettings);
-}
-
-/** Returns the current backup settings. */
-export function getBackupSettings(): BackupSettings {
-    return { ...currentSettings };
-}
-
 /** Returns the total size of all backups. */
 export function getBackupsTotalSize(): number {
     return listBackups().reduce((sum, b) => sum + b.sizeBytes, 0);
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-function getISOWeekKey(date: Date): string {
-    const d = new Date(date.getTime());
-    d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
-    const yearStart = new Date(d.getFullYear(), 0, 4);
-    const weekNo = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-    return `${d.getFullYear()}-W${String(weekNo).padStart(2, '0')}`;
-}
 
 function formatBytes(bytes: number): string {
     if (bytes < 1024) return `${bytes} B`;

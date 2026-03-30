@@ -1,8 +1,8 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { Database, Download, HardDrive, RefreshCw, Trash2, Upload } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Database, Download, HardDrive, Trash2, Upload } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Button, Modal, Select, useToast } from '../../UI';
-import type { BackupInfo, BackupSettings } from '../../../types/electron.d';
+import { Button, Modal, useToast } from '../../UI';
+import type { BackupInfo } from '../../../types/electron.d';
 
 function formatBytes(bytes: number): string {
     if (bytes < 1024) return `${bytes} B`;
@@ -26,7 +26,6 @@ export function BackupTab() {
     const { showToast } = useToast();
 
     const [backups, setBackups] = useState<BackupInfo[]>([]);
-    const [settings, setSettings] = useState<BackupSettings | null>(null);
     const [totalSize, setTotalSize] = useState(0);
     const [loading, setLoading] = useState(true);
     const [creating, setCreating] = useState(false);
@@ -37,13 +36,11 @@ export function BackupTab() {
 
     const loadBackupData = useCallback(async () => {
         try {
-            const [backupList, backupSettings, size] = await Promise.all([
+            const [backupList, size] = await Promise.all([
                 window.electronAPI.backup.list(),
-                window.electronAPI.backup.getSettings(),
                 window.electronAPI.backup.getTotalSize(),
             ]);
             setBackups(backupList);
-            setSettings(backupSettings);
             setTotalSize(size);
         } catch (err) {
             console.error('Failed to load backup data:', err);
@@ -104,11 +101,6 @@ export function BackupTab() {
     const handleDelete = async (filename: string) => {
         await window.electronAPI.backup.delete(filename);
         await loadBackupData();
-    };
-
-    const handleSettingsChange = async (key: keyof BackupSettings, value: number) => {
-        const updated = await window.electronAPI.backup.updateSettings({ [key]: value });
-        setSettings(updated);
     };
 
     const handleCheckIntegrity = async () => {
@@ -205,71 +197,6 @@ export function BackupTab() {
                     )}
                 </div>
             </section>
-
-            {/* Backup Settings */}
-            {settings && (
-                <section className="profile-section">
-                    <div className="section-header">
-                        <h3>
-                            <RefreshCw size={18} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'middle' }} />
-                            {t('backup.settings_title')}
-                        </h3>
-                    </div>
-
-                    <div className="profile-grid">
-                        <div className="profile-field">
-                            <label className="field-label">{t('backup.interval')}</label>
-                            <Select
-                                value={String(settings.intervalMinutes)}
-                                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleSettingsChange('intervalMinutes', Number(e.target.value))}
-                                options={[
-                                    { label: t('backup.interval_manual'), value: '0' },
-                                    { label: t('backup.interval_15min'), value: '15' },
-                                    { label: t('backup.interval_30min'), value: '30' },
-                                    { label: t('backup.interval_1hr'), value: '60' },
-                                    { label: t('backup.interval_2hr'), value: '120' },
-                                ]}
-                            />
-                        </div>
-
-                        <div className="profile-field">
-                            <label className="field-label">{t('backup.daily_retention')}</label>
-                            <Select
-                                value={String(settings.dailyRetention)}
-                                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleSettingsChange('dailyRetention', Number(e.target.value))}
-                                options={[5, 10, 15, 20, 30].map((n) => ({
-                                    label: `${n} ${t('backup.backups')}`,
-                                    value: String(n),
-                                }))}
-                            />
-                        </div>
-
-                        <div className="profile-field">
-                            <label className="field-label">{t('backup.weekly_retention')}</label>
-                            <Select
-                                value={String(settings.weeklyRetention)}
-                                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleSettingsChange('weeklyRetention', Number(e.target.value))}
-                                options={[2, 4, 8, 12].map((n) => ({
-                                    label: `${n} ${t('backup.backups')}`,
-                                    value: String(n),
-                                }))}
-                            />
-                        </div>
-
-                        <div className="profile-field">
-                            <label className="field-label">{t('backup.monthly_retention')}</label>
-                            <Select
-                                value={String(settings.monthlyRetention)}
-                                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleSettingsChange('monthlyRetention', Number(e.target.value))}
-                                options={[1, 2, 4, 6, 12].map((n) => ({
-                                    label: `${n} ${t('backup.backups')}`,
-                                    value: String(n),
-                                }))}
-                            />
-                        </div>
-                    </div>
-                </section>
-            )}
 
             {/* Database Integrity Check */}
             <section className="profile-section">
