@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Library, FileText, Plus, Inbox, Layers, BarChart3, Activity } from 'lucide-react';
+import { LayoutDashboard, Library, FileText, Plus, Inbox, Layers, BarChart3, Activity, CalendarDays } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../stores/authStore';
 import { useProfileStore } from '../stores/profileStore';
 import { useDocsWorkStore } from '../stores/docsWorkStore';
 import { useDrafts } from '../hooks/useDrafts';
 import { useExamProfile } from '../hooks/useExamProfile';
+import { useActivePlan, usePlanRebalance, useClearPlanOverride } from '../hooks/usePlan';
+import { usePlanStore } from '../stores/planStore';
 import { UserProfile } from '../components/UserProfile';
 import DocumentsPage from '../components/AIStudy/DocumentsPage';
 import { ExamOnboardingModal } from '../components/ExamOnboarding/ExamOnboardingModal';
@@ -36,6 +38,7 @@ function NavBar() {
 
     const navItems = [
         { id: 'dashboard', path: '/', label: t('nav.dashboard'), icon: LayoutDashboard },
+        { id: 'plan', path: '/plan', label: t('nav.plan'), icon: CalendarDays },
         { id: 'decks', path: '/decks', label: t('nav.decks'), icon: Library },
         { id: 'documents', path: '/documents', label: t('nav.generate'), icon: FileText },
         { id: 'image-occlusion', path: '/image-occlusion', label: t('nav.image_occlusion'), icon: Layers },
@@ -103,6 +106,55 @@ function HeaderBar() {
     );
 }
 
+function RebalanceBanner() {
+    const { user }  = useAuthStore();
+    const userId    = user?.id ?? '';
+    const { t }     = useTranslation();
+
+    const { data: examProfile } = useExamProfile();
+    const examKey = examProfile?.exam_key ?? null;
+
+    // useActivePlan seeds planStore on every app mount (no examKey = any active plan)
+    const { data: activePlanResult } = useActivePlan();
+    const { data: delta }            = usePlanRebalance(examKey);
+    const clearOverride              = useClearPlanOverride();
+    const overrideExpiresAt          = usePlanStore(s => s.overrideExpiresAt);
+
+    const [dismissed, setDismissed] = useState(false);
+
+    // On mount: clear a stale one-session override if it has passed midnight
+    useEffect(() => {
+        if (!userId) return;
+        const expires = activePlanResult?.overrideExpiresAt ?? overrideExpiresAt;
+        if (expires && new Date(expires) < new Date()) {
+            clearOverride.mutate();
+        }
+    }, [userId, activePlanResult?.overrideExpiresAt]);
+
+    if (!delta || dismissed) return null;
+
+    return (
+        <div className="rebalance-banner">
+            <span className="rebalance-banner-text">
+                {t('plan.rebalance_banner', {
+                    days: delta.daysMissed,
+                    rate: delta.newNewPerDay,
+                })}
+            </span>
+            <div className="rebalance-banner-actions">
+                {delta.canExtendTimeline && (
+                    <button className="btn btn-ghost btn-sm" onClick={() => setDismissed(true)}>
+                        {t('plan.extend_timeline')}
+                    </button>
+                )}
+                <button className="btn btn-ghost btn-sm" onClick={() => setDismissed(true)}>
+                    {t('plan.got_it')}
+                </button>
+            </div>
+        </div>
+    );
+}
+
 export default function AppLayout() {
     const { user } = useAuthStore();
     const { profile } = useProfileStore();
@@ -134,6 +186,7 @@ export default function AppLayout() {
                 } : undefined}
             >
                 <HeaderBar />
+                <RebalanceBanner />
 
                 <main className="main-content" data-testid="main-content">
                     {/* Always mounted so generated cards survive navigation */}

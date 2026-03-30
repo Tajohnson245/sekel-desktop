@@ -30,7 +30,8 @@
         "drafts": "Borradores",
         "new_deck": "Nuevo Mazo",
         "image_occlusion": "Tarjetas Visuales",
-        "statistics": "Estadísticas"
+        "statistics": "Estadísticas",
+        "plan": "Plan"
     },
     "dashboard": {
         "welcome": "¡Bienvenido de nuevo, {{name}}!",

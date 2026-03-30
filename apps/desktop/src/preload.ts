@@ -147,4 +147,31 @@ contextBridge.exposeInMainWorld('electronAPI', {
                              ipcRenderer.invoke('exam:update-profile', userId, updates),
         fetchAllCardIds: (userId: string) => ipcRenderer.invoke('exam:fetch-all-card-ids', userId),
     },
+
+    plan: {
+        compute:      (userId: string, examKey: string, deckIds?: string[]) =>
+                          ipcRenderer.invoke('plan:compute', userId, examKey, deckIds),
+        getDeckUnseenCounts: (userId: string) =>
+                          ipcRenderer.invoke('plan:getDeckUnseenCounts', userId),
+        create:       (userId: string, examKey: string, cardsPerDay: number, name: string, snapshot: unknown) =>
+                          ipcRenderer.invoke('plan:create', userId, examKey, cardsPerDay, name, snapshot),
+        getActive:    (userId: string, examKey?: string) =>
+                          ipcRenderer.invoke('plan:getActive', userId, examKey),
+        list:         (userId: string) =>
+                          ipcRenderer.invoke('plan:list', userId),
+        archive:      (userId: string, planId: string) =>
+                          ipcRenderer.invoke('plan:archive', userId, planId),
+        delete:       (userId: string, planId: string) =>
+                          ipcRenderer.invoke('plan:delete', userId, planId),
+        reactivate:   (userId: string, planId: string) =>
+                          ipcRenderer.invoke('plan:reactivate', userId, planId),
+        rebalance:    (userId: string, examKey: string) =>
+                          ipcRenderer.invoke('plan:rebalance', userId, examKey),
+        getProgress:  (userId: string, activatedAt: string, deckFilter: string[] | null) =>
+                          ipcRenderer.invoke('plan:getProgress', userId, activatedAt, deckFilter),
+        setOverride:  (userId: string, newPerDayOverride: number) =>
+                          ipcRenderer.invoke('plan:setOverride', userId, newPerDayOverride),
+        clearOverride: (userId: string) =>
+                          ipcRenderer.invoke('plan:clearOverride', userId),
+    },
 });

@@ -30,7 +30,8 @@
         "drafts": "Entwürfe",
         "new_deck": "Neuer Stapel",
         "image_occlusion": "Visuelle Karten",
-        "statistics": "Statistiken"
+        "statistics": "Statistiken",
+        "plan": "Plan"
     },
     "dashboard": {
         "welcome": "Willkommen zurück, {{name}}!",

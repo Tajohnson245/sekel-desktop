@@ -30,7 +30,8 @@
         "drafts": "草稿",
         "new_deck": "新建牌组",
         "image_occlusion": "视觉卡片",
-        "statistics": "统计"
+        "statistics": "统计",
+        "plan": "计划"
     },
     "dashboard": {
         "welcome": "欢迎回来，{{name}}！",

@@ -25,6 +25,7 @@ import { setupBackupHandlers } from './ipc/backup';
 import { setupClassifyHandlers } from './ipc/classify';
 import { setupExamHandlers } from './ipc/exam';
 import { setupAdminHandlers } from './ipc/admin';
+import { setupPlanHandlers } from './ipc/plan';
 import { startBackupScheduler, stopBackupScheduler } from './main/backup/service';
 import { cleanupStaleTempDirs } from './main/import/tempCleanup';
 import { fetchMediaByFilename } from './main/db/service';
@@ -178,6 +179,7 @@ app.whenReady().then(() => {
         ['classify', setupClassifyHandlers],
         ['exam', setupExamHandlers],
         ['admin', setupAdminHandlers],
+        ['plan', setupPlanHandlers],
     ] as const;
     for (const [name, setup] of handlers) {
         try { setup(); } catch (err) { log.error(`${name} handler setup failed`, { error: err instanceof Error ? err.message : String(err) }); }

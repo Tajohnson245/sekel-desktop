@@ -516,4 +516,47 @@ export const MIGRATIONS: string[] = [
 
     DELETE FROM blueprint_systems WHERE system_key = 'endocrine';
     `,
+    // Migration 015 — plan mode: daily limit columns and plan state on local user_profiles
+    // daily_new_limit / daily_review_limit mirror the Supabase profile values locally so the
+    // plan service (main process) can read and temporarily override them without a Supabase call.
+    // plan_recommended_new_per_day stores the last computed plan rate for rebalance detection.
+    // plan_generated_at is the ISO timestamp when the plan was last computed.
+    // plan_override_expires_at is set to tomorrow-midnight when a one-session override is active.
+    `
+    ALTER TABLE user_profiles ADD COLUMN daily_new_limit INTEGER DEFAULT 20;
+    ALTER TABLE user_profiles ADD COLUMN daily_review_limit INTEGER DEFAULT 200;
+    ALTER TABLE user_profiles ADD COLUMN plan_recommended_new_per_day INTEGER;
+    ALTER TABLE user_profiles ADD COLUMN plan_generated_at TEXT;
+    ALTER TABLE user_profiles ADD COLUMN plan_override_expires_at TEXT;
+    `,
+
+    // Migration 016 — plans table (multi-plan model)
+    // Each plan is an explicit user-committed record with a full PlanResult snapshot.
+    // cards_per_day  = the number the user chose to commit to.
+    // suggested_per_day = what computePlan recommended at creation time.
+    // snapshot       = JSON-serialised PlanResult (the full computed data at commit time).
+    // status         = 'active' | 'archived'.
+    // activated_at   = when this plan became active (differs from created_at on reactivation).
+    `
+    CREATE TABLE plans (
+        id               TEXT PRIMARY KEY,
+        user_id          TEXT NOT NULL,
+        exam_key         TEXT NOT NULL,
+        name             TEXT NOT NULL,
+        cards_per_day    INTEGER NOT NULL,
+        suggested_per_day INTEGER NOT NULL,
+        snapshot         TEXT NOT NULL,
+        status           TEXT NOT NULL DEFAULT 'active',
+        activated_at     TEXT NOT NULL,
+        created_at       TEXT NOT NULL,
+        updated_at       TEXT NOT NULL
+    );
+    CREATE INDEX idx_plans_user_status ON plans(user_id, status);
+    CREATE INDEX idx_plans_user_exam   ON plans(user_id, exam_key);
+    `,
+
+    // Migration 017 — deck-level scope filter on plans
+    // deck_filter stores a JSON array of deck IDs the plan was scoped to.
+    // NULL means "all decks" (no filter applied).
+    `ALTER TABLE plans ADD COLUMN deck_filter TEXT;`,
 ];

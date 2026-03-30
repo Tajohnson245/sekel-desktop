@@ -383,6 +383,30 @@ body,
     background: var(--bg);
 }
 
+/* ── Rebalance banner ──────────────────────────────────────────────────────── */
+.rebalance-banner {
+    display:         flex;
+    align-items:     center;
+    justify-content: space-between;
+    gap:             var(--space-md);
+    padding:         10px var(--space-xl);
+    background:      color-mix(in srgb, var(--accent) 12%, transparent);
+    border-bottom:   1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+    font-family:     var(--font-mono);
+    font-size:       13px;
+    flex-shrink:     0;
+}
+
+.rebalance-banner-text {
+    color: var(--fog);
+}
+
+.rebalance-banner-actions {
+    display:    flex;
+    gap:        var(--space-sm);
+    flex-shrink: 0;
+}
+
 .main-content:has(.study-session) {
     overflow-y: hidden;
     display: flex;
