@@ -101,6 +101,8 @@
         "progress_introduced": "new cards introduced",
         "progress_remaining": "still unseen",
         "progress_today": "new today",
+        "coverage_unclassified_title": "No classified cards yet",
+        "coverage_unclassified_desc": "Classify your cards against the exam blueprint to see per-system coverage and performance need.",
         "scope": "Scope",
         "scope_label": "Deck scope",
         "scope_all": "All decks",
