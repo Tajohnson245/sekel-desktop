@@ -35,7 +35,7 @@ protocol.registerSchemesAsPrivileged([
     { scheme: 'sekel-media', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } },
 ]);
 
-import { updateElectronApp } from 'update-electron-app';
+import { updateElectronApp, UpdateSourceType } from 'update-electron-app';
 
 // ---------------------------------------------------------------------------
 // Observability — structured logger + crash reporter, registered early.
@@ -188,8 +188,12 @@ app.whenReady().then(() => {
     // Check for updates only in production (packaged app)
     if (app.isPackaged) {
         updateElectronApp({
+            updateSource: {
+                type: UpdateSourceType.StaticStorage,
+                baseUrl: 'https://pub-1dd00656fa304302a2db06169963ac20.r2.dev'
+            },
             updateInterval: '1 hour',
-            logger: console,
+            notifyUser: true
         });
     }
 

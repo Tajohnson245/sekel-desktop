@@ -10,7 +10,7 @@ function rebuildSqlite(arch) {
   const { execSync } = require('child_process');
   const electronVersion = require(path.join(__dirname, 'node_modules', 'electron', 'package.json')).version;
   const ext = process.platform === 'win32' ? '.cmd' : '';
-  const rebuildBin = path.join(__dirname, 'node_modules', '.bin', `electron-rebuild${ext}`);
+  const rebuildBin = path.join(MONOREPO_ROOT, 'node_modules', '.bin', `electron-rebuild${ext}`);
   const targetArch = arch || process.arch;
   console.log(`[forge] Rebuilding better-sqlite3 for Electron ${electronVersion} (${targetArch})...`);
   execSync(
@@ -154,6 +154,18 @@ module.exports = {
         },
         prerelease: false,
         draft: true
+      }
+    },
+    {
+      name: '@electron-forge/publisher-s3',
+      config: {
+        bucket: 'sekel-releases',
+        endpoint: 'https://10b526ce06de458a7e43834f97953694.r2.cloudflarestorage.com',
+        region: 'auto',
+        public: true,
+        keyResolver: (fileName, platform, arch) => {
+          return `${platform}/${arch}/${fileName}`;
+        }
       }
     }
   ]
