@@ -1,0 +1,141 @@
+/* ==========================================================================
+   MissedTopicsBreakdown
+   ========================================================================== */
+
+.missed-topics-breakdown {
+    /* inherits .analytics-chart card styles */
+}
+
+.missed-system-list {
+    list-style: none;
+    margin:     0.75rem 0 0 0;
+    padding:    0;
+    display:    flex;
+    flex-direction: column;
+    gap:        2px;
+}
+
+.missed-system-item {
+    border-radius: var(--r-sm);
+    overflow:      hidden;
+}
+
+.missed-system-row {
+    display:         flex;
+    align-items:     center;
+    gap:             0.5rem;
+    width:           100%;
+    padding:         0.5rem 0.75rem;
+    background:      transparent;
+    border:          none;
+    border-radius:   var(--r-sm);
+    cursor:          pointer;
+    text-align:      left;
+    color:           inherit;
+    transition:      background 0.15s ease;
+}
+
+.missed-system-row:hover:not(:disabled) {
+    background: var(--surface-2, rgba(255, 255, 255, 0.05));
+}
+
+.missed-system-row:disabled {
+    cursor: default;
+}
+
+.missed-system-row--static {
+    cursor: default;
+}
+
+.missed-system-chevron {
+    flex-shrink: 0;
+    display:     flex;
+    align-items: center;
+    color:       var(--mist);
+    width:       16px;
+}
+
+.missed-system-chevron-spacer {
+    display: inline-block;
+    width:   14px;
+}
+
+.missed-system-label {
+    flex:        1;
+    font-size:   0.9rem;
+    font-weight: 500;
+    color:       var(--fog);
+    min-width:   0;
+    white-space: nowrap;
+    overflow:    hidden;
+    text-overflow: ellipsis;
+}
+
+.missed-system-meta {
+    display:     flex;
+    align-items: center;
+    gap:         0.75rem;
+    flex-shrink: 0;
+    font-size:   0.8rem;
+    font-family: var(--font-mono);
+}
+
+.missed-system-count {
+    color: var(--fog);
+}
+
+.missed-system-rate {
+    /* uses .text-muted */
+    font-size: 0.75rem;
+}
+
+.missed-system-item--unclassified .missed-system-label {
+    font-style: italic;
+}
+
+/* ── Topic rows (nested) ─────────────────────────────────────────── */
+
+.missed-topic-list {
+    list-style: none;
+    margin:     0 0 0.25rem 0;
+    padding:    0;
+}
+
+.missed-topic-item {
+    display:     flex;
+    align-items: center;
+    gap:         0.5rem;
+    padding:     0.35rem 0.75rem 0.35rem calc(0.75rem + 16px + 0.5rem);
+    font-size:   0.85rem;
+    border-radius: var(--r-sm);
+}
+
+.missed-topic-item:hover {
+    background: var(--surface-2, rgba(255, 255, 255, 0.03));
+}
+
+.missed-topic-label {
+    flex:        1;
+    color:       var(--mist);
+    min-width:   0;
+    white-space: nowrap;
+    overflow:    hidden;
+    text-overflow: ellipsis;
+}
+
+.missed-topic-meta {
+    display:     flex;
+    align-items: center;
+    gap:         0.75rem;
+    flex-shrink: 0;
+    font-size:   0.78rem;
+    font-family: var(--font-mono);
+}
+
+.missed-topic-count {
+    color: var(--mist);
+}
+
+.missed-topic-rate {
+    font-size: 0.72rem;
+}

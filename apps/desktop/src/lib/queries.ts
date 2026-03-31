@@ -9,6 +9,7 @@ import type {
     NoteTypeInsert,
     CardInsert, Card,
     InsertReviewParams,
+    DateRangeDays,
 } from '@sekel/db';
 
 // ── Re-export types (consumed by hooks and components) ──────────────────────
@@ -20,6 +21,10 @@ export type {
     TodaySummary,
     CardCountsByMaturity,
     RetentionByMaturity,
+    MissedSystemBreakdown,
+    MissedCardStats,
+    MissRateTrendPoint,
+    DateRangeDays,
 } from '@sekel/db';
 
 const db = () => window.electronAPI.db;
@@ -69,6 +74,9 @@ export const fetchUserReviewHistory = (userId: string, days?: number) => db().fe
 export const fetchTodaySummary = (userId: string) => db().fetchTodaySummary(userId);
 export const fetchCardCountsByMaturity = (userId: string, deckId?: string) => db().fetchCardCountsByMaturity(userId, deckId);
 export const fetchRetentionByMaturity = (userId: string, days?: number) => db().fetchRetentionByMaturity(userId, days);
+export const fetchSessionClassificationBreakdown = (sessionId: string) => db().fetchSessionClassificationBreakdown(sessionId);
+export const fetchMissedCardStats = (userId: string, examKey: string, days: DateRangeDays) => db().fetchMissedCardStats(userId, examKey, days);
+export const fetchMissRateTrend = (userId: string, days: DateRangeDays) => db().fetchMissRateTrend(userId, days);
 
 // ── Export ────────────────────────────────────────────────────────────────────
 export const exportDeck = (deckId: string, userId: string) => db().exportDeck(deckId, userId);

@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import * as dbService from '../main/db/service';
+import type { DateRangeDays } from '@sekel/db';
 import * as timeTravel from '../main/db/timeTravel';
 import { getDb } from '../main/db/index';
 import { readDeletedItems } from '../main/backup/deletionLog';
@@ -59,6 +60,15 @@ export function setupDatabaseHandlers(): void {
 
     instrumentedHandle('db:fetchRetentionByMaturity', (_e, userId: string, days?: number) =>
         dbService.fetchRetentionByMaturity(userId, days));
+
+    instrumentedHandle('db:fetchSessionClassificationBreakdown', (_e, sessionId: string) =>
+        dbService.fetchSessionClassificationBreakdown(sessionId));
+
+    instrumentedHandle('db:fetchMissedCardStats', (_e, userId: string, examKey: string, days: number | null) =>
+        dbService.fetchMissedCardStats(userId, examKey, days as DateRangeDays));
+
+    instrumentedHandle('db:fetchMissRateTrend', (_e, userId: string, days: number | null) =>
+        dbService.fetchMissRateTrend(userId, days as DateRangeDays));
 
     // ── Cards ──────────────────────────────────────────────────────────────────
     instrumentedHandle('db:fetchDueCards', (_e, deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) =>

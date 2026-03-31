@@ -45,6 +45,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
         fetchTodaySummary:         (userId: string) => ipcRenderer.invoke('db:fetchTodaySummary', userId),
         fetchCardCountsByMaturity: (userId: string, deckId?: string) => ipcRenderer.invoke('db:fetchCardCountsByMaturity', userId, deckId),
         fetchRetentionByMaturity:  (userId: string, days?: number) => ipcRenderer.invoke('db:fetchRetentionByMaturity', userId, days),
+        fetchSessionClassificationBreakdown: (sessionId: string) => ipcRenderer.invoke('db:fetchSessionClassificationBreakdown', sessionId),
+        fetchMissedCardStats:      (userId: string, examKey: string, days: number | null) => ipcRenderer.invoke('db:fetchMissedCardStats', userId, examKey, days),
+        fetchMissRateTrend:        (userId: string, days: number | null) => ipcRenderer.invoke('db:fetchMissRateTrend', userId, days),
         // Cards
         fetchDueCards:         (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => ipcRenderer.invoke('db:fetchDueCards', deckId, userId, dailyNewLimit, dailyReviewLimit),
         fetchAllCardsForStudy: (deckId: string, limit?: number) => ipcRenderer.invoke('db:fetchAllCardsForStudy', deckId, limit),

@@ -8,6 +8,7 @@ import type {
     DraftCard, DraftCardInsert,
     InsertReviewParams, ReviewDayCount,
     TodaySummary, CardCountsByMaturity, RetentionByMaturity,
+    MissedSystemBreakdown, MissedCardStats, MissRateTrendPoint, DateRangeDays,
 } from '@sekel/db';
 import type { TimeTravelPreview, TimeTravelResult } from '../main/db/timeTravel';
 
@@ -147,9 +148,12 @@ interface ElectronDB {
     fetchAllDueCardsCount: (userId: string, dailyNewLimit?: number, dailyReviewLimit?: number) => Promise<number>;
     fetchGlobalRetention:  (userId: string, days?: number) => Promise<number | null>;
     // Statistics
-    fetchTodaySummary:         (userId: string) => Promise<TodaySummary>;
-    fetchCardCountsByMaturity: (userId: string, deckId?: string) => Promise<CardCountsByMaturity>;
-    fetchRetentionByMaturity:  (userId: string, days?: number) => Promise<RetentionByMaturity>;
+    fetchTodaySummary:                    (userId: string) => Promise<TodaySummary>;
+    fetchCardCountsByMaturity:            (userId: string, deckId?: string) => Promise<CardCountsByMaturity>;
+    fetchRetentionByMaturity:             (userId: string, days?: number) => Promise<RetentionByMaturity>;
+    fetchSessionClassificationBreakdown: (sessionId: string) => Promise<MissedSystemBreakdown[]>;
+    fetchMissedCardStats:                (userId: string, examKey: string, days: DateRangeDays) => Promise<MissedCardStats>;
+    fetchMissRateTrend:                  (userId: string, days: DateRangeDays) => Promise<MissRateTrendPoint[]>;
     // Cards
     fetchDueCards:         (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => Promise<CardWithNote[]>;
     fetchAllCardsForStudy: (deckId: string, limit?: number) => Promise<CardWithNote[]>;

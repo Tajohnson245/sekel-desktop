@@ -143,7 +143,8 @@
             "time_per_card_desc": "按评分的平均响应时间",
             "average_time": "平均：{{seconds}}秒/张",
             "slowest_cards": "最慢的卡片",
-            "seconds_abbrev": "秒"
+            "seconds_abbrev": "秒",
+            "missed_by_system": "Missed by System"
         },
         "missed_deck": {
             "button": "从 {{count}} 张遗忘卡片创建牌组",
@@ -544,7 +545,18 @@
         "true_retention_desc": "按卡片成熟度的通过率（近30天）",
         "card_type": "卡片类型",
         "retention_rate": "保持率",
-        "more_coming_soon": "更多图表即将推出..."
+        "more_coming_soon": "更多图表即将推出...",
+        "date_range_7d": "Last 7 days",
+        "date_range_30d": "Last 30 days",
+        "date_range_90d": "Last 90 days",
+        "date_range_all": "All time",
+        "missed_by_system": "Missed by System",
+        "missed_count": "{{count}} missed",
+        "miss_rate": "{{rate}}% miss rate",
+        "miss_rate_trend": "Miss Rate Trend",
+        "miss_rate_trend_desc": "Percentage of reviews rated 'Again' over time",
+        "no_exam_profile_breakdown": "Configure your exam profile to see topic breakdown.",
+        "unclassified": "Unclassified"
     },
     "feedback": {
         "title": "反馈",

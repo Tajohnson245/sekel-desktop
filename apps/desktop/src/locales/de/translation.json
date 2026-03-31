@@ -143,7 +143,8 @@
             "time_per_card_desc": "Durchschnittliche Antwortzeit nach Bewertung",
             "average_time": "Durchschnitt: {{seconds}}s pro Karte",
             "slowest_cards": "Langsamste Karten",
-            "seconds_abbrev": "Sekunden"
+            "seconds_abbrev": "Sekunden",
+            "missed_by_system": "Missed by System"
         },
         "missed_deck": {
             "button": "Deck aus {{count}} verpassten Karten erstellen",
@@ -544,7 +545,18 @@
         "true_retention_desc": "Erfolgsrate für Wiederholungskarten nach Reife (letzte 30 Tage)",
         "card_type": "Kartentyp",
         "retention_rate": "Behaltenquote",
-        "more_coming_soon": "Weitere Diagramme folgen..."
+        "more_coming_soon": "Weitere Diagramme folgen...",
+        "date_range_7d": "Last 7 days",
+        "date_range_30d": "Last 30 days",
+        "date_range_90d": "Last 90 days",
+        "date_range_all": "All time",
+        "missed_by_system": "Missed by System",
+        "missed_count": "{{count}} missed",
+        "miss_rate": "{{rate}}% miss rate",
+        "miss_rate_trend": "Miss Rate Trend",
+        "miss_rate_trend_desc": "Percentage of reviews rated 'Again' over time",
+        "no_exam_profile_breakdown": "Configure your exam profile to see topic breakdown.",
+        "unclassified": "Unclassified"
     },
     "feedback": {
         "title": "Feedback",
