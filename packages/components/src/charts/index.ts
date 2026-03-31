@@ -7,3 +7,4 @@ export type { ReviewDayCount } from './ReviewHeatmap';
 export * from './TodaySummaryCard';
 export * from './CardCountsPieChart';
 export * from './RetentionTable';
+export * from './MissRateTrendChart';

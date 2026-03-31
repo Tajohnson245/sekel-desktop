@@ -194,10 +194,17 @@ export interface RatingDistributionItem {
     percent: number;
 }
 
+export interface CardClassificationLabel {
+    systemLabel: string;
+    topicLabel: string | null;
+    splitWeight: number;
+}
+
 export interface TopForgottenCard {
     cardId: string;
     lapseCount: number;
     frontPreview?: string | null;
+    classifications?: CardClassificationLabel[];
 }
 
 export interface TimeByRatingItem {

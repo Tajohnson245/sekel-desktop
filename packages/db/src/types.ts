@@ -199,10 +199,17 @@ export interface RatingDistributionItem {
     percent: number;
 }
 
+export interface CardClassificationLabel {
+    systemLabel: string;
+    topicLabel: string | null;
+    splitWeight: number;
+}
+
 export interface TopForgottenCard {
     cardId: string;
     lapseCount: number;
     frontPreview?: string | null;
+    classifications?: CardClassificationLabel[];
 }
 
 export interface TimeByRatingItem {
@@ -259,6 +266,43 @@ export interface RetentionByMaturity {
     youngRetention: number | null;
     matureRetention: number | null;
     overallRetention: number | null;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Missed Card Statistics (topic breakdown + trend)
+// ─────────────────────────────────────────────────────────────────
+
+export type DateRangeDays = 7 | 30 | 90 | null; // null = All time
+
+export interface MissedTopicRow {
+    topicKey: string;
+    topicLabel: string;
+    missCount: number;
+    totalReviewsInTopic: number;
+    missRate: number; // 0–100
+}
+
+export interface MissedSystemBreakdown {
+    systemKey: string;
+    systemLabel: string;
+    missCount: number;
+    totalReviewsInSystem: number;
+    missRate: number; // 0–100
+    topics: MissedTopicRow[];
+}
+
+export interface MissedCardStats {
+    systems: MissedSystemBreakdown[];
+    unclassifiedMissCount: number;
+    totalMissCount: number;
+    dateRangeDays: DateRangeDays;
+}
+
+export interface MissRateTrendPoint {
+    date: string; // YYYY-MM-DD (daily) or YYYY-Www (weekly for all-time)
+    totalReviews: number;
+    missCount: number;
+    missRate: number; // 0–100
 }
 
 // ─────────────────────────────────────────────────────────────────

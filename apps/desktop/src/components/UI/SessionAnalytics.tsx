@@ -4,6 +4,7 @@ import { CheckCircle } from 'lucide-react';
 import { Button, Loader, RetentionTrendChart, RatingDistributionChart, LapseStatsChart, TimePerCardChart } from '@sekel/components';
 import { useSessionAnalytics } from '../../hooks/useSessions';
 import { useCreateMissedCardsDeck } from '../../hooks/useDecks';
+import { useSessionClassificationBreakdown } from '../../hooks/useStatistics';
 import { useToast } from './Toast';
 
 const MISSED_DECK_THRESHOLD = 5;
@@ -27,6 +28,8 @@ export function SessionAnalytics({
 }: SessionAnalyticsProps) {
     const { t } = useTranslation();
     const { data: analytics, isLoading, isError } = useSessionAnalytics(sessionId, true);
+    const hasMisses = (analytics?.lapseStats.lapseCount ?? 0) > 0;
+    const { data: systemBreakdown = [] } = useSessionClassificationBreakdown(sessionId, hasMisses);
     const createMissedDeck = useCreateMissedCardsDeck();
     const { showToast } = useToast();
 
@@ -75,7 +78,7 @@ export function SessionAnalytics({
                         <div className="analytics-charts">
                             <RetentionTrendChart data={analytics.retentionTrend} />
                             <RatingDistributionChart data={analytics.ratingDistribution} />
-                            <LapseStatsChart lapseStats={analytics.lapseStats} />
+                            <LapseStatsChart lapseStats={analytics.lapseStats} systemBreakdown={systemBreakdown} />
                             {analytics.timeStats && (
                                 <TimePerCardChart timeStats={analytics.timeStats} />
                             )}

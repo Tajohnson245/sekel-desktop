@@ -143,7 +143,8 @@
             "time_per_card_desc": "Temps de réponse moyen par note",
             "average_time": "Moyenne : {{seconds}}s par carte",
             "slowest_cards": "Cartes les plus lentes",
-            "seconds_abbrev": "Secondes"
+            "seconds_abbrev": "Secondes",
+            "missed_by_system": "Missed by System"
         },
         "missed_deck": {
             "button": "Créer un paquet de {{count}} cartes ratées",
@@ -544,7 +545,18 @@
         "true_retention_desc": "Taux de réussite par maturité de carte (30 derniers jours)",
         "card_type": "Type de carte",
         "retention_rate": "Rétention",
-        "more_coming_soon": "Plus de graphiques à venir..."
+        "more_coming_soon": "Plus de graphiques à venir...",
+        "date_range_7d": "Last 7 days",
+        "date_range_30d": "Last 30 days",
+        "date_range_90d": "Last 90 days",
+        "date_range_all": "All time",
+        "missed_by_system": "Missed by System",
+        "missed_count": "{{count}} missed",
+        "miss_rate": "{{rate}}% miss rate",
+        "miss_rate_trend": "Miss Rate Trend",
+        "miss_rate_trend_desc": "Percentage of reviews rated 'Again' over time",
+        "no_exam_profile_breakdown": "Configure your exam profile to see topic breakdown.",
+        "unclassified": "Unclassified"
     },
     "feedback": {
         "title": "Commentaires",

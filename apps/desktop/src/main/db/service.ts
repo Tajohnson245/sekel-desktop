@@ -16,6 +16,7 @@ import type {
     Rating,
 } from '@sekel/db';
 import type { DeckStats, TodaySummary, CardCountsByMaturity, RetentionByMaturity } from '@sekel/db';
+import type { MissedSystemBreakdown, MissedTopicRow, MissedCardStats, MissRateTrendPoint, DateRangeDays } from '@sekel/db';
 import type { CardWithNote } from '@sekel/db';
 import type { InsertReviewParams, ReviewDayCount } from '@sekel/db';
 
@@ -1130,4 +1131,291 @@ export function getSystemPerformanceNeeds(
             total_reviews,
         };
     }).sort((a, b) => b.performance_need - a.performance_need);
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Missed Card Statistics
+// ─────────────────────────────────────────────────────────────────
+
+export function fetchSessionClassificationBreakdown(sessionId: string): MissedSystemBreakdown[] {
+    const db = getDb();
+
+    type Row = {
+        card_id: string;
+        system_key: string | null;
+        system_label: string | null;
+        topic_key: string | null;
+        topic_label: string | null;
+        split_weight: number | null;
+    };
+
+    const rows = db.prepare(`
+        SELECT r.card_id,
+               bs.system_key,
+               bs.label  AS system_label,
+               bt.topic_key,
+               bt.label  AS topic_label,
+               cc.split_weight
+        FROM reviews r
+        LEFT JOIN card_classifications cc
+            ON cc.card_id = r.card_id
+            AND cc.exam_id = (
+                SELECT uep.exam_id
+                FROM deck_sessions ds
+                JOIN user_exam_profiles uep
+                    ON uep.user_id = ds.user_id AND uep.is_primary = 1
+                WHERE ds.id = r.session_id
+                LIMIT 1
+            )
+        LEFT JOIN blueprint_systems bs ON bs.id = cc.system_id
+        LEFT JOIN blueprint_topics  bt ON bt.id = cc.topic_id
+        WHERE r.session_id = ? AND r.rating = 'again'
+        ORDER BY r.card_id, cc.split_weight DESC
+    `).all(sessionId) as Row[];
+
+    const systemMap = new Map<string, { breakdown: MissedSystemBreakdown; cardIds: Set<string>; topicCardIds: Map<string, Set<string>>; topicTotals: Map<string, number> }>();
+
+    for (const row of rows) {
+        if (!row.system_key || !row.system_label) continue;
+
+        if (!systemMap.has(row.system_key)) {
+            systemMap.set(row.system_key, {
+                breakdown: {
+                    systemKey: row.system_key,
+                    systemLabel: row.system_label,
+                    missCount: 0,
+                    totalReviewsInSystem: 0,
+                    missRate: 0,
+                    topics: [],
+                },
+                cardIds: new Set(),
+                topicCardIds: new Map(),
+                topicTotals: new Map(),
+            });
+        }
+
+        const entry = systemMap.get(row.system_key)!;
+        entry.cardIds.add(row.card_id);
+
+        if (row.topic_key && row.topic_label) {
+            if (!entry.topicCardIds.has(row.topic_key)) {
+                entry.topicCardIds.set(row.topic_key, new Set());
+            }
+            entry.topicCardIds.get(row.topic_key)!.add(row.card_id);
+        }
+    }
+
+    // Get total reviews per system for miss rate denominator
+    if (rows.length === 0) return [];
+
+    const result: MissedSystemBreakdown[] = [];
+    for (const [, entry] of systemMap) {
+        entry.breakdown.missCount = entry.cardIds.size;
+
+        const topics: MissedTopicRow[] = [];
+        for (const [topicKey, cardIds] of entry.topicCardIds) {
+            const topicLabel = rows.find(r => r.topic_key === topicKey)?.topic_label ?? topicKey;
+            topics.push({
+                topicKey,
+                topicLabel,
+                missCount: cardIds.size,
+                totalReviewsInTopic: cardIds.size, // approximate — session context
+                missRate: 100, // all retrieved rows are 'again' — rate within session context is simplified
+            });
+        }
+        topics.sort((a, b) => b.missCount - a.missCount);
+        entry.breakdown.topics = topics;
+        entry.breakdown.missRate = 100; // all rows here are 'again' by definition
+        result.push(entry.breakdown);
+    }
+
+    return result.sort((a, b) => b.missCount - a.missCount);
+}
+
+export function fetchMissedCardStats(userId: string, examKey: string, days: DateRangeDays): MissedCardStats {
+    const db = getDb();
+
+    const examRow = db.prepare(`SELECT id FROM blueprint_exams WHERE exam_key = ?`).get(examKey) as { id: number } | undefined;
+    if (!examRow) {
+        return { systems: [], unclassifiedMissCount: 0, totalMissCount: 0, dateRangeDays: days };
+    }
+
+    const sinceISO = days != null
+        ? (() => { const d = new Date(); d.setDate(d.getDate() - days); return d.toISOString(); })()
+        : null;
+
+    const dateFilter = sinceISO ? `AND r.review_time >= ?` : '';
+    const baseParams = sinceISO
+        ? [examRow.id, userId, sinceISO]
+        : [examRow.id, userId];
+
+    type MissRow = {
+        system_key: string;
+        system_label: string;
+        topic_key: string | null;
+        topic_label: string | null;
+        miss_card_count: number;
+    };
+
+    type TotalRow = {
+        system_id: number;
+        topic_id: number | null;
+        total_cards_reviewed: number;
+        system_key: string;
+        topic_key: string | null;
+    };
+
+    const missRows = db.prepare(`
+        SELECT bs.system_key,
+               bs.label                          AS system_label,
+               bt.topic_key,
+               bt.label                          AS topic_label,
+               COUNT(DISTINCT r.card_id)         AS miss_card_count
+        FROM reviews r
+        JOIN card_classifications cc ON cc.card_id = r.card_id AND cc.exam_id = ?
+        JOIN blueprint_systems    bs ON bs.id = cc.system_id
+        LEFT JOIN blueprint_topics bt ON bt.id = cc.topic_id
+        WHERE r.user_id = ? AND r.rating = 'again'
+        ${dateFilter}
+        GROUP BY bs.system_key, bs.label, bt.topic_key, bt.label
+        ORDER BY miss_card_count DESC
+    `).all(...baseParams) as MissRow[];
+
+    const totalRows = db.prepare(`
+        SELECT cc.system_id,
+               cc.topic_id,
+               bs.system_key,
+               bt.topic_key,
+               COUNT(DISTINCT r.card_id) AS total_cards_reviewed
+        FROM reviews r
+        JOIN card_classifications cc ON cc.card_id = r.card_id AND cc.exam_id = ?
+        JOIN blueprint_systems    bs ON bs.id = cc.system_id
+        LEFT JOIN blueprint_topics bt ON bt.id = cc.topic_id
+        WHERE r.user_id = ?
+        ${dateFilter}
+        GROUP BY cc.system_id, cc.topic_id
+    `).all(...baseParams) as TotalRow[];
+
+    // Build total lookup: systemKey+topicKey → total_cards_reviewed
+    const totalMap = new Map<string, number>();
+    for (const row of totalRows) {
+        const key = `${row.system_key}::${row.topic_key ?? '__none__'}`;
+        totalMap.set(key, row.total_cards_reviewed);
+    }
+
+    // Unclassified miss count
+    const unclassifiedParams = sinceISO ? [userId, sinceISO, examRow.id] : [userId, examRow.id];
+    const unclassifiedFilter = sinceISO ? `AND r.review_time >= ?` : '';
+    const { cnt: unclassifiedMissCount } = db.prepare(`
+        SELECT COUNT(DISTINCT r.card_id) AS cnt
+        FROM reviews r
+        WHERE r.user_id = ? AND r.rating = 'again'
+        ${unclassifiedFilter}
+        AND NOT EXISTS (
+            SELECT 1 FROM card_classifications cc
+            WHERE cc.card_id = r.card_id AND cc.exam_id = ?
+        )
+    `).get(...unclassifiedParams) as { cnt: number };
+
+    // Total miss count (no classification join — avoids double-counting)
+    const totalMissParams = sinceISO ? [userId, sinceISO] : [userId];
+    const totalMissFilter = sinceISO ? `AND review_time >= ?` : '';
+    const { cnt: totalMissCount } = db.prepare(`
+        SELECT COUNT(DISTINCT card_id) AS cnt
+        FROM reviews
+        WHERE user_id = ? AND rating = 'again'
+        ${totalMissFilter}
+    `).get(...totalMissParams) as { cnt: number };
+
+    // Build hierarchical structure
+    const systemMap = new Map<string, MissedSystemBreakdown>();
+    for (const row of missRows) {
+        if (!systemMap.has(row.system_key)) {
+            systemMap.set(row.system_key, {
+                systemKey: row.system_key,
+                systemLabel: row.system_label,
+                missCount: 0,
+                totalReviewsInSystem: 0,
+                missRate: 0,
+                topics: [],
+            });
+        }
+        const sys = systemMap.get(row.system_key)!;
+
+        if (row.topic_key && row.topic_label) {
+            const totalKey = `${row.system_key}::${row.topic_key}`;
+            const totalInTopic = totalMap.get(totalKey) ?? row.miss_card_count;
+            sys.topics.push({
+                topicKey: row.topic_key,
+                topicLabel: row.topic_label,
+                missCount: row.miss_card_count,
+                totalReviewsInTopic: totalInTopic,
+                missRate: totalInTopic > 0 ? (row.miss_card_count / totalInTopic) * 100 : 0,
+            });
+        }
+
+        // System-level miss count = max distinct missed cards (no topic = card may span multiple topics)
+        const sysTotal = totalMap.get(`${row.system_key}::__none__`) ??
+            totalRows.filter(t => t.system_key === row.system_key).reduce((s, t) => s + t.total_cards_reviewed, 0);
+        sys.missCount = Math.max(sys.missCount, row.miss_card_count);
+        sys.totalReviewsInSystem = sysTotal;
+        sys.missRate = sysTotal > 0 ? (sys.missCount / sysTotal) * 100 : 0;
+    }
+
+    // Recalculate system missCount as sum of distinct cards across topics
+    for (const [, sys] of systemMap) {
+        sys.topics.sort((a, b) => b.missCount - a.missCount);
+        const sysMissKey = `${sys.systemKey}::__none__`;
+        const totalInSys = totalMap.get(sysMissKey) ??
+            totalRows.filter(t => t.system_key === sys.systemKey)
+                .reduce((acc, t) => acc + t.total_cards_reviewed, 0);
+        if (totalInSys > 0) {
+            sys.totalReviewsInSystem = totalInSys;
+            sys.missRate = (sys.missCount / totalInSys) * 100;
+        }
+    }
+
+    const systems = [...systemMap.values()].sort((a, b) => b.missCount - a.missCount);
+
+    return { systems, unclassifiedMissCount, totalMissCount, dateRangeDays: days };
+}
+
+export function fetchMissRateTrend(userId: string, days: DateRangeDays): MissRateTrendPoint[] {
+    const db = getDb();
+
+    const sinceISO = days != null
+        ? (() => { const d = new Date(); d.setDate(d.getDate() - days); return d.toISOString(); })()
+        : null;
+
+    const dateFilter = sinceISO ? `AND review_time >= ?` : '';
+    const params = sinceISO ? [userId, sinceISO] : [userId];
+
+    // Use daily buckets for bounded ranges, weekly for all-time
+    const dateBucket = days == null
+        ? `strftime('%Y-W%W', review_time)`
+        : `DATE(review_time)`;
+
+    type TrendRow = {
+        review_date: string;
+        total_reviews: number;
+        miss_count: number;
+    };
+
+    const rows = db.prepare(`
+        SELECT ${dateBucket}                                          AS review_date,
+               COUNT(*)                                              AS total_reviews,
+               SUM(CASE WHEN rating = 'again' THEN 1 ELSE 0 END)    AS miss_count
+        FROM reviews
+        WHERE user_id = ?
+        ${dateFilter}
+        GROUP BY ${dateBucket}
+        ORDER BY review_date ASC
+    `).all(...params) as TrendRow[];
+
+    return rows.map(r => ({
+        date: r.review_date,
+        totalReviews: r.total_reviews,
+        missCount: r.miss_count,
+        missRate: r.total_reviews > 0 ? (r.miss_count / r.total_reviews) * 100 : 0,
+    }));
 }

@@ -184,7 +184,8 @@
             "time_per_card_desc": "Tiempo promedio de respuesta por calificación",
             "average_time": "Promedio: {{seconds}}s por tarjeta",
             "slowest_cards": "Tarjetas más lentas",
-            "seconds_abbrev": "Segundos"
+            "seconds_abbrev": "Segundos",
+            "missed_by_system": "Missed by System"
         },
         "missed_deck": {
             "button": "Crear mazo de {{count}} tarjetas falladas",
@@ -544,7 +545,18 @@
         "true_retention_desc": "Tasa de acierto por madurez de tarjeta (últimos 30 días)",
         "card_type": "Tipo de tarjeta",
         "retention_rate": "Retención",
-        "more_coming_soon": "Más gráficos próximamente..."
+        "more_coming_soon": "Más gráficos próximamente...",
+        "date_range_7d": "Last 7 days",
+        "date_range_30d": "Last 30 days",
+        "date_range_90d": "Last 90 days",
+        "date_range_all": "All time",
+        "missed_by_system": "Missed by System",
+        "missed_count": "{{count}} missed",
+        "miss_rate": "{{rate}}% miss rate",
+        "miss_rate_trend": "Miss Rate Trend",
+        "miss_rate_trend_desc": "Percentage of reviews rated 'Again' over time",
+        "no_exam_profile_breakdown": "Configure your exam profile to see topic breakdown.",
+        "unclassified": "Unclassified"
     },
     "feedback": {
         "title": "Comentarios",

@@ -48,6 +48,29 @@
   }
 }
 
+/* Controls row (date range selector) */
+.stats-controls-row {
+  display:     flex;
+  align-items: center;
+  gap:         var(--space-sm);
+}
+
+.stats-date-select {
+  padding:       0.35rem 0.65rem;
+  border:        1px solid var(--border, rgba(255,255,255,0.12));
+  border-radius: var(--r-sm);
+  background:    var(--surface-1, transparent);
+  color:         var(--fog);
+  font-family:   var(--font-mono);
+  font-size:     13px;
+  cursor:        pointer;
+}
+
+.stats-date-select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
 /* Empty state */
 .stats-empty {
   text-align:    center;
