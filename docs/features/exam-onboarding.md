@@ -15,6 +15,8 @@ Exam onboarding connects a user to an exam blueprint (e.g. USMLE Step 1), select
 - **Settings → Study tab** → "Set Up Exam" / "Change Exam" button
 - First-time setup or exam switching both use the same modal
 
+> **Note:** The modal only captures exam selection, deck selection, and exam date. **Session mode (Auto / Mixed / Triage)** is a separate setting configured directly in the Study tab, not inside the modal. Users can change session mode at any time without re-running onboarding.
+
 ### Step 1: Select Exam
 
 - Lists available exams from `blueprint_exams` table via `exam:list-exams` IPC

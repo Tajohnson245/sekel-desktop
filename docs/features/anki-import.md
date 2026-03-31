@@ -5,6 +5,8 @@
 
 ## Overview
 
+The Anki import entry point is available in two places: the **Deck list** page ("Import Anki Deck" button) and **Settings → Account tab** → "Import Anki Deck" button. Both trigger the same pipeline.
+
 Sekel can import Anki `.apkg` files, preserving deck hierarchy, note types, notes, cards, scheduling state, review history, and media files. The feature is implemented in eight phases across the Electron main process and renderer, with a custom `sekel-media://` protocol for serving imported media to the renderer securely.
 
 ---

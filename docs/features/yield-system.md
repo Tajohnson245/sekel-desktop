@@ -165,6 +165,8 @@ When the user's time multiplier crosses a threshold boundary (e.g. from 1.5x to 
 
 On first session after profile creation, the threshold is seeded silently (no notification).
 
+For the full notification implementation including exact copy text and IPC details, see [notifications.md](notifications.md).
+
 ---
 
 ## Session Queue Builder

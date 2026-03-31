@@ -52,8 +52,9 @@ User profile path (Supabase only):
 
 ## SQLite Schema
 
-8 data tables tracked by version-controlled migrations in `migrations.ts`:
+14 data tables tracked by version-controlled migrations in `migrations.ts`:
 
+**Core flashcard data:**
 - `note_types` — id, user_id, name, fields (JSON TEXT), card_templates (JSON TEXT), timestamps
 - `decks` — id, user_id, name, description, algorithm (`fsrs`|`sm2`), parent_id (FK→decks), anki_id, timestamps
 - `notes` — id, user_id, deck_id (FK→decks), note_type_id (FK→note_types), fields (JSON TEXT), tags (JSON TEXT), anki_id, anki_guid, timestamps
@@ -62,6 +63,18 @@ User profile path (Supabase only):
 - `deck_sessions` — id, user_id, deck_id (FK→decks), status, started_at, completed_at, created_at
 - `card_drafts` — id, user_id, front, back, source, created_at
 - `media` — id, user_id, filename, file_path (absolute local path), file_hash (SHA1), file_size, mime_type, import_id, created_at
+
+**Exam blueprint (populated at first run / on update):**
+- `blueprint_exams` — exam registry (exam_key, label, source_url, version)
+- `blueprint_systems` — organ systems per exam (system_key, label, exam_key FK, weight_min, weight_max)
+- `blueprint_topics` — topics per system (topic_key, label, system_key FK, physician_task, relative_weight)
+
+**Per-card exam data:**
+- `card_classifications` — GPT classification results linking a card to a topic (card_id FK, exam_key FK, system_key FK, topic_key FK, confidence 0–1, split_weight 0–1, model_version, classified_at)
+- `user_exam_profiles` — per-user exam setup (user_id, exam_key FK, deck_id FK, exam_date, is_primary, session_mode, last_notified_threshold, created_at, updated_at)
+
+**Study management:**
+- `time_travel_log` — audit record of every Time Travel redistribution (user_id, triggered_at, overdue_count, window_days, daily_target)
 
 JSON columns (`fields`, `tags`, `card_templates`) are stored as `TEXT` and serialized/deserialized only at the `service.ts` boundary.
 
@@ -149,6 +162,18 @@ const localDate = (d: Date) =>
 `toISOString()` returns UTC — on DST transition days this diverges from local date and produces duplicate or missing date keys.
 
 Affected files: `ReviewHeatmap.tsx`, `Dashboard.tsx` (`computeStreak`), `service.ts` (`fetchUserReviewHistory`).
+
+---
+
+## Observability / Logging
+
+All IPC handlers in `ipc/database.ts` (and other handler files) are wrapped with `instrumentedHandle` from the `@sekel/observability` package. This provides:
+
+- **Structured logging** for every IPC call: channel name, arguments summary, duration, and outcome (success or error class)
+- **Three transports:** console output (dev only), a ring buffer of the last 500 log entries (used by the Admin diagnostics screen), and a file transport writing to `{userData}/sekel.log`
+- **Crash reporter:** fatal errors in the main process are written to `{userData}/crash.log` with a full stack trace and the last N ring-buffer entries for context
+
+The Admin screen (`/admin`, visible to admin users only) surfaces the ring buffer contents for in-app diagnostics without requiring log file access.
 
 ---
 

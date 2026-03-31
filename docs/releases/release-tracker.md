@@ -20,12 +20,14 @@ Update this file as part of every release (Step 3 of the release checklist).
 
 ## Desktop (`apps/desktop`)
 
-Current stable: **v1.6.0** (tag `desktop/v1.6.0`)
-Next release tag: `desktop/v1.6.1`
+Current stable: **v1.8.0** (tags `desktop/v1.8.0`, `v1.8.0`)
+Next release tag: `desktop/v1.8.1`
 
 | Version | Date | Tag | Key Changes |
 |---------|------|-----|-------------|
-| v1.6.0 | 2026-03-23 | `desktop/v1.6.0` | User feedback form in profile page (modal with area checkboxes, description, screenshot upload, desired fix), Supabase feedback table + storage bucket |
+| v1.8.0 | 2026-03-23 | `desktop/v1.8.0`, `v1.8.0` | macOS Intel (x64) dual-arch CI build support, FORGE_ARCH env var for arch targeting (SEKEL-056) |
+| v1.7.0 | 2026-03-23 | `v1.7.0` | Study session interactions (spacebar/click-to-flip), custom background image upload, card note image edit fix, session analytics scrollable (SEKEL-051–054) |
+| v1.6.0 | 2026-03-23 | _(no tag — released by merge to main)_ | User feedback form in profile page (modal with area checkboxes, description, screenshot upload, desired fix), Supabase feedback table + storage bucket, study session layout improvements (SEKEL-049–050) |
 | v1.5.3 | 2026-03-22 | `desktop/v1.5.3` | Fix images not rendering — DOMPurify was stripping sekel-media:// URLs |
 | v1.5.2 | 2026-03-22 | `desktop/v1.5.2` | Rebrand to BYTEFLOW LLC, app icon for Windows/macOS installers, CircleCI .icns generation |
 | v1.5.1 | 2026-03-22 | `desktop/v1.5.1` | Lazy-init OpenAI client to prevent startup crash when API key is absent, CI-embedded API key via env var |

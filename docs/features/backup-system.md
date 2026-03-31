@@ -5,6 +5,8 @@
 
 ## Overview
 
+The Backup tab is found in **Settings (Profile page) → Backup tab** (the fourth tab in the Profile page's tab strip).
+
 Sekel stores all flashcard data in a single local SQLite file (`sekel.db`). The backup system protects against data loss through four layers:
 
 1. **Automatic periodic backups** — WAL-safe `.backup()` snapshots on a configurable schedule
