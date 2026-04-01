@@ -2,10 +2,11 @@ import {
   Hero,
   Problem,
   HowItWorks,
-  Features,
+  AIGeneration,
+  ImageOcclusion,
   YieldSystem,
   Blueprints,
-  Comparison,
+  StudyPlan,
   Waitlist,
 } from '@sekel/web-components';
 
@@ -15,10 +16,11 @@ export default function Home() {
       <Hero />
       <Problem />
       <HowItWorks />
-      <Features />
+      <AIGeneration />
+      <ImageOcclusion />
       <YieldSystem />
       <Blueprints />
-      <Comparison />
+      <StudyPlan />
       <Waitlist />
     </>
   );

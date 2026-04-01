@@ -1,4 +1,4 @@
-import { Info } from 'lucide-react';
+import { Info, Clock } from 'lucide-react';
 import './YieldSystem.css';
 
 export default function YieldSystem() {
@@ -19,8 +19,8 @@ export default function YieldSystem() {
             registered and the official blueprint for that exam.
           </p>
           <p className="yield-body-secondary reveal reveal-delay-2">
-            Blueprint data is stored as versioned, updatable config — so when USMLE or NBME revises their
-            content outlines, SEKEL updates without a code change.
+            Sekel pulls from <strong>official exam outlines</strong> — not third-party guesses. When USMLE
+            or NBME updates their content outlines, Sekel updates with them.
           </p>
         </div>
 
@@ -66,6 +66,41 @@ export default function YieldSystem() {
               Yield is calculated from <strong>official exam blueprints</strong> — real topic weightings
               published by USMLE, NBME, and NCSBN. Not guesses.
             </p>
+          </div>
+
+          <div className="urgency-strip">
+            <div className="urgency-header">
+              <Clock size={13} className="urgency-icon" />
+              <span className="urgency-label">Time multiplier — scales as exam approaches</span>
+            </div>
+            <div className="urgency-tiers">
+              <div className="urgency-tier">
+                <span className="urgency-time">6 mo</span>
+                <div className="urgency-bar" style={{ width: '20%' }}></div>
+                <span className="urgency-mult">1.0×</span>
+              </div>
+              <div className="urgency-tier">
+                <span className="urgency-time">3 mo</span>
+                <div className="urgency-bar" style={{ width: '40%' }}></div>
+                <span className="urgency-mult">1.2×</span>
+              </div>
+              <div className="urgency-tier">
+                <span className="urgency-time">6 wk</span>
+                <div className="urgency-bar" style={{ width: '65%' }}></div>
+                <span className="urgency-mult">1.5×</span>
+              </div>
+              <div className="urgency-tier">
+                <span className="urgency-time">2 wk</span>
+                <div className="urgency-bar" style={{ width: '85%' }}></div>
+                <span className="urgency-mult">2.0×</span>
+              </div>
+              <div className="urgency-tier tier-max">
+                <span className="urgency-time">Exam wk</span>
+                <div className="urgency-bar urgency-bar-max" style={{ width: '100%' }}></div>
+                <span className="urgency-mult mult-max">2.5×</span>
+              </div>
+            </div>
+            <p className="urgency-note">Triage session mode locks to 2.5× — max urgency cards only.</p>
           </div>
         </div>
       </div>

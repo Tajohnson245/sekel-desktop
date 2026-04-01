@@ -1,7 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import { Download, Monitor, Apple, Terminal, ArrowLeft } from 'lucide-react';
+import { Download, Monitor, Apple, ArrowLeft } from 'lucide-react';
 import './download.css';
 
 export default function DownloadPage() {
@@ -19,11 +19,17 @@ export default function DownloadPage() {
                         <Download size={48} className="text-accent pulse-icon" />
                     </div>
                     <h1 className="download-title">
-                        Get <span className="text-gradient">Sekel</span>
+                        Download <span className="text-gradient">Sekel Beta</span>
                     </h1>
                     <p className="download-subtitle">
-                        Download the desktop application for your platform and supercharge your learning today.
+                        Free beta. Exam-aware spaced repetition for medical students — Step 1, Step 2 CK,
+                        NBME shelf exams, and NCLEX. No credit card. No subscription.
                     </p>
+                    <ul className="download-value-props">
+                        <li>Yield scoring ranked against official USMLE &amp; NBME blueprints</li>
+                        <li>AI card generation from PDFs and YouTube lectures</li>
+                        <li>Study plan with daily targets and system coverage gaps</li>
+                    </ul>
                 </div>
 
                 <div className="download-grid">
@@ -60,22 +66,6 @@ export default function DownloadPage() {
                         </div>
                     </div>
 
-                    {/* Linux */}
-                    <div className="download-card glass-panel">
-                        <div className="os-icon">
-                            <Terminal size={40} />
-                        </div>
-                        <h3>Linux</h3>
-                        <p>Ubuntu, Debian, Fedora, and more</p>
-                        <button className="btn btn-primary download-btn w-full">
-                            <Download size={18} /> Download AppImage
-                        </button>
-                        <div className="sub-links">
-                            <a href="#">.deb files</a>
-                            <span>•</span>
-                            <a href="#">.rpm files</a>
-                        </div>
-                    </div>
 
                 </div>
 

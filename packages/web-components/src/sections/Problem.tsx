@@ -8,15 +8,15 @@ export default function Problem() {
         <span className="section-label">The Problem with Flashcard Apps</span>
 
         <h2 className="problem-headline reveal">
-          They tell you <em>when</em> to review.<br />
-          Never <em>what&apos;s worth reviewing.</em>
+          You have 500 cards due today.<br />
+          <em>Which 50 actually matter?</em>
         </h2>
 
         <div className="problem-grid">
           <div className="problem-body reveal">
             <p>
-              Medical students have hundreds of cards due every day and an exam in two weeks.
-              Traditional flashcard apps surface them all equally. SEKEL doesn&apos;t.
+              In dedicated study, every hour counts. Traditional flashcard apps treat every card
+              the same — no exam awareness, no blueprint weighting, no urgency. Sekel does.
             </p>
           </div>
 
@@ -24,10 +24,10 @@ export default function Problem() {
             <div className="problem-card reveal reveal-delay-1">
               <div className="problem-icon rose-icon"><Timer size={20} /></div>
               <div className="problem-card-content">
-                <h3>No exam awareness</h3>
+                <h3>Exam blindness</h3>
                 <p>
-                  Standard flashcard apps have no idea your IM shelf is in 14 days. They treat a card
-                  about rare tropical diseases the same as a Cardiology card worth 20% of your score.
+                  Anki treats every card equally. Your exam doesn&apos;t. Cardiology is 30% of Step 1.
+                  Biochemistry is 14%. Your deck doesn&apos;t know that — Sekel does.
                 </p>
               </div>
             </div>
@@ -35,10 +35,10 @@ export default function Problem() {
             <div className="problem-card reveal reveal-delay-2">
               <div className="problem-icon amber-icon"><BarChart2 size={20} /></div>
               <div className="problem-card-content">
-                <h3>No yield intelligence</h3>
+                <h3>Content overload</h3>
                 <p>
-                  Not all cards are equal for your next exam. Some are high-yield. Most aren&apos;t.
-                  Traditional schedulers can&apos;t tell the difference. SEKEL is built around that distinction.
+                  Second year means hundreds of new cards every week. Without prioritization,
+                  you&apos;re grinding through low-yield content when high-yield topics are slipping.
                 </p>
               </div>
             </div>
@@ -46,10 +46,11 @@ export default function Problem() {
             <div className="problem-card reveal reveal-delay-3">
               <div className="problem-icon mist-icon"><BrainCircuit size={20} /></div>
               <div className="problem-card-content">
-                <h3>No prioritization logic</h3>
+                <h3>No urgency signal</h3>
                 <p>
-                  With limited hours and a real exam approaching, you need a study partner that reasons
-                  about your time — not an algorithm that just counts days since last review.
+                  Six weeks out vs. six months out should feel completely different. Traditional
+                  spaced repetition has no concept of your exam date. Sekel builds its whole
+                  session queue around it.
                 </p>
               </div>
             </div>

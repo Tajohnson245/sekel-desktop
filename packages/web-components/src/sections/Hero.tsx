@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { Download, Sparkles } from 'lucide-react';
 import './Hero.css';
 
 export default function Hero() {
@@ -14,21 +14,21 @@ export default function Hero() {
         <div className="hero-left">
           <div className="hero-badge reveal">
             <span className="badge-dot" aria-hidden="true"></span>
-            Now in development — Join the waitlist
+            Now in beta — Download free
           </div>
 
           <h1 className="hero-title reveal reveal-delay-1">
-            Study what <em>actually matters</em> for your next exam.
+            Not every card is worth your time <em>before Step 1.</em>
           </h1>
 
           <p className="hero-subtitle reveal reveal-delay-2">
-            SEKEL combines spaced repetition with <strong>official exam blueprints</strong> and your personal
-            performance data to tell you exactly which cards are worth your limited time — and which aren&apos;t.
+            Sekel knows which ones are. It combines <strong>FSRS spaced repetition</strong> with the official
+            USMLE blueprint to automatically surface high-yield cards — the ones that actually move the needle.
           </p>
 
           <div className="hero-actions reveal reveal-delay-3">
-            <Link href="#waitlist" className="hero-btn-primary">
-              Join the Waitlist <ArrowRight size={16} aria-hidden="true" />
+            <Link href="/download" className="hero-btn-primary">
+              Download Beta <Download size={16} aria-hidden="true" />
             </Link>
             <Link href="#how-it-works" className="hero-btn-secondary">
               See how it works
@@ -37,12 +37,16 @@ export default function Hero() {
 
           <div className="hero-stats reveal">
             <div className="stat">
-              <span className="stat-number">7</span>
-              <span className="stat-label">EXAM TYPES SUPPORTED</span>
+              <span className="stat-number">USMLE</span>
+              <span className="stat-label">STEP 1 · STEP 2 CK · STEP 3</span>
             </div>
             <div className="stat">
-              <span className="stat-number">FSRS</span>
-              <span className="stat-label">ALGORITHM</span>
+              <span className="stat-number">NBME</span>
+              <span className="stat-label">ALL 10 SHELF EXAMS</span>
+            </div>
+            <div className="stat">
+              <span className="stat-number">NCLEX</span>
+              <span className="stat-label">RN · 2026 PLAN</span>
             </div>
           </div>
         </div>

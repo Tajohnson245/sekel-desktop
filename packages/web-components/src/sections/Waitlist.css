@@ -1,3 +1,53 @@
+/* Download CTA buttons */
+.download-cta-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.download-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 600;
+  padding: 14px 32px;
+  border-radius: var(--r-sm);
+  transition: background 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+}
+
+.download-cta-btn-primary {
+  background: var(--teal);
+  color: var(--ink);
+  box-shadow: 0 4px 20px rgba(43,191,164,0.20);
+}
+
+.download-cta-btn-primary:hover {
+  background: #24a88f;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 28px rgba(43,191,164,0.30);
+}
+
+/* Waitlist toggle */
+.waitlist-toggle {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 300;
+  color: var(--mist);
+  background: transparent;
+  border: none;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  margin-top: 24px;
+  transition: color 150ms ease;
+}
+
+.waitlist-toggle:hover { color: var(--fog); }
+
 .waitlist-section {
   background: var(--ink);
   padding: 120px 32px;
@@ -59,6 +109,7 @@
   width: 100%;
   flex-wrap: wrap;
   justify-content: center;
+  margin-top: 28px;
   margin-bottom: 16px;
 }
 
@@ -125,7 +176,7 @@
   font-family: var(--font-mono);
   font-size: 10px;
   color: var(--mist);
-  margin-bottom: 32px;
+  margin-top: 32px;
 }
 
 .waitlist-badges {

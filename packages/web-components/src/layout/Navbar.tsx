@@ -7,9 +7,9 @@ import './Navbar.css';
 
 const NAV_LINKS = [
   { id: 'how-it-works', label: 'How It Works' },
-  { id: 'features', label: 'Features' },
+  { id: 'ai-cards', label: 'AI Cards' },
   { id: 'blueprints', label: 'Exams' },
-  { id: 'compare', label: 'Compare' },
+  { id: 'study-plan', label: 'Study Plan' },
 ];
 
 const NAV_SECTIONS = NAV_LINKS.map(l => l.id);
@@ -89,8 +89,8 @@ export default function Navbar() {
             <span aria-hidden="true"></span>
           </button>
 
-          <Link href="/#waitlist" className="nav-cta" onClick={(e) => handleNavClick(e, 'waitlist')}>
-            Join Waitlist
+          <Link href="/download" className="nav-cta">
+            Download Beta
           </Link>
         </div>
       </div>
@@ -106,12 +106,8 @@ export default function Navbar() {
             {label}
           </Link>
         ))}
-        <Link
-          href="/#waitlist"
-          className="nav-mobile-cta"
-          onClick={(e) => handleNavClick(e, 'waitlist')}
-        >
-          Join Waitlist
+        <Link href="/download" className="nav-mobile-cta">
+          Download Beta
         </Link>
       </div>
     </nav>

@@ -41,11 +41,11 @@ export default function HowItWorks() {
       <div className="container">
         <span className="section-label">How It Works</span>
 
-        <h2 className="hiw-headline reveal">Three inputs. One intelligent queue.</h2>
+        <h2 className="hiw-headline reveal">Exam-aware studying in three steps.</h2>
 
         <p className="hiw-subheadline reveal reveal-delay-1">
-          SEKEL doesn&apos;t replace spaced repetition — it makes it smarter by adding context that
-          traditional flashcard apps were never designed to have.
+          You don&apos;t need to change how you study. Sekel adds the exam context that traditional
+          flashcard apps were never designed to have.
         </p>
 
         <div className="hiw-steps">

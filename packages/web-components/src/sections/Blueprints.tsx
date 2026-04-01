@@ -1,42 +1,12 @@
 import './Blueprints.css';
 
 const blueprints = [
-  {
-    org: 'USMLE · FSMB & NBME',
-    name: 'Step 1',
-    description: 'Foundational sciences across 18 organ systems. Pass/fail but foundational for Steps 2 & 3.',
-    tags: ['18 Systems', 'Updated 2024'],
-  },
-  {
-    org: 'USMLE · FSMB & NBME',
-    name: 'Step 2 CK',
-    description: 'Clinical knowledge across all major specialties. Scored exam. Critical for residency applications.',
-    tags: ['8 Disciplines', 'Scored'],
-  },
-  {
-    org: 'USMLE · FSMB & NBME',
-    name: 'Step 3',
-    description: 'Clinical medicine and patient management. Required for full medical licensure in the US.',
-    tags: ['CCS Cases', 'Licensure'],
-  },
-  {
-    org: 'NBME · Subject Exams',
-    name: 'IM Shelf',
-    description: 'Internal Medicine clerkship exam. Cardiology, Nephrology, GI, Pulm, and more — all weighted.',
-    tags: ['End of Clerkship', 'Graded'],
-  },
-  {
-    org: 'NBME · Subject Exams',
-    name: 'All 10 Shelf Exams',
-    description: 'Surgery, Pediatrics, OB/GYN, Psychiatry, Neurology, Family Medicine, and more.',
-    tags: ['10 Exams', 'All Rotations'],
-  },
-  {
-    org: 'NCSBN',
-    name: 'NCLEX-RN',
-    description: 'Nursing licensure exam. 2026 test plan with updated clinical judgment framework and CAT format.',
-    tags: ['2026 Plan', 'CAT Format'],
-  },
+  { org: 'USMLE · FSMB & NBME', name: 'Step 1', tag: '18 Systems' },
+  { org: 'USMLE · FSMB & NBME', name: 'Step 2 CK', tag: 'Clinical Knowledge' },
+  { org: 'USMLE · FSMB & NBME', name: 'Step 3', tag: 'Patient Management' },
+  { org: 'NBME · Subject Exams', name: 'IM Shelf', tag: 'Internal Medicine' },
+  { org: 'NBME · Subject Exams', name: 'All 10 Shelf Exams', tag: 'All Rotations' },
+  { org: 'NCSBN', name: 'NCLEX-RN', tag: '2026 Test Plan' },
 ];
 
 export default function Blueprints() {
@@ -48,8 +18,8 @@ export default function Blueprints() {
         <h2 className="blueprints-headline reveal">Built on official blueprints.</h2>
 
         <p className="blueprints-subheadline reveal reveal-delay-1">
-          SEKEL ingests content outlines directly from the governing bodies that publish them — not
-          third-party summaries or scraped data. When they update, SEKEL updates.
+          Sekel ingests content outlines directly from the governing bodies that publish them — not
+          third-party summaries or scraped data. When they update, Sekel updates.
         </p>
 
         <div className="blueprints-grid">
@@ -57,12 +27,7 @@ export default function Blueprints() {
             <div key={i} className={`blueprint-card reveal reveal-delay-${(i % 3) + 1}`}>
               <span className="bp-org">{bp.org}</span>
               <h3 className="bp-name">{bp.name}</h3>
-              <p className="bp-description">{bp.description}</p>
-              <div className="bp-tags">
-                {bp.tags.map((tag, j) => (
-                  <span key={j} className="bp-tag">{tag}</span>
-                ))}
-              </div>
+              <span className="bp-tag">{bp.tag}</span>
             </div>
           ))}
         </div>
