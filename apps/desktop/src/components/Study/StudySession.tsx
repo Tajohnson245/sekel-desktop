@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useDueCards, useAllCardsForStudy, useUpdateCard, useDeck } from '../../hooks/useDecks';
+import { useDueCards, useDueCardsFocused, useAllCardsForStudy, useUpdateCard, useDeck } from '../../hooks/useDecks';
 import { useCreateSession, useCompleteSession, useInsertReview } from '../../hooks/useSessions';
 import { useExamProfile } from '../../hooks/useExamProfile';
 import { useYieldScores } from '../../hooks/useYield';
@@ -16,7 +16,7 @@ import CardViewer from '../Card/CardViewer';
 import RatingButtons from './RatingButtons';
 import StudyTimer from './StudyTimer';
 import YieldBadge from './YieldBadge';
-import UrgencyChip from './UrgencyChip';
+
 import { Button, SessionAnalytics, useToast } from '../UI';
 import type { Rating, CardUpdate } from '../../lib/types';
 import { DEFAULT_NOTE_TYPES } from '../../lib/types';
@@ -29,13 +29,27 @@ export default function StudySession() {
     const deckId = deckIdParam!;
     const [searchParams] = useSearchParams();
     const mode = (searchParams.get('mode') as 'due' | 'all') || 'due';
+    const focusMode = searchParams.get('focus');
+    const systemsParam = searchParams.get('systems');
+    const focusSystemKeys = focusMode === 'intelligence' && systemsParam
+        ? systemsParam.split(',').filter(Boolean)
+        : [];
     const userId = useAuthStore((s) => s.user?.id ?? '');
     const { goToDeck } = useAppNavigation();
     const { data: deck } = useDeck(deckId);
-    const dueCardsResult = useDueCards(mode === 'due' ? deckId : null);
+    const { data: examProfile } = useExamProfile();
+    const examKey = examProfile?.exam_key;
+    const dueCardsResult = useDueCards(mode === 'due' && focusSystemKeys.length === 0 ? deckId : null);
     const allCardsResult = useAllCardsForStudy(mode === 'all' ? deckId : null);
+    const focusedCardsResult = useDueCardsFocused(
+        mode === 'due' && focusSystemKeys.length > 0 ? deckId : null,
+        focusSystemKeys,
+        examKey,
+    );
 
-    const { data: cards = [], isLoading, refetch } = mode === 'due' ? dueCardsResult : allCardsResult;
+    const { data: cards = [], isLoading, refetch } = focusSystemKeys.length > 0
+        ? focusedCardsResult
+        : mode === 'due' ? dueCardsResult : allCardsResult;
     const updateCard = useUpdateCard();
     const createSession = useCreateSession();
     const completeSession = useCompleteSession();
@@ -64,8 +78,6 @@ export default function StudySession() {
     const fsrsEnabled = deck?.algorithm === 'fsrs';
 
     // ── Yield data overlay ──────────────────────────────────────────
-    const { data: examProfile } = useExamProfile();
-    const examKey = examProfile?.exam_key;
     const cardIds = useMemo(() => cards.map(c => c.id), [cards]);
     const { data: yieldScores } = useYieldScores(examKey, cardIds.length > 0 ? cardIds : undefined);
     const yieldMap = useMemo(() => {
@@ -333,12 +345,6 @@ export default function StudySession() {
                     maxSeconds={maxSeconds}
                     visible={showTimer}
                 />
-                {examProfile && isExamDateSet(examProfile.exam_date) && (
-                    <UrgencyChip
-                        examDate={examProfile.exam_date}
-                        sessionMode={examProfile.session_mode}
-                    />
-                )}
                 {currentYield && examKey && (
                     <YieldBadge
                         level={currentYield.yieldLevel}
@@ -346,6 +352,12 @@ export default function StudySession() {
                         cardId={currentYield.cardId}
                         examKey={examKey}
                     />
+                )}
+                {focusMode === 'intelligence' && (
+                    <span className="intelligence-focus-chip">
+                        <Sparkles size={11} />
+                        Focused session
+                    </span>
                 )}
                 <span className="progress-text">
                     {currentIndex + 1} / {cards.length}

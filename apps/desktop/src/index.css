@@ -533,6 +533,32 @@ h3 {
 
 .dashboard-header {
     margin-bottom: 1.5rem;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.dashboard-mode-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    padding: 0.4rem 0.75rem;
+    border: 1px solid;
+    border-radius: var(--r-md);
+    background: transparent;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.dashboard-mode-chip__label {
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.dashboard-mode-chip__sub {
+    font-size: 0.7rem;
+    color: var(--text-muted, #8892a4);
 }
 
 .stats-grid {

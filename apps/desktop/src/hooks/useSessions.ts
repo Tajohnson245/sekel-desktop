@@ -11,6 +11,8 @@ import {
     type ReviewDayCount,
 } from '../lib/queries';
 import type { SessionAnalytics } from '../lib/types';
+import { intelligenceKeys } from './useSekelIntelligence';
+import { useAuthStore } from '../stores/authStore';
 
 // ─────────────────────────────────────────────────────────────────
 // Query Keys
@@ -39,12 +41,16 @@ export function useCreateSession() {
 
 export function useCompleteSession() {
     const queryClient = useQueryClient();
+    const userId = useAuthStore((s) => s.user?.id);
 
     return useMutation({
         mutationFn: (sessionId: string) => completeDeckSession(sessionId),
         onSuccess: (data) => {
             queryClient.invalidateQueries({ queryKey: ['sessions'] });
             queryClient.invalidateQueries({ queryKey: sessionKeys.analytics(data.id) });
+            if (userId) {
+                queryClient.invalidateQueries({ queryKey: intelligenceKeys.summary(userId) });
+            }
         },
     });
 }

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '../../../stores/authStore';
 import { useProfileStore } from '../../../stores/profileStore';
-import { Bell, Brain, Clock, GraduationCap, Plus, X } from 'lucide-react';
+import { Bell, Brain, Clock, GraduationCap, Plus, Sparkles, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button, useToast, ToggleSwitch } from '../../UI';
 import { useDecks, useUpdateDeck } from '../../../hooks/useDecks';
@@ -424,6 +424,29 @@ export function StudyTab() {
                             </div>
                         </div>
                     )}
+                </div>
+
+                {/* SEKEL Intelligence */}
+                <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div>
+                            <label className="field-label">
+                                <Sparkles size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+                                SEKEL Intelligence
+                            </label>
+                            <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0.2rem 0 0' }}>
+                                Personalized study insights based on your exam blueprint
+                            </p>
+                        </div>
+                        <ToggleSwitch
+                            checked={profile?.intelligence_enabled ?? true}
+                            onChange={(next) => {
+                                if (user?.id) {
+                                    upsertProfile(user.id, { intelligence_enabled: next });
+                                }
+                            }}
+                        />
+                    </div>
                 </div>
 
                 {/* Study Timer */}

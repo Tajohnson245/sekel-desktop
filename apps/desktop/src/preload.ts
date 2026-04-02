@@ -48,8 +48,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
         fetchSessionClassificationBreakdown: (sessionId: string) => ipcRenderer.invoke('db:fetchSessionClassificationBreakdown', sessionId),
         fetchMissedCardStats:      (userId: string, examKey: string, days: number | null) => ipcRenderer.invoke('db:fetchMissedCardStats', userId, examKey, days),
         fetchMissRateTrend:        (userId: string, days: number | null) => ipcRenderer.invoke('db:fetchMissRateTrend', userId, days),
+        getIntelligenceSummary:    (userId: string) => ipcRenderer.invoke('db:get-intelligence-summary', userId),
         // Cards
         fetchDueCards:         (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => ipcRenderer.invoke('db:fetchDueCards', deckId, userId, dailyNewLimit, dailyReviewLimit),
+        fetchDueCardsFocused:  (deckId: string, systemKeys: string[], examKey: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => ipcRenderer.invoke('db:fetchDueCardsFocused', deckId, systemKeys, examKey, userId, dailyNewLimit, dailyReviewLimit),
         fetchAllCardsForStudy: (deckId: string, limit?: number) => ipcRenderer.invoke('db:fetchAllCardsForStudy', deckId, limit),
         fetchAllCardsForDeck:  (deckId: string) => ipcRenderer.invoke('db:fetchAllCardsForDeck', deckId),
         updateCardAfterReview: (cardId: string, updates: unknown) => ipcRenderer.invoke('db:updateCardAfterReview', cardId, updates),

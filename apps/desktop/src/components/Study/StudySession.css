@@ -49,6 +49,19 @@
     margin-left: auto;
 }
 
+.intelligence-focus-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid var(--teal-border, rgba(43, 191, 164, 0.22));
+    color: var(--teal);
+    background: var(--teal-soft, rgba(43, 191, 164, 0.08));
+}
+
 .study-content {
     flex: 1 1 0;
     display: flex;

@@ -42,6 +42,7 @@ export const fetchGlobalRetention = (userId: string, days?: number) => db().fetc
 
 // ── Cards ────────────────────────────────────────────────────────────────────
 export const fetchDueCards = (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => db().fetchDueCards(deckId, userId, dailyNewLimit, dailyReviewLimit);
+export const fetchDueCardsFocused = (deckId: string, systemKeys: string[], examKey: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => db().fetchDueCardsFocused(deckId, systemKeys, examKey, userId, dailyNewLimit, dailyReviewLimit);
 export const fetchAllCardsForStudy = (deckId: string, limit?: number) => db().fetchAllCardsForStudy(deckId, limit);
 export const fetchAllCardsForDeck = (deckId: string) => db().fetchAllCardsForDeck(deckId);
 export const updateCardAfterReview = (cardId: string, updates: Partial<Card>) => db().updateCardAfterReview(cardId, updates);
@@ -77,6 +78,8 @@ export const fetchRetentionByMaturity = (userId: string, days?: number) => db().
 export const fetchSessionClassificationBreakdown = (sessionId: string) => db().fetchSessionClassificationBreakdown(sessionId);
 export const fetchMissedCardStats = (userId: string, examKey: string, days: DateRangeDays) => db().fetchMissedCardStats(userId, examKey, days);
 export const fetchMissRateTrend = (userId: string, days: DateRangeDays) => db().fetchMissRateTrend(userId, days);
+export type { IntelligenceSummary, SystemAccuracyRow } from '../types/electron';
+export const getIntelligenceSummary = (userId: string) => db().getIntelligenceSummary(userId);
 
 // ── Export ────────────────────────────────────────────────────────────────────
 export const exportDeck = (deckId: string, userId: string) => db().exportDeck(deckId, userId);

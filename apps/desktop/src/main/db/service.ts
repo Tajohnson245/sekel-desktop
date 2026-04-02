@@ -561,6 +561,115 @@ export function fetchDueCards(
     return [...learningRows, ...newRows, ...reviewRows].map(buildCardWithNote);
 }
 
+export function fetchDueCardsFocused(
+    deckId: string,
+    systemKeys: string[],
+    examKey: string,
+    userId?: string,
+    dailyNewLimit?: number,
+    dailyReviewLimit?: number,
+): CardWithNote[] {
+    if (systemKeys.length === 0) return fetchDueCards(deckId, userId, dailyNewLimit, dailyReviewLimit, examKey);
+
+    const now = new Date().toISOString();
+    const db = getDb();
+    const placeholders = systemKeys.map(() => '?').join(', ');
+    const systemFilter = `EXISTS (
+        SELECT 1
+        FROM card_classifications cc2
+        JOIN blueprint_systems bs2 ON bs2.id = cc2.system_id
+        JOIN blueprint_exams be2 ON be2.id = cc2.exam_id
+        WHERE cc2.card_id = c.id
+          AND be2.exam_key = ?
+          AND bs2.system_key IN (${placeholders})
+    )`;
+
+    if (!userId || dailyNewLimit == null || dailyReviewLimit == null) {
+        const rows = db.prepare(`
+            ${CARD_WITH_NOTE_SQL}
+            WHERE n.deck_id = ?
+              AND (c.state IN ('new', 'learning', 'relearning')
+                   OR (c.state = 'review' AND c.due <= ?))
+              AND ${systemFilter}
+            ORDER BY c.due ASC
+        `).all(deckId, now, examKey, ...systemKeys) as CardWithNoteRow[];
+        return rows.map(buildCardWithNote);
+    }
+
+    const studied = countStudiedToday(deckId, userId);
+    const remainingNew = Math.max(0, dailyNewLimit - studied.newStudied);
+    const remainingReview = Math.max(0, dailyReviewLimit - studied.reviewStudied);
+
+    const learningRows = db.prepare(`
+        ${CARD_WITH_NOTE_SQL}
+        WHERE n.deck_id = ? AND c.state IN ('learning', 'relearning')
+          AND ${systemFilter}
+        ORDER BY c.due ASC
+    `).all(deckId, examKey, ...systemKeys) as CardWithNoteRow[];
+
+    const newRows = remainingNew > 0
+        ? db.prepare(`
+            WITH yield_proxy AS (
+                SELECT cc.card_id,
+                    MAX(
+                        ((bs.weight_min + bs.weight_max) / 2.0)
+                        * cc.confidence
+                        * cc.split_weight
+                    ) AS proxy
+                FROM card_classifications cc
+                JOIN blueprint_systems bs ON bs.id = cc.system_id
+                WHERE cc.exam_id = (SELECT id FROM blueprint_exams WHERE exam_key = ? LIMIT 1)
+                GROUP BY cc.card_id
+            )
+            SELECT
+                c.id, c.user_id, c.note_id, c.template_index,
+                c.state, c.due, c.stability, c.difficulty,
+                c.elapsed_days, c.scheduled_days, c.reps, c.lapses,
+                c.last_review, c.created_at, c.updated_at,
+                c.anki_meta    AS card_anki_meta,
+                n.id       AS note_id,
+                n.deck_id  AS deck_id,
+                n.note_type_id,
+                n.fields   AS note_fields,
+                n.tags     AS note_tags,
+                n.anki_meta AS note_anki_meta,
+                n.created_at AS note_created_at,
+                n.updated_at AS note_updated_at,
+                nt.id          AS nt_id,
+                nt.anki_id     AS nt_anki_id,
+                nt.anki_meta   AS nt_anki_meta,
+                nt.name        AS nt_name,
+                nt.fields      AS nt_fields,
+                nt.card_templates AS nt_templates,
+                nt.created_at  AS nt_created_at,
+                nt.updated_at  AS nt_updated_at
+            FROM cards c
+            JOIN notes n  ON c.note_id = n.id
+            JOIN note_types nt ON n.note_type_id = nt.id
+            LEFT JOIN yield_proxy yp ON yp.card_id = c.id
+            WHERE n.deck_id = ? AND c.state = 'new'
+              AND ${systemFilter}
+            ORDER BY
+                CASE WHEN yp.proxy IS NULL THEN 1 ELSE 0 END ASC,
+                yp.proxy DESC,
+                c.due ASC
+            LIMIT ?
+        `).all(examKey, deckId, examKey, ...systemKeys, remainingNew) as CardWithNoteRow[]
+        : [];
+
+    const reviewRows = remainingReview > 0
+        ? db.prepare(`
+            ${CARD_WITH_NOTE_SQL}
+            WHERE n.deck_id = ? AND c.state = 'review' AND c.due <= ?
+              AND ${systemFilter}
+            ORDER BY c.due ASC
+            LIMIT ?
+        `).all(deckId, now, examKey, ...systemKeys, remainingReview) as CardWithNoteRow[]
+        : [];
+
+    return [...learningRows, ...newRows, ...reviewRows].map(buildCardWithNote);
+}
+
 export function fetchAllCardsForStudy(deckId: string, limit = 50): CardWithNote[] {
     const rows = getDb().prepare(`
         ${CARD_WITH_NOTE_SQL}
@@ -1418,4 +1527,248 @@ export function fetchMissRateTrend(userId: string, days: DateRangeDays): MissRat
         missCount: r.miss_count,
         missRate: r.total_reviews > 0 ? (r.miss_count / r.total_reviews) * 100 : 0,
     }));
+}
+
+// ── SEKEL Intelligence ────────────────────────────────────────────────────────
+
+export interface SystemAccuracyRow {
+    systemKey: string;
+    label: string;
+    accuracy: number;
+    blueprintWeightMin: number;
+    blueprintWeightMax: number;
+    dueCardsCount: number;
+    totalReviewsInWindow: number;
+}
+
+export interface IntelligenceSummary {
+    daysUntilExam: number | null;
+    examLabel: string | null;
+    examKey: string | null;
+    weakestSystem: {
+        label: string;
+        systemKey: string;
+        accuracy: number;
+        blueprintWeightMin: number;
+        blueprintWeightMax: number;
+        dueCardsCount: number;
+        highLeverageCards: number;
+    } | null;
+    systemBreakdown: SystemAccuracyRow[];
+    prioritizedCardCount: number;
+    deprioritizedCardCount: number;
+    totalDueCount: number;
+    suggestedDeckId: string | null;
+    hasClassifications: boolean;
+}
+
+export function getIntelligenceSummary(userId: string): IntelligenceSummary {
+    const db = getDb();
+    const ACCURACY_WINDOW_DAYS = 30;
+    const ACCURACY_THRESHOLD = 0.80;
+    const now = new Date().toISOString();
+
+    const since = new Date();
+    since.setDate(since.getDate() - ACCURACY_WINDOW_DAYS);
+    const sinceISO = since.toISOString();
+
+    // ── Query 1: Exam profile ────────────────────────────────────────
+    type ExamRow = { exam_date: string; exam_key: string; exam_label: string; exam_id: number };
+    const examRow = db.prepare(`
+        SELECT uep.exam_date, be.exam_key, be.label AS exam_label, be.id AS exam_id
+        FROM user_exam_profiles uep
+        JOIN blueprint_exams be ON be.id = uep.exam_id
+        WHERE uep.user_id = ? AND uep.is_primary = 1
+        LIMIT 1
+    `).get(userId) as ExamRow | undefined;
+
+    const SENTINEL = '9999-12-31';
+    const daysUntilExam = examRow && examRow.exam_date !== SENTINEL
+        ? Math.max(0, Math.floor((new Date(examRow.exam_date).getTime() - Date.now()) / 86_400_000))
+        : null;
+
+    if (!examRow) {
+        return {
+            daysUntilExam: null, examLabel: null, examKey: null,
+            weakestSystem: null, systemBreakdown: [],
+            prioritizedCardCount: 0, deprioritizedCardCount: 0,
+            totalDueCount: 0, suggestedDeckId: null, hasClassifications: false,
+        };
+    }
+
+    // ── Query 2: Per-system accuracy (weighted by split_weight, last 30 days) ──
+    type SystemAccRow = {
+        system_id: number;
+        system_key: string;
+        label: string;
+        weight_min: number | null;
+        weight_max: number | null;
+        weighted_total: number | null;
+        weighted_non_again: number | null;
+    };
+
+    const accRows = db.prepare(`
+        WITH card_acc AS (
+            SELECT card_id,
+                   COUNT(*)                                                 AS total_rev,
+                   SUM(CASE WHEN rating != 'again' THEN 1 ELSE 0 END)      AS non_again_rev
+            FROM reviews
+            WHERE user_id = ? AND review_time >= ?
+            GROUP BY card_id
+        ),
+        system_acc AS (
+            SELECT cc.system_id,
+                   SUM(ca.total_rev     * cc.split_weight) AS weighted_total,
+                   SUM(ca.non_again_rev * cc.split_weight) AS weighted_non_again
+            FROM card_classifications cc
+            JOIN card_acc ca ON ca.card_id = cc.card_id
+            WHERE cc.exam_id = ?
+            GROUP BY cc.system_id
+        )
+        SELECT bs.id AS system_id, bs.system_key, bs.label,
+               bs.weight_min, bs.weight_max,
+               sa.weighted_total, sa.weighted_non_again
+        FROM blueprint_systems bs
+        LEFT JOIN system_acc sa ON sa.system_id = bs.id
+        WHERE bs.exam_id = ?
+    `).all(userId, sinceISO, examRow.exam_id, examRow.exam_id) as SystemAccRow[];
+
+    // ── Query 3: Due card counts per system ──────────────────────────
+    type DueRow = { system_id: number; due_count: number };
+    const dueRows = db.prepare(`
+        SELECT cc.system_id, COUNT(DISTINCT c.id) AS due_count
+        FROM cards c
+        JOIN notes n ON c.note_id = n.id
+        JOIN decks d ON n.deck_id = d.id
+        JOIN card_classifications cc ON cc.card_id = c.id AND cc.exam_id = ?
+        WHERE d.user_id = ?
+          AND (
+              c.state IN ('new', 'learning', 'relearning')
+              OR (c.state = 'review' AND c.due <= ?)
+          )
+        GROUP BY cc.system_id
+    `).all(examRow.exam_id, userId, now) as DueRow[];
+
+    const dueMap = new Map(dueRows.map(r => [r.system_id, r.due_count]));
+
+    // ── Total due (all cards, not just classified) ───────────────────
+    const totalDueRow = db.prepare(`
+        SELECT COUNT(*) AS cnt
+        FROM cards c
+        JOIN notes n ON c.note_id = n.id
+        JOIN decks d ON n.deck_id = d.id
+        WHERE d.user_id = ?
+          AND (
+              c.state IN ('new', 'learning', 'relearning')
+              OR (c.state = 'review' AND c.due <= ?)
+          )
+    `).get(userId, now) as { cnt: number };
+    const totalDueCount = totalDueRow.cnt;
+
+    // ── Check if any classifications exist ───────────────────────────
+    const classifiedRow = db.prepare(`
+        SELECT COUNT(*) AS cnt
+        FROM card_classifications cc
+        JOIN blueprint_exams be ON be.id = cc.exam_id
+        WHERE be.exam_key = ?
+        LIMIT 1
+    `).get(examRow.exam_key) as { cnt: number };
+    const hasClassifications = classifiedRow.cnt > 0;
+
+    // ── Assemble systemBreakdown ─────────────────────────────────────
+    const systemBreakdown: SystemAccuracyRow[] = accRows.map(row => {
+        const total = row.weighted_total ?? 0;
+        const nonAgain = row.weighted_non_again ?? 0;
+        const accuracy = total > 0 ? nonAgain / total : 1.0;
+        return {
+            systemKey: row.system_key,
+            label: row.label,
+            accuracy,
+            blueprintWeightMin: row.weight_min ?? 0,
+            blueprintWeightMax: row.weight_max ?? 0,
+            dueCardsCount: dueMap.get(row.system_id) ?? 0,
+            totalReviewsInWindow: Math.round(total),
+        };
+    });
+
+    // ── Priority score: (1 - accuracy) × blueprint midpoint ─────────
+    const weightedSystems = systemBreakdown
+        .filter(s => s.totalReviewsInWindow > 0 && s.dueCardsCount > 0)
+        .map(s => ({
+            ...s,
+            priorityScore: (1 - s.accuracy) * ((s.blueprintWeightMin + s.blueprintWeightMax) / 2),
+        }))
+        .sort((a, b) => b.priorityScore - a.priorityScore);
+
+    const weakest = weightedSystems.find(s => s.accuracy < ACCURACY_THRESHOLD) ?? null;
+
+    const weakSystemKeys = new Set(
+        weightedSystems.filter(s => s.accuracy < ACCURACY_THRESHOLD).map(s => s.systemKey)
+    );
+    const weakSystemKeysArray = [...weakSystemKeys];
+
+    // ── Suggested deck: most due cards in weakest system ─────────────
+    let suggestedDeckId: string | null = null;
+    if (weakest) {
+        type DeckDueRow = { deck_id: string; cnt: number };
+        const deckRow = db.prepare(`
+            SELECT n.deck_id, COUNT(DISTINCT c.id) AS cnt
+            FROM cards c
+            JOIN notes n ON c.note_id = n.id
+            JOIN card_classifications cc ON cc.card_id = c.id AND cc.exam_id = ?
+            JOIN blueprint_systems bs ON bs.id = cc.system_id AND bs.system_key = ?
+            WHERE c.user_id = ?
+              AND (
+                  c.state IN ('new', 'learning', 'relearning')
+                  OR (c.state = 'review' AND c.due <= ?)
+              )
+            GROUP BY n.deck_id
+            ORDER BY cnt DESC
+            LIMIT 1
+        `).get(examRow.exam_id, weakest.systemKey, userId, now) as DeckDueRow | undefined;
+        suggestedDeckId = deckRow?.deck_id ?? null;
+    }
+
+    // ── Prioritized count: due cards in the suggested deck for weak systems ──
+    let prioritizedCardCount = 0;
+    if (suggestedDeckId && weakSystemKeysArray.length > 0) {
+        const placeholders = weakSystemKeysArray.map(() => '?').join(', ');
+        const prioritizedRow = db.prepare(`
+            SELECT COUNT(DISTINCT c.id) AS cnt
+            FROM cards c
+            JOIN notes n ON c.note_id = n.id
+            JOIN card_classifications cc ON cc.card_id = c.id AND cc.exam_id = ?
+            JOIN blueprint_systems bs ON bs.id = cc.system_id AND bs.system_key IN (${placeholders})
+            WHERE n.deck_id = ?
+              AND (
+                  c.state IN ('new', 'learning', 'relearning')
+                  OR (c.state = 'review' AND c.due <= ?)
+              )
+        `).get(examRow.exam_id, ...weakSystemKeysArray, suggestedDeckId, now) as { cnt: number };
+        prioritizedCardCount = prioritizedRow.cnt;
+    }
+    const deprioritizedCardCount = Math.max(0, totalDueCount - prioritizedCardCount);
+
+    return {
+        daysUntilExam,
+        examLabel: examRow.exam_label,
+        examKey: examRow.exam_key,
+        weakestSystem: weakest
+            ? {
+                label: weakest.label,
+                systemKey: weakest.systemKey,
+                accuracy: weakest.accuracy,
+                blueprintWeightMin: weakest.blueprintWeightMin,
+                blueprintWeightMax: weakest.blueprintWeightMax,
+                dueCardsCount: weakest.dueCardsCount,
+                highLeverageCards: weakest.dueCardsCount,
+              }
+            : null,
+        systemBreakdown,
+        prioritizedCardCount,
+        deprioritizedCardCount,
+        totalDueCount,
+        suggestedDeckId,
+        hasClassifications,
+    };
 }

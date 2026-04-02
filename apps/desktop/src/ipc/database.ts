@@ -74,6 +74,9 @@ export function setupDatabaseHandlers(): void {
     instrumentedHandle('db:fetchDueCards', (_e, deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) =>
         dbService.fetchDueCards(deckId, userId, dailyNewLimit, dailyReviewLimit));
 
+    instrumentedHandle('db:fetchDueCardsFocused', (_e, deckId: string, systemKeys: string[], examKey: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) =>
+        dbService.fetchDueCardsFocused(deckId, systemKeys, examKey, userId, dailyNewLimit, dailyReviewLimit));
+
     instrumentedHandle('db:fetchAllCardsForStudy', (_e, deckId: string, limit?: number) =>
         dbService.fetchAllCardsForStudy(deckId, limit));
 
@@ -221,6 +224,10 @@ export function setupDatabaseHandlers(): void {
     // ── Deletion Log ──────────────────────────────────────────────────────
     instrumentedHandle('db:getDeletedItems', () =>
         readDeletedItems());
+
+    // ── Intelligence ─────────────────────────────────────────────────────
+    instrumentedHandle('db:get-intelligence-summary', (_e, userId: string) =>
+        dbService.getIntelligenceSummary(userId));
 
     // ── Integrity ────────────────────────────────────────────────────────
     instrumentedHandle('db:checkIntegrity', () => {
