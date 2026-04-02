@@ -12,6 +12,7 @@ import {
     deleteDecks,
     fetchDeckStats,
     fetchDueCards,
+    fetchDueCardsFocused,
     fetchAllCardsForStudy,
     fetchAllCardsForDeck,
     updateCardAfterReview,
@@ -84,6 +85,20 @@ export function useDueCards(deckId: string | null) {
         queryKey: [...deckKeys.dueCards(deckId ?? ''), newLimit, reviewLimit],
         queryFn: () => fetchDueCards(deckId!, userId, newLimit, reviewLimit),
         enabled: !!deckId && !!userId,
+    });
+}
+
+export function useDueCardsFocused(deckId: string | null, systemKeys: string[], examKey: string | undefined) {
+    const userId = useAuthStore((s) => s.user?.id);
+    const profile = useProfileStore((s) => s.profile);
+    const planNewPerDay = usePlanStore((s) => s.effectiveNewPerDay);
+    const limitsEnabled = profile?.daily_limits_enabled ?? true;
+    const newLimit = planNewPerDay ?? (limitsEnabled ? (profile?.daily_new_limit ?? 20) : undefined);
+    const reviewLimit = limitsEnabled ? (profile?.daily_review_limit ?? 200) : undefined;
+    return useQuery<CardWithNote[]>({
+        queryKey: ['decks', deckId, 'due-cards-focused', systemKeys, newLimit, reviewLimit],
+        queryFn: () => fetchDueCardsFocused(deckId!, systemKeys, examKey!, userId, newLimit, reviewLimit),
+        enabled: !!deckId && !!userId && !!examKey && systemKeys.length > 0,
     });
 }
 

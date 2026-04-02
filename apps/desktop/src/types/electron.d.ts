@@ -136,6 +136,37 @@ export interface AIGenerationOptions {
     customInstructions?: string;
 }
 
+export interface SystemAccuracyRow {
+    systemKey: string;
+    label: string;
+    accuracy: number;
+    blueprintWeightMin: number;
+    blueprintWeightMax: number;
+    dueCardsCount: number;
+    totalReviewsInWindow: number;
+}
+
+export interface IntelligenceSummary {
+    daysUntilExam: number | null;
+    examLabel: string | null;
+    examKey: string | null;
+    weakestSystem: {
+        label: string;
+        systemKey: string;
+        accuracy: number;
+        blueprintWeightMin: number;
+        blueprintWeightMax: number;
+        dueCardsCount: number;
+        highLeverageCards: number;
+    } | null;
+    systemBreakdown: SystemAccuracyRow[];
+    prioritizedCardCount: number;
+    deprioritizedCardCount: number;
+    totalDueCount: number;
+    suggestedDeckId: string | null;
+    hasClassifications: boolean;
+}
+
 interface ElectronDB {
     // Decks
     fetchDecks:            (userId: string) => Promise<Deck[]>;
@@ -154,8 +185,10 @@ interface ElectronDB {
     fetchSessionClassificationBreakdown: (sessionId: string) => Promise<MissedSystemBreakdown[]>;
     fetchMissedCardStats:                (userId: string, examKey: string, days: DateRangeDays) => Promise<MissedCardStats>;
     fetchMissRateTrend:                  (userId: string, days: DateRangeDays) => Promise<MissRateTrendPoint[]>;
+    getIntelligenceSummary:              (userId: string) => Promise<IntelligenceSummary>;
     // Cards
     fetchDueCards:         (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => Promise<CardWithNote[]>;
+    fetchDueCardsFocused:  (deckId: string, systemKeys: string[], examKey: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => Promise<CardWithNote[]>;
     fetchAllCardsForStudy: (deckId: string, limit?: number) => Promise<CardWithNote[]>;
     fetchAllCardsForDeck:  (deckId: string) => Promise<CardWithNote[]>;
     updateCardAfterReview: (cardId: string, updates: Partial<Card>) => Promise<Card>;

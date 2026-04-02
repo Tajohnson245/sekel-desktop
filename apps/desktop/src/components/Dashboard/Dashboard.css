@@ -1,5 +1,40 @@
 /* ─────────────────────────────────────────────────────────────────
-   Dashboard – 50/50 split layout
+   Dashboard – top split: intelligence (left) + stats (right)
+   ───────────────────────────────────────────────────────────────── */
+
+.dashboard-top {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1.5rem;
+    align-items: stretch;
+    margin-top: 1.25rem;
+}
+
+.dashboard-top__intel {
+    min-width: 0;
+}
+
+.dashboard-top__stats {
+    align-self: stretch;
+}
+
+.dashboard-top__stats .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-content: space-between;
+    gap: 0.75rem;
+    margin-top: 0;
+    height: 100%;
+}
+
+@media (max-width: 960px) {
+    .dashboard-top {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   Dashboard – bottom split layout
    ───────────────────────────────────────────────────────────────── */
 
 .dashboard-split {

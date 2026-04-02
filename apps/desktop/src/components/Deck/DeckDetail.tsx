@@ -6,9 +6,11 @@ import { useDeck, useDeckStats } from '../../hooks/useDecks';
 import { useNoteTypes, useCreateNoteType, useNotesByDeck, useDeleteNote } from '../../hooks/useNotes';
 import { useAppNavigation } from '../../hooks/useAppNavigation';
 import { useAuthStore } from '../../stores/authStore';
+import { useExamProfile } from '../../hooks/useExamProfile';
 import CardList from '../Card/CardList';
 import NoteEditor from '../Card/NoteEditor';
 import DeckEditor from './DeckEditor';
+import SessionModeBriefing, { getTierKey } from './SessionModeBriefing';
 import { Button, useToast } from '../UI';
 import { DEFAULT_NOTE_TYPES } from '../../lib/types';
 import './DeckDetail.css';
@@ -33,6 +35,8 @@ export default function DeckDetail() {
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [showDeckEditor, setShowDeckEditor] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [showModeBriefing, setShowModeBriefing] = useState(false);
+    const { data: examProfile } = useExamProfile();
 
     // Ensure we have a default note type (Basic)
     useEffect(() => {
@@ -154,7 +158,15 @@ export default function DeckDetail() {
                             </Button>
                             <Button
                                 variant="primary"
-                                onClick={() => goToStudy(id, 'due')}
+                                onClick={() => {
+                                    const tierKey = getTierKey(examProfile);
+                                    const dismissed = localStorage.getItem(`sekel_briefing_v1_${tierKey}`);
+                                    if (dismissed) {
+                                        goToStudy(id, 'due');
+                                    } else {
+                                        setShowModeBriefing(true);
+                                    }
+                                }}
                                 disabled={totalCards === 0 || dueCards === 0}
                                 data-testid="study-btn"
                                 icon={<BookOpen size={18} />}
@@ -264,6 +276,19 @@ export default function DeckDetail() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {showModeBriefing && deck && (
+                <SessionModeBriefing
+                    deckName={deck.name}
+                    dueCount={dueCards}
+                    examProfile={examProfile}
+                    onDismiss={() => setShowModeBriefing(false)}
+                    onBegin={() => {
+                        setShowModeBriefing(false);
+                        goToStudy(id, 'due');
+                    }}
+                />
             )}
         </div>
     );

@@ -9,7 +9,7 @@ interface UrgencyChipProps {
 
 const THRESHOLDS = [180, 90, 30, 7];
 
-function computeTier(daysUntilExam: number): { multiplier: number; emoji: string; labelKey: string } {
+export function computeTier(daysUntilExam: number): { multiplier: number; emoji: string; labelKey: string } {
     if (daysUntilExam < 7)        return { multiplier: 2.5, emoji: '\uD83D\uDD34', labelKey: 'study.urgency.final_sprint' };
     if (daysUntilExam < 30)       return { multiplier: 2.0, emoji: '\uD83D\uDD34', labelKey: 'study.urgency.intensive_mode' };
     if (daysUntilExam < 90)       return { multiplier: 1.5, emoji: '\uD83D\uDFE1', labelKey: 'study.urgency.focused_mode' };
@@ -17,7 +17,7 @@ function computeTier(daysUntilExam: number): { multiplier: number; emoji: string
     return { multiplier: 1.0, emoji: '\uD83D\uDFE2', labelKey: 'study.urgency.standard_mode' };
 }
 
-function daysUntilNextShift(daysUntilExam: number): number | null {
+export function daysUntilNextShift(daysUntilExam: number): number | null {
     for (const boundary of THRESHOLDS) {
         if (daysUntilExam > boundary) return daysUntilExam - boundary;
     }

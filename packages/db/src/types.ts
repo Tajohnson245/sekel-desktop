@@ -346,6 +346,7 @@ export interface UserProfile {
     max_answer_seconds: number;
     show_timer: boolean;
     auto_advance_on_timeout: boolean;
+    intelligence_enabled: boolean;
     created_at: string;
     updated_at: string;
 }
