@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # post-task.sh — Claude Code Stop hook
 # Runs after every Claude Code task. On SEKEL-### branches, creates or updates
-# the corresponding feature doc in docs/features/ and commits it.
+# the corresponding feature doc under docs/features/<app>/in-progress/ and commits it.
 
 # Consume stdin (Claude Code Stop hook JSON payload)
 cat > /dev/null
@@ -15,26 +15,68 @@ if [[ ! "$BRANCH" =~ ^SEKEL-[0-9]+-(.+)$ ]]; then
 fi
 
 FEATURE_NAME="${BASH_REMATCH[1]}"
-DOC_PATH="$REPO_ROOT/docs/features/$FEATURE_NAME.md"
 TEMPLATE_PATH="$REPO_ROOT/docs/features/_template.md"
 TODAY="$(date +%Y-%m-%d)"
 
-# Build a summary line from uncommitted working-tree changes (exclude the doc itself)
+# ── Detect which app this branch primarily touches ────────────────────────────
+
+detect_app() {
+  local changed
+  changed="$(git -C "$REPO_ROOT" status --short 2>/dev/null | awk '{print $NF}')"
+  if [ -z "$changed" ]; then
+    changed="$(git -C "$REPO_ROOT" diff HEAD~1 HEAD --name-only 2>/dev/null)"
+  fi
+
+  local desktop_count web_count community_count survey_count
+  desktop_count="$(echo "$changed" | grep -c "^apps/desktop/" 2>/dev/null || echo 0)"
+  web_count="$(echo "$changed"     | grep -c "^apps/web/"     2>/dev/null || echo 0)"
+  community_count="$(echo "$changed" | grep -c "^apps/community/" 2>/dev/null || echo 0)"
+  survey_count="$(echo "$changed"  | grep -c "^apps/survey/"  2>/dev/null || echo 0)"
+
+  local max_app="infrastructure"
+  local max_count=0
+  for pair in "desktop:$desktop_count" "web:$web_count" "community:$community_count" "survey:$survey_count"; do
+    app="${pair%%:*}"
+    count="${pair##*:}"
+    if [ "$count" -gt "$max_count" ] 2>/dev/null; then
+      max_count="$count"
+      max_app="$app"
+    fi
+  done
+  echo "$max_app"
+}
+
+APP="$(detect_app)"
+
+# ── Find existing doc (search all status dirs, skip _archive) ─────────────────
+
+DOC_PATH=""
+for status_dir in in-progress ready shipped; do
+  for app_dir in desktop web community infrastructure survey; do
+    candidate="$REPO_ROOT/docs/features/$app_dir/$status_dir/$FEATURE_NAME.md"
+    if [ -f "$candidate" ]; then
+      DOC_PATH="$candidate"
+      break 2
+    fi
+  done
+done
+
+# ── Build a summary line from working-tree changes ────────────────────────────
+
 CHANGED_FILES="$(
   git -C "$REPO_ROOT" status --short 2>/dev/null \
     | awk '{print $NF}' \
-    | grep -v "^docs/features/${FEATURE_NAME}\.md$" \
+    | grep -v "^docs/features/" \
     | head -8 \
     | tr '\n' ', ' \
     | sed 's/,$//' \
   || true
 )"
 
-# Fall back to last commit's changed files if the working tree is clean
 if [ -z "$CHANGED_FILES" ]; then
   CHANGED_FILES="$(
     git -C "$REPO_ROOT" diff HEAD~1 HEAD --name-only 2>/dev/null \
-      | grep -v "^docs/features/${FEATURE_NAME}\.md$" \
+      | grep -v "^docs/features/" \
       | head -8 \
       | tr '\n' ', ' \
       | sed 's/,$//' \
@@ -42,51 +84,43 @@ if [ -z "$CHANGED_FILES" ]; then
   )"
 fi
 
-if [ -z "$CHANGED_FILES" ]; then
-  SUMMARY="Task completed"
-else
-  SUMMARY="Modified: $CHANGED_FILES"
-fi
+SUMMARY="${CHANGED_FILES:-Task completed}"
 
-if [ ! -f "$DOC_PATH" ]; then
-  # ── Create new doc from template ─────────────────────────────────────────
+# ── Create or update the doc ──────────────────────────────────────────────────
+
+if [ -z "$DOC_PATH" ]; then
+  # Create new doc in <app>/in-progress/
   if [ ! -f "$TEMPLATE_PATH" ]; then
-    echo "[post-task] Template not found at $TEMPLATE_PATH — skipping doc creation." >&2
+    echo "[post-task] Template not found at $TEMPLATE_PATH — skipping." >&2
     exit 0
   fi
 
+  mkdir -p "$REPO_ROOT/docs/features/$APP/in-progress"
+  DOC_PATH="$REPO_ROOT/docs/features/$APP/in-progress/$FEATURE_NAME.md"
   cp "$TEMPLATE_PATH" "$DOC_PATH"
 
-  # Derive a readable title from kebab-case feature name
   TITLE="$(echo "$FEATURE_NAME" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) tolower(substr($i,2)); print}')"
 
-  # Populate template placeholders
   sed -i "s/^# Feature Name$/# $TITLE/" "$DOC_PATH"
   sed -i "s/^> One-line description.*$/> Auto-created by post-task hook. Update with intent and description./" "$DOC_PATH"
   sed -i "s/\`SEKEL-XXX-feature-name\`/\`$BRANCH\`/" "$DOC_PATH"
   sed -i "s/\*\*Created:\*\* YYYY-MM-DD/**Created:** $TODAY/" "$DOC_PATH"
   sed -i "s/\*\*Last Updated:\*\* YYYY-MM-DD/**Last Updated:** $TODAY/" "$DOC_PATH"
-
-  # Append initial changelog row
   printf "| %s | Doc created. %s |\n" "$TODAY" "$SUMMARY" >> "$DOC_PATH"
 
-  COMMIT_MSG="docs: create $FEATURE_NAME.md"
+  COMMIT_MSG="docs($APP): create $FEATURE_NAME.md"
 else
-  # ── Update existing doc ───────────────────────────────────────────────────
-
-  # Update Last Updated date
+  # Update Last Updated and append changelog row
   sed -i "s/\*\*Last Updated:\*\* [0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}/**Last Updated:** $TODAY/" "$DOC_PATH"
-
-  # Append changelog row
   printf "| %s | %s |\n" "$TODAY" "$SUMMARY" >> "$DOC_PATH"
 
-  COMMIT_MSG="docs: update $FEATURE_NAME.md changelog"
+  COMMIT_MSG="docs($APP): update $FEATURE_NAME.md changelog"
 fi
 
-# Stage only the doc file. If other files are already staged, stash them
-# temporarily so the hook commit contains only the doc update.
+# ── Commit only the doc, preserving any other staged files ────────────────────
+
 OTHER_STAGED="$(git -C "$REPO_ROOT" diff --cached --name-only 2>/dev/null \
-  | grep -v "^docs/features/${FEATURE_NAME}\.md$" || true)"
+  | grep -v "^docs/features/" || true)"
 
 STASHED=0
 if [ -n "$OTHER_STAGED" ]; then
@@ -100,7 +134,6 @@ if ! git -C "$REPO_ROOT" diff --cached --quiet; then
   echo "[post-task] Committed: $COMMIT_MSG"
 fi
 
-# Restore any previously staged files
 if [ "$STASHED" -eq 1 ]; then
   git -C "$REPO_ROOT" stash pop 2>/dev/null || true
 fi
