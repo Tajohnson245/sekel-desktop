@@ -37,3 +37,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 | Date | Description |
 |------|-------------|
 | 2026-04-03 | Doc created. .claude/hooks/post-task.sh,.claude/settings.json,scripts/generate-changelog.sh |
+| 2026-04-03 | apps/desktop/supabase/blueprints/_seed.ts,apps/desktop/supabase/blueprints/usmle-step1-v2025.ts,apps/desktop/supabase/blueprints/usmle-step2ck-v2025.ts,apps/desktop/supabase/blueprints/usmle-step3-v2025.ts,apps/desktop/supabase/migrations/20260403150005_create_blueprint_tables.sql,scripts/seed-blueprints-supabase.ts |
