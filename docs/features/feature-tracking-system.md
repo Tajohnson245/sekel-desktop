@@ -39,3 +39,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 | 2026-04-03 | Modified: .claude/hooks/,.claude/settings.json,docs/features/_template.md |
 | 2026-04-03 | Modified: .claude/hooks/,.claude/settings.json,docs/features/_template.md,scripts/generate-changelog.sh |
 | 2026-04-03 | Modified: docs/features/USMLE-Step-1-Blueprint.md,docs/features/USMLE-Step-2-blueprint.md,docs/features/USMLE-Step-3-blueprint.md,docs/features/_template.md,docs/features/accessibility-gaps.md,docs/features/add-github-workflows-skill.md,docs/features/anki-db-parser.md,docs/features/apkg-export.md |
+| 2026-04-03 | Modified: .claude/hooks/,.claude/settings.json,scripts/generate-changelog.sh |
