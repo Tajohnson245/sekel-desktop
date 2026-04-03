@@ -18,7 +18,7 @@
  */
 
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 
 // ── Resolve blueprints directory ─────────────────────────────────────────────
@@ -63,15 +63,14 @@ function discoverFiles(examKey: string | null): string[] {
 
 function runFile(filePath: string): void {
     console.log(`\nRunning: ${path.basename(filePath)}`);
-    const result = spawnSync('npx', ['tsx', filePath], {
-        stdio: 'inherit',
-        shell: true,
-        env: { ...process.env },
-    });
-
-    if (result.status !== 0) {
-        console.error(`Failed: ${path.basename(filePath)} (exit ${result.status})`);
-        process.exit(result.status ?? 1);
+    try {
+        execSync(`npx tsx "${filePath}"`, {
+            stdio: 'inherit',
+            env: { ...process.env },
+        });
+    } catch {
+        console.error(`Failed: ${path.basename(filePath)}`);
+        process.exit(1);
     }
 }
 
