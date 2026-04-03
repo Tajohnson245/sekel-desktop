@@ -53,3 +53,4 @@ The file follows the established naming convention `{issuer}-{exam_key}-v{versio
 | 2026-04-03 | apps/desktop/supabase/blueprints/nbme-im-shelf-v2025.ts |
 | 2026-04-03 | apps/desktop/supabase/blueprints/nbme-im-shelf-v2025.ts |
 | 2026-04-03 | apps/desktop/supabase/blueprints/nbme-surgery-shelf-v2025.ts |
+| 2026-04-03 | apps/desktop/supabase/blueprints/nbme-pediatrics-shelf-v2025.ts,apps/desktop/supabase/blueprints/nbme-surgery-shelf-v2025.ts |
