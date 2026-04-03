@@ -37,3 +37,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 | Date | Description |
 |------|-------------|
 | 2026-04-03 | Doc created. apps/desktop/supabase/blueprints/nbme-im-shelf-v2025.ts |
+| 2026-04-03 | apps/desktop/supabase/blueprints/nbme-im-shelf-v2025.ts |
