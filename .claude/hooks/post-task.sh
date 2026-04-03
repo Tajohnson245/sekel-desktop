@@ -83,10 +83,24 @@ else
   COMMIT_MSG="docs: update $FEATURE_NAME.md changelog"
 fi
 
-# Stage the doc and commit only if there is a real change
+# Stage only the doc file. If other files are already staged, stash them
+# temporarily so the hook commit contains only the doc update.
+OTHER_STAGED="$(git -C "$REPO_ROOT" diff --cached --name-only 2>/dev/null \
+  | grep -v "^docs/features/${FEATURE_NAME}\.md$" || true)"
+
+STASHED=0
+if [ -n "$OTHER_STAGED" ]; then
+  git -C "$REPO_ROOT" stash push --staged --message "hook: preserve staged files" 2>/dev/null && STASHED=1
+fi
+
 git -C "$REPO_ROOT" add "$DOC_PATH"
 
 if ! git -C "$REPO_ROOT" diff --cached --quiet; then
   git -C "$REPO_ROOT" commit -m "$COMMIT_MSG"
   echo "[post-task] Committed: $COMMIT_MSG"
+fi
+
+# Restore any previously staged files
+if [ "$STASHED" -eq 1 ]; then
+  git -C "$REPO_ROOT" stash pop 2>/dev/null || true
 fi
