@@ -52,3 +52,4 @@ The file follows the established naming convention `{issuer}-{exam_key}-v{versio
 | 2026-04-03 | Added `nbme-im-shelf-v2025.ts` — seeds Medicine Subject Exam (IM Shelf) with 17 systems into Supabase via the centralized blueprint migration system. |
 | 2026-04-03 | apps/desktop/supabase/blueprints/nbme-im-shelf-v2025.ts |
 | 2026-04-03 | apps/desktop/supabase/blueprints/nbme-im-shelf-v2025.ts |
+| 2026-04-03 | apps/desktop/supabase/blueprints/nbme-surgery-shelf-v2025.ts |
