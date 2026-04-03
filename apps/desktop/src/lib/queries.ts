@@ -103,6 +103,7 @@ export const upsertExamProfile = (userId: string, examId: number, examDate: stri
     examApi().upsertProfile(userId, examId, examDate, sessionMode);
 export const updateExamProfile = (userId: string, updates: { exam_date?: string; session_mode?: string }) =>
     examApi().updateProfile(userId, updates);
+export const deleteExamProfile = (userId: string) => examApi().deleteProfile(userId);
 export const fetchAllCardIds   = (userId: string) => examApi().fetchAllCardIds(userId);
 
 // ── Plan ──────────────────────────────────────────────────────────────────────

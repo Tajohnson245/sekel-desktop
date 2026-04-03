@@ -1,12 +1,8 @@
 /* ─────────────────────────────────────────────────────────────────
-   Dashboard – top split: intelligence (left) + stats (right)
+   Dashboard – Intelligence panel (full width)
    ───────────────────────────────────────────────────────────────── */
 
 .dashboard-top {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 1.5rem;
-    align-items: stretch;
     margin-top: 1.25rem;
 }
 
@@ -14,23 +10,65 @@
     min-width: 0;
 }
 
-.dashboard-top__stats {
-    align-self: stretch;
+/* ─────────────────────────────────────────────────────────────────
+   Zone 1 — Exam Countdown Header
+   ───────────────────────────────────────────────────────────────── */
+
+.dashboard-welcome {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 1.5rem;
+    font-weight: 400;
+    color: var(--fog);
+    margin: 0 0 0.375rem;
 }
 
-.dashboard-top__stats .stats-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    align-content: space-between;
-    gap: 0.75rem;
-    margin-top: 0;
-    height: 100%;
+.dashboard-countdown {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 1rem;
+    color: var(--mist);
+    margin: 0;
 }
 
-@media (max-width: 960px) {
-    .dashboard-top {
-        grid-template-columns: 1fr;
-    }
+.dashboard-set-exam-prompt {
+    font-family: Calibri, 'Segoe UI', sans-serif;
+    font-size: 0.9375rem;
+    color: var(--teal);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+}
+
+.dashboard-set-exam-prompt:hover {
+    text-decoration: underline;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   Zone 3 — Soft Plan Nudge
+   ───────────────────────────────────────────────────────────────── */
+
+.dashboard-plan-nudge {
+    font-family: Calibri, 'Segoe UI', sans-serif;
+    font-size: 0.875rem;
+    color: var(--mist);
+    margin: 0.75rem 0 0;
+}
+
+.dashboard-plan-nudge__link {
+    font-family: inherit;
+    font-size: inherit;
+    color: var(--mist);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.dashboard-plan-nudge__link:hover {
+    color: var(--fog);
 }
 
 /* ─────────────────────────────────────────────────────────────────
