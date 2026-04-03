@@ -372,6 +372,7 @@ interface ElectronExam {
     getProfile:      (userId: string) => Promise<UserExamProfile | null>;
     upsertProfile:   (userId: string, examId: number, examDate: string | null, sessionMode?: string) => Promise<UserExamProfile>;
     updateProfile:   (userId: string, updates: { exam_date?: string; session_mode?: string }) => Promise<UserExamProfile | null>;
+    deleteProfile:   (userId: string) => Promise<void>;
     fetchAllCardIds: (userId: string) => Promise<string[]>;
 }
 

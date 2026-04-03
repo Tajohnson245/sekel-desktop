@@ -5,7 +5,7 @@ import { Bell, Brain, Clock, GraduationCap, Plus, Sparkles, X } from 'lucide-rea
 import { useTranslation } from 'react-i18next';
 import { Button, useToast, ToggleSwitch } from '../../UI';
 import { useDecks, useUpdateDeck } from '../../../hooks/useDecks';
-import { useExamProfile, useUpdateExamProfile } from '../../../hooks/useExamProfile';
+import { useExamProfile, useUpdateExamProfile, useDeleteExamProfile } from '../../../hooks/useExamProfile';
 import { isExamDateSet, EXAM_DATE_SENTINEL } from '../../../lib/queries';
 import { ExamOnboardingModal } from '../../ExamOnboarding/ExamOnboardingModal';
 
@@ -36,7 +36,9 @@ export function StudyTab() {
     // Exam profile state
     const { data: examProfile } = useExamProfile();
     const updateExamProfile = useUpdateExamProfile();
+    const deleteExamProfile = useDeleteExamProfile();
     const [showExamModal, setShowExamModal] = useState(false);
+    const [confirmDeleteExam, setConfirmDeleteExam] = useState(false);
     const [localExamDate, setLocalExamDate] = useState('');
     const [localSessionMode, setLocalSessionMode] = useState<'auto' | 'mixed' | 'triage'>('auto');
 
@@ -216,7 +218,7 @@ export function StudyTab() {
                                         className="field-input"
                                         value={localSessionMode}
                                         onChange={(e) => handleSessionModeChange(e.target.value as 'auto' | 'mixed' | 'triage')}
-                                        style={{ width: '220px' }}
+                                        style={{ width: '290px' }}
                                     >
                                         <option value="auto">{t('exam.mode_auto')}</option>
                                         <option value="mixed">{t('exam.mode_mixed')}</option>
@@ -225,9 +227,43 @@ export function StudyTab() {
                                 </div>
                             </div>
 
-                            <Button variant="secondary" onClick={() => setShowExamModal(true)}>
-                                {t('exam.change_exam')}
-                            </Button>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                                <Button variant="secondary" onClick={() => setShowExamModal(true)}>
+                                    {t('exam.change_exam')}
+                                </Button>
+                                {confirmDeleteExam ? (
+                                    <>
+                                        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                            Remove exam configuration?
+                                        </span>
+                                        <Button
+                                            variant="danger"
+                                            onClick={() => {
+                                                deleteExamProfile.mutate(undefined, {
+                                                    onSuccess: () => {
+                                                        setConfirmDeleteExam(false);
+                                                        showToast('Exam configuration removed', 'success');
+                                                    },
+                                                    onError: () => {
+                                                        showToast('Failed to remove exam configuration', 'error');
+                                                    },
+                                                });
+                                            }}
+                                            isLoading={deleteExamProfile.isPending}
+                                            disabled={deleteExamProfile.isPending}
+                                        >
+                                            Confirm
+                                        </Button>
+                                        <Button variant="ghost" onClick={() => setConfirmDeleteExam(false)}>
+                                            Cancel
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <Button variant="ghost" onClick={() => setConfirmDeleteExam(true)}>
+                                        Remove
+                                    </Button>
+                                )}
+                            </div>
                         </div>
                     ) : (
                         <div style={{ marginTop: '0.75rem' }}>

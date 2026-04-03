@@ -151,6 +151,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
                              ipcRenderer.invoke('exam:upsert-profile', userId, examId, examDate, sessionMode),
         updateProfile:   (userId: string, updates: { exam_date?: string; session_mode?: string }) =>
                              ipcRenderer.invoke('exam:update-profile', userId, updates),
+        deleteProfile:   (userId: string) => ipcRenderer.invoke('exam:delete-profile', userId),
         fetchAllCardIds: (userId: string) => ipcRenderer.invoke('exam:fetch-all-card-ids', userId),
     },
 

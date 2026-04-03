@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     listExams, getExamProfile, upsertExamProfile,
-    updateExamProfile, fetchAllCardIds,
+    updateExamProfile, deleteExamProfile, fetchAllCardIds,
 } from '../lib/queries';
 import type { BlueprintExam, UserExamProfile } from '../lib/queries';
 import { useAuthStore } from '../stores/authStore';
@@ -47,6 +47,20 @@ export function useUpdateExamProfile() {
             updateExamProfile(userId!, updates),
         onSuccess: () => {
             if (userId) qc.invalidateQueries({ queryKey: examKeys.profile(userId) });
+        },
+    });
+}
+
+export function useDeleteExamProfile() {
+    const qc = useQueryClient();
+    const userId = useAuthStore(s => s.user?.id);
+    return useMutation({
+        mutationFn: () => deleteExamProfile(userId!),
+        onSuccess: () => {
+            if (userId) {
+                qc.setQueryData(examKeys.profile(userId), null);
+                qc.invalidateQueries({ queryKey: examKeys.all });
+            }
         },
     });
 }

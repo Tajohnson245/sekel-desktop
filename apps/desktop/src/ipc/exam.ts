@@ -82,6 +82,12 @@ export function setupExamHandlers(): void {
         }
     );
 
+    instrumentedHandle('exam:delete-profile', (_e, userId: string) => {
+        getDb().prepare(
+            'DELETE FROM user_exam_profiles WHERE user_id = ? AND is_primary = 1'
+        ).run(userId);
+    });
+
     instrumentedHandle('exam:fetch-all-card-ids', (_e, userId: string) => {
         const rows = getDb().prepare(
             'SELECT id FROM cards WHERE user_id = ?'
