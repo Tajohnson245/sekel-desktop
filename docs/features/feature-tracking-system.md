@@ -37,3 +37,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 |------|-------------|
 | 2026-04-03 | Doc created. Modified: .claude/hooks/,.claude/settings.json,docs/features/_template.md |
 | 2026-04-03 | Modified: .claude/hooks/,.claude/settings.json,docs/features/_template.md |
+| 2026-04-03 | Modified: .claude/hooks/,.claude/settings.json,docs/features/_template.md,scripts/generate-changelog.sh |
