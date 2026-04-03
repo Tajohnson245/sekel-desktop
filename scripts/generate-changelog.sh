@@ -105,6 +105,13 @@ mkdir -p "$SHIPPED_DIR"
 
 for DOC in "${DOCS[@]}"; do
   BASENAME="$(basename "$DOC")"
+
+  # Update Status, Shipped date, and append changelog row before moving
+  sed -i "s/\*\*Status:\*\* \`.*\`/**Status:** \`Shipped\`/" "$DOC"
+  sed -i "s/\*\*Shipped:\*\* —/**Shipped:** $TODAY/" "$DOC"
+  sed -i "s/\*\*Last Updated:\*\* [0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}/**Last Updated:** $TODAY/" "$DOC"
+  printf "| %s | Shipped in %s %s |\n" "$TODAY" "$APP" "$VERSION" >> "$DOC"
+
   git -C "$REPO_ROOT" mv "$DOC" "$SHIPPED_DIR/$BASENAME"
   echo "Moved to shipped/: $BASENAME"
 done

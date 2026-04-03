@@ -8,6 +8,7 @@
 **Branch:** `SEKEL-XXX-feature-name`
 **Created:** YYYY-MM-DD
 **Last Updated:** YYYY-MM-DD
+**Shipped:** —
 
 ---
 
