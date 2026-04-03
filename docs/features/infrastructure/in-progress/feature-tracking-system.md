@@ -44,3 +44,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 | 2026-04-03 | Task completed |
 | 2026-04-03 | Task completed |
 | 2026-04-03 | Task completed |
+| 2026-04-03 | .claude/hooks/post-task.sh,scripts/generate-changelog.sh |
