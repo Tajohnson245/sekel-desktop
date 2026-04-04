@@ -2,7 +2,21 @@ import Database from 'better-sqlite3';
 import { app } from 'electron';
 import path from 'node:path';
 import { MIGRATIONS } from './migrations';
-import { STEP1_BLUEPRINT, STEP2CK_BLUEPRINT, STEP3_BLUEPRINT } from './blueprints';
+import {
+    STEP1_BLUEPRINT,
+    STEP2CK_BLUEPRINT,
+    STEP3_BLUEPRINT,
+    IM_SHELF_BLUEPRINT,
+    SURGERY_SHELF_BLUEPRINT,
+    PEDIATRICS_SHELF_BLUEPRINT,
+    OBGYN_SHELF_BLUEPRINT,
+    PSYCHIATRY_SHELF_BLUEPRINT,
+    FAMILY_MEDICINE_SHELF_BLUEPRINT,
+    AMBULATORY_CARE_SHELF_BLUEPRINT,
+    CLINICAL_NEUROLOGY_SHELF_BLUEPRINT,
+    EMERGENCY_MEDICINE_SHELF_BLUEPRINT,
+    INTERNAL_MEDICINE_ADVANCED_SHELF_BLUEPRINT,
+} from './blueprints';
 import { createLogger, consoleTransport } from '@sekel/observability';
 
 const log = createLogger({ module: 'db', transports: [consoleTransport] });
@@ -87,7 +101,21 @@ function seedBlueprints(database: Database.Database): void {
             relative_weight = excluded.relative_weight
     `);
 
-    for (const bp of [STEP1_BLUEPRINT, STEP2CK_BLUEPRINT, STEP3_BLUEPRINT]) {
+    for (const bp of [
+        STEP1_BLUEPRINT,
+        STEP2CK_BLUEPRINT,
+        STEP3_BLUEPRINT,
+        IM_SHELF_BLUEPRINT,
+        SURGERY_SHELF_BLUEPRINT,
+        PEDIATRICS_SHELF_BLUEPRINT,
+        OBGYN_SHELF_BLUEPRINT,
+        PSYCHIATRY_SHELF_BLUEPRINT,
+        FAMILY_MEDICINE_SHELF_BLUEPRINT,
+        AMBULATORY_CARE_SHELF_BLUEPRINT,
+        CLINICAL_NEUROLOGY_SHELF_BLUEPRINT,
+        EMERGENCY_MEDICINE_SHELF_BLUEPRINT,
+        INTERNAL_MEDICINE_ADVANCED_SHELF_BLUEPRINT,
+    ]) {
         // Check per exam_key so existing Step 1 installs still get Step 2 CK seeded
         const existing = selectExam.get(bp.exam_key) as { id: number } | undefined;
         if (existing) continue;

@@ -484,3 +484,225 @@ export const STEP1_BLUEPRINT: BlueprintFile = {
         },
     ],
 };
+
+// ── NBME Subject Exams ────────────────────────────────────────────────────────
+// Topics not yet defined for shelf exams — topics array is empty on all entries.
+
+export const IM_SHELF_BLUEPRINT: BlueprintFile = {
+    exam_key: 'im-shelf',
+    label: 'Medicine Subject Exam',
+    source_url: 'https://www.nbme.org/subject-exams/clinical-science/medicine',
+    version: '2025',
+    systems: [
+        { system_key: 'general-principles',            label: 'General Principles, Including Normal Age-Related Findings and Care of the Well Patient', weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'immune-system',                 label: 'Immune System',                                                                          weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'blood-lymphoreticular',         label: 'Blood & Lymphoreticular System',                                                        weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'behavioral-health',             label: 'Behavioral Health',                                                                      weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'nervous-system-special-senses', label: 'Nervous System & Special Senses',                                                       weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'skin-subcutaneous',             label: 'Skin & Subcutaneous Tissue',                                                            weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'musculoskeletal',               label: 'Musculoskeletal System',                                                                weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'cardiovascular',                label: 'Cardiovascular System',                                                                  weight_min: 10, weight_max: 15, topics: [] },
+        { system_key: 'respiratory',                   label: 'Respiratory System',                                                                     weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'gastrointestinal',              label: 'Gastrointestinal System',                                                               weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'renal-urinary',                 label: 'Renal & Urinary System',                                                                weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'female-reproductive-breast',    label: 'Female Reproductive System & Breast',                                                  weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'male-reproductive',             label: 'Male Reproductive System',                                                              weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'endocrine',                     label: 'Endocrine System',                                                                       weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'multisystem',                   label: 'Multisystem Processes & Disorders',                                                     weight_min: 10, weight_max: 15, topics: [] },
+        { system_key: 'biostatistics-epidemiology',    label: 'Biostatistics, Epidemiology/Population Health, & Interpretation of the Medical Literature', weight_min: 1, weight_max: 5, topics: [] },
+        { system_key: 'social-sciences',               label: 'Social Sciences, Including Medical Ethics and Jurisprudence',                           weight_min: 1,  weight_max: 5,  topics: [] },
+    ],
+};
+
+export const SURGERY_SHELF_BLUEPRINT: BlueprintFile = {
+    exam_key: 'surgery-shelf',
+    label: 'Surgery Subject Exam',
+    source_url: 'https://www.nbme.org/subject-exams/clinical-science/surgery',
+    version: '2025',
+    systems: [
+        { system_key: 'immune-system',                 label: 'Immune System',                                          weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'blood-lymphoreticular',         label: 'Blood & Lymphoreticular System',                        weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'nervous-system-special-senses', label: 'Nervous System & Special Senses',                       weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'skin-subcutaneous',             label: 'Skin & Subcutaneous Tissue',                            weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'musculoskeletal',               label: 'Musculoskeletal System',                                weight_min: 3,  weight_max: 7,  topics: [] },
+        { system_key: 'cardiovascular',                label: 'Cardiovascular System',                                  weight_min: 10, weight_max: 15, topics: [] },
+        { system_key: 'respiratory',                   label: 'Respiratory System',                                     weight_min: 8,  weight_max: 12, topics: [] },
+        { system_key: 'gastrointestinal',              label: 'Gastrointestinal System',                               weight_min: 20, weight_max: 25, topics: [] },
+        { system_key: 'renal-urinary',                 label: 'Renal & Urinary System',                                weight_min: 3,  weight_max: 7,  topics: [] },
+        { system_key: 'female-reproductive-breast',    label: 'Female Reproductive System & Breast',                  weight_min: 3,  weight_max: 7,  topics: [] },
+        { system_key: 'male-reproductive',             label: 'Male Reproductive System',                              weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'endocrine',                     label: 'Endocrine System',                                       weight_min: 3,  weight_max: 7,  topics: [] },
+        { system_key: 'multisystem',                   label: 'Multisystem Processes & Disorders',                     weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'social-sciences',               label: 'Social Sciences, Including Medical Ethics and Jurisprudence', weight_min: 1, weight_max: 5, topics: [] },
+    ],
+};
+
+export const PEDIATRICS_SHELF_BLUEPRINT: BlueprintFile = {
+    exam_key: 'pediatrics-shelf',
+    label: 'Pediatrics Subject Exam',
+    source_url: 'https://www.nbme.org/subject-exams/clinical-science/pediatrics',
+    version: '2025',
+    systems: [
+        { system_key: 'general-principles',            label: 'General Principles, Including Normal Age-Related Findings and Care of the Well Patient', weight_min: 3,  weight_max: 7,  topics: [] },
+        { system_key: 'immune-system',                 label: 'Immune System',                                                                          weight_min: 3,  weight_max: 7,  topics: [] },
+        { system_key: 'blood-lymphoreticular',         label: 'Blood & Lymphoreticular System',                                                        weight_min: 3,  weight_max: 7,  topics: [] },
+        { system_key: 'behavioral-health',             label: 'Behavioral Health',                                                                      weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'nervous-system-special-senses', label: 'Nervous System & Special Senses',                                                       weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'skin-subcutaneous',             label: 'Skin & Subcutaneous Tissue',                                                            weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'musculoskeletal',               label: 'Musculoskeletal System',                                                                weight_min: 3,  weight_max: 7,  topics: [] },
+        { system_key: 'cardiovascular',                label: 'Cardiovascular System',                                                                  weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'respiratory',                   label: 'Respiratory System',                                                                     weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'gastrointestinal',              label: 'Gastrointestinal System',                                                               weight_min: 8,  weight_max: 12, topics: [] },
+        { system_key: 'renal-urinary',                 label: 'Renal & Urinary System',                                                                weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'newborn-congenital',            label: 'Disorders of the Newborn & Congenital Disorders',                                       weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'female-reproductive',           label: 'Female Reproductive System',                                                            weight_min: 3,  weight_max: 7,  topics: [] },
+        { system_key: 'male-reproductive',             label: 'Male Reproductive System',                                                              weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'endocrine',                     label: 'Endocrine System',                                                                       weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'multisystem',                   label: 'Multisystem Processes & Disorders',                                                     weight_min: 10, weight_max: 15, topics: [] },
+        { system_key: 'social-sciences',               label: 'Social Sciences, Including Consent and Physician-Patient Relationship',                 weight_min: 1,  weight_max: 5,  topics: [] },
+    ],
+};
+
+export const OBGYN_SHELF_BLUEPRINT: BlueprintFile = {
+    exam_key: 'obgyn-shelf',
+    label: 'Obstetrics & Gynecology Subject Exam',
+    source_url: 'https://www.nbme.org/subject-exams/clinical-science/obstetrics-and-gynecology',
+    version: '2025',
+    systems: [
+        { system_key: 'general-principles',        label: 'General Principles, Including Normal Age-Related Findings and Care of the Well Patient', weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'pregnancy-childbirth',      label: 'Pregnancy, Childbirth, & the Puerperium',                                               weight_min: 40, weight_max: 45, topics: [] },
+        { system_key: 'female-reproductive-breast', label: 'Female Reproductive System & Breast',                                                  weight_min: 40, weight_max: 45, topics: [] },
+        { system_key: 'endocrine',                 label: 'Endocrine System',                                                                       weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'multisystem',               label: 'Other Systems, Including Multisystem Processes & Disorders',                             weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'social-sciences',           label: 'Social Sciences, Including Communication, Medical Ethics and Jurisprudence',             weight_min: 1,  weight_max: 5,  topics: [] },
+    ],
+};
+
+export const PSYCHIATRY_SHELF_BLUEPRINT: BlueprintFile = {
+    exam_key: 'psychiatry-shelf',
+    label: 'Psychiatry Subject Exam',
+    source_url: 'https://www.nbme.org/subject-exams/clinical-science/psychiatry',
+    version: '2025',
+    systems: [
+        { system_key: 'general-principles',            label: 'General Principles, Including Normal Age-Related Findings and Care of the Well Patient', weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'behavioral-health',             label: 'Behavioral Health',                                                                      weight_min: 65, weight_max: 70, topics: [] },
+        { system_key: 'nervous-system-special-senses', label: 'Nervous System & Special Senses',                                                       weight_min: 10, weight_max: 15, topics: [] },
+        { system_key: 'multisystem',                   label: 'Other Systems, Including Multisystem Processes & Disorders',                             weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'social-sciences',               label: 'Social Sciences, Including Communication and Medical Ethics and Jurisprudence',          weight_min: 1,  weight_max: 5,  topics: [] },
+    ],
+};
+
+export const FAMILY_MEDICINE_SHELF_BLUEPRINT: BlueprintFile = {
+    exam_key: 'family-medicine-shelf',
+    label: 'Family Medicine Modular Subject Exam',
+    source_url: 'https://www.nbme.org/subject-exams/clinical-science/family-medicine-modular',
+    version: '2025',
+    systems: [
+        { system_key: 'general-principles',            label: 'General Principles, Including Normal Age-Related Findings and Care of the Well Patient',                                    weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'immune-system',                 label: 'Immune System',                                                                                                             weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'blood-lymphoreticular',         label: 'Blood & Lymphoreticular System',                                                                                           weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'behavioral-health',             label: 'Behavioral Health',                                                                                                         weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'nervous-system-special-senses', label: 'Nervous System & Special Senses',                                                                                          weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'skin-subcutaneous',             label: 'Skin & Subcutaneous Tissue',                                                                                               weight_min: 3,  weight_max: 7,  topics: [] },
+        { system_key: 'musculoskeletal',               label: 'Musculoskeletal System',                                                                                                   weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'cardiovascular',                label: 'Cardiovascular System',                                                                                                     weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'respiratory',                   label: 'Respiratory System',                                                                                                        weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'gastrointestinal',              label: 'Gastrointestinal System',                                                                                                  weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'renal-urinary',                 label: 'Renal & Urinary System',                                                                                                   weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'pregnancy-childbirth',          label: 'Pregnancy, Childbirth, & the Puerperium',                                                                                 weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'female-reproductive-breast',    label: 'Female Reproductive System & Breast',                                                                                     weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'male-reproductive',             label: 'Male Reproductive System',                                                                                                 weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'endocrine',                     label: 'Endocrine System',                                                                                                          weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'multisystem',                   label: 'Multisystem Processes & Disorders',                                                                                        weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'biostatistics-epidemiology',    label: 'Biostatistics, Epidemiology/Population Health, & Interpretation of the Medical Literature',                               weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'social-sciences',               label: 'Social Sciences, Including Communication, Medical Ethics and Jurisprudence, and Systems-Based Practice and Patient Safety', weight_min: 5, weight_max: 10, topics: [] },
+    ],
+};
+
+export const AMBULATORY_CARE_SHELF_BLUEPRINT: BlueprintFile = {
+    exam_key: 'ambulatory-care-shelf',
+    label: 'Ambulatory Care Subject Exam',
+    source_url: 'https://www.nbme.org/subject-exams/clinical-science/ambulatory-care',
+    version: '2025',
+    systems: [
+        { system_key: 'general-principles',            label: 'General Principles, Including Normal Age-Related Findings and Care of the Well Patient',                   weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'immune-system',                 label: 'Immune System',                                                                                            weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'blood-lymphoreticular',         label: 'Blood & Lymphoreticular System',                                                                          weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'behavioral-health',             label: 'Behavioral Health',                                                                                        weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'nervous-system-special-senses', label: 'Nervous System & Special Senses',                                                                         weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'skin-subcutaneous',             label: 'Skin & Subcutaneous Tissue',                                                                              weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'musculoskeletal',               label: 'Musculoskeletal System',                                                                                  weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'cardiovascular',                label: 'Cardiovascular System',                                                                                    weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'respiratory',                   label: 'Respiratory System',                                                                                       weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'gastrointestinal',              label: 'Gastrointestinal System',                                                                                 weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'renal-urinary',                 label: 'Renal & Urinary System',                                                                                  weight_min: 3,  weight_max: 8,  topics: [] },
+        { system_key: 'female-reproductive-breast',    label: 'Female Reproductive System & Breast',                                                                    weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'male-reproductive',             label: 'Male Reproductive System',                                                                                weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'endocrine',                     label: 'Endocrine System',                                                                                         weight_min: 8,  weight_max: 12, topics: [] },
+        { system_key: 'multisystem',                   label: 'Multisystem Processes & Disorders',                                                                       weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'biostatistics-epidemiology',    label: 'Biostatistics, Epidemiology/Population Health, & Interpretation of the Medical Literature',              weight_min: 3,  weight_max: 8,  topics: [] },
+        { system_key: 'social-sciences',               label: 'Social Sciences, Including Medical Ethics, Jurisprudence, and Systems-Based Practice and Patient Safety', weight_min: 1,  weight_max: 5,  topics: [] },
+    ],
+};
+
+export const CLINICAL_NEUROLOGY_SHELF_BLUEPRINT: BlueprintFile = {
+    exam_key: 'clinical-neurology-shelf',
+    label: 'Clinical Neurology Subject Exam',
+    source_url: 'https://www.nbme.org/subject-exams/clinical-science/clinical-neurology',
+    version: '2025',
+    systems: [
+        { system_key: 'general-principles',            label: 'General Principles, Including Normal Age-Related Findings and Care of the Well Patient', weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'behavioral-health',             label: 'Behavioral Health',                                                                      weight_min: 3,  weight_max: 7,  topics: [] },
+        { system_key: 'nervous-system-special-senses', label: 'Nervous System & Special Senses',                                                       weight_min: 60, weight_max: 65, topics: [] },
+        { system_key: 'musculoskeletal',               label: 'Musculoskeletal System',                                                                weight_min: 10, weight_max: 15, topics: [] },
+        { system_key: 'multisystem',                   label: 'Other Systems, Including Multisystem Processes & Disorders',                             weight_min: 15, weight_max: 20, topics: [] },
+        { system_key: 'social-sciences',               label: 'Social Sciences, Including Death and Dying and Palliative Care',                        weight_min: 1,  weight_max: 5,  topics: [] },
+    ],
+};
+
+export const EMERGENCY_MEDICINE_SHELF_BLUEPRINT: BlueprintFile = {
+    exam_key: 'emergency-medicine-shelf',
+    label: 'Emergency Medicine Subject Exam',
+    source_url: 'https://www.nbme.org/subject-exams/advanced-clinical/emergency-medicine',
+    version: '2025',
+    systems: [
+        { system_key: 'immune-system',                 label: 'Immune System',                                          weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'blood-lymphoreticular',         label: 'Blood & Lymphoreticular System',                        weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'behavioral-health',             label: 'Behavioral Health',                                      weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'nervous-system-special-senses', label: 'Nervous System & Special Senses',                       weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'skin-subcutaneous',             label: 'Skin & Subcutaneous Tissue',                            weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'musculoskeletal',               label: 'Musculoskeletal System',                                weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'cardiovascular',                label: 'Cardiovascular System',                                  weight_min: 10, weight_max: 15, topics: [] },
+        { system_key: 'respiratory',                   label: 'Respiratory System',                                     weight_min: 10, weight_max: 15, topics: [] },
+        { system_key: 'gastrointestinal',              label: 'Gastrointestinal System',                               weight_min: 10, weight_max: 15, topics: [] },
+        { system_key: 'renal-urinary',                 label: 'Renal & Urinary System',                                weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'pregnancy-childbirth',          label: 'Pregnancy, Childbirth, & the Puerperium',              weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'female-reproductive-breast',    label: 'Female Reproductive System & Breast',                  weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'male-reproductive',             label: 'Male Reproductive System',                              weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'endocrine',                     label: 'Endocrine System',                                       weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'multisystem',                   label: 'Multisystem Processes & Disorders',                     weight_min: 10, weight_max: 15, topics: [] },
+        { system_key: 'social-sciences',               label: 'Social Sciences, Including Medical Ethics and Jurisprudence', weight_min: 1, weight_max: 5, topics: [] },
+    ],
+};
+
+export const INTERNAL_MEDICINE_ADVANCED_SHELF_BLUEPRINT: BlueprintFile = {
+    exam_key: 'internal-medicine-advanced-shelf',
+    label: 'Internal Medicine Subject Exam',
+    source_url: 'https://www.nbme.org/subject-exams/advanced-clinical/internal-medicine',
+    version: '2025',
+    systems: [
+        { system_key: 'general-principles',                label: 'General Principles',                                        weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'immunologic-disorders',             label: 'Immunologic Disorders',                                     weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'diseases-of-the-blood',             label: 'Diseases of the Blood',                                     weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'mental-disorders',                  label: 'Mental Disorders',                                          weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'diseases-of-the-nervous-system',    label: 'Diseases of the Nervous System',                           weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'cardiovascular-disorders',          label: 'Cardiovascular Disorders',                                  weight_min: 10, weight_max: 15, topics: [] },
+        { system_key: 'diseases-of-the-respiratory-system', label: 'Diseases of the Respiratory System',                      weight_min: 10, weight_max: 15, topics: [] },
+        { system_key: 'nutritional-digestive-disorders',   label: 'Nutritional and Digestive Disorders',                      weight_min: 10, weight_max: 15, topics: [] },
+        { system_key: 'female-reproductive-system',        label: 'Female Reproductive System',                               weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'renal-urinary-male-reproductive',   label: 'Renal, Urinary, Male Reproductive Systems',               weight_min: 5,  weight_max: 10, topics: [] },
+        { system_key: 'diseases-of-the-skin',              label: 'Diseases of the Skin',                                     weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'musculoskeletal-connective-tissue', label: 'Musculoskeletal and Connective Tissue Disorders',          weight_min: 1,  weight_max: 5,  topics: [] },
+        { system_key: 'endocrine-metabolic-disorders',     label: 'Endocrine and Metabolic Disorders',                        weight_min: 8,  weight_max: 12, topics: [] },
+    ],
+};
