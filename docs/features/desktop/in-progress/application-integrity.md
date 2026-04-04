@@ -38,3 +38,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 |------|-------------|
 | 2026-04-04 | Doc created. apps/desktop/src/components/Dashboard/Dashboard.css,apps/desktop/src/components/Dashboard/Dashboard.tsx,apps/desktop/src/components/Profile/FeedbackSection.tsx |
 | 2026-04-04 | apps/desktop/src/components/Deck/DeckList.tsx,apps/desktop/src/components/Plan/PlanPage.css,apps/desktop/src/components/Plan/PlanPage.tsx,apps/desktop/src/index.css,apps/desktop/src/ipc/database.ts,apps/desktop/src/ipc/plan.ts,apps/desktop/src/locales/en/translation.json,apps/desktop/src/main.ts |
+| 2026-04-04 | apps/desktop/src/components/Deck/DeckList.tsx,apps/desktop/src/components/Plan/PlanPage.css,apps/desktop/src/components/Plan/PlanPage.tsx,apps/desktop/src/index.css,apps/desktop/src/ipc/database.ts,apps/desktop/src/ipc/plan.ts,apps/desktop/src/locales/en/translation.json,apps/desktop/src/main.ts |
