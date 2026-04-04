@@ -27,7 +27,7 @@ import { setupExamHandlers } from './ipc/exam';
 import { setupAdminHandlers } from './ipc/admin';
 import { setupPlanHandlers } from './ipc/plan';
 import { cleanupStaleTempDirs } from './main/import/tempCleanup';
-import { fetchMediaByFilename } from './main/db/service';
+import { fetchMediaByFilename, abandonAllOpenSessions } from './main/db/service';
 
 // Register sekel-media:// as a privileged scheme before app is ready.
 // This must be called synchronously before app.whenReady().
@@ -224,6 +224,14 @@ app.whenReady().then(() => {
             createWindow();
         }
     });
+});
+
+app.on('before-quit', () => {
+    try {
+        abandonAllOpenSessions();
+    } catch (err) {
+        log.error('Failed to abandon open sessions on quit', { error: err instanceof Error ? err.message : String(err) });
+    }
 });
 
 app.on('window-all-closed', () => {

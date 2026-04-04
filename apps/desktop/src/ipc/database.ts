@@ -138,6 +138,12 @@ export function setupDatabaseHandlers(): void {
     instrumentedHandle('db:completeDeckSession', (_e, sessionId: string) =>
         dbService.completeDeckSession(sessionId));
 
+    instrumentedHandle('db:abandonOpenSessions', (_e, userId: string) =>
+        dbService.abandonOpenSessions(userId));
+
+    instrumentedHandle('db:fetchBulkClassifiedCardCount', (_e, deckIds: string[]) =>
+        dbService.fetchBulkClassifiedCardCount(deckIds));
+
     instrumentedHandle('db:fetchSessionAnalytics', (_e, sessionId: string) =>
         dbService.fetchSessionAnalytics(sessionId));
 

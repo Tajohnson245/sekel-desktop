@@ -51,6 +51,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     signOut: async () => {
         try {
             set({ isLoading: true });
+            const userId = useAuthStore.getState().user?.id;
+            if (userId) {
+                await window.electronAPI.db.abandonOpenSessions(userId);
+            }
             const { error } = await authSignOut(supabase);
             if (error) throw error;
             set({ session: null, user: null });

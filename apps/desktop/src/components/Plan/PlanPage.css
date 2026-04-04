@@ -939,6 +939,25 @@
   cursor:     help;
 }
 
+.plan-scope-degraded {
+  background: rgba(220, 38, 38, 0.1);
+  color:      var(--danger, #dc2626);
+  cursor:     help;
+}
+
+.plan-degraded-banner {
+  display:        flex;
+  align-items:    center;
+  gap:            8px;
+  padding:        10px 14px;
+  margin-bottom:  12px;
+  background:     rgba(220, 38, 38, 0.08);
+  border:         1px solid rgba(220, 38, 38, 0.25);
+  border-radius:  8px;
+  color:          var(--danger, #dc2626);
+  font-size:      13px;
+}
+
 /* Loading state on suggestion callout */
 
 .plan-suggestion-loading {

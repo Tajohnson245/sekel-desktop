@@ -114,7 +114,9 @@
         "scope_all": "All decks",
         "scope_all_decks": "All decks",
         "scope_n_decks": "{{n}} deck(s)",
-        "scope_no_decks_warning": "Select at least one deck to generate a plan."
+        "scope_no_decks_warning": "Select at least one deck to generate a plan.",
+        "scope_deleted_deck": "Deleted deck",
+        "degraded_banner": "{{count}} deck(s) in this plan's scope have been deleted. The plan may serve fewer cards than originally projected."
     },
     "dashboard": {
         "welcome": "Welcome back, {{name}}!",
@@ -176,7 +178,10 @@
         "delete_warn_cards": "All cards and notes in the deck",
         "delete_warn_reviews": "Review history and scheduling data",
         "delete_warn_classifications": "Exam yield classifications and scores",
+        "delete_warn_classifications_count": "{{count}} classified card(s) — exam yield scores will be lost and reclassification requires AI credits",
         "delete_warn_sessions": "Study session records",
+        "delete_warn_plan_title": "{{count}} active study plan(s) will be affected:",
+        "delete_warn_plan_detail": "These plans are scoped to include these decks. After deletion, those plans will have fewer cards available.",
         "delete_warn_irreversible": "This action cannot be undone.",
         "study": "Study",
         "study_now": "Study Now",

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Trash2, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useDecks, useBulkDeleteDecks } from '../../hooks/useDecks';
@@ -6,6 +6,7 @@ import { useAppNavigation } from '../../hooks/useAppNavigation';
 import { useDeckEditor } from '../../contexts/DeckEditorContext';
 import { Button, Loader, Modal, useToast } from '../UI';
 import DeckCard from './DeckCard';
+import { useAuthStore } from '../../stores/authStore';
 import type { Deck } from '../../lib/types';
 
 export default function DeckList() {
@@ -15,10 +16,13 @@ export default function DeckList() {
     const bulkDelete = useBulkDeleteDecks();
     const { t } = useTranslation();
     const { showToast } = useToast();
+    const userId = useAuthStore((s) => s.user?.id);
 
     const [isDeleteMode, setIsDeleteMode] = useState(false);
     const [selectedDeckIds, setSelectedDeckIds] = useState<Set<string>>(new Set());
     const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+    const [classifiedCardCount, setClassifiedCardCount] = useState<number | null>(null);
+    const [affectedPlans, setAffectedPlans] = useState<{ id: string; name: string }[]>([]);
 
     const toggleDeckSelection = (deckId: string) => {
         const next = new Set(selectedDeckIds);
@@ -32,8 +36,23 @@ export default function DeckList() {
 
     const handleBulkDeleteClick = () => {
         if (selectedDeckIds.size === 0) return;
+        setClassifiedCardCount(null);
+        setAffectedPlans([]);
         setShowDeleteConfirmation(true);
     };
+
+    useEffect(() => {
+        if (!showDeleteConfirmation || selectedDeckIds.size === 0) return;
+        const ids = Array.from(selectedDeckIds);
+        window.electronAPI.db.fetchBulkClassifiedCardCount(ids)
+            .then(setClassifiedCardCount)
+            .catch(() => setClassifiedCardCount(null));
+        if (userId) {
+            window.electronAPI.plan.fetchPlansReferencingDecks(userId, ids)
+                .then(setAffectedPlans)
+                .catch(() => setAffectedPlans([]));
+        }
+    }, [showDeleteConfirmation, selectedDeckIds, userId]);
 
     const confirmDelete = async () => {
         try {
@@ -167,9 +186,24 @@ export default function DeckList() {
                 <ul className="delete-warning-list">
                     <li>{t('decks.delete_warn_cards')}</li>
                     <li>{t('decks.delete_warn_reviews')}</li>
-                    <li>{t('decks.delete_warn_classifications')}</li>
+                    <li>
+                        {classifiedCardCount !== null && classifiedCardCount > 0
+                            ? t('decks.delete_warn_classifications_count', { count: classifiedCardCount })
+                            : t('decks.delete_warn_classifications')}
+                    </li>
                     <li>{t('decks.delete_warn_sessions')}</li>
                 </ul>
+                {affectedPlans.length > 0 && (
+                    <div className="delete-plan-warning">
+                        <p className="delete-plan-warning-title">
+                            {t('decks.delete_warn_plan_title', { count: affectedPlans.length })}
+                        </p>
+                        <ul className="delete-plan-warning-list">
+                            {affectedPlans.map(p => <li key={p.id}>{p.name}</li>)}
+                        </ul>
+                        <p className="text-muted">{t('decks.delete_warn_plan_detail')}</p>
+                    </div>
+                )}
                 <p className="text-muted">{t('decks.delete_warn_irreversible')}</p>
             </Modal>
         </div>

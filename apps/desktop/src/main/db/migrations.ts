@@ -559,4 +559,49 @@ export const MIGRATIONS: string[] = [
     // deck_filter stores a JSON array of deck IDs the plan was scoped to.
     // NULL means "all decks" (no filter applied).
     `ALTER TABLE plans ADD COLUMN deck_filter TEXT;`,
+
+    // Migration 018 — add FK constraint on reviews.session_id
+    // SQLite doesn't support ALTER TABLE ADD CONSTRAINT, so we recreate the table.
+    // Orphaned session_id values (pointing at deleted deck_sessions) are set to NULL
+    // before the data copy so the new FK constraint is satisfied immediately.
+    `
+    CREATE TABLE IF NOT EXISTS reviews_new (
+        id                 TEXT PRIMARY KEY,
+        user_id            TEXT NOT NULL,
+        card_id            TEXT NOT NULL REFERENCES cards(id) ON DELETE CASCADE,
+        rating             TEXT NOT NULL,
+        review_time        TEXT NOT NULL,
+        review_duration_ms INTEGER,
+        state_before       TEXT NOT NULL,
+        stability_before   REAL NOT NULL,
+        difficulty_before  REAL NOT NULL,
+        state_after        TEXT NOT NULL,
+        stability_after    REAL NOT NULL,
+        difficulty_after   REAL NOT NULL,
+        scheduled_days     INTEGER NOT NULL,
+        session_id         TEXT REFERENCES deck_sessions(id) ON DELETE SET NULL,
+        deck_id            TEXT,
+        review_index       INTEGER,
+        created_at         TEXT NOT NULL,
+        interval_before    INTEGER,
+        ease_factor_after  INTEGER,
+        review_type        INTEGER
+    );
+    INSERT INTO reviews_new
+        SELECT
+            id, user_id, card_id, rating, review_time, review_duration_ms,
+            state_before, stability_before, difficulty_before,
+            state_after, stability_after, difficulty_after,
+            scheduled_days,
+            CASE WHEN session_id IN (SELECT id FROM deck_sessions) THEN session_id ELSE NULL END,
+            deck_id, review_index, created_at,
+            interval_before, ease_factor_after, review_type
+        FROM reviews;
+    DROP TABLE reviews;
+    ALTER TABLE reviews_new RENAME TO reviews;
+    CREATE INDEX IF NOT EXISTS idx_reviews_user_id    ON reviews(user_id);
+    CREATE INDEX IF NOT EXISTS idx_reviews_card_id    ON reviews(card_id);
+    CREATE INDEX IF NOT EXISTS idx_reviews_review_time ON reviews(review_time);
+    CREATE INDEX IF NOT EXISTS idx_reviews_session_id ON reviews(session_id);
+    `,
 ];

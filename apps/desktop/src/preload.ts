@@ -72,6 +72,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         // Sessions
         createDeckSession:     (userId: string, deckId: string) => ipcRenderer.invoke('db:createDeckSession', userId, deckId),
         completeDeckSession:   (sessionId: string) => ipcRenderer.invoke('db:completeDeckSession', sessionId),
+        abandonOpenSessions:         (userId: string) => ipcRenderer.invoke('db:abandonOpenSessions', userId),
+        fetchBulkClassifiedCardCount: (deckIds: string[]) => ipcRenderer.invoke('db:fetchBulkClassifiedCardCount', deckIds),
         fetchSessionAnalytics: (sessionId: string) => ipcRenderer.invoke('db:fetchSessionAnalytics', sessionId),
         createDeckFromMissedCards: (userId: string, deckName: string, cardIds: string[]) =>
             ipcRenderer.invoke('db:createDeckFromMissedCards', { userId, deckName, cardIds }),
@@ -180,5 +182,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
                           ipcRenderer.invoke('plan:setOverride', userId, newPerDayOverride),
         clearOverride: (userId: string) =>
                           ipcRenderer.invoke('plan:clearOverride', userId),
+        fetchPlansReferencingDecks: (userId: string, deckIds: string[]) =>
+                          ipcRenderer.invoke('plan:fetchPlansReferencingDecks', userId, deckIds),
     },
 });

@@ -12,6 +12,7 @@ import {
     getDeckUnseenCounts,
     getPlanProgress,
     getPlanById,
+    fetchPlansReferencingDecks,
 } from '../main/db/planService';
 import { exportPlanToFile } from '../main/plan/exportService';
 
@@ -56,6 +57,10 @@ export function setupPlanHandlers(): void {
     // ── Delete a plan ─────────────────────────────────────────────────────────
     instrumentedHandle('plan:delete', (_e, userId: string, planId: string) =>
         deletePlan(userId, planId));
+
+    // ── Plans referencing given deck IDs (pre-delete warning) ─────────────────
+    instrumentedHandle('plan:fetchPlansReferencingDecks', (_e, userId: string, deckIds: string[]) =>
+        fetchPlansReferencingDecks(userId, deckIds));
 
     // ── Reactivate an archived plan ───────────────────────────────────────────
     instrumentedHandle('plan:reactivate', (_e, userId: string, planId: string) =>

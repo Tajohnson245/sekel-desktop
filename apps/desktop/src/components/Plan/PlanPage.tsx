@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CalendarDays, Plus, ChevronDown, ChevronUp, RotateCcw, Archive, Trash2, BookOpen, LayoutList } from 'lucide-react';
+import { CalendarDays, Plus, ChevronDown, ChevronUp, RotateCcw, Archive, Trash2, BookOpen, LayoutList, AlertTriangle } from 'lucide-react';
 import { useToast } from '../UI';
 import { useExamProfile } from '../../hooks/useExamProfile';
 import {
@@ -156,17 +156,39 @@ function ScopeBadge({ deckFilter }: { deckFilter: string[] | null }) {
         return <span className="plan-scope-badge plan-scope-all">{t('plan.scope_all')}</span>;
     }
 
+    const liveIds = new Set(deckCounts.map(d => d.deckId));
+    const staleCount = deckFilter.filter(id => !liveIds.has(id)).length;
     const names = deckFilter
-        .map(id => deckCounts.find(d => d.deckId === id)?.name ?? id)
+        .map(id => deckCounts.find(d => d.deckId === id)?.name ?? `${t('plan.scope_deleted_deck')}`)
         .join(', ');
 
     return (
         <span
-            className="plan-scope-badge plan-scope-filtered"
+            className={`plan-scope-badge ${staleCount > 0 ? 'plan-scope-degraded' : 'plan-scope-filtered'}`}
             title={names}
         >
+            {staleCount > 0 && <AlertTriangle size={12} style={{ marginRight: 4 }} />}
             {t('plan.scope_n_decks', { n: deckFilter.length })}
         </span>
+    );
+}
+
+function DegradedPlanBanner({ deckFilter }: { deckFilter: string[] | null }) {
+    const { t } = useTranslation();
+    const { data: deckCounts = [] } = useDeckUnseenCounts();
+
+    if (!deckFilter) return null;
+
+    const liveIds = new Set(deckCounts.map(d => d.deckId));
+    const staleCount = deckFilter.filter(id => !liveIds.has(id)).length;
+
+    if (staleCount === 0) return null;
+
+    return (
+        <div className="plan-degraded-banner">
+            <AlertTriangle size={16} />
+            <span>{t('plan.degraded_banner', { count: staleCount })}</span>
+        </div>
     );
 }
 
@@ -960,6 +982,9 @@ export default function PlanPage() {
                     </button>
                 </div>
             </div>
+
+            {/* ── Degraded plan banner (shown when scoped deck(s) have been deleted) ── */}
+            <DegradedPlanBanner deckFilter={activePlan.deckFilter} />
 
             {/* ── Active plan detail ───────────────────────────────────────── */}
             <ActivePlanDetail plan={activePlan} examLabel={examLabel} />
