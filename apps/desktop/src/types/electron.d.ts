@@ -60,6 +60,8 @@ export interface ImportResult {
     decksCreated: number;
     decksSkipped: number;
     notesInserted: number;
+    /** Notes skipped during merge because they already exist in the collection. */
+    notesSkipped: number;
     cardsInserted: number;
     reviewsInserted: number;
     mediaExtracted: number;

@@ -32,6 +32,8 @@ export interface ImportResult {
     decksCreated: number;
     decksSkipped: number;
     notesInserted: number;
+    /** Notes skipped during merge because they already exist in the collection. */
+    notesSkipped: number;
     cardsInserted: number;
     reviewsInserted: number;
 }
@@ -43,7 +45,7 @@ export function executeImport(
     userId: string,
     onProgress?: ImportProgressCallback,
 ): ImportResult {
-    const result: ImportResult = { decksCreated: 0, decksSkipped: 0, notesInserted: 0, cardsInserted: 0, reviewsInserted: 0 };
+    const result: ImportResult = { decksCreated: 0, decksSkipped: 0, notesInserted: 0, notesSkipped: 0, cardsInserted: 0, reviewsInserted: 0 };
     const { parsedData, decks: deckOptions } = options;
 
     const selectedOptions = new Map(
@@ -91,7 +93,7 @@ export function executeImport(
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
     const findNoteByGuid = db.prepare(
-        'SELECT id FROM notes WHERE deck_id = ? AND anki_guid = ?',
+        'SELECT id FROM notes WHERE user_id = ? AND anki_guid = ?',
     );
     const deleteCards = db.prepare(
         "DELETE FROM cards WHERE note_id IN (SELECT id FROM notes WHERE deck_id = ?)",
@@ -196,7 +198,10 @@ export function executeImport(
 
                 // Merge mode: skip notes already imported (identified by anki_guid)
                 if (opt.conflict === 'merge' && existing) {
-                    if (findNoteByGuid.get(sekelDeckId, ankiNote.guid)) continue;
+                    if (findNoteByGuid.get(userId, ankiNote.guid)) {
+                        result.notesSkipped++;
+                        continue;
+                    }
                 }
 
                 // Ensure NoteType exists (upsert by anki_id)

@@ -11,6 +11,7 @@ import { app } from 'electron';
 import { createHash, randomUUID } from 'node:crypto';
 import JSZip from 'jszip';
 import { getDb } from '../db/index';
+import { createBackup } from '../backup/service';
 import {
     validateCollection,
     validateDecks,
@@ -177,6 +178,10 @@ export async function importSekelFile(
     const sessionsRaw = await zip.file('sessions.json')?.async('string') ?? '[]';
     assertJsonSize(sessionsRaw, 'sessions.json');
     const sessions: SpkgSession[] = validateSessions(JSON.parse(sessionsRaw));
+
+    // Safety backup before any writes — gives the user a restore point if the
+    // import produces unexpected results (e.g. duplicate cards, wrong scheduling).
+    await createBackup();
 
     const db = getDb();
     const result: SekelImportResult = {

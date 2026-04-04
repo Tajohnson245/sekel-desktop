@@ -115,9 +115,24 @@ export default function StudySession() {
         }
     }, [currentCard]);
 
+    // Safety net: always clear the interval when the component unmounts,
+    // regardless of what state the per-card effect is in.
+    useEffect(() => {
+        return () => {
+            if (timerIntervalRef.current) {
+                clearInterval(timerIntervalRef.current);
+                timerIntervalRef.current = null;
+            }
+        };
+    }, []);
+
     // Timer lifecycle: reset and start on each new card
     useEffect(() => {
         if (!currentCard) return;
+
+        if (timerIntervalRef.current) {
+            clearInterval(timerIntervalRef.current);
+        }
 
         cardStartTimeRef.current = Date.now();
         setElapsedSeconds(0);
@@ -354,9 +369,12 @@ export default function StudySession() {
                     />
                 )}
                 {focusMode === 'intelligence' && (
-                    <span className="intelligence-focus-chip">
+                    <span
+                        className="intelligence-focus-chip"
+                        title={t('study.focus_mode_no_limits_tooltip')}
+                    >
                         <Sparkles size={11} />
-                        Focused session
+                        {t('study.focus_mode_chip')}
                     </span>
                 )}
                 <span className="progress-text">

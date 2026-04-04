@@ -208,6 +208,8 @@
         "congratulations": "Congratulations!",
         "cards_studied": "Cards studied",
         "no_template": "No template",
+        "focus_mode_chip": "Focused session",
+        "focus_mode_no_limits_tooltip": "Focused sessions are not capped by your daily new/review limits.",
         "rating": {
             "again": "Again",
             "hard": "Hard",

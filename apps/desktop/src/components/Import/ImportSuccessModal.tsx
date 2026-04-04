@@ -22,6 +22,9 @@ export default function ImportSuccessModal({ result, deckOptions, onGoToDeck, on
         { value: usedKeepScheduling ? result.reviewsInserted : '—', label: 'Reviews imported' },
         { value: result.mediaExtracted, label: 'Media files stored' },
     ];
+    if (result.notesSkipped > 0) {
+        stats.push({ value: result.notesSkipped, label: 'Notes already existed (skipped)' });
+    }
     if (result.mediaSkipped > 0) {
         stats.push({ value: result.mediaSkipped, label: 'Media deduplicated' });
     }
