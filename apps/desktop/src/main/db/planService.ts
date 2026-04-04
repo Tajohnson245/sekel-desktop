@@ -477,6 +477,33 @@ export function deletePlan(userId: string, planId: string): void {
     getDb().prepare('DELETE FROM plans WHERE id = ? AND user_id = ?').run(planId, userId);
 }
 
+// ── fetchPlansReferencingDecks ────────────────────────────────────────────────
+
+/**
+ * Returns active plans that reference any of the given deck IDs in their deck_filter.
+ * Used to warn users before deck deletion that their plan scope will be affected.
+ */
+export function fetchPlansReferencingDecks(
+    userId: string,
+    deckIds: string[],
+): { id: string; name: string }[] {
+    if (deckIds.length === 0) return [];
+    const rows = getDb().prepare(`
+        SELECT id, name, deck_filter FROM plans
+        WHERE user_id = ? AND status = 'active' AND deck_filter IS NOT NULL
+    `).all(userId) as { id: string; name: string; deck_filter: string }[];
+
+    const deckIdSet = new Set(deckIds);
+    return rows
+        .filter(row => {
+            try {
+                const filter = JSON.parse(row.deck_filter) as string[];
+                return filter.some(id => deckIdSet.has(id));
+            } catch { return false; }
+        })
+        .map(row => ({ id: row.id, name: row.name }));
+}
+
 // ── reactivatePlan ────────────────────────────────────────────────────────────
 
 /**

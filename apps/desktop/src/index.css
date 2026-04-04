@@ -523,6 +523,29 @@ h3 {
     line-height: 1.6;
 }
 
+.delete-plan-warning {
+    margin-top: 0.75rem;
+    padding: 10px 14px;
+    background: rgba(220, 38, 38, 0.08);
+    border: 1px solid rgba(220, 38, 38, 0.25);
+    border-radius: 8px;
+    font-size: 0.875rem;
+}
+
+.delete-plan-warning-title {
+    font-weight: 600;
+    color: var(--danger, #dc2626);
+    margin-bottom: 0.25rem;
+}
+
+.delete-plan-warning-list {
+    padding-left: 1.25rem;
+    list-style: disc;
+    margin: 0.25rem 0 0.5rem;
+    color: var(--muted);
+    line-height: 1.6;
+}
+
 .section {
     margin-top: 2rem;
 }

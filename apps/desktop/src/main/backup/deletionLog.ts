@@ -80,13 +80,20 @@ export function logDeckDeletion(deckId: string): void {
 
     const noteCount = (db.prepare('SELECT COUNT(*) as c FROM notes WHERE deck_id = ?').get(deckId) as { c: number }).c;
     const cardCount = (db.prepare('SELECT COUNT(*) as c FROM cards WHERE note_id IN (SELECT id FROM notes WHERE deck_id = ?)').get(deckId) as { c: number }).c;
+    const classifiedCardCount = (db.prepare(`
+        SELECT COUNT(DISTINCT cc.card_id) as c
+        FROM card_classifications cc
+        JOIN cards ca ON ca.id = cc.card_id
+        JOIN notes n ON n.id = ca.note_id
+        WHERE n.deck_id = ?
+    `).get(deckId) as { c: number }).c;
 
     appendEntry({
         type: 'deck',
         id: deckId,
         timestamp: new Date().toISOString(),
         data: deck,
-        meta: { noteCount, cardCount },
+        meta: { noteCount, cardCount, classifiedCardCount },
     });
 
     pruneDeletedItems();

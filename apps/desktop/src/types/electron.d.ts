@@ -60,6 +60,8 @@ export interface ImportResult {
     decksCreated: number;
     decksSkipped: number;
     notesInserted: number;
+    /** Notes skipped during merge because they already exist in the collection. */
+    notesSkipped: number;
     cardsInserted: number;
     reviewsInserted: number;
     mediaExtracted: number;
@@ -209,6 +211,8 @@ interface ElectronDB {
     // Sessions
     createDeckSession:     (userId: string, deckId: string) => Promise<DeckSession>;
     completeDeckSession:   (sessionId: string) => Promise<DeckSession>;
+    abandonOpenSessions:          (userId: string) => Promise<void>;
+    fetchBulkClassifiedCardCount: (deckIds: string[]) => Promise<number>;
     fetchSessionAnalytics: (sessionId: string) => Promise<SessionAnalytics | null>;
     createDeckFromMissedCards: (userId: string, deckName: string, cardIds: string[]) => Promise<Deck>;
     // Drafts
@@ -492,6 +496,7 @@ interface ElectronPlan {
     getProgress:   (userId: string, activatedAt: string, deckFilter: string[] | null) => Promise<PlanProgress | null>;
     setOverride:   (userId: string, newPerDayOverride: number) => Promise<void>;
     clearOverride: (userId: string) => Promise<void>;
+    fetchPlansReferencingDecks: (userId: string, deckIds: string[]) => Promise<{ id: string; name: string }[]>;
 }
 
 interface ElectronAPI {

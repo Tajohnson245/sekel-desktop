@@ -140,6 +140,20 @@ export function deleteDecks(ids: string[]): void {
     })();
 }
 
+/** Returns the number of cards that have at least one classification across the given deck IDs. */
+export function fetchBulkClassifiedCardCount(deckIds: string[]): number {
+    if (deckIds.length === 0) return 0;
+    const placeholders = deckIds.map(() => '?').join(', ');
+    const row = getDb().prepare(`
+        SELECT COUNT(DISTINCT cc.card_id) as count
+        FROM card_classifications cc
+        JOIN cards c ON c.id = cc.card_id
+        JOIN notes n ON n.id = c.note_id
+        WHERE n.deck_id IN (${placeholders})
+    `).get(...deckIds) as { count: number };
+    return row.count;
+}
+
 export function fetchDecksByAnkiIds(userId: string, ankiIds: number[]): Deck[] {
     if (ankiIds.length === 0) return [];
     const placeholders = ankiIds.map(() => '?').join(', ');
@@ -886,6 +900,22 @@ export function completeDeckSession(sessionId: string): DeckSession {
         UPDATE deck_sessions SET status = 'completed', completed_at = ? WHERE id = ?
     `).run(now, sessionId);
     return getDb().prepare('SELECT * FROM deck_sessions WHERE id = ?').get(sessionId) as DeckSession;
+}
+
+export function abandonOpenSessions(userId: string): void {
+    const now = new Date().toISOString();
+    getDb().prepare(`
+        UPDATE deck_sessions
+        SET status = 'abandoned', completed_at = ?
+        WHERE user_id = ? AND status = 'in_progress'
+    `).run(now, userId);
+}
+
+export function abandonAllOpenSessions(): void {
+    const now = new Date().toISOString();
+    getDb().prepare(`
+        UPDATE deck_sessions SET status = 'abandoned', completed_at = ? WHERE status = 'in_progress'
+    `).run(now);
 }
 
 export function fetchSessionAnalytics(sessionId: string): SessionAnalytics | null {
