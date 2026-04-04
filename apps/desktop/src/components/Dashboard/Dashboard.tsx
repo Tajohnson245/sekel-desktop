@@ -201,6 +201,8 @@ export default function Dashboard() {
             return midB - midA;
         });
 
+    const showReadiness = hasExamDate && !!intelligence?.hasClassifications && readinessSystems.length > 0;
+
     // Exam countdown sub-label
     const countdownSub = hasExamDate
         ? (hasActivePlan
@@ -267,10 +269,10 @@ export default function Dashboard() {
             )}
 
             {/* ── Zones 3–5: Lower split — Exam Readiness left, Deck Health + Activity right ── */}
-            <div className="db-lower-split">
+            <div className={`db-lower-split${showReadiness ? '' : ' db-lower-split--full'}`}>
 
                 {/* Left — Exam Readiness */}
-                {hasExamDate && intelligence?.hasClassifications && readinessSystems.length > 0 && (
+                {showReadiness && (
                     <div className="db-card db-card--readiness">
                         <div className="db-card__header">
                             <h3 className="db-card__title">Exam Readiness</h3>
@@ -315,9 +317,6 @@ export default function Dashboard() {
                         <div className="db-card">
                             <div className="db-card__header">
                                 <h3 className="db-card__title">Deck Health</h3>
-                                {!hasExamDate && (
-                                    <span className="db-card__subtitle">Set an exam date to see classification coverage</span>
-                                )}
                             </div>
                             <div className="db-deck-list">
                                 {decks.map(deck => (
