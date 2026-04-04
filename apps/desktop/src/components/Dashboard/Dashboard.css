@@ -1,58 +1,179 @@
 /* ─────────────────────────────────────────────────────────────────
-   Dashboard – Intelligence panel (full width)
+   Dashboard — five-zone full-width layout
    ───────────────────────────────────────────────────────────────── */
 
-.dashboard-top {
-    margin-top: 1.25rem;
-}
-
-.dashboard-top__intel {
-    min-width: 0;
+.dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   Zone 1 — Exam Countdown Header
+   Shared section wrapper
    ───────────────────────────────────────────────────────────────── */
 
-.dashboard-welcome {
-    font-family: Georgia, 'Times New Roman', serif;
-    font-size: 1.5rem;
+.db-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   Shared card surface
+   ───────────────────────────────────────────────────────────────── */
+
+.db-card {
+    background: var(--ink-soft);
+    border: 1px solid var(--ink-muted);
+    border-radius: var(--r-md);
+    padding: 1.125rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+}
+
+.db-card--grow {
+    flex: 1;
+    min-width: 0;
+}
+
+.db-card--actions {
+    flex-shrink: 0;
+    min-width: 200px;
+}
+
+.db-card__header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.db-card__title {
+    margin: 0;
+    font-family: var(--font-display, Georgia, serif);
+    font-size: 0.875rem;
     font-weight: 400;
     color: var(--fog);
-    margin: 0 0 0.375rem;
+    letter-spacing: 0.01em;
 }
 
-.dashboard-countdown {
-    font-family: Georgia, 'Times New Roman', serif;
-    font-size: 1rem;
+.db-card__subtitle {
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    font-size: 0.72rem;
     color: var(--mist);
-    margin: 0;
+    white-space: nowrap;
 }
 
-.dashboard-set-exam-prompt {
-    font-family: Calibri, 'Segoe UI', sans-serif;
-    font-size: 0.9375rem;
+/* ─────────────────────────────────────────────────────────────────
+   Zone 1 — Hero Row
+   ───────────────────────────────────────────────────────────────── */
+
+.db-hero {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.875rem;
+}
+
+@media (max-width: 640px) {
+    .db-hero {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Stat card */
+.db-stat-card {
+    background: var(--ink-soft);
+    border: 1px solid var(--ink-muted);
+    border-radius: var(--r-md);
+    padding: 1rem 1.125rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-height: 90px;
+}
+
+.db-stat-card--empty {
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.db-stat-card--warn {
+    border-color: var(--amber);
+    background: linear-gradient(135deg, var(--ink-soft) 70%, var(--amber-soft));
+}
+
+.db-stat-card--success {
+    border-color: var(--teal-border);
+    background: linear-gradient(135deg, var(--ink-soft) 70%, var(--teal-soft));
+}
+
+.db-stat-card__label {
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--mist);
+}
+
+.db-stat-card__value-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+}
+
+.db-stat-card__value {
+    font-family: var(--font-display, Georgia, serif);
+    font-size: 2rem;
+    font-weight: 400;
+    color: var(--fog);
+    line-height: 1;
+}
+
+.db-stat-card__unit {
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    font-size: 0.8rem;
+    color: var(--mist);
+    margin-bottom: 2px;
+}
+
+.db-stat-card__sub {
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    font-size: 0.75rem;
+    color: var(--mist);
+    margin-top: 0.125rem;
+}
+
+.db-stat-card__empty-prompt {
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    font-size: 0.875rem;
     color: var(--teal);
     background: none;
     border: none;
     cursor: pointer;
     padding: 0;
-    margin: 0;
+    text-align: left;
+    transition: opacity 0.15s;
 }
 
-.dashboard-set-exam-prompt:hover {
+.db-stat-card__empty-prompt:hover {
+    opacity: 0.8;
     text-decoration: underline;
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   Zone 3 — Soft Plan Nudge
+   Zone 2 — SEKEL Intelligence
+   (SekelIntelligencePanel.css handles the panel's internals)
    ───────────────────────────────────────────────────────────────── */
 
+/* Plan nudge — preserved from original dashboard */
 .dashboard-plan-nudge {
-    font-family: Calibri, 'Segoe UI', sans-serif;
+    font-family: var(--font-body, 'Outfit', sans-serif);
     font-size: 0.875rem;
     color: var(--mist);
-    margin: 0.75rem 0 0;
+    margin: 0;
 }
 
 .dashboard-plan-nudge__link {
@@ -72,24 +193,396 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   Dashboard – bottom split layout
+   Zones 3–5 — Lower split: Exam Readiness left, right column stacked
    ───────────────────────────────────────────────────────────────── */
 
-.dashboard-split {
+.db-lower-split {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
-    margin-top: 1.5rem;
+    gap: 0.875rem;
+    align-items: start;
 }
 
 @media (max-width: 860px) {
-    .dashboard-split {
+    .db-lower-split {
         grid-template-columns: 1fr;
     }
 }
 
+.db-card--readiness {
+    /* Exam readiness fills its grid cell height naturally */
+}
+
+.db-right-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    min-width: 0;
+}
+
 /* ─────────────────────────────────────────────────────────────────
-   Review Heatmap
+   Zone 3 — Exam Readiness table
+   ───────────────────────────────────────────────────────────────── */
+
+.db-readiness-table {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.db-readiness-header {
+    display: grid;
+    grid-template-columns: 1fr 80px 70px 110px;
+    gap: 0.75rem;
+    padding: 0 0 0.5rem;
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--slate);
+    border-bottom: 1px solid var(--ink-muted);
+}
+
+.db-readiness-row {
+    display: grid;
+    grid-template-columns: 1fr 80px 70px 110px;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.55rem 0;
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    font-size: 0.8rem;
+    border-bottom: 1px solid var(--ink-muted);
+}
+
+.db-readiness-row:last-child {
+    border-bottom: none;
+}
+
+.db-readiness-row__name {
+    color: var(--fog);
+    font-weight: 500;
+}
+
+.db-readiness-row__weight {
+    color: var(--mist);
+    font-size: 0.75rem;
+}
+
+.db-readiness-row__pct {
+    color: var(--fog);
+    font-weight: 600;
+    font-size: 0.8rem;
+}
+
+.db-readiness-row__indicator {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.db-readiness-row__indicator--strong {
+    color: var(--success, #22c55e);
+}
+
+.db-readiness-row__indicator--ok {
+    color: var(--mist);
+}
+
+.db-readiness-row__indicator--needs-work {
+    color: var(--warning, #f59e0b);
+}
+
+.db-readiness-row__indicator--no-data {
+    color: var(--slate);
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   Zone 4 — Deck Health
+   ───────────────────────────────────────────────────────────────── */
+
+.db-deck-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.db-deck-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--ink-muted);
+    font-family: var(--font-body, 'Outfit', sans-serif);
+}
+
+.db-deck-row:last-child {
+    border-bottom: none;
+}
+
+.db-deck-row__name {
+    font-size: 0.85rem;
+    color: var(--fog);
+    font-weight: 500;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.db-deck-row__pills {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    flex-shrink: 0;
+}
+
+.db-deck-row__pill {
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    background: var(--ink-muted);
+    color: var(--fog);
+    white-space: nowrap;
+}
+
+.db-deck-row__pill--muted {
+    color: var(--mist);
+    background: transparent;
+    border: 1px solid var(--ink-muted);
+}
+
+.db-deck-row__pill--due {
+    background: var(--teal-soft);
+    color: var(--teal);
+    border: 1px solid var(--teal-border);
+}
+
+.db-deck-row__pill--done {
+    color: var(--success, #22c55e);
+    background: transparent;
+    font-weight: 400;
+    font-size: 0.72rem;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   Activity + Plan + Quick Actions grid
+   Left col: activity on top, plan below (when active)
+   Right col: quick actions spanning both rows
+   ───────────────────────────────────────────────────────────────── */
+
+.db-apq-grid {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto;
+    grid-template-areas: "activity actions";
+    gap: 0.875rem;
+    align-items: stretch;
+}
+
+.db-apq-grid--has-plan {
+    grid-template-rows: auto auto;
+    grid-template-areas:
+        "activity actions"
+        "plan     actions";
+}
+
+.db-apq-grid__activity { grid-area: activity; }
+.db-apq-grid__plan     { grid-area: plan; }
+.db-apq-grid__actions  { grid-area: actions; }
+
+@media (max-width: 680px) {
+    .db-apq-grid,
+    .db-apq-grid--has-plan {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            "activity"
+            "plan"
+            "actions";
+    }
+}
+
+/* Activity stats grid */
+.db-activity-stats {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.db-activity-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.db-activity-stat__value {
+    font-family: var(--font-display, Georgia, serif);
+    font-size: 1.5rem;
+    font-weight: 400;
+    color: var(--fog);
+    line-height: 1;
+}
+
+.db-activity-stat__label {
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    font-size: 0.72rem;
+    color: var(--mist);
+}
+
+.db-activity-empty {
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    font-size: 0.85rem;
+    color: var(--mist);
+    margin: 0;
+}
+
+/* Quick action buttons */
+.db-quick-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.db-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.875rem;
+    background: var(--ink-muted);
+    border: 1px solid var(--ink-muted);
+    border-radius: var(--r-sm);
+    color: var(--fog);
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    font-size: 0.825rem;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    text-align: left;
+    width: 100%;
+}
+
+.db-action-btn:hover {
+    background: var(--ink-muted);
+    border-color: var(--slate);
+    color: var(--fog);
+}
+
+.db-action-btn:first-child {
+    background: var(--teal);
+    border-color: var(--teal);
+    color: #0a0e1a;
+    font-weight: 700;
+}
+
+.db-action-btn:first-child:hover {
+    opacity: 0.88;
+    background: var(--teal);
+    border-color: var(--teal);
+    color: #0a0e1a;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   Plan Overview card
+   ───────────────────────────────────────────────────────────────── */
+
+.db-card__subtitle-link {
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    font-size: 0.72rem;
+    color: var(--teal);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    transition: opacity 0.15s;
+}
+
+.db-card__subtitle-link:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+}
+
+.db-plan-overview {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+}
+
+.db-plan-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.db-plan-row__label {
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    font-size: 0.8rem;
+    color: var(--mist);
+}
+
+.db-plan-row__value {
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--fog);
+}
+
+.db-plan-row__of {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--mist);
+    margin-left: 2px;
+}
+
+.db-plan-progress-bar {
+    height: 5px;
+    border-radius: 3px;
+    background: var(--ink-muted);
+    overflow: hidden;
+}
+
+.db-plan-progress-bar__fill {
+    height: 100%;
+    border-radius: 3px;
+    background: var(--teal);
+    transition: width 0.4s ease;
+    min-width: 3px;
+}
+
+.db-plan-stats {
+    display: flex;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    padding-top: 0.125rem;
+}
+
+.db-plan-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.db-plan-stat__value {
+    font-family: var(--font-display, Georgia, serif);
+    font-size: 1.25rem;
+    font-weight: 400;
+    color: var(--fog);
+    line-height: 1;
+}
+
+.db-plan-stat__label {
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    font-size: 0.68rem;
+    color: var(--mist);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   Review Heatmap (used in StatisticsPage)
    ───────────────────────────────────────────────────────────────── */
 
 .review-heatmap {
@@ -104,7 +597,6 @@
     color: var(--mist);
 }
 
-/* Header row */
 .heatmap-header {
     display: flex;
     align-items: center;
@@ -126,7 +618,6 @@
     white-space: nowrap;
 }
 
-/* Scrollable SVG wrapper */
 .heatmap-scroll-container {
     overflow-x: auto;
     overflow-y: hidden;
@@ -139,7 +630,6 @@
     display: block;
 }
 
-/* Month & day labels */
 .heatmap-month-label {
     font-size: 10px;
     fill: currentColor;
@@ -152,8 +642,6 @@
     font-family: inherit;
 }
 
-/* ── Cells ────────────────────────────────────────────────────── */
-
 .heatmap-cell {
     transition: opacity 0.15s ease;
     cursor: pointer;
@@ -164,35 +652,11 @@
     stroke-width: 1.5;
 }
 
-/*  Level colours use --primary from your ThemeProvider.
-    We derive opacity steps from it so the hue changes
-    automatically when the user switches themes.            */
-.heatmap-level-0 {
-    fill: var(--ink-muted);
-    opacity: 1;
-}
-
-.heatmap-level-1 {
-    fill: var(--teal);
-    opacity: 0.25;
-}
-
-.heatmap-level-2 {
-    fill: var(--teal);
-    opacity: 0.50;
-}
-
-.heatmap-level-3 {
-    fill: var(--teal);
-    opacity: 0.75;
-}
-
-.heatmap-level-4 {
-    fill: var(--teal);
-    opacity: 1;
-}
-
-/* ── Legend ────────────────────────────────────────────────────── */
+.heatmap-level-0 { fill: var(--ink-muted); opacity: 1; }
+.heatmap-level-1 { fill: var(--teal); opacity: 0.25; }
+.heatmap-level-2 { fill: var(--teal); opacity: 0.50; }
+.heatmap-level-3 { fill: var(--teal); opacity: 0.75; }
+.heatmap-level-4 { fill: var(--teal); opacity: 1; }
 
 .heatmap-legend {
     display: flex;
@@ -204,9 +668,7 @@
     color: var(--mist);
 }
 
-.heatmap-legend-label {
-    margin: 0 2px;
-}
+.heatmap-legend-label { margin: 0 2px; }
 
 .heatmap-legend-cell {
     display: inline-block;
@@ -217,33 +679,11 @@
     border-radius: 2px;
 }
 
-/* Legend cells use background-color (not SVG fill) */
-.heatmap-legend-cell.heatmap-level-0 {
-    background-color: var(--ink-muted);
-    opacity: 1;
-}
-
-.heatmap-legend-cell.heatmap-level-1 {
-    background-color: var(--teal);
-    opacity: 0.25;
-}
-
-.heatmap-legend-cell.heatmap-level-2 {
-    background-color: var(--teal);
-    opacity: 0.50;
-}
-
-.heatmap-legend-cell.heatmap-level-3 {
-    background-color: var(--teal);
-    opacity: 0.75;
-}
-
-.heatmap-legend-cell.heatmap-level-4 {
-    background-color: var(--teal);
-    opacity: 1;
-}
-
-/* ── Tooltip ──────────────────────────────────────────────────── */
+.heatmap-legend-cell.heatmap-level-0 { background-color: var(--ink-muted); opacity: 1; }
+.heatmap-legend-cell.heatmap-level-1 { background-color: var(--teal); opacity: 0.25; }
+.heatmap-legend-cell.heatmap-level-2 { background-color: var(--teal); opacity: 0.50; }
+.heatmap-legend-cell.heatmap-level-3 { background-color: var(--teal); opacity: 0.75; }
+.heatmap-legend-cell.heatmap-level-4 { background-color: var(--teal); opacity: 1; }
 
 .heatmap-tooltip {
     pointer-events: none;

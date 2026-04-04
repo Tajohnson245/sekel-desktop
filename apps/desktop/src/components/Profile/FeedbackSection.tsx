@@ -21,13 +21,22 @@ const FEEDBACK_AREAS = [
 
 const MAX_SCREENSHOT_SIZE = 5 * 1024 * 1024; // 5 MB
 
-export const FeedbackSection: React.FC = () => {
+interface FeedbackSectionProps {
+    /** When provided, component runs in controlled mode — no trigger button rendered. */
+    isOpen?: boolean;
+    onClose?: () => void;
+}
+
+export const FeedbackSection: React.FC<FeedbackSectionProps> = ({ isOpen: controlledOpen, onClose: controlledClose }) => {
+    const controlled = controlledOpen !== undefined;
     const { t } = useTranslation();
     const { user } = useAuthStore();
     const { showToast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [isOpen, setIsOpen] = useState(false);
+    const modalOpen   = controlled ? controlledOpen! : isOpen;
+    const closeModal  = controlled ? (controlledClose ?? (() => {})) : () => setIsOpen(false);
     const [areas, setAreas] = useState<string[]>([]);
     const [description, setDescription] = useState('');
     const [desiredFix, setDesiredFix] = useState('');
@@ -80,7 +89,7 @@ export const FeedbackSection: React.FC = () => {
     };
 
     const handleClose = () => {
-        setIsOpen(false);
+        closeModal();
     };
 
     const handleSubmit = async () => {
@@ -123,7 +132,7 @@ export const FeedbackSection: React.FC = () => {
 
             showToast(t('feedback.submitted'), 'success');
             resetForm();
-            setIsOpen(false);
+            closeModal();
         } catch (err) {
             console.error('Feedback submission failed:', err);
             showToast(t('feedback.error'), 'error');
@@ -134,33 +143,35 @@ export const FeedbackSection: React.FC = () => {
 
     return (
         <>
-            <section className="profile-section">
-                <div className="section-header">
-                    <h3>
-                        <MessageSquare size={18} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'middle' }} />
-                        {t('feedback.title')}
-                    </h3>
-                </div>
-                <div className="profile-grid">
-                    <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <p className="text-muted" style={{ fontSize: '0.9rem', margin: 0 }}>
-                                {t('feedback.section_description')}
-                            </p>
-                            <Button
-                                variant="primary"
-                                onClick={() => setIsOpen(true)}
-                                icon={<MessageSquare size={14} />}
-                            >
-                                {t('feedback.send_feedback')}
-                            </Button>
+            {!controlled && (
+                <section className="profile-section">
+                    <div className="section-header">
+                        <h3>
+                            <MessageSquare size={18} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'middle' }} />
+                            {t('feedback.title')}
+                        </h3>
+                    </div>
+                    <div className="profile-grid">
+                        <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <p className="text-muted" style={{ fontSize: '0.9rem', margin: 0 }}>
+                                    {t('feedback.section_description')}
+                                </p>
+                                <Button
+                                    variant="primary"
+                                    onClick={() => setIsOpen(true)}
+                                    icon={<MessageSquare size={14} />}
+                                >
+                                    {t('feedback.send_feedback')}
+                                </Button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </section>
+                </section>
+            )}
 
             <Modal
-                isOpen={isOpen}
+                isOpen={modalOpen}
                 onClose={handleClose}
                 title={t('feedback.title')}
                 size="lg"
