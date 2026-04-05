@@ -33,11 +33,6 @@ function weekMultiplier(week: number): number {
     return idx < WEEKLY_MULTIPLIERS.length ? WEEKLY_MULTIPLIERS[idx] : STEADY_STATE;
 }
 
-function cumulativeReviews(week: number): number {
-    let sum = 0;
-    for (let w = 1; w <= week; w++) sum += weekMultiplier(w);
-    return sum;
-}
 
 // ── Exhaustion-aware weekly preview ──────────────────────────────────────────
 //
