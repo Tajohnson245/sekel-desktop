@@ -7,7 +7,7 @@
 **Target Version:** `desktop/vX.X.X` | TBD
 **Branch:** `SEKEL-110-stale-plan-state`
 **Created:** 2026-04-04
-**Last Updated:** 2026-04-04
+**Last Updated:** 2026-04-05
 **Shipped:** —
 
 ---
@@ -40,3 +40,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 | 2026-04-04 | apps/desktop/src/components/Dashboard/Dashboard.css,apps/desktop/src/components/Dashboard/Dashboard.tsx,apps/desktop/src/components/Dashboard/SekelIntelligencePanel.css,apps/desktop/src/components/Dashboard/SekelIntelligencePanel.tsx,apps/desktop/src/hooks/usePlan.ts |
 | 2026-04-04 | apps/desktop/src/components/Dashboard/Dashboard.css,apps/desktop/src/components/Dashboard/Dashboard.tsx,apps/desktop/src/components/Dashboard/SekelIntelligencePanel.css,apps/desktop/src/components/Dashboard/SekelIntelligencePanel.tsx,apps/desktop/src/hooks/usePlan.ts |
 | 2026-04-04 | apps/desktop/src/components/Plan/PlanPage.css,apps/desktop/src/components/Plan/PlanPage.tsx,apps/desktop/src/main/db/planService.ts |
+| 2026-04-05 | apps/desktop/src/components/Plan/PlanPage.css,apps/desktop/src/components/Plan/PlanPage.tsx,apps/desktop/src/main/db/planService.ts |
