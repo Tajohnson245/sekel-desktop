@@ -296,18 +296,35 @@ export function computePlan(userId: string, examKey: string, deckIds?: string[])
     const inPlanIds = new Set(sorted.slice(0, projectedCoverageCount).map(c => c.card_id));
     const projectedCoverage = unseenTotal > 0 ? projectedCoverageCount / unseenTotal : 1;
 
-    // 7. Weekly projection array
+    // 7. Weekly projection array — exhaustion-aware
+    // New cards drop to 0 once all unseenTotal are introduced; reviews come
+    // only from cohorts that were actually introduced.
     const totalWeeks = Math.min(Math.ceil(availableDays / 7), 16);
     const weeklyProjection: WeeklyProjection[] = [];
     let projectedPeakDailyMinutes = 0;
 
+    const daysToExhaust = Math.min(Math.ceil(unseenTotal / recommendedNewPerDay), availableDays);
+    const exhaustWeek   = Math.ceil(daysToExhaust / 7);
+    const lastWeekDays  = daysToExhaust % 7 || 7;
+
     for (let w = 1; w <= totalWeeks; w++) {
-        const estimatedReviewsPerDay  = Math.round((recommendedNewPerDay * cumulativeReviews(w)) / 7);
-        const estimatedTotalMinutes   = Math.round(dailyMinutes(recommendedNewPerDay, w));
+        const newCardsPerDay =
+            w < exhaustWeek   ? recommendedNewPerDay :
+            w === exhaustWeek ? Math.round(recommendedNewPerDay * lastWeekDays / 7) :
+            0;
+
+        let weeklyReviews = 0;
+        for (let c = 1; c <= Math.min(w, exhaustWeek); c++) {
+            const fraction = c === exhaustWeek ? lastWeekDays / 7 : 1;
+            weeklyReviews += recommendedNewPerDay * weekMultiplier(w - c + 1) * fraction;
+        }
+        const estimatedReviewsPerDay = Math.round(weeklyReviews / 7);
+        const estimatedTotalMinutes  = Math.round(newCardsPerDay * 0.75 + estimatedReviewsPerDay * 0.33);
+
         if (estimatedTotalMinutes > projectedPeakDailyMinutes) {
             projectedPeakDailyMinutes = estimatedTotalMinutes;
         }
-        weeklyProjection.push({ week: w, newCardsPerDay: recommendedNewPerDay, estimatedReviewsPerDay, estimatedTotalMinutes });
+        weeklyProjection.push({ week: w, newCardsPerDay, estimatedReviewsPerDay, estimatedTotalMinutes });
     }
 
     // 8. System coverage — join with performance needs
