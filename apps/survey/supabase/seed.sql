@@ -1,8 +1,0 @@
--- Seed file for local development
--- Admin users are seeded directly in Supabase Auth (no public sign-up).
--- To create an admin user, run the following in your Supabase project dashboard
--- under Authentication > Users > "Invite user" or via the Supabase CLI:
---
---   supabase auth user create --email admin@sekel.app --password <your-password>
---
--- No additional seed data is required for the feedback tables.

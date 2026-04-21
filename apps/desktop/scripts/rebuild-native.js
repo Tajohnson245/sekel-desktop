@@ -10,17 +10,24 @@ if (process.env.CI) {
 }
 
 const path = require('path');
+const fs = require('fs');
 const { execSync } = require('child_process');
 
 const desktopDir = path.resolve(__dirname, '..');
 const monorepoRoot = path.resolve(desktopDir, '..', '..');
 
-const electronVersion = require(
-  path.join(desktopDir, 'node_modules', 'electron', 'package.json')
-).version;
+const electronPkgPath = require.resolve('electron/package.json', { paths: [desktopDir] });
+const electronVersion = require(electronPkgPath).version;
 
 const ext = process.platform === 'win32' ? '.cmd' : '';
-const rebuildBin = path.join(desktopDir, 'node_modules', '.bin', `electron-rebuild${ext}`);
+const candidates = [
+  path.join(desktopDir, 'node_modules', '.bin', `electron-rebuild${ext}`),
+  path.join(monorepoRoot, 'node_modules', '.bin', `electron-rebuild${ext}`),
+];
+const rebuildBin = candidates.find((p) => fs.existsSync(p));
+if (!rebuildBin) {
+  throw new Error(`Could not locate electron-rebuild binary. Tried: ${candidates.join(', ')}`);
+}
 
 console.log(`Rebuilding better-sqlite3 for Electron ${electronVersion}...`);
 execSync(

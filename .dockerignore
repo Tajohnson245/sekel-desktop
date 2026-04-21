@@ -1,9 +1,0 @@
-**/node_modules
-**/.next
-**/.turbo
-**/.vite
-**/out
-**/dist
-.git
-**/*.log
-apps/desktop

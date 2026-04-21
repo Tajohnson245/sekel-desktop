@@ -9,9 +9,6 @@ on:
         type: choice
         options:
           - desktop
-          - web
-          - community
-          - survey
       version:
         description: 'New version (e.g. 1.5.0)'
         required: true
