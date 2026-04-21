@@ -2,13 +2,13 @@
   "name": "@sekel/desktop",
   "version": "1.8.0",
   "description": "Anki but better",
-  "homepage": "https://github.com/Tajohnson245/sekel#readme",
+  "homepage": "https://github.com/Tajohnson245/sekel-desktop#readme",
   "bugs": {
-    "url": "https://github.com/Tajohnson245/sekel/issues"
+    "url": "https://github.com/Tajohnson245/sekel-desktop/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Tajohnson245/sekel.git"
+    "url": "git+https://github.com/Tajohnson245/sekel-desktop.git"
   },
   "license": "MIT",
   "author": "BYTEFLOW LLC",

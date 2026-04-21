@@ -150,7 +150,7 @@ module.exports = {
       config: {
         repository: {
           owner: 'Tajohnson245',
-          name: 'sekel'
+          name: 'sekel-desktop'
         },
         prerelease: false,
         draft: true
