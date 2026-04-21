@@ -47,3 +47,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 | 2026-04-21 | Task completed |
 | 2026-04-21 | Task completed |
 | 2026-04-21 | Task completed |
+| 2026-04-21 | .circleci/config.yml,.dockerignore,.github/workflows/bump-version.yml,.github/workflows/release-survey.yml,.github/workflows/release-webapps.yml,apps/community/.gitignore,apps/community/Dockerfile,apps/community/eslint.config.mjs |
