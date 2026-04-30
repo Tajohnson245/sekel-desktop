@@ -82,7 +82,48 @@ module.exports = {
             return fs.existsSync(rootPath) ? rootPath : null;
           }
 
-          // Recursively copy a package and all of its runtime dependencies.
+          // Walk a package.json's `dependencies` and recurse.
+          function walkDeps(pkgJsonPath) {
+            if (!fs.existsSync(pkgJsonPath)) return;
+            try {
+              const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'));
+              for (const dep of Object.keys(pkgJson.dependencies || {})) copyDep(dep);
+            } catch (_) {}
+          }
+
+          // Walk every package.json inside a node_modules folder (handles both
+          // unscoped `pkg/` and scoped `@scope/pkg/` directory layouts).
+          function walkNestedNodeModules(nmDir) {
+            if (!fs.existsSync(nmDir)) return;
+            let entries;
+            try { entries = fs.readdirSync(nmDir); } catch (_) { return; }
+            for (const entry of entries) {
+              if (entry === '.bin' || entry === '.cache') continue;
+              const entryPath = path.join(nmDir, entry);
+              let stat;
+              try { stat = fs.statSync(entryPath); } catch (_) { continue; }
+              if (!stat.isDirectory()) continue;
+              if (entry.startsWith('@')) {
+                // Scoped: recurse one level deeper.
+                let subEntries;
+                try { subEntries = fs.readdirSync(entryPath); } catch (_) { continue; }
+                for (const sub of subEntries) {
+                  walkDeps(path.join(entryPath, sub, 'package.json'));
+                  walkNestedNodeModules(path.join(entryPath, sub, 'node_modules'));
+                }
+              } else {
+                walkDeps(path.join(entryPath, 'package.json'));
+                walkNestedNodeModules(path.join(entryPath, 'node_modules'));
+              }
+            }
+          }
+
+          // Recursively copy a package and all of its runtime dependencies,
+          // including the deps of any nested versions (npm workspaces hoist
+          // most packages to root but pin conflicting versions inline under
+          // a parent's node_modules; those nested versions can pull in deps
+          // not visible at the top level -- e.g. isomorphic-dompurify nests
+          // html-encoding-sniffer@6 which requires @exodus/bytes).
           function copyDep(depName) {
             if (visited.has(depName) || depName === 'electron') return;
             visited.add(depName);
@@ -95,12 +136,8 @@ module.exports = {
               fs.cpSync(src, dest, { recursive: true, force: true });
             }
 
-            const pkgJsonPath = path.join(dest, 'package.json');
-            if (!fs.existsSync(pkgJsonPath)) return;
-            try {
-              const pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'));
-              for (const dep of Object.keys(pkgJson.dependencies || {})) copyDep(dep);
-            } catch (_) {}
+            walkDeps(path.join(dest, 'package.json'));
+            walkNestedNodeModules(path.join(dest, 'node_modules'));
           }
 
           // Seed with the desktop's declared production dependencies.
