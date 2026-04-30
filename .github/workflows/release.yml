@@ -52,30 +52,95 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Same cross-platform rollup fix as CI — lock file generated on Windows
+      # Same cross-platform rollup fix as CI -- lock file generated on Windows
       # won't include platform-specific native binaries for macOS/Linux runners.
       - name: Install Rollup native binary
         run: npm install --no-save rollup
         working-directory: apps/desktop
 
-      # Windows-only: install AzureSignTool for Azure Artifact Signing.
-      # The signing hook in apps/desktop/sign-azure.js shells out to this CLI.
-      - name: Install AzureSignTool (Windows only)
-        if: matrix.os == 'windows-latest'
-        run: dotnet tool install --global AzureSignTool
-
-      - name: Build and publish
+      # Build and produce installer artifacts (unsigned). Windows artifacts get
+      # signed in the next step by the official Azure Trusted Signing action.
+      - name: Build and make
         working-directory: apps/desktop
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VITE_SUPABASE_PROJECT_URL: ${{ secrets.VITE_SUPABASE_PROJECT_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           FORGE_ARCH: ${{ matrix.arch }}
+        run: npm run make
+
+      # Sign every Windows .exe under out/make using Azure Trusted Signing.
+      # This is the SmartScreen-relevant artifact (Setup.exe). The action
+      # downloads the Trusted Signing Dlib + invokes signtool.exe with /dlib.
+      - name: Sign Windows installers (Windows only)
+        if: matrix.os == 'windows-latest'
+        uses: azure/trusted-signing-action@v0.5.1
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: https://eus.codesigning.azure.net/
+          trusted-signing-account-name: sekel-signing
+          certificate-profile-name: sekel-public
+          files-folder: ${{ github.workspace }}/apps/desktop/out/make
+          files-folder-filter: exe
+          files-folder-recurse: true
+          file-digest: SHA256
+          timestamp-rfc3161: http://timestamp.acs.microsoft.com
+
+      # Create the draft GitHub Release if it doesn't exist yet (idempotent
+      # across matrix jobs -- whichever runs first wins, others no-op).
+      - name: Ensure GitHub Release exists
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v${{ steps.version.outputs.version }}"
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --draft --title "$TAG" --notes "" || \
+              gh release view "$TAG" >/dev/null  # tolerate race -- another job created it
+          fi
+
+      # Upload all installer artifacts to the draft GitHub Release.
+      # --clobber is safe across matrix jobs and re-runs.
+      - name: Upload artifacts to GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          TAG="v${{ steps.version.outputs.version }}"
+          cd apps/desktop/out/make
+          # Find every artifact electron-forge produced and upload it.
+          find . -type f \
+            \( -name "*.exe" -o -name "*.zip" -o -name "*.nupkg" \
+               -o -name "RELEASES" -o -name "*.deb" -o -name "*.rpm" \
+               -o -name "*.dmg" \) \
+            -print0 | while IFS= read -r -d '' f; do
+              echo "Uploading $f"
+              gh release upload "$TAG" "$f" --clobber
+            done
+
+      # Upload to Cloudflare R2 with the same per-platform/per-arch layout
+      # the prior publisher-s3 keyResolver produced: <platform>/<arch>/<filename>.
+      - name: Upload artifacts to Cloudflare R2
+        shell: bash
+        env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          # Azure Artifact Signing — consumed by apps/desktop/sign-azure.js on Windows.
-          # Add these as repo-level GitHub Secrets before the next desktop/v* tag push.
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-        run: npm run publish
+          AWS_DEFAULT_REGION: auto
+        run: |
+          set -e
+          PLATFORM=$(node -p "process.platform")  # win32 | darwin | linux
+          ARCH="${{ matrix.arch }}"
+          ENDPOINT="https://10b526ce06de458a7e43834f97953694.r2.cloudflarestorage.com"
+          cd apps/desktop/out/make
+          find . -type f \
+            \( -name "*.exe" -o -name "*.zip" -o -name "*.nupkg" \
+               -o -name "RELEASES" -o -name "*.deb" -o -name "*.rpm" \
+               -o -name "*.dmg" \) \
+            -print0 | while IFS= read -r -d '' f; do
+              base=$(basename "$f")
+              echo "Uploading $f -> s3://sekel-releases/$PLATFORM/$ARCH/$base"
+              aws s3 cp "$f" "s3://sekel-releases/$PLATFORM/$ARCH/$base" \
+                --endpoint-url "$ENDPOINT"
+            done
