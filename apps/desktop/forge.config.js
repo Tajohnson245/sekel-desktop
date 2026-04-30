@@ -8,7 +8,10 @@ const MONOREPO_ROOT = path.join(__dirname, '..', '..');
 
 function rebuildSqlite(arch) {
   const { execSync } = require('child_process');
-  const electronVersion = require(path.join(__dirname, 'node_modules', 'electron', 'package.json')).version;
+  // Use Node's module resolution rather than a hard-coded path -- on CI runners
+  // npm workspaces hoist electron to MONOREPO_ROOT/node_modules, so the local
+  // apps/desktop/node_modules/electron path doesn't exist. require() walks up.
+  const electronVersion = require('electron/package.json').version;
   const ext = process.platform === 'win32' ? '.cmd' : '';
   const rebuildBin = path.join(MONOREPO_ROOT, 'node_modules', '.bin', `electron-rebuild${ext}`);
   const targetArch = arch || process.arch;
