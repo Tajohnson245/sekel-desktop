@@ -58,6 +58,12 @@ jobs:
         run: npm install --no-save rollup
         working-directory: apps/desktop
 
+      # Windows-only: install AzureSignTool for Azure Artifact Signing.
+      # The signing hook in apps/desktop/sign-azure.js shells out to this CLI.
+      - name: Install AzureSignTool (Windows only)
+        if: matrix.os == 'windows-latest'
+        run: dotnet tool install --global AzureSignTool
+
       - name: Build and publish
         working-directory: apps/desktop
         env:
@@ -65,6 +71,11 @@ jobs:
           VITE_SUPABASE_PROJECT_URL: ${{ secrets.VITE_SUPABASE_PROJECT_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           FORGE_ARCH: ${{ matrix.arch }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.CF_R2_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_SECRET_ACCESS_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          # Azure Artifact Signing — consumed by apps/desktop/sign-azure.js on Windows.
+          # Add these as repo-level GitHub Secrets before the next desktop/v* tag push.
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
         run: npm run publish
