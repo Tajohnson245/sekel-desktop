@@ -23,9 +23,59 @@ function rebuildSqlite(arch) {
   console.log('[forge] better-sqlite3 rebuild complete');
 }
 
+// Sign a single Windows binary with Azure Artifact Signing.
+// Required env vars (set as GitHub Secrets, passed in release.yml):
+//   AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET
+// Build host needs: dotnet tool install --global AzureSignTool
+function signWindowsBinary(filePath) {
+  const { execFileSync } = require('child_process');
+  const { AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET } = process.env;
+  if (!AZURE_TENANT_ID || !AZURE_CLIENT_ID || !AZURE_CLIENT_SECRET) {
+    throw new Error(
+      'Azure signing env vars missing (AZURE_TENANT_ID / AZURE_CLIENT_ID / AZURE_CLIENT_SECRET) -- aborting unsigned build'
+    );
+  }
+  console.log(`[forge] Signing ${filePath} with Azure Artifact Signing...`);
+  execFileSync(
+    'azuresigntool',
+    [
+      'sign',
+      '-kvu', 'https://eus.codesigning.azure.net/',
+      '-kvc', 'sekel-public',
+      '-kvi', AZURE_CLIENT_ID,
+      '-kvs', AZURE_CLIENT_SECRET,
+      '-kvt', AZURE_TENANT_ID,
+      '-tr', 'http://timestamp.acs.microsoft.com',
+      '-td', 'sha256',
+      '-fd', 'sha256',
+      '-d', 'Sekel',
+      filePath,
+    ],
+    { stdio: 'inherit' }
+  );
+}
+
 module.exports = {
   hooks: {
     prePackage: async (_config, _platform, arch) => rebuildSqlite(arch),
+    // -----------------------------------------------------------------
+    // Windows code signing -- runs after the Squirrel maker produces
+    // Setup.exe. We use postMake (rather than packagerConfig.windowsSign
+    // or maker.config.windowsSign) because Forge's plumbing for those
+    // config-driven approaches doesn't reliably invoke the signing hook
+    // for the Setup.exe wrapper that SmartScreen actually sees.
+    // -----------------------------------------------------------------
+    postMake: async (_config, makeResults) => {
+      if (process.platform !== 'win32') return makeResults;
+      for (const result of makeResults) {
+        for (const artifact of result.artifacts) {
+          if (artifact.toLowerCase().endsWith('.exe')) {
+            signWindowsBinary(artifact);
+          }
+        }
+      }
+      return makeResults;
+    },
   },
   packagerConfig: {
     asar: { unpack: '**/*.node' },
@@ -125,18 +175,6 @@ module.exports = {
       config: {
         name: 'Sekel',
         setupIcon: path.join(__dirname, 'assets', 'sekel_logo.ico'),
-        // -----------------------------------------------------------------
-        // Windows code signing -- Azure Artifact Signing (formerly Trusted Signing).
-        // Configured here (not on packagerConfig) so electron-winstaller signs
-        // BOTH the inner Sekel.exe + DLLs AND the Setup.exe wrapper.
-        // Required env vars (set as GitHub Secrets, passed in release.yml):
-        //   AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET
-        // Build host needs: dotnet tool install --global AzureSignTool
-        // -----------------------------------------------------------------
-        windowsSign: {
-          hookModulePath: path.join(__dirname, 'sign-azure.js'),
-          debug: false,
-        },
       },
     },
     {
