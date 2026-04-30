@@ -34,18 +34,6 @@ module.exports = {
     executableName: 'sekel',
     icon: path.join(__dirname, 'assets', 'sekel_logo'),
     appCopyright: 'Copyright © 2026 BYTEFLOW LLC',
-    // -----------------------------------------------------------------
-    // Windows code signing -- Azure Artifact Signing (formerly Trusted Signing).
-    // The following env vars MUST be set in the GitHub Actions release.yml
-    // workflow (from repo-level Secrets) BEFORE `npm run publish` runs:
-    //   AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET
-    // The Windows runner also needs AzureSignTool installed:
-    //   dotnet tool install --global AzureSignTool
-    // -----------------------------------------------------------------
-    windowsSign: {
-      hookModulePath: path.join(__dirname, 'sign-azure.js'),
-      debug: false,
-    },
     win32metadata: {
       CompanyName: 'BYTEFLOW LLC',
       ProductName: 'Sekel',
@@ -137,6 +125,18 @@ module.exports = {
       config: {
         name: 'Sekel',
         setupIcon: path.join(__dirname, 'assets', 'sekel_logo.ico'),
+        // -----------------------------------------------------------------
+        // Windows code signing -- Azure Artifact Signing (formerly Trusted Signing).
+        // Configured here (not on packagerConfig) so electron-winstaller signs
+        // BOTH the inner Sekel.exe + DLLs AND the Setup.exe wrapper.
+        // Required env vars (set as GitHub Secrets, passed in release.yml):
+        //   AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET
+        // Build host needs: dotnet tool install --global AzureSignTool
+        // -----------------------------------------------------------------
+        windowsSign: {
+          hookModulePath: path.join(__dirname, 'sign-azure.js'),
+          debug: false,
+        },
       },
     },
     {

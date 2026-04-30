@@ -16,7 +16,7 @@ module.exports = function signFile({ path: filePath }) {
     );
   }
   execFileSync(
-    'AzureSignTool',
+    'azuresigntool',
     [
       'sign',
       '-kvu', 'https://eus.codesigning.azure.net/',
