@@ -59,3 +59,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 | 2026-05-01 | apps/desktop/src/hooks/useDecks.ts,apps/desktop/src/hooks/useNotes.ts,apps/desktop/src/main.ts,apps/desktop/src/main/backup/deletionLog.ts,apps/desktop/src/main/db/service.ts,Sekel-1.8.1.Setup.exe |
 | 2026-05-01 | Sekel-1.8.1.Setup.exe |
 | 2026-05-01 | apps/desktop/src/index.css,apps/desktop/src/router/AppLayout.tsx,Sekel-1.8.1.Setup.exe |
+| 2026-05-01 | Sekel-1.8.1.Setup.exe |
