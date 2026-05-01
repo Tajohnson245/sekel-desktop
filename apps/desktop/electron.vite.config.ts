@@ -3,7 +3,9 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 
 export default defineConfig(({ mode }) => {
-    const env = loadEnv(mode, '.', ['VITE_', 'OPENAI_', 'ADMIN_', 'SUPABASE_']);
+    const envDir = path.resolve(__dirname, '../..');
+    const env = loadEnv(mode, envDir, ['VITE_', 'OPENAI_', 'ADMIN_', 'SUPABASE_']);
+
 
     return {
         main: {
@@ -35,6 +37,7 @@ export default defineConfig(({ mode }) => {
         renderer: {
             plugins: [react()],
             root: '.',
+            envDir,
             build: {
                 outDir: 'dist/renderer',
                 rollupOptions: {
