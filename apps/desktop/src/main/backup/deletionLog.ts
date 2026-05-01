@@ -120,3 +120,41 @@ export function logNoteDeletion(noteId: string): void {
 
     pruneDeletedItems();
 }
+
+/**
+ * Logs every note in a deck (with their cards) before bulk deletion.
+ * Reads notes + cards in two queries, writes one append, prunes once.
+ */
+export function logAllNotesInDeckDeletion(deckId: string): void {
+    const db = getDb();
+    const notes = db.prepare('SELECT * FROM notes WHERE deck_id = ?').all(deckId) as Record<string, unknown>[];
+    if (notes.length === 0) return;
+
+    const noteIds = notes.map((n) => n.id as string);
+    const placeholders = noteIds.map(() => '?').join(',');
+    const allCards = db.prepare(`SELECT * FROM cards WHERE note_id IN (${placeholders})`).all(...noteIds) as Record<string, unknown>[];
+
+    const cardsByNote = new Map<string, Record<string, unknown>[]>();
+    for (const card of allCards) {
+        const noteId = card.note_id as string;
+        const arr = cardsByNote.get(noteId) ?? [];
+        arr.push(card);
+        cardsByNote.set(noteId, arr);
+    }
+
+    const ts = new Date().toISOString();
+    const lines = notes
+        .map((note) =>
+            JSON.stringify({
+                type: 'note',
+                id: note.id,
+                timestamp: ts,
+                data: note,
+                meta: { cards: cardsByNote.get(note.id as string) ?? [] },
+            }),
+        )
+        .join('\n') + '\n';
+
+    fs.appendFileSync(getLogPath(), lines, 'utf-8');
+    pruneDeletedItems();
+}

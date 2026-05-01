@@ -201,6 +201,7 @@ interface ElectronDB {
     createNote:            (note: NoteInsert) => Promise<Note>;
     updateNote:            (id: string, updates: NoteUpdate) => Promise<Note>;
     deleteNote:            (id: string) => Promise<void>;
+    deleteAllCardsInDeck:  (deckId: string) => Promise<void>;
     createNoteWithCards:   (note: NoteInsert, templateCount?: number) => Promise<{ note: Note; cards: Card[] }>;
     // Note Types
     fetchNoteTypes:        (userId: string) => Promise<NoteType[]>;

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { getDb } from './index';
-import { logDeckDeletion, logNoteDeletion } from '../backup/deletionLog';
+import { logDeckDeletion, logNoteDeletion, logAllNotesInDeckDeletion } from '../backup/deletionLog';
 import { getRetrievability } from '../../lib/fsrs';
 import type {
     Deck, DeckInsert, DeckUpdate,
@@ -791,6 +791,27 @@ export function updateNote(id: string, updates: NoteUpdate): Note {
 export function deleteNote(id: string): void {
     logNoteDeletion(id);
     getDb().prepare('DELETE FROM notes WHERE id = ?').run(id);
+}
+
+/**
+ * Bulk-deletes every note in a deck (cascading to cards, reviews, classifications).
+ * One transaction, one log write, one prune call. Replaces the old per-note loop
+ * for the "Delete all cards in this deck" affordance.
+ */
+export function deleteAllCardsInDeck(deckId: string): void {
+    const db = getDb();
+    logAllNotesInDeckDeletion(deckId);
+    db.transaction(() => {
+        // Pre-clean classifications before CASCADE drops the cards.
+        db.prepare(`
+            DELETE FROM card_classifications WHERE card_id IN (
+                SELECT c.id FROM cards c
+                JOIN notes n ON c.note_id = n.id
+                WHERE n.deck_id = ?
+            )
+        `).run(deckId);
+        db.prepare('DELETE FROM notes WHERE deck_id = ?').run(deckId);
+    })();
 }
 
 export function createNoteWithCards(note: NoteInsert, templateCount = 1): { note: Note; cards: Card[] } {

@@ -8,6 +8,7 @@ import {
     createNoteWithCards,
     updateNote,
     deleteNote,
+    deleteAllCardsInDeck,
     fetchNoteTypes,
     createNoteType,
 } from '../lib/queries';
@@ -82,6 +83,23 @@ export function useDeleteNote() {
             queryClient.invalidateQueries({ queryKey: deckKeys.stats(variables.deckId) });
             queryClient.invalidateQueries({ queryKey: deckKeys.dueCards(variables.deckId) });
             queryClient.invalidateQueries({ queryKey: deckKeys.cards(variables.deckId) });
+        },
+    });
+}
+
+export function useDeleteAllCardsInDeck() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (deckId: string) => deleteAllCardsInDeck(deckId),
+        onSuccess: (_data, deckId) => {
+            // Drop all per-deck caches in one pass — no per-card refetch storm.
+            queryClient.setQueryData(noteKeys.byDeck(deckId), []);
+            queryClient.setQueryData(deckKeys.cards(deckId), []);
+            queryClient.invalidateQueries({ queryKey: noteKeys.byDeck(deckId) });
+            queryClient.invalidateQueries({ queryKey: deckKeys.stats(deckId) });
+            queryClient.invalidateQueries({ queryKey: deckKeys.dueCards(deckId) });
+            queryClient.invalidateQueries({ queryKey: deckKeys.cards(deckId) });
         },
     });
 }

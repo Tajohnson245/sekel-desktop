@@ -112,6 +112,9 @@ export function setupDatabaseHandlers(): void {
     instrumentedHandle('db:deleteNote', (_e, id: string) =>
         dbService.deleteNote(id));
 
+    instrumentedHandle('db:deleteAllCardsInDeck', (_e, deckId: string) =>
+        dbService.deleteAllCardsInDeck(deckId));
+
     instrumentedHandle('db:createNoteWithCards', (_e, note, templateCount?: number) =>
         dbService.createNoteWithCards(note, templateCount));
 
