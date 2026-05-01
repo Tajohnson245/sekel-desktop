@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { getDb } from './index';
-import { logDeckDeletion, logNoteDeletion, logAllNotesInDeckDeletion } from '../backup/deletionLog';
+import { logDeckDeletion, logNoteDeletion, logAllNotesInDeckDeletion, logAllDecksDeletion } from '../backup/deletionLog';
 import { getRetrievability } from '../../lib/fsrs';
 import type {
     Deck, DeckInsert, DeckUpdate,
@@ -123,7 +123,7 @@ export function deleteDeck(id: string): void {
 export function deleteDecks(ids: string[]): void {
     if (ids.length === 0) return;
     const db = getDb();
-    for (const id of ids) logDeckDeletion(id);
+    logAllDecksDeletion(ids);
     const placeholders = ids.map(() => '?').join(', ');
     db.transaction(() => {
         // Remove classifications for cards in these decks

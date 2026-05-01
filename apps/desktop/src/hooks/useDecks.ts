@@ -182,7 +182,31 @@ export function useBulkDeleteDecks() {
 
     return useMutation({
         mutationFn: (ids: string[]) => deleteDecks(ids),
-        onSuccess: () => {
+
+        // Yank the selected decks from the visible list before the IPC call returns.
+        // Rollback if the mutation fails so the UI never lies about state.
+        onMutate: async (ids) => {
+            await queryClient.cancelQueries({ queryKey: deckKeys.all });
+            const idSet = new Set(ids);
+            const prevDecks = queryClient.getQueryData<Deck[]>(deckKeys.all);
+            if (prevDecks) {
+                queryClient.setQueryData<Deck[]>(
+                    deckKeys.all,
+                    prevDecks.filter((d) => !idSet.has(d.id)),
+                );
+            }
+            return { prevDecks };
+        },
+
+        onError: (_err, _ids, context) => {
+            if (context?.prevDecks) {
+                queryClient.setQueryData(deckKeys.all, context.prevDecks);
+            }
+        },
+
+        // Refetch after the mutation settles to reconcile any per-deck caches
+        // (stats, due-cards, etc.) that were keyed off the now-deleted decks.
+        onSettled: () => {
             queryClient.invalidateQueries({ queryKey: deckKeys.all });
         },
     });

@@ -3,7 +3,8 @@
  *
  * Stores deleted items as JSONL (one JSON object per line) in
  * {userData}/deleted_items.jsonl. Entries older than 90 days are pruned
- * on each write.
+ * once at app startup (see main.ts) — not on each write — to keep the
+ * delete hot path O(1) instead of O(file size).
  */
 
 import fs from 'node:fs';
@@ -95,8 +96,6 @@ export function logDeckDeletion(deckId: string): void {
         data: deck,
         meta: { noteCount, cardCount, classifiedCardCount },
     });
-
-    pruneDeletedItems();
 }
 
 /**
@@ -117,8 +116,68 @@ export function logNoteDeletion(noteId: string): void {
         data: note,
         meta: { cards },
     });
+}
 
-    pruneDeletedItems();
+/**
+ * Logs a batch of decks before they are deleted.
+ * 4 grouped queries (decks + 3 count breakdowns) and one batched file append,
+ * regardless of how many decks are being deleted.
+ */
+export function logAllDecksDeletion(deckIds: string[]): void {
+    if (deckIds.length === 0) return;
+    const db = getDb();
+    const placeholders = deckIds.map(() => '?').join(',');
+
+    const decks = db.prepare(`SELECT * FROM decks WHERE id IN (${placeholders})`).all(...deckIds) as Record<string, unknown>[];
+    if (decks.length === 0) return;
+
+    const noteCounts = db.prepare(`
+        SELECT deck_id, COUNT(*) as c
+        FROM notes
+        WHERE deck_id IN (${placeholders})
+        GROUP BY deck_id
+    `).all(...deckIds) as { deck_id: string; c: number }[];
+
+    const cardCounts = db.prepare(`
+        SELECT n.deck_id, COUNT(c.id) as c
+        FROM cards c
+        JOIN notes n ON c.note_id = n.id
+        WHERE n.deck_id IN (${placeholders})
+        GROUP BY n.deck_id
+    `).all(...deckIds) as { deck_id: string; c: number }[];
+
+    const classifiedCounts = db.prepare(`
+        SELECT n.deck_id, COUNT(DISTINCT cc.card_id) as c
+        FROM card_classifications cc
+        JOIN cards ca ON ca.id = cc.card_id
+        JOIN notes n ON n.id = ca.note_id
+        WHERE n.deck_id IN (${placeholders})
+        GROUP BY n.deck_id
+    `).all(...deckIds) as { deck_id: string; c: number }[];
+
+    const noteMap = new Map(noteCounts.map((r) => [r.deck_id, r.c]));
+    const cardMap = new Map(cardCounts.map((r) => [r.deck_id, r.c]));
+    const classifiedMap = new Map(classifiedCounts.map((r) => [r.deck_id, r.c]));
+
+    const ts = new Date().toISOString();
+    const lines = decks
+        .map((deck) => {
+            const id = deck.id as string;
+            return JSON.stringify({
+                type: 'deck',
+                id,
+                timestamp: ts,
+                data: deck,
+                meta: {
+                    noteCount: noteMap.get(id) ?? 0,
+                    cardCount: cardMap.get(id) ?? 0,
+                    classifiedCardCount: classifiedMap.get(id) ?? 0,
+                },
+            });
+        })
+        .join('\n') + '\n';
+
+    fs.appendFileSync(getLogPath(), lines, 'utf-8');
 }
 
 /**
@@ -156,5 +215,4 @@ export function logAllNotesInDeckDeletion(deckId: string): void {
         .join('\n') + '\n';
 
     fs.appendFileSync(getLogPath(), lines, 'utf-8');
-    pruneDeletedItems();
 }

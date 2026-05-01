@@ -28,6 +28,7 @@ import { setupAdminHandlers } from './ipc/admin';
 import { setupPlanHandlers } from './ipc/plan';
 import { cleanupStaleTempDirs } from './main/import/tempCleanup';
 import { fetchMediaByFilename, abandonAllOpenSessions } from './main/db/service';
+import { pruneDeletedItems } from './main/backup/deletionLog';
 
 // Register sekel-media:// as a privileged scheme before app is ready.
 // This must be called synchronously before app.whenReady().
@@ -122,6 +123,14 @@ app.whenReady().then(() => {
         initDatabase();
     } catch (err) {
         log.error('Database initialization failed — app will run without DB', { error: err instanceof Error ? err.message : String(err) });
+    }
+
+    // Prune the deletion log once on launch instead of on every delete.
+    // Keeps the per-delete path cheap regardless of how big the log gets.
+    try {
+        pruneDeletedItems();
+    } catch (err) {
+        log.warn('Deletion log prune failed', { error: err instanceof Error ? err.message : String(err) });
     }
 
     // Handle sekel-media://{userId}/{filename} — serves imported media files from disk.

@@ -13,6 +13,7 @@ import {
     createNoteType,
 } from '../lib/queries';
 import type { Note, NoteInsert, NoteUpdate, NoteType, NoteTypeInsert } from '../lib/types';
+import type { CardWithNote } from '../lib/queries';
 import { deckKeys } from './useDecks';
 
 // ─────────────────────────────────────────────────────────────────
@@ -78,11 +79,41 @@ export function useDeleteNote() {
 
     return useMutation({
         mutationFn: ({ id }: { id: string; deckId: string }) => deleteNote(id),
-        onSuccess: (_data, variables) => {
-            queryClient.invalidateQueries({ queryKey: noteKeys.byDeck(variables.deckId) });
-            queryClient.invalidateQueries({ queryKey: deckKeys.stats(variables.deckId) });
-            queryClient.invalidateQueries({ queryKey: deckKeys.dueCards(variables.deckId) });
-            queryClient.invalidateQueries({ queryKey: deckKeys.cards(variables.deckId) });
+
+        // Optimistically yank the row from the visible lists before the IPC call
+        // returns so the click feels instant. Rollback if the mutation fails.
+        onMutate: async ({ id, deckId }) => {
+            const notesKey = noteKeys.byDeck(deckId);
+            const cardsKey = deckKeys.cards(deckId);
+
+            await queryClient.cancelQueries({ queryKey: notesKey });
+            await queryClient.cancelQueries({ queryKey: cardsKey });
+
+            const prevNotes = queryClient.getQueryData<Note[]>(notesKey);
+            const prevCards = queryClient.getQueryData<CardWithNote[]>(cardsKey);
+
+            if (prevNotes) {
+                queryClient.setQueryData<Note[]>(notesKey, prevNotes.filter(n => n.id !== id));
+            }
+            if (prevCards) {
+                queryClient.setQueryData<CardWithNote[]>(cardsKey, prevCards.filter(c => c.note.id !== id));
+            }
+
+            return { prevNotes, prevCards };
+        },
+
+        onError: (_err, { deckId }, context) => {
+            const notesKey = noteKeys.byDeck(deckId);
+            const cardsKey = deckKeys.cards(deckId);
+            if (context?.prevNotes) queryClient.setQueryData(notesKey, context.prevNotes);
+            if (context?.prevCards) queryClient.setQueryData(cardsKey, context.prevCards);
+        },
+
+        // Counts (stats / due-cards) come from the server; refetch them in the
+        // background. Notes/cards lists are already in sync from onMutate.
+        onSettled: (_data, _err, { deckId }) => {
+            queryClient.invalidateQueries({ queryKey: deckKeys.stats(deckId) });
+            queryClient.invalidateQueries({ queryKey: deckKeys.dueCards(deckId) });
         },
     });
 }
