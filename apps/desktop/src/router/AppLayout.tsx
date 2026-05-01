@@ -11,7 +11,6 @@ import { useActivePlan, usePlanRebalance, useClearPlanOverride } from '../hooks/
 import { usePlanStore } from '../stores/planStore';
 import { UserProfile } from '../components/UserProfile';
 import DocumentsPage from '../components/AIStudy/DocumentsPage';
-import { ExamOnboardingModal } from '../components/ExamOnboarding/ExamOnboardingModal';
 import { DeckEditorProvider } from '../contexts/DeckEditorContext';
 import { useDeckEditor } from '../contexts/DeckEditorContext';
 
@@ -163,17 +162,6 @@ export default function AppLayout() {
     const location = useLocation();
     const isDocumentsRoute = location.pathname === '/documents';
 
-    // Exam onboarding auto-show
-    const { data: examProfile, isLoading: examProfileLoading } = useExamProfile();
-    const [showExamOnboarding, setShowExamOnboarding] = useState(false);
-    const [onboardingDismissed, setOnboardingDismissed] = useState(false);
-
-    useEffect(() => {
-        if (!examProfileLoading && examProfile === null && !onboardingDismissed) {
-            setShowExamOnboarding(true);
-        }
-    }, [examProfile, examProfileLoading, onboardingDismissed]);
-
     return (
         <DeckEditorProvider>
             <div
@@ -195,18 +183,6 @@ export default function AppLayout() {
                     </div>
                     {!isDocumentsRoute && <Outlet />}
                 </main>
-
-                <ExamOnboardingModal
-                    isOpen={showExamOnboarding}
-                    onClose={() => {
-                        setShowExamOnboarding(false);
-                        setOnboardingDismissed(true);
-                    }}
-                    onComplete={() => {
-                        setShowExamOnboarding(false);
-                        setOnboardingDismissed(true);
-                    }}
-                />
             </div>
         </DeckEditorProvider>
     );

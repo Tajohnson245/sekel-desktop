@@ -165,7 +165,10 @@ export default function Dashboard() {
     // ── Data fetching — all in parallel ──────────────────────────────────────
     const { data: intelligence }                          = useSekelIntelligence(userId);
     const { data: examProfile }                           = useExamProfile();
-    const { data: activePlanResult, isLoading: planLoad } = useActivePlan();
+    // Scope the plan to the current exam so a plan left over from a previous
+    // exam doesn't surface here. Treat "no exam profile" as "no plan" too.
+    const { data: rawActivePlan, isLoading: planLoad }    = useActivePlan(examProfile?.exam_key);
+    const activePlanResult                                = examProfile === null ? null : rawActivePlan;
     const { data: planProgress }                          = usePlanProgress(activePlanResult?.plan);
     const { dueCount }                                    = useGlobalDashboardStats(userId);
     const { data: todaySummary }                          = useTodaySummary(userId);
@@ -232,7 +235,7 @@ export default function Dashboard() {
                     unit="days"
                     sub={countdownSub}
                     emptyPrompt="Set your exam date"
-                    onEmptyClick={() => goToProfile()}
+                    onEmptyClick={() => goToProfile('study')}
                     highlight={hasActivePlan && !onPace ? 'warn' : undefined}
                 />
             </div>
@@ -334,7 +337,7 @@ export default function Dashboard() {
 
                     {/* Today's Activity + Plan Overview + Quick Actions
                         Grid: activity/plan stack left, quick actions spans right */}
-                    <div className={`db-apq-grid${activePlanResult ? ' db-apq-grid--has-plan' : ''}`}>
+                    <div className="db-apq-grid db-apq-grid--has-plan">
 
                         {/* Today's Activity
                             NOTE: "Last session" granularity (date, duration, deck, systems covered per session)
@@ -376,18 +379,20 @@ export default function Dashboard() {
                             )}
                         </div>
 
-                        {/* Plan Overview — only when a plan is active */}
-                        {activePlanResult && (
-                            <div className="db-card db-apq-grid__plan">
-                                <div className="db-card__header">
-                                    <h3 className="db-card__title">Plan Overview</h3>
+                        {/* Plan Overview — empty state when no active plan */}
+                        <div className="db-card db-apq-grid__plan">
+                            <div className="db-card__header">
+                                <h3 className="db-card__title">Plan Overview</h3>
+                                {activePlanResult && (
                                     <button
                                         className="db-card__subtitle-link"
                                         onClick={() => navigate('/plan')}
                                     >
                                         View plan →
                                     </button>
-                                </div>
+                                )}
+                            </div>
+                            {activePlanResult ? (
                                 <div className="db-plan-overview">
                                     <div className="db-plan-row">
                                         <span className="db-plan-row__label">Today's target</span>
@@ -425,8 +430,15 @@ export default function Dashboard() {
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        )}
+                            ) : (
+                                <button
+                                    className="db-stat-card__empty-prompt"
+                                    onClick={() => navigate('/plan')}
+                                >
+                                    Start a plan →
+                                </button>
+                            )}
+                        </div>
 
                         {/* Quick Actions — spans all rows on the right */}
                         <div className="db-card db-apq-grid__actions">
