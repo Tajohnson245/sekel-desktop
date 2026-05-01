@@ -17,7 +17,7 @@ export function useAppNavigation() {
         goToImageOcclusion: () => navigate('/image-occlusion'),
         goToStatistics: () => navigate('/statistics'),
         goToAdmin: () => navigate('/admin'),
-        goToProfile: () => navigate('/profile'),
+        goToProfile: (tab?: string) => navigate('/profile' + (tab ? `#${tab}` : '')),
         goBack: () => navigate(-1),
     };
 }

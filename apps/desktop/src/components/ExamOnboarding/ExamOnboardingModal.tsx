@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Library } from 'lucide-react';
 import { Modal, Button, Loader, useToast } from '../UI';
 import { useExamList, useUpsertExamProfile } from '../../hooks/useExamProfile';
 import { useDecks } from '../../hooks/useDecks';
 import { fetchAllCardsForDeck } from '../../lib/queries';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
 import { useAuthStore } from '../../stores/authStore';
 import './ExamOnboardingModal.css';
 
@@ -21,6 +23,7 @@ export function ExamOnboardingModal({ isOpen, onClose, onComplete }: ExamOnboard
     const { data: exams = [], isLoading: examsLoading } = useExamList();
     const { data: decks = [], isLoading: decksLoading } = useDecks();
     const upsertProfile = useUpsertExamProfile();
+    const { goToDecks } = useAppNavigation();
 
     const [step, setStep] = useState<'select-exam' | 'select-deck' | 'pick-date'>('select-exam');
     const [selectedExamId, setSelectedExamId] = useState<number | null>(null);
@@ -42,6 +45,14 @@ export function ExamOnboardingModal({ isOpen, onClose, onComplete }: ExamOnboard
         handleReset();
         onClose();
     };
+
+    const handleGoToDecks = () => {
+        handleReset();
+        onClose();
+        goToDecks();
+    };
+
+    const noDecks = !decksLoading && decks.length === 0;
 
     const handleSubmit = async (skipDate: boolean) => {
         if (!userId || !selectedExamId || !selectedExam || !selectedDeckId) return;
@@ -109,6 +120,18 @@ export function ExamOnboardingModal({ isOpen, onClose, onComplete }: ExamOnboard
             );
         }
 
+        if (noDecks) {
+            return (
+                <div className="exam-onboarding-content exam-onboarding-empty">
+                    <Library size={40} className="exam-onboarding-empty-icon" />
+                    <h4 className="exam-onboarding-empty-title">No decks yet</h4>
+                    <p className="exam-onboarding-prompt">
+                        Create at least one deck before setting up your exam. Your decks are what gets classified against the exam blueprint.
+                    </p>
+                </div>
+            );
+        }
+
         return (
             <div className="exam-onboarding-content">
                 <p className="exam-onboarding-prompt">{t('exam.select_deck_prompt')}</p>
@@ -158,7 +181,16 @@ export function ExamOnboardingModal({ isOpen, onClose, onComplete }: ExamOnboard
         </>
     );
 
-    const stepDeckFooter = (
+    const stepDeckFooter = noDecks ? (
+        <>
+            <Button variant="secondary" onClick={handleClose}>
+                {t('common.cancel')}
+            </Button>
+            <Button variant="primary" onClick={handleGoToDecks}>
+                Go to Decks
+            </Button>
+        </>
+    ) : (
         <>
             <Button variant="secondary" onClick={() => setStep('select-exam')}>
                 {t('exam.back')}

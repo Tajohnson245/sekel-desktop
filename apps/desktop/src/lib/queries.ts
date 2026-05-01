@@ -54,6 +54,7 @@ export const fetchNotesByDeck = (deckId: string) => db().fetchNotesByDeck(deckId
 export const createNote = (note: NoteInsert) => db().createNote(note);
 export const updateNote = (id: string, updates: NoteUpdate) => db().updateNote(id, updates);
 export const deleteNote = (id: string) => db().deleteNote(id);
+export const deleteAllCardsInDeck = (deckId: string) => db().deleteAllCardsInDeck(deckId);
 export const createNoteWithCards = (note: NoteInsert, templateCount?: number) => db().createNoteWithCards(note, templateCount);
 
 // ── Note Types ───────────────────────────────────────────────────────────────

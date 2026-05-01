@@ -62,6 +62,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         createNote:            (note: unknown) => ipcRenderer.invoke('db:createNote', note),
         updateNote:            (id: string, updates: unknown) => ipcRenderer.invoke('db:updateNote', id, updates),
         deleteNote:            (id: string) => ipcRenderer.invoke('db:deleteNote', id),
+        deleteAllCardsInDeck:  (deckId: string) => ipcRenderer.invoke('db:deleteAllCardsInDeck', deckId),
         createNoteWithCards:   (note: unknown, templateCount?: number) => ipcRenderer.invoke('db:createNoteWithCards', note, templateCount),
         // Note Types
         fetchNoteTypes:        (userId: string) => ipcRenderer.invoke('db:fetchNoteTypes', userId),
