@@ -56,3 +56,29 @@
     font-size: 0.8rem;
     margin: 0;
 }
+
+.exam-onboarding-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 1.5rem 1rem;
+    gap: 0.5rem;
+}
+
+.exam-onboarding-empty-icon {
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+}
+
+.exam-onboarding-empty-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.exam-onboarding-empty .exam-onboarding-prompt {
+    margin: 0;
+    max-width: 36ch;
+}

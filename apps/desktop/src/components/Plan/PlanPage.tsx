@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CalendarDays, Plus, ChevronDown, ChevronUp, RotateCcw, Archive, Trash2, BookOpen, LayoutList, AlertTriangle } from 'lucide-react';
+import { CalendarDays, Plus, ChevronDown, ChevronUp, RotateCcw, Archive, Trash2, BookOpen, LayoutList, AlertTriangle, GraduationCap } from 'lucide-react';
 import { useToast } from '../UI';
+import { useAppNavigation } from '../../hooks/useAppNavigation';
 import { useExamProfile } from '../../hooks/useExamProfile';
 import {
     useComputedSuggestion,
@@ -384,10 +385,12 @@ function ActivePlanDetail({ plan, examLabel }: { plan: Plan; examLabel: string }
 function HistoryRow({ plan }: { plan: Plan }) {
     const { t }          = useTranslation();
     const [expanded, setExpanded] = useState(false);
+    const [confirmingDelete, setConfirmingDelete] = useState(false);
     const reactivate     = useReactivatePlan();
     const remove         = useDeletePlan();
     const snapshot       = plan.snapshot;
     const coveragePct    = Math.round(snapshot.projectedCoverage * 100);
+    const archivedOnSameDay = plan.updatedAt.slice(0, 10) === plan.createdAt.slice(0, 10);
 
     return (
         <div className="plan-history-row">
@@ -395,34 +398,63 @@ function HistoryRow({ plan }: { plan: Plan }) {
                 <div className="plan-history-left">
                     <span className="plan-history-name">{plan.name}</span>
                     <span className="plan-history-meta">
-                        {fmtDate(plan.createdAt)} · {plan.cardsPerDay} {t('plan.cards_day_short')} · {coveragePct}%
+                        {archivedOnSameDay
+                            ? fmtDate(plan.createdAt)
+                            : `${fmtDate(plan.createdAt)} – ${fmtDate(plan.updatedAt)}`}
+                        {' · '}{plan.cardsPerDay} {t('plan.cards_day_short')} · {coveragePct}%
                     </span>
                 </div>
                 <div className="plan-history-actions">
-                    <button
-                        className="btn btn-ghost btn-sm"
-                        title={t('plan.reactivate')}
-                        onClick={() => reactivate.mutate(plan.id)}
-                        disabled={reactivate.isPending}
-                    >
-                        <RotateCcw size={14} />
-                        {t('plan.reactivate')}
-                    </button>
-                    <button
-                        className="btn btn-ghost btn-sm plan-history-delete"
-                        title={t('plan.delete_plan')}
-                        onClick={() => remove.mutate(plan.id)}
-                        disabled={remove.isPending}
-                    >
-                        <Trash2 size={14} />
-                    </button>
-                    <button
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => setExpanded(v => !v)}
-                        aria-label={expanded ? t('plan.collapse') : t('plan.expand')}
-                    >
-                        {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                    </button>
+                    {confirmingDelete ? (
+                        <>
+                            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                Delete this plan?
+                            </span>
+                            <button
+                                className="btn btn-danger btn-sm"
+                                onClick={() => remove.mutate(plan.id, {
+                                    onSuccess: () => setConfirmingDelete(false),
+                                })}
+                                disabled={remove.isPending}
+                            >
+                                Confirm
+                            </button>
+                            <button
+                                className="btn btn-ghost btn-sm"
+                                onClick={() => setConfirmingDelete(false)}
+                                disabled={remove.isPending}
+                            >
+                                Cancel
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <button
+                                className="btn btn-ghost btn-sm"
+                                title={t('plan.reactivate')}
+                                onClick={() => reactivate.mutate(plan.id)}
+                                disabled={reactivate.isPending}
+                            >
+                                <RotateCcw size={14} />
+                                {t('plan.reactivate')}
+                            </button>
+                            <button
+                                className="btn btn-ghost btn-sm plan-history-delete"
+                                title={t('plan.delete_plan')}
+                                onClick={() => setConfirmingDelete(true)}
+                                disabled={remove.isPending}
+                            >
+                                <Trash2 size={14} />
+                            </button>
+                            <button
+                                className="btn btn-ghost btn-sm"
+                                onClick={() => setExpanded(v => !v)}
+                                aria-label={expanded ? t('plan.collapse') : t('plan.expand')}
+                            >
+                                {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -811,27 +843,9 @@ function AllPlansPanel({
     );
 }
 
-// ── No exam state ─────────────────────────────────────────────────────────────
-
-function NoExamState() {
-    const { t } = useTranslation();
-    return (
-        <div className="plan-page">
-            <div className="page-header">
-                <h2>{t('plan.title')}</h2>
-            </div>
-            <div className="plan-empty-state plan-empty-no-exam">
-                <CalendarDays size={48} className="plan-empty-icon" />
-                <h3>{t('plan.no_exam_title')}</h3>
-                <p>{t('plan.no_exam_profile')}</p>
-            </div>
-        </div>
-    );
-}
-
 // ── No plans state ────────────────────────────────────────────────────────────
 
-function NoPlansState({ onCreatePlan }: { onCreatePlan: () => void }) {
+function NoPlansState({ onStart, hasExam }: { onStart: () => void; hasExam: boolean }) {
     const { t } = useTranslation();
     return (
         <div className="plan-page">
@@ -840,11 +854,11 @@ function NoPlansState({ onCreatePlan }: { onCreatePlan: () => void }) {
             </div>
             <div className="plan-empty-state plan-empty-no-plans">
                 <CalendarDays size={48} className="plan-empty-icon" />
-                <h3>{t('plan.no_plans_title')}</h3>
-                <p>{t('plan.no_plans_desc')}</p>
-                <button className="btn btn-primary plan-empty-cta" onClick={onCreatePlan}>
-                    <Plus size={16} />
-                    {t('plan.create_first_plan')}
+                <h3>{hasExam ? t('plan.no_plans_title') : 'No plans yet'}</h3>
+                <p>{hasExam ? t('plan.no_plans_desc') : 'Set your exam date in your profile to start a plan.'}</p>
+                <button className="btn btn-primary plan-empty-cta" onClick={onStart}>
+                    {hasExam ? <Plus size={16} /> : <GraduationCap size={16} />}
+                    {hasExam ? t('plan.create_first_plan') : 'Set up exam'}
                 </button>
             </div>
         </div>
@@ -856,8 +870,9 @@ function NoPlansState({ onCreatePlan }: { onCreatePlan: () => void }) {
 export default function PlanPage() {
     const { t } = useTranslation();
     const { showToast } = useToast();
+    const { goToProfile } = useAppNavigation();
     const [isCreating, setIsCreating] = useState(false);
-    const [historyOpen, setHistoryOpen] = useState(false);
+    const [historyOpen, setHistoryOpen] = useState(true);
     const [allPlansOpen, setAllPlansOpen] = useState(false);
 
     const { data: examProfile, isLoading: examLoading } = useExamProfile();
@@ -869,9 +884,18 @@ export default function PlanPage() {
 
     const archivePlanMutation = useArchivePlan();
 
-    const activePlan  = activePlanResult?.plan ?? null;
+    // Treat "no exam profile" as "no active plan" so an orphan plan in the DB
+    // doesn't surface here.
+    const activePlan  = examProfile ? (activePlanResult?.plan ?? null) : null;
     const archivedPlans = allPlans.filter(p => p.status === 'archived');
     const isLoading   = examLoading || activePlanLoading || plansLoading;
+
+    // Start-plan affordance: if no exam is set, send the user to the Study tab
+    // to set one up; otherwise open the creation panel inline.
+    const handleStartPlan = () => {
+        if (examKey) setIsCreating(true);
+        else goToProfile('study');
+    };
 
     // All plans panel
     if (allPlansOpen) {
@@ -889,9 +913,6 @@ export default function PlanPage() {
             />
         );
     }
-
-    // No exam profile
-    if (!isLoading && !examProfile) return <NoExamState />;
 
     // Loading
     if (isLoading) {
@@ -918,16 +939,20 @@ export default function PlanPage() {
                                 <LayoutList size={15} />
                                 {t('plan.all_plans')}
                             </button>
-                            <button className="btn btn-primary" onClick={() => setIsCreating(true)}>
-                                <Plus size={15} />
-                                {t('plan.new_plan')}
+                            <button className="btn btn-primary" onClick={handleStartPlan}>
+                                {examKey ? <Plus size={15} /> : <GraduationCap size={15} />}
+                                {examKey ? t('plan.new_plan') : 'Set up exam'}
                             </button>
                         </div>
                     </div>
                     <div className="plan-empty-state plan-empty-no-plans">
                         <Archive size={48} className="plan-empty-icon" />
-                        <h3>{t('plan.no_active_plan_title')}</h3>
-                        <p>{t('plan.no_active_plan_desc')}</p>
+                        <h3>{examKey ? t('plan.no_active_plan_title') : 'No active plan'}</h3>
+                        <p>
+                            {examKey
+                                ? t('plan.no_active_plan_desc')
+                                : 'Set your exam date in your profile to start a new plan. Your archived plans are below.'}
+                        </p>
                     </div>
                     <section className="plan-card plan-history-section">
                         <button
@@ -946,7 +971,7 @@ export default function PlanPage() {
                 </div>
             );
         }
-        return <NoPlansState onCreatePlan={() => setIsCreating(true)} />;
+        return <NoPlansState onStart={handleStartPlan} hasExam={!!examKey} />;
     }
 
     return (
