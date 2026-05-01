@@ -52,3 +52,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 | 2026-05-01 | Sekel-1.8.1.Setup.exe |
 | 2026-05-01 | Sekel-1.8.1.Setup.exe |
 | 2026-05-01 | apps/desktop/src/components/Deck/DeckDetail.tsx,apps/desktop/src/hooks/useNotes.ts,apps/desktop/src/ipc/database.ts,apps/desktop/src/lib/queries.ts,apps/desktop/src/main/backup/deletionLog.ts,apps/desktop/src/main/db/service.ts,apps/desktop/src/preload.ts,apps/desktop/src/types/electron.d.ts |
+| 2026-05-01 | Sekel-1.8.1.Setup.exe |
