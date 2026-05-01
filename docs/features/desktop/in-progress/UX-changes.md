@@ -48,3 +48,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 | 2026-05-01 | apps/desktop/src/components/Dashboard/Dashboard.tsx,apps/desktop/src/components/Plan/PlanPage.tsx,Sekel-1.8.1.Setup.exe |
 | 2026-05-01 | apps/desktop/src/components/Dashboard/Dashboard.css,apps/desktop/src/components/Dashboard/Dashboard.tsx,apps/desktop/src/components/Plan/PlanPage.tsx,Sekel-1.8.1.Setup.exe |
 | 2026-05-01 | apps/desktop/src/components/Dashboard/Dashboard.css,apps/desktop/src/components/Dashboard/Dashboard.tsx,apps/desktop/src/components/ExamOnboarding/ExamOnboardingModal.css,apps/desktop/src/components/ExamOnboarding/ExamOnboardingModal.tsx,apps/desktop/src/components/Plan/PlanPage.tsx,Sekel-1.8.1.Setup.exe |
+| 2026-05-01 | Sekel-1.8.1.Setup.exe |
