@@ -41,3 +41,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 | 2026-05-01 | apps/desktop/src/components/Dashboard/Dashboard.tsx,apps/desktop/src/components/Profile/UserProfilePage.tsx,apps/desktop/src/hooks/useAppNavigation.ts,apps/desktop/src/router/AppLayout.tsx,Sekel-1.8.1.Setup.exe |
 | 2026-05-01 | apps/desktop/src/components/Dashboard/Dashboard.tsx,apps/desktop/src/components/Profile/UserProfilePage.tsx,apps/desktop/src/hooks/useAppNavigation.ts,apps/desktop/src/router/AppLayout.tsx,Sekel-1.8.1.Setup.exe |
 | 2026-05-01 | apps/desktop/src/components/Dashboard/Dashboard.tsx,apps/desktop/src/components/Profile/UserProfilePage.tsx,apps/desktop/src/components/Profile/sections/StudyTab.tsx,apps/desktop/src/hooks/useAppNavigation.ts,apps/desktop/src/router/AppLayout.tsx,Sekel-1.8.1.Setup.exe |
+| 2026-05-01 | Sekel-1.8.1.Setup.exe |
