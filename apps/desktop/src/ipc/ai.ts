@@ -111,10 +111,10 @@ interface SessionStats {
 
 function buildFormatRules(options: GenerationOptions): string {
     // Legacy single-format path: just use the first selected format.
-    const format = options.cardFormats?.[0] ?? 'basic';
+    const format: CardFormat = options.cardFormats?.[0] ?? 'basic';
     const difficulty = options.difficulty ?? 'detailed';
 
-    const formatBlocks: Record<string, string> = {
+    const formatBlocks: Record<CardFormat, string> = {
         basic: [
             '- "front" should contain ONLY the question.',
             '- "back" should contain ONLY the answer.',
@@ -132,6 +132,23 @@ function buildFormatRules(options: GenerationOptions): string {
             '- Card 1: "front" = question, "back" = answer.',
             '- Card 2: "front" = answer (rephrased as a question), "back" = original question.',
             '- Output JSON format: { "flashcards": [{ "front": "...", "back": "..." }] }',
+        ].join('\n'),
+        'true-false': [
+            '- Generate True/False cards.',
+            '- "front" is a single declarative statement (one sentence, factual, no questions).',
+            '- The statement must be unambiguously TRUE or FALSE based on the source content.',
+            '- Mix true and false statements roughly 50/50.',
+            '- "back" begins with "True." or "False." followed by one short sentence explaining why.',
+            '- Output JSON format: { "flashcards": [{ "front": "...", "back": "True. ..." }] }',
+        ].join('\n'),
+        'compare-contrast': [
+            '- Generate Compare/Contrast cards.',
+            '- "front" asks the student to compare two SPECIFIC related concepts from the content (e.g. "Compare and contrast X vs Y").',
+            '- The two concepts must be genuinely comparable — same domain, different mechanisms or outcomes.',
+            '- "back" is HTML-formatted using ONLY <p>, <strong>, <ul>, <li> tags. No attributes, no other tags.',
+            '- Structure: <p>One-line summary.</p><p><strong>Similarities:</strong></p><ul><li>...</li></ul><p><strong>Differences:</strong></p><ul><li>...</li></ul>',
+            '- 2-4 bullets per list. Each bullet short and concrete.',
+            '- Output JSON format: { "flashcards": [{ "front": "...", "back": "<p>...</p>..." }] }',
         ].join('\n'),
     };
 
@@ -337,11 +354,14 @@ Rules:
   - Example: "Compare and contrast Type I vs Type II hypersensitivity reactions"
 - The two concepts must be genuinely comparable — same domain, different mechanisms or outcomes
 - Skip pairs where one side isn't directly addressed in the content
-- "back" gives a structured answer with three sections, separated by line breaks:
-  - One-line summary distinguishing the two
-  - "Similarities:" followed by 2-4 bullet points (use "- " for each)
-  - "Differences:" followed by 2-4 bullet points (use "- " for each)
-- Keep each bullet point short and concrete
+- "back" is HTML-formatted (rendered with sanitize + dangerouslySetInnerHTML) so newlines won't render. Use this exact structure:
+  <p>One-line summary distinguishing the two.</p>
+  <p><strong>Similarities:</strong></p>
+  <ul><li>...</li><li>...</li></ul>
+  <p><strong>Differences:</strong></p>
+  <ul><li>...</li><li>...</li></ul>
+- 2-4 bullet points in each list. Each bullet short and concrete.
+- Use ONLY these tags: <p>, <strong>, <ul>, <li>. No attributes, no other tags.
 - ${difficultyNote}
 
 User instruction: ${userInstruction}
@@ -350,7 +370,7 @@ Generate exactly ${n} compare/contrast flashcards from the content below.
 
 Return JSON only. No preamble, no explanation.
 
-{ "flashcards": [{ "type": "compare-contrast", "front": "Compare and contrast X vs Y", "back": "..." }] }
+{ "flashcards": [{ "type": "compare-contrast", "front": "Compare and contrast X vs Y", "back": "<p>...</p><p><strong>Similarities:</strong></p><ul><li>...</li></ul>..." }] }
 
 Content:
 ${chunkText}`,
