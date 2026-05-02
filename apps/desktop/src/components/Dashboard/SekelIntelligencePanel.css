@@ -112,6 +112,13 @@
     border-top: 1px dashed var(--border, rgba(255, 255, 255, 0.08));
 }
 
+.intel-untested-hint {
+    font-size: 0.7rem;
+    color: var(--text-muted, #8892a4);
+    font-style: italic;
+    margin-bottom: 0.15rem;
+}
+
 /* On Track compact row */
 .intel-on-track-row {
     display: flex;

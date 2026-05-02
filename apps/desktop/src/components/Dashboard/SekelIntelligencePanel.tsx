@@ -110,17 +110,15 @@ export default function SekelIntelligencePanel({ intelligence, onStartFocused, o
             {/* Section label */}
             {allUntested ? (
                 <div className="intel-section-label intel-section-label--neutral">
-                    Awaiting review data — review at least {untestedSystems[0]?.minReviewsForSignal ?? 10} cards per system to assess accuracy
+                    Awaiting review data
                 </div>
             ) : allOnTrack ? (
                 <div className="intel-section-label intel-section-label--success">
                     ✓ All tested systems on track
-                    {untestedSystems.length > 0 && ` · ${untestedSystems.length} awaiting data`}
                 </div>
             ) : (
                 <div className="intel-section-label intel-section-label--warn">
                     {weakSystems.length} {weakSystems.length === 1 ? 'system' : 'systems'} need attention
-                    {untestedSystems.length > 0 && ` · ${untestedSystems.length} awaiting data`}
                 </div>
             )}
 
@@ -158,6 +156,9 @@ export default function SekelIntelligencePanel({ intelligence, onStartFocused, o
                 reviews accumulate toward the minimum signal threshold */}
             {untestedSystems.length > 0 && (
                 <div className="intel-systems intel-systems--untested">
+                    <div className="intel-untested-hint">
+                        Accuracy unlocks after {untestedSystems[0].minReviewsForSignal} reviews per system
+                    </div>
                     {untestedSystems.map(s => {
                         const progress = Math.min(1, s.totalReviewsInWindow / s.minReviewsForSignal);
                         return (
