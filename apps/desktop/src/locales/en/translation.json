@@ -386,7 +386,7 @@
     },
     "ai": {
         "title": "AI Study Assistant",
-        "subtitle": "Upload documents (PDF, DOCX, PPTX, Images) or YouTube videos to generate a study plan and flashcards.",
+        "subtitle": "Upload documents (PDF, DOCX, PPTX, XLSX, CSV, TXT, MD) or YouTube videos to generate a study plan and flashcards.",
         "upload_header": "Upload Documents",
         "drag_drop": "Drag & Drop or <0>Choose file</0> to upload",
         "formats": "PDF, DOCX, PPTX, XLSX, CSV, TXT, MD",
