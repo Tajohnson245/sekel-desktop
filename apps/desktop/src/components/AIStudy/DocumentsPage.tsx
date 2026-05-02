@@ -55,6 +55,7 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
     const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
     const [step, setStep] = useState<'upload' | 'review' | 'generate'>('upload');
     const [fullContextContent, setFullContextContent] = useState<string>('');
+    const [contextChunks, setContextChunks] = useState<Array<{ id: number; text: string }>>([]);
     const [generatedCardCount, setGeneratedCardCount] = useState(0);
 
     // Notify parent about unfinished work status
@@ -175,6 +176,7 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
             setSummaryText(overview.summary);
             setSummaryTopics(overview.topics);
             setEstimatedCardCount(overview.estimatedCardCount);
+            setContextChunks(overview.chunks ?? []);
             setStep('review');
         } catch (_error) {
             showToast(t('ai.error_summary'), 'error');
@@ -194,6 +196,7 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
         setEstimatedCardCount(5);
         setStep('upload');
         setFullContextContent('');
+        setContextChunks([]);
     };
 
     if (step === 'generate') {
@@ -202,6 +205,7 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
                 <AICardGenerator
                     extractedText={fullContextContent}
                     contextSummary={summaryText}
+                    contextChunks={contextChunks}
                     estimatedCardCount={estimatedCardCount}
                     userId={userId}
                     onComplete={handleRestart}

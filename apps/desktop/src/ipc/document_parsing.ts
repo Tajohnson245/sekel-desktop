@@ -389,8 +389,19 @@ async function parseYoutubeVideo(rawUrl: string): Promise<{ title: string, text:
     return { title, text };
 }
 
-// Generate a structured overview across all parsed documents (Stage 1)
-export async function generateGlobalSummary(documents: Record<string, string>, language: string = 'English'): Promise<{ summary: string; topics: string[]; estimatedCardCount: number }> {
+// Generate a structured overview across all parsed documents (Stage 1).
+// Also produces concept chunks in the same call so the card-generation pipeline
+// can skip its own chunking step. One LLM call instead of two; the user no
+// longer waits for "Analyzing your document…" after clicking Generate.
+export async function generateGlobalSummary(
+    documents: Record<string, string>,
+    language: string = 'English',
+): Promise<{
+    summary: string;
+    topics: string[];
+    estimatedCardCount: number;
+    chunks: Array<{ id: number; text: string }>;
+}> {
     const combinedContent = Object.entries(documents).map(([name, content]) => {
         return `--- File: ${name} ---\n\n${content}\n\n`;
     }).join("\n\n");
@@ -405,16 +416,26 @@ export async function generateGlobalSummary(documents: Record<string, string>, l
                     role: "system",
                     content: `You are a study assistant analyzing documents for flashcard generation.
 
-Given the documents below, produce a brief overview with:
-1. A 2-3 sentence summary of what the documents cover
+Given the documents below, produce ALL of the following in a single JSON response:
+1. A 2-3 sentence summary of what the documents cover (in ${language})
 2. A list of the main topics found (max 8 items)
 3. An estimated number of high-quality flashcards these documents can support
+4. The full content split into discrete concept chunks. Each chunk should:
+   - Represent one coherent topic or concept
+   - Be between 100-400 words
+   - Preserve enough context to generate cards without referencing other chunks
+   - Cover the source material end-to-end (no gaps)
 
-Be concise. Do not add commentary or suggestions. Output summary in ${language}.
+Be concise on the summary. Do not add commentary or suggestions.
 
 Return JSON only. No preamble, no explanation.
 
-{ "summary": "...", "topics": ["...", "..."], "estimatedCardCount": 42 }`
+{
+  "summary": "...",
+  "topics": ["...", "..."],
+  "estimatedCardCount": 42,
+  "chunks": [{ "id": 1, "text": "..." }, { "id": 2, "text": "..." }]
+}`
                 },
                 {
                     role: "user",
@@ -428,12 +449,23 @@ Return JSON only. No preamble, no explanation.
     const rawContent = response.choices[0].message.content || "{}";
     try {
         const parsed = JSON.parse(rawContent);
+        const rawChunks: unknown = parsed.chunks;
+        const chunks: Array<{ id: number; text: string }> = Array.isArray(rawChunks)
+            ? rawChunks
+                .map((c, i) => {
+                    const obj = c as { id?: unknown; text?: unknown };
+                    if (typeof obj?.text !== 'string' || !obj.text.trim()) return null;
+                    return { id: typeof obj.id === 'number' ? obj.id : i + 1, text: obj.text };
+                })
+                .filter((c): c is { id: number; text: string } => c !== null)
+            : [];
         return {
             summary: parsed.summary || rawContent,
             topics: Array.isArray(parsed.topics) ? parsed.topics : [],
             estimatedCardCount: typeof parsed.estimatedCardCount === 'number' ? parsed.estimatedCardCount : 5,
+            chunks,
         };
     } catch {
-        return { summary: rawContent, topics: [], estimatedCardCount: 5 };
+        return { summary: rawContent, topics: [], estimatedCardCount: 5, chunks: [] };
     }
 }

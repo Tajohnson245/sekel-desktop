@@ -6,6 +6,49 @@
     gap: 1.5rem;
 }
 
+/* ── Generation progress bar ───────────────────────────────────────────────
+   Sits beneath the Generate button while a session is in flight.
+   ──────────────────────────────────────────────────────────────────────── */
+
+.ai-progress {
+    margin-top: 0.625rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.ai-progress__label {
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    font-size: 0.78rem;
+    color: var(--mist, #9ba0a8);
+    letter-spacing: 0.01em;
+}
+
+.ai-progress__track {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border, rgba(255, 255, 255, 0.08));
+    overflow: hidden;
+}
+
+.ai-progress__fill {
+    height: 100%;
+    background: var(--teal, var(--primary));
+    border-radius: 2px;
+    transition: width 0.3s ease;
+    min-width: 4px;
+}
+
+.ai-progress__fill--indeterminate {
+    width: 30%;
+    animation: ai-progress-slide 1.4s ease-in-out infinite;
+}
+
+@keyframes ai-progress-slide {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(400%); }
+}
+
 .success-banner {
     display: flex;
     align-items: center;
