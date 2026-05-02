@@ -80,8 +80,8 @@ function StatCard({ label, value, unit, sub, emptyPrompt, onEmptyClick, highligh
 
 type ReadinessLevel = 'strong' | 'ok' | 'needs-work' | 'no-data';
 
-function readinessLevel(accuracy: number, hasData: boolean): ReadinessLevel {
-    if (!hasData) return 'no-data';
+function readinessLevel(accuracy: number | null, hasData: boolean): ReadinessLevel {
+    if (!hasData || accuracy === null) return 'no-data';
     if (accuracy >= 0.85) return 'strong';
     if (accuracy >= 0.70) return 'ok';
     return 'needs-work';
@@ -426,7 +426,7 @@ export default function Dashboard() {
                                             {Math.round(system.blueprintWeightMin)}–{Math.round(system.blueprintWeightMax)}%
                                         </span>
                                         <span className="db-readiness-row__pct">
-                                            {hasData ? `${Math.round(system.accuracy * 100)}%` : '—'}
+                                            {hasData && system.accuracy !== null ? `${Math.round(system.accuracy * 100)}%` : '—'}
                                         </span>
                                         <span className={`db-readiness-row__indicator db-readiness-row__indicator--${level}`}>
                                             {READINESS_LABELS[level]}
@@ -494,7 +494,7 @@ export default function Dashboard() {
                     onBegin={(deckId) => {
                         setShowBriefing(false);
                         const weakKeys = intelligence.systemBreakdown
-                            .filter(s => s.accuracy < 0.80)
+                            .filter(s => s.accuracy !== null && s.accuracy < 0.80)
                             .map(s => s.systemKey);
                         const systemsParam = weakKeys.length > 0 ? `&systems=${weakKeys.join(',')}` : '';
                         navigate(`/decks/${deckId}/study?mode=due&focus=intelligence${systemsParam}`);

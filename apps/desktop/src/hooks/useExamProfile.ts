@@ -60,6 +60,9 @@ export function useDeleteExamProfile() {
             if (userId) {
                 qc.setQueryData(examKeys.profile(userId), null);
                 qc.invalidateQueries({ queryKey: examKeys.all });
+                // Server-side archives any active plan in the same transaction;
+                // invalidate plan caches so the dashboard reflects it immediately.
+                qc.invalidateQueries({ queryKey: ['plan'] });
             }
         },
     });

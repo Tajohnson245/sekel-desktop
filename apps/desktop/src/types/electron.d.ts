@@ -157,11 +157,17 @@ export interface AIProgress {
 export interface SystemAccuracyRow {
     systemKey: string;
     label: string;
-    accuracy: number;
+    /**
+     * Null when the system doesn't yet have enough reviews to assess accuracy.
+     * Treat as "awaiting data", not as 100%.
+     */
+    accuracy: number | null;
     blueprintWeightMin: number;
     blueprintWeightMax: number;
     dueCardsCount: number;
     totalReviewsInWindow: number;
+    /** Minimum reviews needed before accuracy is reported. UI shows progress toward this. */
+    minReviewsForSignal: number;
 }
 
 export interface IntelligenceSummary {

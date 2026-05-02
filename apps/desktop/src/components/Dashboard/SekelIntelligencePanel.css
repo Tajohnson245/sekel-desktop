@@ -83,6 +83,35 @@
     color: var(--success, #22c55e);
 }
 
+.intel-section-label--neutral {
+    color: var(--text-muted, #8892a4);
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 500;
+}
+
+.intel-system-row--untested {
+    opacity: 0.7;
+}
+
+.intel-system-row__bar--untested {
+    background: var(--text-muted, #8892a4);
+    opacity: 0.5;
+}
+
+.intel-system-row__pct--untested {
+    color: var(--text-muted, #8892a4);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Untested group sits below tested rows with a separator */
+.intel-systems--untested {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--border, rgba(255, 255, 255, 0.08));
+}
+
 /* On Track compact row */
 .intel-on-track-row {
     display: flex;
