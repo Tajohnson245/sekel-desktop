@@ -112,10 +112,17 @@ export interface ElectronImport {
     onImportProgress: (cb: (progress: ImportProgress) => void) => () => void;
 }
 
+export interface DocumentChunk {
+    id: number;
+    text: string;
+}
+
 export interface DocumentOverview {
     summary: string;
     topics: string[];
     estimatedCardCount: number;
+    /** Pre-computed concept chunks. Used by the card generator to skip its own chunking step. */
+    chunks: DocumentChunk[];
 }
 
 export interface GeneratedCard {
@@ -132,10 +139,19 @@ export interface GenerationResult {
     };
 }
 
+export type CardFormat = 'basic' | 'cloze' | 'reversed' | 'true-false' | 'compare-contrast';
+
 export interface AIGenerationOptions {
-    cardFormat: 'basic' | 'cloze' | 'reversed';
+    /** One or more card formats to generate. Total card count is split evenly across them. */
+    cardFormats: CardFormat[];
     difficulty: 'essential' | 'detailed';
     customInstructions?: string;
+}
+
+export interface AIProgress {
+    phase: 'chunking' | 'generating' | 'refining' | 'done';
+    current: number;
+    total: number;
 }
 
 export interface SystemAccuracyRow {
@@ -502,7 +518,8 @@ interface ElectronPlan {
 
 interface ElectronAPI {
     generateCards: (text: string, count?: number, language?: string, options?: AIGenerationOptions) => Promise<GeneratedCard[]>;
-    generateCardsFromContext: (summary: string, content: string, count: number, language?: string, options?: AIGenerationOptions) => Promise<GenerationResult>;
+    generateCardsFromContext: (summary: string, content: string, count: number, language?: string, options?: AIGenerationOptions, chunks?: DocumentChunk[]) => Promise<GenerationResult>;
+    onAIProgress: (cb: (progress: AIProgress) => void) => () => void;
     parseDocument: (file: { name: string, buffer?: ArrayBuffer, url?: string, type: string, language?: string }) => Promise<{ filename: string, content: string }>;
     generateSummary: (documents: Record<string, string>, language?: string) => Promise<DocumentOverview>;
     getSupabaseConfig: () => Promise<{ url: string; anonKey: string }>;

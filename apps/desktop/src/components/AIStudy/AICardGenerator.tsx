@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Sparkles, X, Plus, CheckCircle, Inbox } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useGenerateCards, type GeneratedCard, type AIGenerationOptions } from '../../hooks/useAI';
+import type { AIProgress } from '../../types/electron';
 import { useSaveDraft, useDrafts, DRAFT_LIMIT } from '../../hooks/useDrafts';
 import { useCreateNote, useNoteTypes, useCreateNoteType } from '../../hooks/useNotes';
 import { useDecks } from '../../hooks/useDecks';
@@ -16,11 +17,13 @@ interface AICardGeneratorProps {
     onComplete: () => void;
     initialDeckId?: string;
     contextSummary?: string;
+    /** Pre-computed chunks from the upload page so we don't re-chunk on Generate. */
+    contextChunks?: Array<{ id: number; text: string }>;
     estimatedCardCount?: number;
     onCardCountChange?: (count: number) => void;
 }
 
-export default function AICardGenerator({ extractedText, contextSummary, estimatedCardCount, userId, onComplete, initialDeckId, onCardCountChange }: AICardGeneratorProps) {
+export default function AICardGenerator({ extractedText, contextSummary, contextChunks, estimatedCardCount, userId, onComplete, initialDeckId, onCardCountChange }: AICardGeneratorProps) {
     const { t, i18n } = useTranslation();
     const { showToast } = useToast();
     // Data hooks
@@ -41,16 +44,38 @@ export default function AICardGenerator({ extractedText, contextSummary, estimat
     const [isGen, setIsGen] = useState(false);
     const [hasGenerated, setHasGenerated] = useState(false);
     const [generationStats, setGenerationStats] = useState<{ generated: number; kept: number; filtered: number } | null>(null);
+    const [progress, setProgress] = useState<AIProgress | null>(null);
 
     // Generation options
-    const [cardFormat, setCardFormat] = useState<AIGenerationOptions['cardFormat']>('basic');
+    const [selectedFormats, setSelectedFormats] = useState<Set<AIGenerationOptions['cardFormats'][number]>>(new Set());
     const [difficulty, setDifficulty] = useState<AIGenerationOptions['difficulty']>('detailed');
     const [customInstructions, setCustomInstructions] = useState('');
+
+    const toggleFormat = (fmt: AIGenerationOptions['cardFormats'][number]) => {
+        setSelectedFormats((prev) => {
+            const next = new Set(prev);
+            if (next.has(fmt)) next.delete(fmt);
+            else next.add(fmt);
+            return next;
+        });
+    };
 
     // Initial card count update
     useEffect(() => {
         onCardCountChange?.(cards.length);
     }, [cards.length, onCardCountChange]);
+
+    // Subscribe to progress events from the main process for the lifetime of
+    // this component. Stays mounted across the whole generation flow, so we
+    // never miss an early "chunking" event due to a late subscribe.
+    // Guarded so a stale preload bundle (e.g. during dev hot-reload) doesn't
+    // crash the section into the error boundary — we just fall back to the
+    // indeterminate bar.
+    useEffect(() => {
+        if (typeof window.electronAPI?.onAIProgress !== 'function') return;
+        const off = window.electronAPI.onAIProgress((p) => setProgress(p));
+        return off;
+    }, []);
 
     const isGenerating = generateCards.isPending || isGen;
     const isAdding = createNote.isPending;
@@ -63,22 +88,33 @@ export default function AICardGenerator({ extractedText, contextSummary, estimat
 
     // Build options object from current state
     const generationOptions: AIGenerationOptions = {
-        cardFormat,
+        cardFormats: Array.from(selectedFormats),
         difficulty,
         customInstructions: customInstructions.trim() || undefined,
     };
+
+    // Generation requires at least one format selected.
+    const canGenerate = !isGenerating && !!extractedText && selectedFormats.size > 0;
 
     // Trigger AI generation
     const handleGenerate = async () => {
         try {
             setSuccessMessage('');
+            setProgress(null);
             setIsGen(true);
 
             let result: GeneratedCard[] = [];
             let statsResult: { generated: number; kept: number; filtered: number } | null = null;
 
             if (contextSummary) {
-                const response = await window.electronAPI.generateCardsFromContext(contextSummary, extractedText, cardCount, i18n.language, generationOptions);
+                const response = await window.electronAPI.generateCardsFromContext(
+                    contextSummary,
+                    extractedText,
+                    cardCount,
+                    i18n.language,
+                    generationOptions,
+                    contextChunks,
+                );
                 result = response.cards;
                 statsResult = response.stats;
             } else {
@@ -97,6 +133,7 @@ export default function AICardGenerator({ extractedText, contextSummary, estimat
             showToast(t('errors.generate_cards'), 'error');
         } finally {
             setIsGen(false);
+            setProgress(null);
         }
     };
 
@@ -233,27 +270,46 @@ export default function AICardGenerator({ extractedText, contextSummary, estimat
                 <Button
                     variant="primary"
                     onClick={handleGenerate}
-                    disabled={isGenerating || !extractedText}
+                    disabled={!canGenerate}
                     isLoading={isGenerating}
                     icon={!isGenerating && <Sparkles size={16} />}
                     style={{ marginTop: 'auto' }}
                 >
                     {t('ai.generate_button')}
                 </Button>
+
+                {isGenerating && (
+                    <GenerationProgressBar progress={progress} />
+                )}
             </div>
 
             {/* Generation Options */}
             <div className="ai-generation-options">
-                <Select
-                    label={t('ai.card_format')}
-                    value={cardFormat}
-                    onChange={(e) => setCardFormat(e.target.value as AIGenerationOptions['cardFormat'])}
-                    options={[
-                        { label: t('ai.format_basic'), value: 'basic' },
-                        { label: t('ai.format_cloze'), value: 'cloze' },
-                        { label: t('ai.format_reversed'), value: 'reversed' },
-                    ]}
-                />
+                <div className="ai-format-picker">
+                    <label className="ai-format-picker__label">{t('ai.card_format')}</label>
+                    <div className="ai-format-picker__pills" role="group" aria-label={t('ai.card_format')}>
+                        {([
+                            { value: 'basic',            label: t('ai.format_basic') },
+                            { value: 'cloze',            label: t('ai.format_cloze') },
+                            { value: 'reversed',         label: t('ai.format_reversed') },
+                            { value: 'true-false',       label: t('ai.format_true_false') },
+                            { value: 'compare-contrast', label: t('ai.format_compare_contrast') },
+                        ] as const).map((opt) => {
+                            const active = selectedFormats.has(opt.value);
+                            return (
+                                <button
+                                    key={opt.value}
+                                    type="button"
+                                    className={`ai-format-pill${active ? ' ai-format-pill--active' : ''}`}
+                                    onClick={() => toggleFormat(opt.value)}
+                                    aria-pressed={active}
+                                >
+                                    {opt.label}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
 
                 <Select
                     label={t('ai.difficulty')}
@@ -407,5 +463,45 @@ export default function AICardGenerator({ extractedText, contextSummary, estimat
                 )
             }
         </div >
+    );
+}
+
+// ── Progress bar ─────────────────────────────────────────────────────────────
+// Shows a determinate bar driven by `ai-progress` events. When no event has
+// arrived yet (cold start) or when the legacy non-streaming generator is in
+// use, falls back to an indeterminate animated bar with a generic label.
+
+const PHASE_LABELS: Record<AIProgress['phase'], string> = {
+    chunking:   'Analyzing your document…',
+    generating: 'Generating cards',
+    refining:   'Refining cards…',
+    done:       'Finishing up…',
+};
+
+function GenerationProgressBar({ progress }: { progress: AIProgress | null }) {
+    if (!progress) {
+        return (
+            <div className="ai-progress" aria-live="polite">
+                <div className="ai-progress__label">Working on it…</div>
+                <div className="ai-progress__track">
+                    <div className="ai-progress__fill ai-progress__fill--indeterminate" />
+                </div>
+            </div>
+        );
+    }
+
+    const pct = progress.total > 0
+        ? Math.min(100, Math.round((progress.current / progress.total) * 100))
+        : 0;
+
+    return (
+        <div className="ai-progress" aria-live="polite">
+            <div className="ai-progress__label">
+                {PHASE_LABELS[progress.phase]}
+            </div>
+            <div className="ai-progress__track">
+                <div className="ai-progress__fill" style={{ width: `${pct}%` }} />
+            </div>
+        </div>
     );
 }

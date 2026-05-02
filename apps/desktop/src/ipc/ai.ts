@@ -12,7 +12,9 @@ import { OpenAI } from "openai";
 
 const log = createLogger({ module: 'ai', transports: [consoleTransport] });
 
-// Lazy-initialize OpenAI client (avoids crash on startup when key is absent)
+// Lazy-initialize OpenAI client (avoids crash on startup when key is absent).
+// maxRetries=5 covers transient 429s; timeout caps the worst-case stuck request
+// so a single hung call can't block the whole batch.
 let _openai: OpenAI | null = null;
 
 function getOpenAI(): OpenAI {
@@ -21,19 +23,59 @@ function getOpenAI(): OpenAI {
         if (!apiKey) {
             throw new Error('Missing OPENAI_API_KEY. Set it in your .env.local file.');
         }
-        _openai = new OpenAI({ apiKey });
+        _openai = new OpenAI({
+            apiKey,
+            maxRetries: 5,
+            timeout: 60_000,
+        });
     }
     return _openai;
 }
 
+// Generation uses the heavier model; evaluation uses a cheaper/faster one.
+// A 350-card batch fires hundreds of eval calls — splitting models keeps both
+// cost and TPM pressure down without sacrificing generation quality.
 const MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-mini';
+const EVAL_MODEL = process.env.OPENAI_EVAL_MODEL || 'gpt-4o-mini';
+
+// Cap concurrent OpenAI calls so a 350-card batch can't dump 350+ requests on
+// the API in the same second and trip RPM/TPM limits. 8 in flight at any time
+// stays comfortably under Tier 1 quotas with the SDK retry buffer.
+const OPENAI_CONCURRENCY = Math.max(1, Number(process.env.OPENAI_CONCURRENCY ?? 8));
+
+function pLimit(max: number) {
+    let active = 0;
+    const queue: Array<() => void> = [];
+    const tryNext = () => {
+        while (active < max && queue.length > 0) {
+            const fn = queue.shift()!;
+            active++;
+            fn();
+        }
+    };
+    return <T>(fn: () => Promise<T>): Promise<T> =>
+        new Promise<T>((resolve, reject) => {
+            queue.push(() => {
+                fn().then(resolve, reject).finally(() => {
+                    active--;
+                    tryNext();
+                });
+            });
+            tryNext();
+        });
+}
+
+const limit = pLimit(OPENAI_CONCURRENCY);
 
 // ─────────────────────────────────────────────────────────────────
 // Local types
 // ─────────────────────────────────────────────────────────────────
 
+type CardFormat = 'basic' | 'cloze' | 'reversed' | 'true-false' | 'compare-contrast';
+
 interface GenerationOptions {
-    cardFormat?: 'basic' | 'cloze' | 'reversed';
+    /** One or more card formats. Total card count is split evenly across them. */
+    cardFormats?: CardFormat[];
     difficulty?: 'essential' | 'detailed';
     customInstructions?: string;
 }
@@ -68,10 +110,11 @@ interface SessionStats {
 // ─────────────────────────────────────────────────────────────────
 
 function buildFormatRules(options: GenerationOptions): string {
-    const format = options.cardFormat ?? 'basic';
+    // Legacy single-format path: just use the first selected format.
+    const format: CardFormat = options.cardFormats?.[0] ?? 'basic';
     const difficulty = options.difficulty ?? 'detailed';
 
-    const formatBlocks: Record<string, string> = {
+    const formatBlocks: Record<CardFormat, string> = {
         basic: [
             '- "front" should contain ONLY the question.',
             '- "back" should contain ONLY the answer.',
@@ -89,6 +132,23 @@ function buildFormatRules(options: GenerationOptions): string {
             '- Card 1: "front" = question, "back" = answer.',
             '- Card 2: "front" = answer (rephrased as a question), "back" = original question.',
             '- Output JSON format: { "flashcards": [{ "front": "...", "back": "..." }] }',
+        ].join('\n'),
+        'true-false': [
+            '- Generate True/False cards.',
+            '- "front" is a single declarative statement (one sentence, factual, no questions).',
+            '- The statement must be unambiguously TRUE or FALSE based on the source content.',
+            '- Mix true and false statements roughly 50/50.',
+            '- "back" begins with "True." or "False." followed by one short sentence explaining why.',
+            '- Output JSON format: { "flashcards": [{ "front": "...", "back": "True. ..." }] }',
+        ].join('\n'),
+        'compare-contrast': [
+            '- Generate Compare/Contrast cards.',
+            '- "front" asks the student to compare two SPECIFIC related concepts from the content (e.g. "Compare and contrast X vs Y").',
+            '- The two concepts must be genuinely comparable — same domain, different mechanisms or outcomes.',
+            '- "back" is HTML-formatted using ONLY <p>, <strong>, <ul>, <li> tags. No attributes, no other tags.',
+            '- Structure: <p>One-line summary.</p><p><strong>Similarities:</strong></p><ul><li>...</li></ul><p><strong>Differences:</strong></p><ul><li>...</li></ul>',
+            '- 2-4 bullets per list. Each bullet short and concrete.',
+            '- Output JSON format: { "flashcards": [{ "front": "...", "back": "<p>...</p>..." }] }',
         ].join('\n'),
     };
 
@@ -112,7 +172,7 @@ function buildFormatRules(options: GenerationOptions): string {
 
 async function chunkDocument(text: string): Promise<Chunk[]> {
     try {
-        const response = await trackedCompletion({
+        const response = await limit(() => trackedCompletion({
             operation: 'chunk',
             logger: log,
             call: getOpenAI().chat.completions.create({
@@ -135,7 +195,7 @@ Return a JSON object with a "chunks" array only. No preamble, no explanation.
                 ],
                 response_format: { type: 'json_object' },
             }),
-        });
+        }));
 
         const raw = response.choices[0].message.content || '{}';
         const parsed = JSON.parse(raw);
@@ -168,33 +228,15 @@ function distributeCards(chunks: Chunk[], total: number): number[] {
 // Stage 3 — Generation
 // ─────────────────────────────────────────────────────────────────
 
-async function interpretCustomInstruction(raw: string): Promise<string> {
-    if (!raw.trim()) return 'No additional instruction.';
-
-    const response = await trackedCompletion({
-        operation: 'interpret-instruction',
-        logger: log,
-        call: getOpenAI().chat.completions.create({
-            model: MODEL,
-            messages: [
-                {
-                    role: 'system',
-                    content: `Interpret this user instruction in the context of medical flashcard generation:
-
-"${raw.trim()}"
-
-Restate it as a specific, actionable constraint for a flashcard generator.
-Return one sentence only. No preamble.`,
-                },
-            ],
-        }),
-    });
-
-    return response.choices[0].message.content?.trim() || raw.trim();
+// User instructions used to be re-phrased by another LLM call before being
+// embedded in the generation prompt. That added ~1s + 1 call per session for
+// marginal quality benefit; the model handles raw instructions fine.
+function normalizeUserInstruction(raw: string): string {
+    return raw.trim() || 'No additional instruction.';
 }
 
 function buildCardTypePrompt(
-    cardFormat: 'basic' | 'cloze' | 'reversed',
+    cardFormat: CardFormat,
     n: number,
     userInstruction: string,
     chunkText: string,
@@ -209,7 +251,7 @@ function buildCardTypePrompt(
         ? `\nA previous attempt at this card was rejected for the following reason:\n"${revisionReason}"\n\nDo not repeat this mistake. Generate a different card from the same content.`
         : '';
 
-    const prompts: Record<'basic' | 'cloze' | 'reversed', string> = {
+    const prompts: Record<CardFormat, string> = {
         basic: `You are a flashcard generation expert creating study cards for a medical student.
 
 Rules:
@@ -282,6 +324,56 @@ Return JSON only. No preamble, no explanation.
 
 Content:
 ${chunkText}`,
+
+        'true-false': `You are a flashcard generation expert creating True/False cards for a medical student.
+
+Rules:
+- "front" is a single declarative statement (one sentence, factual, no questions)
+- The statement must be unambiguously TRUE or FALSE based ONLY on the source content
+- Mix true and false statements roughly 50/50 across the batch
+- Avoid trick wording, double negatives, and vague qualifiers like "always" or "never"
+- "back" begins with "True." or "False." followed by one short sentence explaining why
+- Each card tests exactly ONE fact
+- ${difficultyNote}
+
+User instruction: ${userInstruction}
+${revisionNote}
+Generate exactly ${n} True/False flashcards from the content below.
+
+Return JSON only. No preamble, no explanation.
+
+{ "flashcards": [{ "type": "true-false", "front": "...", "back": "True. ..." }] }
+
+Content:
+${chunkText}`,
+
+        'compare-contrast': `You are a flashcard generation expert creating Compare/Contrast cards for a medical student.
+
+Rules:
+- "front" asks the student to compare two SPECIFIC related concepts from the content
+  - Example: "Compare and contrast Type I vs Type II hypersensitivity reactions"
+- The two concepts must be genuinely comparable — same domain, different mechanisms or outcomes
+- Skip pairs where one side isn't directly addressed in the content
+- "back" is HTML-formatted (rendered with sanitize + dangerouslySetInnerHTML) so newlines won't render. Use this exact structure:
+  <p>One-line summary distinguishing the two.</p>
+  <p><strong>Similarities:</strong></p>
+  <ul><li>...</li><li>...</li></ul>
+  <p><strong>Differences:</strong></p>
+  <ul><li>...</li><li>...</li></ul>
+- 2-4 bullet points in each list. Each bullet short and concrete.
+- Use ONLY these tags: <p>, <strong>, <ul>, <li>. No attributes, no other tags.
+- ${difficultyNote}
+
+User instruction: ${userInstruction}
+${revisionNote}
+Generate exactly ${n} compare/contrast flashcards from the content below.
+
+Return JSON only. No preamble, no explanation.
+
+{ "flashcards": [{ "type": "compare-contrast", "front": "Compare and contrast X vs Y", "back": "<p>...</p><p><strong>Similarities:</strong></p><ul><li>...</li></ul>..." }] }
+
+Content:
+${chunkText}`,
     };
 
     return prompts[cardFormat];
@@ -290,7 +382,7 @@ ${chunkText}`,
 async function generateCardsForChunk(
     chunk: Chunk,
     count: number,
-    cardFormat: 'basic' | 'cloze' | 'reversed',
+    cardFormat: CardFormat,
     difficulty: 'essential' | 'detailed',
     interpretedInstruction: string,
     language: string,
@@ -298,7 +390,7 @@ async function generateCardsForChunk(
 ): Promise<GeneratedCard[]> {
     const prompt = buildCardTypePrompt(cardFormat, count, interpretedInstruction, chunk.text, difficulty, revisionReason);
 
-    const response = await trackedCompletion({
+    const response = await limit(() => trackedCompletion({
         operation: 'generate',
         logger: log,
         call: getOpenAI().chat.completions.create({
@@ -309,7 +401,7 @@ async function generateCardsForChunk(
             ],
             response_format: { type: 'json_object' },
         }),
-    });
+    }));
 
     const raw = JSON.parse(response.choices[0].message.content || '{}');
     const items: GeneratedCard[] = raw.flashcards || raw.cards || [];
@@ -328,105 +420,172 @@ async function generateCardsForChunk(
 // Stage 4 — Evaluation
 // ─────────────────────────────────────────────────────────────────
 
-async function evaluateCard(card: GeneratedCard, cardFormat: string): Promise<CardScore> {
-    const backDisplay = cardFormat === 'cloze'
-        ? (card.front.match(/\{\{c1::([^}]+)\}\}/) || [])[1] || card.back
-        : card.back;
+const EVAL_BATCH_SIZE = 8;
 
-    try {
-        const response = await trackedCompletion({
-            operation: 'evaluate',
-            logger: log,
-            call: getOpenAI().chat.completions.create({
-                model: MODEL,
-                messages: [
-                    {
-                        role: 'system',
-                        content: `You are a flashcard quality reviewer.
+function getCardBackForDisplay(card: GeneratedCard, cardFormat: string): string {
+    if (cardFormat !== 'cloze') return card.back;
+    return (card.front.match(/\{\{c1::([^}]+)\}\}/) || [])[1] || card.back;
+}
 
-Score this flashcard on each criterion from 1 to 3:
+function defaultScore(): CardScore {
+    return {
+        scores: { atomicity: 3, testability: 3, clarity: 3, nontriviality: 3 },
+        total: 12,
+        verdict: 'keep',
+        reason: '',
+    };
+}
+
+/**
+ * Scores up to EVAL_BATCH_SIZE cards in a single API call.
+ * Replaces N individual evaluate calls with ceil(N/EVAL_BATCH_SIZE).
+ */
+async function evaluateCardsBatch(cards: GeneratedCard[], cardFormat: string): Promise<CardScore[]> {
+    if (cards.length === 0) return [];
+
+    const batches: GeneratedCard[][] = [];
+    for (let i = 0; i < cards.length; i += EVAL_BATCH_SIZE) {
+        batches.push(cards.slice(i, i + EVAL_BATCH_SIZE));
+    }
+
+    const batchResults = await Promise.all(batches.map(async (batch) => {
+        const cardLines = batch.map((card, idx) => {
+            const back = getCardBackForDisplay(card, cardFormat);
+            return `${idx + 1}. Front: ${card.front}\n   Back: ${back}`;
+        }).join('\n');
+
+        const prompt = `You are a flashcard quality reviewer.
+
+Score each flashcard on every criterion from 1 to 3:
 - 1 = fails
 - 2 = acceptable
 - 3 = excellent
 
 Criteria:
-1. Atomicity: Does it test exactly one fact?
-2. Testability: Is the answer unambiguous and concise?
-3. Clarity: Is the question or sentence clearly worded with no ambiguity?
-4. Non-triviality: Would a student actually need to study this, or is it guessable without knowledge?
+1. Atomicity: tests exactly one fact
+2. Testability: answer is unambiguous and concise
+3. Clarity: question/sentence is clearly worded
+4. Non-triviality: requires real knowledge to answer
 
-Card:
-Type: ${cardFormat}
-Front / Text: ${card.front}
-Back: ${backDisplay}
+Card type: ${cardFormat}
+Cards (numbered):
+${cardLines}
 
-Return JSON only. No preamble, no explanation.
+Score each card. The "scores" array MUST have exactly ${batch.length} entries in the same order.
+Verdict guide: keep (total >= 10), revise (7-9), reject (< 7).
 
-{ "scores": { "atomicity": 1, "testability": 1, "clarity": 1, "nontriviality": 1 }, "total": 4, "verdict": "keep", "reason": "one sentence" }`,
-                    },
-                ],
-                response_format: { type: 'json_object' },
-            }),
-        });
+Return JSON only. No preamble.
 
-        const parsed = JSON.parse(response.choices[0].message.content || '{}');
-        return {
-            scores: parsed.scores || { atomicity: 3, testability: 3, clarity: 3, nontriviality: 3 },
-            total: typeof parsed.total === 'number' ? parsed.total : 12,
-            verdict: parsed.verdict || 'keep',
-            reason: parsed.reason || '',
-        };
-    } catch {
-        return { scores: { atomicity: 3, testability: 3, clarity: 3, nontriviality: 3 }, total: 12, verdict: 'keep', reason: '' };
-    }
+{ "scores": [
+  { "atomicity": 1, "testability": 1, "clarity": 1, "nontriviality": 1, "total": 4, "verdict": "keep", "reason": "one short sentence" }
+]}`;
+
+        try {
+            const response = await limit(() => trackedCompletion({
+                operation: 'evaluate-batch',
+                logger: log,
+                call: getOpenAI().chat.completions.create({
+                    model: EVAL_MODEL,
+                    messages: [{ role: 'system', content: prompt }],
+                    response_format: { type: 'json_object' },
+                }),
+            }));
+
+            const parsed = JSON.parse(response.choices[0].message.content || '{}');
+            const rawScores: Array<Partial<CardScore> & { atomicity?: number; testability?: number; clarity?: number; nontriviality?: number }> = parsed.scores || [];
+
+            return batch.map((_, idx) => {
+                const r = rawScores[idx];
+                if (!r) return defaultScore();
+
+                // Some models return flat fields, some return a nested "scores" object.
+                const nested = r.scores ?? {
+                    atomicity: r.atomicity ?? 3,
+                    testability: r.testability ?? 3,
+                    clarity: r.clarity ?? 3,
+                    nontriviality: r.nontriviality ?? 3,
+                };
+                const total = typeof r.total === 'number'
+                    ? r.total
+                    : (nested.atomicity + nested.testability + nested.clarity + nested.nontriviality);
+
+                return {
+                    scores: nested,
+                    total,
+                    verdict: r.verdict || (total >= 10 ? 'keep' : total >= 7 ? 'revise' : 'reject'),
+                    reason: r.reason || '',
+                };
+            });
+        } catch {
+            // If the batched eval fails, treat the whole batch as "keep" — better
+            // to ship slightly weaker cards than to lose them entirely.
+            return batch.map(() => defaultScore());
+        }
+    }));
+
+    return batchResults.flat();
 }
 
 async function evaluateAndRefineCards(
     cards: GeneratedCard[],
     chunk: Chunk,
-    cardFormat: 'basic' | 'cloze' | 'reversed',
+    cardFormat: CardFormat,
     difficulty: 'essential' | 'detailed',
     interpretedInstruction: string,
     language: string,
     stats: SessionStats,
 ): Promise<GeneratedCard[]> {
-    const scores = await Promise.all(cards.map(card => evaluateCard(card, cardFormat)));
+    if (cards.length === 0) return [];
+
+    const scores = await evaluateCardsBatch(cards, cardFormat);
     const kept: GeneratedCard[] = [];
+    const reasonsForRegen: string[] = [];
+    let regenCount = 0;
 
-    await Promise.all(scores.map(async (score, i) => {
-        const card = cards[i];
-
+    for (let i = 0; i < cards.length; i++) {
+        const score = scores[i];
         if (score.total >= 10) {
-            kept.push(card);
+            kept.push(cards[i]);
             stats.cardsKept++;
-        } else if (score.total >= 7) {
-            // Revise: regenerate with reason
-            if (score.reason) stats.evaluatorReasons.push(score.reason);
-            try {
-                const revised = await generateCardsForChunk(chunk, 1, cardFormat, difficulty, interpretedInstruction, language, score.reason);
-                if (revised.length > 0) {
-                    const secondScore = await evaluateCard(revised[0], cardFormat);
-                    if (secondScore.total >= 7) {
-                        kept.push(revised[0]);
-                    }
-                }
-            } catch { /* drop card */ }
-            stats.cardsRevised++;
-        } else {
-            // Reject: regenerate without revision context
-            if (score.reason) stats.evaluatorReasons.push(score.reason);
-            try {
-                const regen = await generateCardsForChunk(chunk, 1, cardFormat, difficulty, interpretedInstruction, language);
-                if (regen.length > 0) {
-                    const secondScore = await evaluateCard(regen[0], cardFormat);
-                    if (secondScore.total >= 7) {
-                        kept.push(regen[0]);
-                    }
-                }
-            } catch { /* drop card */ }
-            stats.cardsRejected++;
+            continue;
         }
-    }));
+
+        // Both "revise" (7-9) and "reject" (<7) get regenerated. Track stats
+        // separately, but pool the regeneration into one batched call.
+        if (score.reason) {
+            reasonsForRegen.push(score.reason);
+            stats.evaluatorReasons.push(score.reason);
+        }
+        regenCount++;
+        if (score.total >= 7) stats.cardsRevised++;
+        else stats.cardsRejected++;
+    }
+
+    if (regenCount === 0) return kept;
+
+    // Single regeneration pass for all rejected/revised cards in this chunk.
+    // Pass the unique reasons so the model can avoid the same mistakes.
+    const uniqueReasons = Array.from(new Set(reasonsForRegen)).slice(0, 6);
+    const reasonHint = uniqueReasons.length > 0 ? uniqueReasons.join('; ') : undefined;
+
+    try {
+        const regenerated = await generateCardsForChunk(
+            chunk, regenCount, cardFormat, difficulty, interpretedInstruction, language, reasonHint,
+        );
+        stats.cardsGenerated += regenerated.length;
+
+        if (regenerated.length > 0) {
+            const reEvalScores = await evaluateCardsBatch(regenerated, cardFormat);
+            for (let i = 0; i < regenerated.length; i++) {
+                if (reEvalScores[i].total >= 7) {
+                    kept.push(regenerated[i]);
+                }
+            }
+        }
+    } catch {
+        // Drop the regen batch silently; backfill loop in the handler will
+        // top up the deck if too many were lost.
+    }
 
     return kept;
 }
@@ -443,7 +602,7 @@ export const setupAIHandlers = () => {
 
             const formatRules = buildFormatRules(options ?? {});
 
-            const response = await trackedCompletion({
+            const response = await limit(() => trackedCompletion({
                 operation: 'generate-legacy',
                 logger: log,
                 call: getOpenAI().chat.completions.create({
@@ -461,7 +620,7 @@ ${formatRules}
                     ],
                     response_format: { type: 'json_object' },
                 }),
-            });
+            }));
             const content = response.choices[0].message.content;
             const parsed = JSON.parse(content || '{}');
             return parsed.flashcards || parsed.cards || [];
@@ -472,19 +631,44 @@ ${formatRules}
     });
 
     // Four-stage pipeline: chunk → generate → evaluate → return
-    instrumentedHandle('generate-cards-from-context', async (_event, { content, count, language = 'English', options }: { summary: string, content: string, count: number, language?: string, options?: GenerationOptions }) => {
+    instrumentedHandle('generate-cards-from-context', async (event, { content, count, language = 'English', options, chunks: precomputedChunks }: { summary: string, content: string, count: number, language?: string, options?: GenerationOptions, chunks?: Chunk[] }) => {
+        // Tiny helper so the renderer can show a progress bar instead of
+        // staring at a spinner for 30+ seconds. Best-effort — if the sender
+        // is gone (window closed mid-generation) we just swallow the error.
+        const sendProgress = (payload: { phase: 'chunking' | 'generating' | 'refining' | 'done'; current: number; total: number }) => {
+            try { event.sender.send('ai-progress', payload); } catch { /* sender gone */ }
+        };
+
         try {
             getOpenAI(); // fail early if API key is missing
 
-            const cardFormat = options?.cardFormat ?? 'basic';
+            const activeFormats: CardFormat[] = options?.cardFormats?.length
+                ? options.cardFormats
+                : ['basic'];
             const difficulty = options?.difficulty ?? 'detailed';
 
-            // Stage 3 pre-processing: interpret user instruction once
-            const interpretedInstruction = await interpretCustomInstruction(options?.customInstructions ?? '');
+            // Stage 3 pre-processing: normalize user instruction (no LLM call needed)
+            const interpretedInstruction = normalizeUserInstruction(options?.customInstructions ?? '');
 
-            // Stage 2: chunk the document
-            const chunks = await chunkDocument(content);
-            const cardCounts = distributeCards(chunks, count);
+            // Stage 2: use pre-computed chunks from the upload page when
+            // available. Falls back to a fresh chunkDocument call only if the
+            // caller didn't supply any (legacy / standalone usage).
+            let chunks: Chunk[];
+            if (precomputedChunks && precomputedChunks.length > 0) {
+                chunks = precomputedChunks;
+            } else {
+                sendProgress({ phase: 'chunking', current: 0, total: 1 });
+                chunks = await chunkDocument(content);
+            }
+
+            // Split the requested total card count evenly across selected
+            // formats, distributing the remainder to the first formats so
+            // the totals always sum to `count`.
+            const baseShare = Math.floor(count / activeFormats.length);
+            const remainder = count - baseShare * activeFormats.length;
+            const formatTotals = activeFormats.map((_, i) => baseShare + (i < remainder ? 1 : 0));
+            // Per-format, per-chunk card allocations.
+            const formatChunkCounts = activeFormats.map((_, i) => distributeCards(chunks, formatTotals[i]));
 
             const stats: SessionStats = {
                 cardsGenerated: 0,
@@ -494,43 +678,70 @@ ${formatRules}
                 evaluatorReasons: [],
             };
 
-            // Stage 3 + 4: generate and evaluate per chunk in parallel
-            const chunkResults = await Promise.all(chunks.map(async (chunk, i) => {
-                const rawCards = await generateCardsForChunk(
-                    chunk, cardCounts[i], cardFormat, difficulty, interpretedInstruction, language,
-                );
-                stats.cardsGenerated += rawCards.length;
+            // Stage 3 + 4: each (chunk, format) pair is one work unit. Run
+            // them all in parallel; the OpenAI semaphore bounds true
+            // in-flight concurrency.
+            const totalWorkUnits = chunks.length * activeFormats.length;
+            let unitsDone = 0;
+            sendProgress({ phase: 'generating', current: 0, total: totalWorkUnits });
 
-                const evaluatedCards = await evaluateAndRefineCards(
-                    rawCards, chunk, cardFormat, difficulty, interpretedInstruction, language, stats,
-                );
-                return evaluatedCards;
+            const chunkResults = await Promise.all(chunks.map(async (chunk, chunkIdx) => {
+                const formatResults = await Promise.all(activeFormats.map(async (fmt, fIdx) => {
+                    const cardsForThisFormat = formatChunkCounts[fIdx][chunkIdx];
+                    if (cardsForThisFormat <= 0) {
+                        unitsDone++;
+                        sendProgress({ phase: 'generating', current: unitsDone, total: totalWorkUnits });
+                        return [];
+                    }
+                    const rawCards = await generateCardsForChunk(
+                        chunk, cardsForThisFormat, fmt, difficulty, interpretedInstruction, language,
+                    );
+                    stats.cardsGenerated += rawCards.length;
+
+                    const evaluatedCards = await evaluateAndRefineCards(
+                        rawCards, chunk, fmt, difficulty, interpretedInstruction, language, stats,
+                    );
+                    unitsDone++;
+                    sendProgress({ phase: 'generating', current: unitsDone, total: totalWorkUnits });
+                    return evaluatedCards;
+                }));
+                return formatResults.flat();
             }));
 
             let allCards = chunkResults.flat();
 
-            // Backfill: generate additional cards if evaluation dropped some
+            // Backfill: generate additional cards if evaluation dropped some.
+            // Distribute the deficit across formats the same way as the main
+            // pass so the result mix roughly preserves the user's selection.
             const MAX_BACKFILL_ROUNDS = 2;
             let backfillRound = 0;
 
             while (allCards.length < count && backfillRound < MAX_BACKFILL_ROUNDS) {
                 backfillRound++;
+                sendProgress({ phase: 'refining', current: backfillRound, total: MAX_BACKFILL_ROUNDS });
+
                 const deficit = count - allCards.length;
+                const deficitBase = Math.floor(deficit / activeFormats.length);
+                const deficitRemainder = deficit - deficitBase * activeFormats.length;
+                const deficitPerFormat = activeFormats.map((_, i) => deficitBase + (i < deficitRemainder ? 1 : 0));
 
                 const chunksByLength = [...chunks].sort((a, b) => b.text.length - a.text.length);
-                const backfillCounts = distributeCards(chunksByLength, deficit);
+                const formatBackfillCounts = activeFormats.map((_, i) => distributeCards(chunksByLength, deficitPerFormat[i]));
 
                 const backfillResults = await Promise.all(
-                    chunksByLength.map(async (chunk, i) => {
-                        if (backfillCounts[i] <= 0) return [];
-                        const rawCards = await generateCardsForChunk(
-                            chunk, backfillCounts[i], cardFormat, difficulty, interpretedInstruction, language,
-                        );
-                        stats.cardsGenerated += rawCards.length;
-                        return evaluateAndRefineCards(
-                            rawCards, chunk, cardFormat, difficulty, interpretedInstruction, language, stats,
-                        );
-                    }),
+                    chunksByLength.map(async (chunk, chunkIdx) =>
+                        (await Promise.all(activeFormats.map(async (fmt, fIdx) => {
+                            const n = formatBackfillCounts[fIdx][chunkIdx];
+                            if (n <= 0) return [];
+                            const rawCards = await generateCardsForChunk(
+                                chunk, n, fmt, difficulty, interpretedInstruction, language,
+                            );
+                            stats.cardsGenerated += rawCards.length;
+                            return evaluateAndRefineCards(
+                                rawCards, chunk, fmt, difficulty, interpretedInstruction, language, stats,
+                            );
+                        }))).flat(),
+                    ),
                 );
 
                 allCards = allCards.concat(backfillResults.flat());
@@ -539,6 +750,8 @@ ${formatRules}
             if (allCards.length > count) {
                 allCards = allCards.slice(0, count);
             }
+
+            sendProgress({ phase: 'done', current: 1, total: 1 });
 
             return {
                 cards: allCards,

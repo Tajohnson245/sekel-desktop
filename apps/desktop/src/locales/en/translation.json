@@ -440,6 +440,8 @@
         "format_basic": "Basic (Q&A)",
         "format_cloze": "Cloze Deletion",
         "format_reversed": "Reversed",
+        "format_true_false": "True / False",
+        "format_compare_contrast": "Compare & Contrast",
         "difficulty": "Difficulty",
         "difficulty_essential": "Essential Only",
         "difficulty_detailed": "Detailed",
