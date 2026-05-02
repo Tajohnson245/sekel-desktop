@@ -4,6 +4,10 @@
     display: flex;
     flex-direction: column;
     flex: 1;
+    /* Parent .main-content is display: block, so flex: 1 alone is inert.
+       Pin to full parent height so .study-content can actually fill the
+       space between the header and the rating zone. */
+    height: 100%;
     min-height: 0;
 }
 
@@ -67,14 +71,13 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: safe center;
     padding-top: 0.5rem;
     gap: 1rem;
     position: relative;
     overflow-y: auto;
     overflow-x: hidden;
     min-height: 0;
-    margin-right: -1.5rem;
     cursor: pointer;
 }
 

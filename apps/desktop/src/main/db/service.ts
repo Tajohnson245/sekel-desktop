@@ -102,6 +102,35 @@ export function updateDeck(id: string, updates: DeckUpdate): Deck {
     return fetchDeck(id)!;
 }
 
+/**
+ * Prune deleted deck UUIDs from every plan's deck_filter JSON column.
+ * Must run inside the same transaction as the deck DELETE so plans never
+ * observe a stale filter pointing at a missing deck. Caller passes the open db.
+ */
+function prunePlanDeckFilters(db: ReturnType<typeof getDb>, removedDeckIds: string[]): void {
+    if (removedDeckIds.length === 0) return;
+    const removed = new Set(removedDeckIds);
+    const rows = db.prepare(
+        `SELECT id, deck_filter FROM plans WHERE deck_filter IS NOT NULL`
+    ).all() as { id: string; deck_filter: string }[];
+
+    const update = db.prepare(
+        `UPDATE plans SET deck_filter = ?, updated_at = ? WHERE id = ?`
+    );
+    const now = new Date().toISOString();
+
+    for (const row of rows) {
+        let filter: string[];
+        try { filter = JSON.parse(row.deck_filter) as string[]; }
+        catch { continue; }
+        if (!Array.isArray(filter)) continue;
+        const pruned = filter.filter(id => !removed.has(id));
+        if (pruned.length !== filter.length) {
+            update.run(JSON.stringify(pruned), now, row.id);
+        }
+    }
+}
+
 export function deleteDeck(id: string): void {
     const db = getDb();
     logDeckDeletion(id);
@@ -117,6 +146,7 @@ export function deleteDeck(id: string): void {
         // Unlink child decks so parent delete doesn't cascade children
         db.prepare('UPDATE decks SET parent_id = NULL WHERE parent_id = ?').run(id);
         db.prepare('DELETE FROM decks WHERE id = ?').run(id);
+        prunePlanDeckFilters(db, [id]);
     })();
 }
 
@@ -137,6 +167,7 @@ export function deleteDecks(ids: string[]): void {
         // Unlink child decks
         db.prepare(`UPDATE decks SET parent_id = NULL WHERE parent_id IN (${placeholders})`).run(...ids);
         db.prepare(`DELETE FROM decks WHERE id IN (${placeholders})`).run(...ids);
+        prunePlanDeckFilters(db, ids);
     })();
 }
 
@@ -1585,11 +1616,17 @@ export function fetchMissRateTrend(userId: string, days: DateRangeDays): MissRat
 export interface SystemAccuracyRow {
     systemKey: string;
     label: string;
-    accuracy: number;
+    /**
+     * Null when the system doesn't yet have enough reviews to assess accuracy
+     * (see MIN_REVIEWS_FOR_SIGNAL). Treat as "awaiting data", not as 100%.
+     */
+    accuracy: number | null;
     blueprintWeightMin: number;
     blueprintWeightMax: number;
     dueCardsCount: number;
     totalReviewsInWindow: number;
+    /** Minimum reviews needed before accuracy is reported. UI shows progress toward this. */
+    minReviewsForSignal: number;
 }
 
 export interface IntelligenceSummary {
@@ -1612,6 +1649,13 @@ export interface IntelligenceSummary {
     suggestedDeckId: string | null;
     hasClassifications: boolean;
 }
+
+/**
+ * Minimum weighted reviews per system before we report accuracy. Below this,
+ * accuracy is suppressed (null) and the UI shows "awaiting data" — a single
+ * correct review shouldn't be enough to mark a system "on track".
+ */
+const MIN_REVIEWS_FOR_SIGNAL = 10;
 
 export function getIntelligenceSummary(userId: string): IntelligenceSummary {
     const db = getDb();
@@ -1730,7 +1774,11 @@ export function getIntelligenceSummary(userId: string): IntelligenceSummary {
     const systemBreakdown: SystemAccuracyRow[] = accRows.map(row => {
         const total = row.weighted_total ?? 0;
         const nonAgain = row.weighted_non_again ?? 0;
-        const accuracy = total > 0 ? nonAgain / total : 1.0;
+        // Suppress accuracy below the minimum sample threshold. A single
+        // correct review on a brand-new deck should not produce a "100% on
+        // track" signal — that's misleading. Callers must bucket null
+        // accuracy as "awaiting data".
+        const accuracy = total >= MIN_REVIEWS_FOR_SIGNAL ? nonAgain / total : null;
         return {
             systemKey: row.system_key,
             label: row.label,
@@ -1739,12 +1787,16 @@ export function getIntelligenceSummary(userId: string): IntelligenceSummary {
             blueprintWeightMax: row.weight_max ?? 0,
             dueCardsCount: dueMap.get(row.system_id) ?? 0,
             totalReviewsInWindow: Math.round(total),
+            minReviewsForSignal: MIN_REVIEWS_FOR_SIGNAL,
         };
     });
 
     // ── Priority score: (1 - accuracy) × blueprint midpoint ─────────
-    const weightedSystems = systemBreakdown
-        .filter(s => s.totalReviewsInWindow > 0 && s.dueCardsCount > 0)
+    // Untested systems (accuracy === null) are excluded from priority ranking.
+    type WeightedSystem = SystemAccuracyRow & { accuracy: number; priorityScore: number };
+    const weightedSystems: WeightedSystem[] = systemBreakdown
+        .filter((s): s is SystemAccuracyRow & { accuracy: number } =>
+            s.accuracy !== null && s.totalReviewsInWindow > 0 && s.dueCardsCount > 0)
         .map(s => ({
             ...s,
             priorityScore: (1 - s.accuracy) * ((s.blueprintWeightMin + s.blueprintWeightMax) / 2),

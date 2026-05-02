@@ -62,10 +62,13 @@ export default function SekelIntelligencePanel({ intelligence, onStartFocused, o
         );
     }
 
-    // ── Compute weak vs strong systems ──────────────────────────────
+    // ── Bucket systems: tested-weak / tested-strong / untested ──────
+    type Tested = typeof systemBreakdown[number] & { accuracy: number };
     const datafulSystems = systemBreakdown.filter(s => s.dueCardsCount > 0 || s.totalReviewsInWindow > 0);
+    const testedSystems = datafulSystems.filter((s): s is Tested => s.accuracy !== null);
+    const untestedSystems = datafulSystems.filter(s => s.accuracy === null);
 
-    const weakSystems = datafulSystems
+    const weakSystems = testedSystems
         .filter(s => s.accuracy < 0.80)
         .sort((a, b) => {
             const scoreA = (1 - a.accuracy) * ((a.blueprintWeightMin + a.blueprintWeightMax) / 2);
@@ -73,9 +76,12 @@ export default function SekelIntelligencePanel({ intelligence, onStartFocused, o
             return scoreB - scoreA;
         });
 
-    const strongSystems = datafulSystems.filter(s => s.accuracy >= 0.80);
-    const allOnTrack = weakSystems.length === 0;
-    const displaySystems = allOnTrack ? datafulSystems : weakSystems;
+    const strongSystems = testedSystems.filter(s => s.accuracy >= 0.80);
+    // "On track" only when there are tested systems and none of them are weak.
+    // If everything is untested, show the awaiting-data state instead.
+    const allOnTrack = weakSystems.length === 0 && testedSystems.length > 0;
+    const allUntested = testedSystems.length === 0 && untestedSystems.length > 0;
+    const displaySystems: Tested[] = allOnTrack ? testedSystems : weakSystems;
 
     return (
         <div className="intel-panel">
@@ -102,9 +108,13 @@ export default function SekelIntelligencePanel({ intelligence, onStartFocused, o
             </div>
 
             {/* Section label */}
-            {allOnTrack ? (
+            {allUntested ? (
+                <div className="intel-section-label intel-section-label--neutral">
+                    Awaiting review data
+                </div>
+            ) : allOnTrack ? (
                 <div className="intel-section-label intel-section-label--success">
-                    ✓ All systems on track
+                    ✓ All tested systems on track
                 </div>
             ) : (
                 <div className="intel-section-label intel-section-label--warn">
@@ -112,7 +122,7 @@ export default function SekelIntelligencePanel({ intelligence, onStartFocused, o
                 </div>
             )}
 
-            {/* System bars */}
+            {/* System bars (tested systems only) */}
             {displaySystems.length > 0 && (
                 <div className="intel-systems">
                     {displaySystems.map(s => (
@@ -142,6 +152,37 @@ export default function SekelIntelligencePanel({ intelligence, onStartFocused, o
                 </div>
             )}
 
+            {/* Untested systems — always shown below tested rows; bar fills as
+                reviews accumulate toward the minimum signal threshold */}
+            {untestedSystems.length > 0 && (
+                <div className="intel-systems intel-systems--untested">
+                    <div className="intel-untested-hint">
+                        Accuracy unlocks after {untestedSystems[0].minReviewsForSignal} reviews per system
+                    </div>
+                    {untestedSystems.map(s => {
+                        const progress = Math.min(1, s.totalReviewsInWindow / s.minReviewsForSignal);
+                        return (
+                            <div key={s.systemKey} className="intel-system-row intel-system-row--untested">
+                                <span className="intel-system-row__label">{s.label}</span>
+                                <div className="intel-system-row__bar-wrap">
+                                    <div
+                                        className="intel-system-row__bar intel-system-row__bar--untested"
+                                        style={{ width: `${Math.round(progress * 100)}%` }}
+                                    />
+                                </div>
+                                <span className="intel-system-row__pct intel-system-row__pct--untested">
+                                    {s.totalReviewsInWindow}/{s.minReviewsForSignal}
+                                </span>
+                                <span className="intel-system-row__meta">
+                                    {s.totalReviewsInWindow === 0 ? 'No reviews yet' : 'Reviews to unlock accuracy'}
+                                    {s.dueCardsCount > 0 ? ` · ${s.dueCardsCount} due` : ''}
+                                </span>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+
             {/* On Track compact row — only when weak systems exist */}
             {!allOnTrack && strongSystems.length > 0 && (
                 <div className="intel-on-track-row">
@@ -158,9 +199,9 @@ export default function SekelIntelligencePanel({ intelligence, onStartFocused, o
             <button
                 className="intel-panel__cta"
                 onClick={onStartFocused}
-                disabled={prioritizedCardCount === 0 && !allOnTrack}
+                disabled={prioritizedCardCount === 0 && !allOnTrack && !allUntested}
             >
-                {allOnTrack
+                {allOnTrack || allUntested
                     ? 'Start Review Session'
                     : `Start Focused Session (${prioritizedCardCount} cards) →`}
             </button>

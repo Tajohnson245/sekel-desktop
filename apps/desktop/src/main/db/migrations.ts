@@ -604,4 +604,22 @@ export const MIGRATIONS: string[] = [
     CREATE INDEX IF NOT EXISTS idx_reviews_review_time ON reviews(review_time);
     CREATE INDEX IF NOT EXISTS idx_reviews_session_id ON reviews(session_id);
     `,
+    // Migration 036 — reconcile orphaned active plans
+    // Archives any plan still marked active whose owning user has no primary
+    // exam profile, or whose exam_key doesn't match the user's current primary
+    // exam. Companion JS pass (cleanupOrphanPlanDeckFilters) prunes deleted
+    // deck UUIDs from plans.deck_filter at every boot.
+    `
+    UPDATE plans
+       SET status = 'archived',
+           updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')
+     WHERE status = 'active'
+       AND NOT EXISTS (
+           SELECT 1 FROM user_exam_profiles uep
+           JOIN blueprint_exams be ON be.id = uep.exam_id
+           WHERE uep.user_id = plans.user_id
+             AND uep.is_primary = 1
+             AND be.exam_key = plans.exam_key
+       );
+    `,
 ];

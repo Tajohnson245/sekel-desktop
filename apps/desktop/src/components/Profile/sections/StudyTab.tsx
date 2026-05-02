@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Button, Modal, useToast, ToggleSwitch } from '../../UI';
 import { useDecks, useUpdateDeck } from '../../../hooks/useDecks';
 import { useExamProfile, useUpdateExamProfile, useDeleteExamProfile } from '../../../hooks/useExamProfile';
-import { useActivePlan, useArchivePlan } from '../../../hooks/usePlan';
+import { useActivePlan } from '../../../hooks/usePlan';
 import { isExamDateSet, EXAM_DATE_SENTINEL } from '../../../lib/queries';
 import { ExamOnboardingModal } from '../../ExamOnboarding/ExamOnboardingModal';
 
@@ -39,7 +39,6 @@ export function StudyTab() {
     const { data: activePlanResult } = useActivePlan();
     const updateExamProfile = useUpdateExamProfile();
     const deleteExamProfile = useDeleteExamProfile();
-    const archivePlan = useArchivePlan();
     const [showExamModal, setShowExamModal] = useState(false);
     const [confirmDeleteExam, setConfirmDeleteExam] = useState(false);
     const [localExamDate, setLocalExamDate] = useState('');
@@ -88,25 +87,14 @@ export function StudyTab() {
     };
 
     const handleRemoveExam = () => {
-        const planId = activePlanResult?.plan.id;
-        const onDeleted = () => {
-            setConfirmDeleteExam(false);
-            showToast(planId ? 'Exam removed and plan archived' : 'Exam configuration removed', 'success');
-        };
-        const runDelete = () => {
-            deleteExamProfile.mutate(undefined, {
-                onSuccess: onDeleted,
-                onError: () => showToast('Failed to remove exam configuration', 'error'),
-            });
-        };
-        if (planId) {
-            archivePlan.mutate(planId, {
-                onSuccess: runDelete,
-                onError: () => showToast('Failed to archive study plan', 'error'),
-            });
-        } else {
-            runDelete();
-        }
+        const hadPlan = !!activePlanResult?.plan.id;
+        deleteExamProfile.mutate(undefined, {
+            onSuccess: () => {
+                setConfirmDeleteExam(false);
+                showToast(hadPlan ? 'Exam removed and plan archived' : 'Exam configuration removed', 'success');
+            },
+            onError: () => showToast('Failed to remove exam configuration', 'error'),
+        });
     };
 
     const handleSessionModeChange = (mode: 'auto' | 'mixed' | 'triage') => {
@@ -288,8 +276,8 @@ export function StudyTab() {
                                         <Button
                                             variant="danger"
                                             onClick={handleRemoveExam}
-                                            isLoading={deleteExamProfile.isPending || archivePlan.isPending}
-                                            disabled={deleteExamProfile.isPending || archivePlan.isPending}
+                                            isLoading={deleteExamProfile.isPending}
+                                            disabled={deleteExamProfile.isPending}
                                         >
                                             Confirm
                                         </Button>

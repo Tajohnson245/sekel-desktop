@@ -422,17 +422,23 @@ export function createPlan(
 export function getActivePlan(userId: string, examKey?: string): ActivePlanResult | null {
     const db = getDb();
 
-    const row = examKey
-        ? db.prepare(`
-            SELECT * FROM plans
-            WHERE user_id = ? AND exam_key = ? AND status = 'active'
-            ORDER BY activated_at DESC LIMIT 1
-          `).get(userId, examKey) as PlanRow | undefined
-        : db.prepare(`
-            SELECT * FROM plans
-            WHERE user_id = ? AND status = 'active'
-            ORDER BY activated_at DESC LIMIT 1
-          `).get(userId) as PlanRow | undefined;
+    // When no examKey is given, scope to the user's primary exam profile.
+    // This prevents a stale/leftover active plan from a different (or removed)
+    // exam from leaking onto the dashboard.
+    const resolvedExamKey = examKey ?? (db.prepare(`
+        SELECT be.exam_key
+        FROM user_exam_profiles uep
+        JOIN blueprint_exams be ON be.id = uep.exam_id
+        WHERE uep.user_id = ? AND uep.is_primary = 1
+    `).get(userId) as { exam_key: string } | undefined)?.exam_key;
+
+    if (!resolvedExamKey) return null;
+
+    const row = db.prepare(`
+        SELECT * FROM plans
+        WHERE user_id = ? AND exam_key = ? AND status = 'active'
+        ORDER BY activated_at DESC LIMIT 1
+    `).get(userId, resolvedExamKey) as PlanRow | undefined;
 
     if (!row) return null;
 
@@ -561,6 +567,18 @@ export function getPlanRebalanceDelta(userId: string, examKey: string): Rebalanc
     const previousNewPerDay = activeRow.cards_per_day;
     const activatedAt       = activeRow.activated_at;
 
+    // A plan that has never been studied shouldn't accumulate "missed" days —
+    // those days never had a study commitment in practice. Anchor the walk to
+    // MAX(activated_at, first_review_date) so missed days only count *after*
+    // the user actually started reviewing under this plan.
+    const firstReviewRow = db.prepare(`
+        SELECT MIN(review_time) AS first_review
+        FROM reviews
+        WHERE user_id = ? AND review_time >= ? AND state_before = 'new'
+    `).get(userId, activatedAt) as { first_review: string | null } | undefined;
+
+    if (!firstReviewRow?.first_review) return null;
+
     // Per-day new card counts since the plan was activated
     type DayRow = { review_date: string; new_count: number };
     const studiedDays = db.prepare(`
@@ -572,8 +590,8 @@ export function getPlanRebalanceDelta(userId: string, examKey: string): Rebalanc
 
     const studiedMap = new Map(studiedDays.map(r => [r.review_date, r.new_count]));
 
-    // Walk from day after activation to yesterday, count missed days
-    const startDate = new Date(activatedAt);
+    // Walk from day after first review to yesterday, count missed days
+    const startDate = new Date(firstReviewRow.first_review);
     startDate.setHours(0, 0, 0, 0);
     startDate.setDate(startDate.getDate() + 1);
 

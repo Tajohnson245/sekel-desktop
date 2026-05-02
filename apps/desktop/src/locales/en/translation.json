@@ -755,9 +755,9 @@
     "exam": {
         "onboarding_step_exam": "Choose Your Exam",
         "onboarding_step_date": "Set Your Exam Date",
-        "onboarding_step_deck": "Select a Deck",
+        "onboarding_step_deck": "Select Decks",
         "select_exam_prompt": "Which exam are you preparing for?",
-        "select_deck_prompt": "Which deck should be classified for this exam?",
+        "select_deck_prompt": "Which decks should be classified for this exam? Select one or more.",
         "date_prompt": "When is your exam?",
         "date_hint": "You can change this later in Study settings.",
         "date_skip": "Skip for now",

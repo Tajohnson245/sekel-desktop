@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Library } from 'lucide-react';
+import { Library, Check } from 'lucide-react';
 import { Modal, Button, Loader, useToast } from '../UI';
 import { useExamList, useUpsertExamProfile } from '../../hooks/useExamProfile';
 import { useDecks } from '../../hooks/useDecks';
@@ -27,16 +27,22 @@ export function ExamOnboardingModal({ isOpen, onClose, onComplete }: ExamOnboard
 
     const [step, setStep] = useState<'select-exam' | 'select-deck' | 'pick-date'>('select-exam');
     const [selectedExamId, setSelectedExamId] = useState<number | null>(null);
-    const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
+    const [selectedDeckIds, setSelectedDeckIds] = useState<string[]>([]);
     const [examDate, setExamDate] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const selectedExam = exams.find(e => e.id === selectedExamId);
 
+    const toggleDeck = (deckId: string) => {
+        setSelectedDeckIds(prev =>
+            prev.includes(deckId) ? prev.filter(id => id !== deckId) : [...prev, deckId]
+        );
+    };
+
     const handleReset = () => {
         setStep('select-exam');
         setSelectedExamId(null);
-        setSelectedDeckId(null);
+        setSelectedDeckIds([]);
         setExamDate('');
         setIsSubmitting(false);
     };
@@ -55,7 +61,7 @@ export function ExamOnboardingModal({ isOpen, onClose, onComplete }: ExamOnboard
     const noDecks = !decksLoading && decks.length === 0;
 
     const handleSubmit = async (skipDate: boolean) => {
-        if (!userId || !selectedExamId || !selectedExam || !selectedDeckId) return;
+        if (!userId || !selectedExamId || !selectedExam || selectedDeckIds.length === 0) return;
         setIsSubmitting(true);
 
         try {
@@ -66,9 +72,11 @@ export function ExamOnboardingModal({ isOpen, onClose, onComplete }: ExamOnboard
                 examDate: dateValue,
             });
 
-            // Fire-and-forget background classification for the selected deck
-            const cards = await fetchAllCardsForDeck(selectedDeckId);
-            const cardIds = cards.map(c => c.id);
+            // Fire-and-forget background classification across all selected decks
+            const cardIdLists = await Promise.all(
+                selectedDeckIds.map(deckId => fetchAllCardsForDeck(deckId).then(cards => cards.map(c => c.id)))
+            );
+            const cardIds = cardIdLists.flat();
             if (cardIds.length > 0) {
                 window.electronAPI.yield.classifyBatch(cardIds, selectedExam.exam_key);
             }
@@ -136,17 +144,24 @@ export function ExamOnboardingModal({ isOpen, onClose, onComplete }: ExamOnboard
             <div className="exam-onboarding-content">
                 <p className="exam-onboarding-prompt">{t('exam.select_deck_prompt')}</p>
                 <ul className="exam-list">
-                    {decks.map(deck => (
-                        <li key={deck.id}>
-                            <button
-                                type="button"
-                                className={`exam-list-item ${selectedDeckId === deck.id ? 'selected' : ''}`}
-                                onClick={() => setSelectedDeckId(deck.id)}
-                            >
-                                {deck.name}
-                            </button>
-                        </li>
-                    ))}
+                    {decks.map(deck => {
+                        const isSelected = selectedDeckIds.includes(deck.id);
+                        return (
+                            <li key={deck.id}>
+                                <button
+                                    type="button"
+                                    className={`exam-list-item exam-list-item--multi ${isSelected ? 'selected' : ''}`}
+                                    onClick={() => toggleDeck(deck.id)}
+                                    aria-pressed={isSelected}
+                                >
+                                    <span className={`exam-deck-checkbox ${isSelected ? 'checked' : ''}`} aria-hidden="true">
+                                        {isSelected && <Check size={14} strokeWidth={3} />}
+                                    </span>
+                                    <span className="exam-deck-name">{deck.name}</span>
+                                </button>
+                            </li>
+                        );
+                    })}
                 </ul>
             </div>
         );
@@ -198,7 +213,7 @@ export function ExamOnboardingModal({ isOpen, onClose, onComplete }: ExamOnboard
             <Button
                 variant="primary"
                 onClick={() => setStep('pick-date')}
-                disabled={selectedDeckId === null}
+                disabled={selectedDeckIds.length === 0}
             >
                 {t('exam.next')}
             </Button>

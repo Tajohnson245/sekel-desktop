@@ -298,10 +298,13 @@ body,
     flex: 1 1 auto;
     overflow-x: auto;
     scrollbar-width: thin;
+    scrollbar-color: var(--ink-muted) transparent;
 }
 
-.top-nav::-webkit-scrollbar { height: 4px; }
-.top-nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.top-nav::-webkit-scrollbar { height: 8px; }
+.top-nav::-webkit-scrollbar-track { background: transparent; }
+.top-nav::-webkit-scrollbar-thumb { background: var(--ink-muted); border-radius: 4px; }
+.top-nav::-webkit-scrollbar-thumb:hover { background: var(--slate); }
 
 .header h1 {
     font-family: var(--font-display);
