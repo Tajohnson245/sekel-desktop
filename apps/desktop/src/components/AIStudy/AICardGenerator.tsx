@@ -47,9 +47,18 @@ export default function AICardGenerator({ extractedText, contextSummary, context
     const [progress, setProgress] = useState<AIProgress | null>(null);
 
     // Generation options
-    const [cardFormat, setCardFormat] = useState<AIGenerationOptions['cardFormat']>('basic');
+    const [selectedFormats, setSelectedFormats] = useState<Set<AIGenerationOptions['cardFormats'][number]>>(new Set());
     const [difficulty, setDifficulty] = useState<AIGenerationOptions['difficulty']>('detailed');
     const [customInstructions, setCustomInstructions] = useState('');
+
+    const toggleFormat = (fmt: AIGenerationOptions['cardFormats'][number]) => {
+        setSelectedFormats((prev) => {
+            const next = new Set(prev);
+            if (next.has(fmt)) next.delete(fmt);
+            else next.add(fmt);
+            return next;
+        });
+    };
 
     // Initial card count update
     useEffect(() => {
@@ -79,10 +88,13 @@ export default function AICardGenerator({ extractedText, contextSummary, context
 
     // Build options object from current state
     const generationOptions: AIGenerationOptions = {
-        cardFormat,
+        cardFormats: Array.from(selectedFormats),
         difficulty,
         customInstructions: customInstructions.trim() || undefined,
     };
+
+    // Generation requires at least one format selected.
+    const canGenerate = !isGenerating && !!extractedText && selectedFormats.size > 0;
 
     // Trigger AI generation
     const handleGenerate = async () => {
@@ -258,7 +270,7 @@ export default function AICardGenerator({ extractedText, contextSummary, context
                 <Button
                     variant="primary"
                     onClick={handleGenerate}
-                    disabled={isGenerating || !extractedText}
+                    disabled={!canGenerate}
                     isLoading={isGenerating}
                     icon={!isGenerating && <Sparkles size={16} />}
                     style={{ marginTop: 'auto' }}
@@ -273,16 +285,31 @@ export default function AICardGenerator({ extractedText, contextSummary, context
 
             {/* Generation Options */}
             <div className="ai-generation-options">
-                <Select
-                    label={t('ai.card_format')}
-                    value={cardFormat}
-                    onChange={(e) => setCardFormat(e.target.value as AIGenerationOptions['cardFormat'])}
-                    options={[
-                        { label: t('ai.format_basic'), value: 'basic' },
-                        { label: t('ai.format_cloze'), value: 'cloze' },
-                        { label: t('ai.format_reversed'), value: 'reversed' },
-                    ]}
-                />
+                <div className="ai-format-picker">
+                    <label className="ai-format-picker__label">{t('ai.card_format')}</label>
+                    <div className="ai-format-picker__pills" role="group" aria-label={t('ai.card_format')}>
+                        {([
+                            { value: 'basic',            label: t('ai.format_basic') },
+                            { value: 'cloze',            label: t('ai.format_cloze') },
+                            { value: 'reversed',         label: t('ai.format_reversed') },
+                            { value: 'true-false',       label: t('ai.format_true_false') },
+                            { value: 'compare-contrast', label: t('ai.format_compare_contrast') },
+                        ] as const).map((opt) => {
+                            const active = selectedFormats.has(opt.value);
+                            return (
+                                <button
+                                    key={opt.value}
+                                    type="button"
+                                    className={`ai-format-pill${active ? ' ai-format-pill--active' : ''}`}
+                                    onClick={() => toggleFormat(opt.value)}
+                                    aria-pressed={active}
+                                >
+                                    {opt.label}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
 
                 <Select
                     label={t('ai.difficulty')}

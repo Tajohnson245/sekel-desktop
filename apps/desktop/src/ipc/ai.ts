@@ -71,8 +71,11 @@ const limit = pLimit(OPENAI_CONCURRENCY);
 // Local types
 // ─────────────────────────────────────────────────────────────────
 
+type CardFormat = 'basic' | 'cloze' | 'reversed' | 'true-false' | 'compare-contrast';
+
 interface GenerationOptions {
-    cardFormat?: 'basic' | 'cloze' | 'reversed';
+    /** One or more card formats. Total card count is split evenly across them. */
+    cardFormats?: CardFormat[];
     difficulty?: 'essential' | 'detailed';
     customInstructions?: string;
 }
@@ -107,7 +110,8 @@ interface SessionStats {
 // ─────────────────────────────────────────────────────────────────
 
 function buildFormatRules(options: GenerationOptions): string {
-    const format = options.cardFormat ?? 'basic';
+    // Legacy single-format path: just use the first selected format.
+    const format = options.cardFormats?.[0] ?? 'basic';
     const difficulty = options.difficulty ?? 'detailed';
 
     const formatBlocks: Record<string, string> = {
@@ -215,7 +219,7 @@ function normalizeUserInstruction(raw: string): string {
 }
 
 function buildCardTypePrompt(
-    cardFormat: 'basic' | 'cloze' | 'reversed',
+    cardFormat: CardFormat,
     n: number,
     userInstruction: string,
     chunkText: string,
@@ -230,7 +234,7 @@ function buildCardTypePrompt(
         ? `\nA previous attempt at this card was rejected for the following reason:\n"${revisionReason}"\n\nDo not repeat this mistake. Generate a different card from the same content.`
         : '';
 
-    const prompts: Record<'basic' | 'cloze' | 'reversed', string> = {
+    const prompts: Record<CardFormat, string> = {
         basic: `You are a flashcard generation expert creating study cards for a medical student.
 
 Rules:
@@ -303,6 +307,53 @@ Return JSON only. No preamble, no explanation.
 
 Content:
 ${chunkText}`,
+
+        'true-false': `You are a flashcard generation expert creating True/False cards for a medical student.
+
+Rules:
+- "front" is a single declarative statement (one sentence, factual, no questions)
+- The statement must be unambiguously TRUE or FALSE based ONLY on the source content
+- Mix true and false statements roughly 50/50 across the batch
+- Avoid trick wording, double negatives, and vague qualifiers like "always" or "never"
+- "back" begins with "True." or "False." followed by one short sentence explaining why
+- Each card tests exactly ONE fact
+- ${difficultyNote}
+
+User instruction: ${userInstruction}
+${revisionNote}
+Generate exactly ${n} True/False flashcards from the content below.
+
+Return JSON only. No preamble, no explanation.
+
+{ "flashcards": [{ "type": "true-false", "front": "...", "back": "True. ..." }] }
+
+Content:
+${chunkText}`,
+
+        'compare-contrast': `You are a flashcard generation expert creating Compare/Contrast cards for a medical student.
+
+Rules:
+- "front" asks the student to compare two SPECIFIC related concepts from the content
+  - Example: "Compare and contrast Type I vs Type II hypersensitivity reactions"
+- The two concepts must be genuinely comparable — same domain, different mechanisms or outcomes
+- Skip pairs where one side isn't directly addressed in the content
+- "back" gives a structured answer with three sections, separated by line breaks:
+  - One-line summary distinguishing the two
+  - "Similarities:" followed by 2-4 bullet points (use "- " for each)
+  - "Differences:" followed by 2-4 bullet points (use "- " for each)
+- Keep each bullet point short and concrete
+- ${difficultyNote}
+
+User instruction: ${userInstruction}
+${revisionNote}
+Generate exactly ${n} compare/contrast flashcards from the content below.
+
+Return JSON only. No preamble, no explanation.
+
+{ "flashcards": [{ "type": "compare-contrast", "front": "Compare and contrast X vs Y", "back": "..." }] }
+
+Content:
+${chunkText}`,
     };
 
     return prompts[cardFormat];
@@ -311,7 +362,7 @@ ${chunkText}`,
 async function generateCardsForChunk(
     chunk: Chunk,
     count: number,
-    cardFormat: 'basic' | 'cloze' | 'reversed',
+    cardFormat: CardFormat,
     difficulty: 'essential' | 'detailed',
     interpretedInstruction: string,
     language: string,
@@ -458,7 +509,7 @@ Return JSON only. No preamble.
 async function evaluateAndRefineCards(
     cards: GeneratedCard[],
     chunk: Chunk,
-    cardFormat: 'basic' | 'cloze' | 'reversed',
+    cardFormat: CardFormat,
     difficulty: 'essential' | 'detailed',
     interpretedInstruction: string,
     language: string,
@@ -571,7 +622,9 @@ ${formatRules}
         try {
             getOpenAI(); // fail early if API key is missing
 
-            const cardFormat = options?.cardFormat ?? 'basic';
+            const activeFormats: CardFormat[] = options?.cardFormats?.length
+                ? options.cardFormats
+                : ['basic'];
             const difficulty = options?.difficulty ?? 'detailed';
 
             // Stage 3 pre-processing: normalize user instruction (no LLM call needed)
@@ -587,7 +640,15 @@ ${formatRules}
                 sendProgress({ phase: 'chunking', current: 0, total: 1 });
                 chunks = await chunkDocument(content);
             }
-            const cardCounts = distributeCards(chunks, count);
+
+            // Split the requested total card count evenly across selected
+            // formats, distributing the remainder to the first formats so
+            // the totals always sum to `count`.
+            const baseShare = Math.floor(count / activeFormats.length);
+            const remainder = count - baseShare * activeFormats.length;
+            const formatTotals = activeFormats.map((_, i) => baseShare + (i < remainder ? 1 : 0));
+            // Per-format, per-chunk card allocations.
+            const formatChunkCounts = activeFormats.map((_, i) => distributeCards(chunks, formatTotals[i]));
 
             const stats: SessionStats = {
                 cardsGenerated: 0,
@@ -597,28 +658,41 @@ ${formatRules}
                 evaluatorReasons: [],
             };
 
-            // Stage 3 + 4: generate and evaluate per chunk in parallel.
-            // Emit progress after each chunk finishes — order doesn't matter,
-            // it's the count that drives the bar.
-            let chunksDone = 0;
-            sendProgress({ phase: 'generating', current: 0, total: chunks.length });
-            const chunkResults = await Promise.all(chunks.map(async (chunk, i) => {
-                const rawCards = await generateCardsForChunk(
-                    chunk, cardCounts[i], cardFormat, difficulty, interpretedInstruction, language,
-                );
-                stats.cardsGenerated += rawCards.length;
+            // Stage 3 + 4: each (chunk, format) pair is one work unit. Run
+            // them all in parallel; the OpenAI semaphore bounds true
+            // in-flight concurrency.
+            const totalWorkUnits = chunks.length * activeFormats.length;
+            let unitsDone = 0;
+            sendProgress({ phase: 'generating', current: 0, total: totalWorkUnits });
 
-                const evaluatedCards = await evaluateAndRefineCards(
-                    rawCards, chunk, cardFormat, difficulty, interpretedInstruction, language, stats,
-                );
-                chunksDone++;
-                sendProgress({ phase: 'generating', current: chunksDone, total: chunks.length });
-                return evaluatedCards;
+            const chunkResults = await Promise.all(chunks.map(async (chunk, chunkIdx) => {
+                const formatResults = await Promise.all(activeFormats.map(async (fmt, fIdx) => {
+                    const cardsForThisFormat = formatChunkCounts[fIdx][chunkIdx];
+                    if (cardsForThisFormat <= 0) {
+                        unitsDone++;
+                        sendProgress({ phase: 'generating', current: unitsDone, total: totalWorkUnits });
+                        return [];
+                    }
+                    const rawCards = await generateCardsForChunk(
+                        chunk, cardsForThisFormat, fmt, difficulty, interpretedInstruction, language,
+                    );
+                    stats.cardsGenerated += rawCards.length;
+
+                    const evaluatedCards = await evaluateAndRefineCards(
+                        rawCards, chunk, fmt, difficulty, interpretedInstruction, language, stats,
+                    );
+                    unitsDone++;
+                    sendProgress({ phase: 'generating', current: unitsDone, total: totalWorkUnits });
+                    return evaluatedCards;
+                }));
+                return formatResults.flat();
             }));
 
             let allCards = chunkResults.flat();
 
-            // Backfill: generate additional cards if evaluation dropped some
+            // Backfill: generate additional cards if evaluation dropped some.
+            // Distribute the deficit across formats the same way as the main
+            // pass so the result mix roughly preserves the user's selection.
             const MAX_BACKFILL_ROUNDS = 2;
             let backfillRound = 0;
 
@@ -627,21 +701,27 @@ ${formatRules}
                 sendProgress({ phase: 'refining', current: backfillRound, total: MAX_BACKFILL_ROUNDS });
 
                 const deficit = count - allCards.length;
+                const deficitBase = Math.floor(deficit / activeFormats.length);
+                const deficitRemainder = deficit - deficitBase * activeFormats.length;
+                const deficitPerFormat = activeFormats.map((_, i) => deficitBase + (i < deficitRemainder ? 1 : 0));
 
                 const chunksByLength = [...chunks].sort((a, b) => b.text.length - a.text.length);
-                const backfillCounts = distributeCards(chunksByLength, deficit);
+                const formatBackfillCounts = activeFormats.map((_, i) => distributeCards(chunksByLength, deficitPerFormat[i]));
 
                 const backfillResults = await Promise.all(
-                    chunksByLength.map(async (chunk, i) => {
-                        if (backfillCounts[i] <= 0) return [];
-                        const rawCards = await generateCardsForChunk(
-                            chunk, backfillCounts[i], cardFormat, difficulty, interpretedInstruction, language,
-                        );
-                        stats.cardsGenerated += rawCards.length;
-                        return evaluateAndRefineCards(
-                            rawCards, chunk, cardFormat, difficulty, interpretedInstruction, language, stats,
-                        );
-                    }),
+                    chunksByLength.map(async (chunk, chunkIdx) =>
+                        (await Promise.all(activeFormats.map(async (fmt, fIdx) => {
+                            const n = formatBackfillCounts[fIdx][chunkIdx];
+                            if (n <= 0) return [];
+                            const rawCards = await generateCardsForChunk(
+                                chunk, n, fmt, difficulty, interpretedInstruction, language,
+                            );
+                            stats.cardsGenerated += rawCards.length;
+                            return evaluateAndRefineCards(
+                                rawCards, chunk, fmt, difficulty, interpretedInstruction, language, stats,
+                            );
+                        }))).flat(),
+                    ),
                 );
 
                 allCards = allCards.concat(backfillResults.flat());
