@@ -37,3 +37,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 | Date | Description |
 |------|-------------|
 | 2026-05-01 | Doc created. Sekel-1.8.1.Setup.exe |
+| 2026-05-01 | apps/desktop/src/ipc/ai.ts,Sekel-1.8.1.Setup.exe |
