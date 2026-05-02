@@ -51,3 +51,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 | 2026-05-02 | .claude/settings.local.json,Sekel-1.8.1.Setup.exe |
 | 2026-05-02 | .claude/settings.local.json,apps/desktop/src/components/Dashboard/Dashboard.tsx,apps/desktop/src/components/Dashboard/PreSessionBriefing.tsx,Sekel-1.8.1.Setup.exe |
 | 2026-05-02 | .claude/settings.local.json,Sekel-1.8.1.Setup.exe |
+| 2026-05-02 | .claude/settings.local.json,Sekel-1.8.1.Setup.exe |
