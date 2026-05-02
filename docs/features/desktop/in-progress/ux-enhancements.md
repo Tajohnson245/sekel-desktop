@@ -37,3 +37,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 | Date | Description |
 |------|-------------|
 | 2026-05-02 | Doc created. apps/desktop/src/components/UserProfile.tsx,Sekel-1.8.1.Setup.exe |
+| 2026-05-02 | apps/desktop/src/index.css,Sekel-1.8.1.Setup.exe |
