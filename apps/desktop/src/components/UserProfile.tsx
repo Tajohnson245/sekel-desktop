@@ -24,7 +24,7 @@ export const UserProfile: React.FC = () => {
             <div
                 className="user-icon-badge clickable"
                 title={user.email || t('auth.profile')}
-                onClick={goToProfile}
+                onClick={() => goToProfile()}
                 style={{ cursor: 'pointer', overflow: 'hidden' }}
             >
                 {profile?.avatar_url ? (
