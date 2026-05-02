@@ -724,8 +724,49 @@ function CreatePlanPanel({
                 </div>
 
                 {/* ── Live preview ──────────────────────────────────────────── */}
-                {liveStats && (
+                {liveStats && (() => {
+                    const lastWeek       = liveStats.weeklyPreview[liveStats.weeklyPreview.length - 1];
+                    const firstWeek      = liveStats.weeklyPreview[0];
+                    const reviewsWeek1   = firstWeek?.reviews ?? 0;
+                    const reviewsLastWk  = lastWeek?.reviews ?? 0;
+                    const lastWeekNum    = lastWeek?.week ?? 1;
+                    const cardsMissed    = liveStats.unseenTotal - liveStats.projectedCount;
+                    const fullyCovered   = liveStats.coveragePct >= 100;
+                    const newCardsLabel  = effectiveRate === 1 ? 'card' : 'cards';
+
+                    return (
                     <div className="plan-live-preview">
+                        {/* Narrative — what to expect, with dynamic numbers inline */}
+                        <div className="plan-narrative">
+                            <h4 className="plan-narrative-title">What to expect with this plan</h4>
+                            <p>
+                                Over the next <strong>{liveStats.availableDays} days</strong>, you'll
+                                introduce <strong>{effectiveRate} new {newCardsLabel} per day</strong>.
+                                {' '}
+                                {fullyCovered ? (
+                                    <>By exam day you'll have covered <strong>all {liveStats.unseenTotal.toLocaleString()} cards</strong> in scope.</>
+                                ) : (
+                                    <>By exam day you'll have covered <strong>{liveStats.projectedCount.toLocaleString()} of {liveStats.unseenTotal.toLocaleString()} cards</strong> ({liveStats.coveragePct}%).</>
+                                )}
+                            </p>
+                            <p>
+                                Reviews of cards you've already seen ramp up gradually as your library matures —
+                                from about <strong>{reviewsWeek1}/day in week 1</strong> to{' '}
+                                <strong>{reviewsLastWk}/day by week {lastWeekNum}</strong>, then leveling off as FSRS
+                                settles into long intervals. Your peak daily commitment is{' '}
+                                <strong>{fmtMinutes(liveStats.peakMinutes)}</strong>.
+                            </p>
+                            {!fullyCovered && cardsMissed > 0 && (
+                                <p className="plan-narrative-warn">
+                                    <AlertTriangle size={14} />
+                                    <span>
+                                        At this rate, <strong>{cardsMissed.toLocaleString()} cards</strong> won't be seen
+                                        before exam day. Increase the daily rate above or narrow your deck scope to close the gap.
+                                    </span>
+                                </p>
+                            )}
+                        </div>
+
                         <div className="plan-live-stats">
                             <div className="plan-live-stat">
                                 <span className="plan-live-stat-label">{t('plan.coverage')}</span>
@@ -765,7 +806,8 @@ function CreatePlanPanel({
                             </table>
                         </div>
                     </div>
-                )}
+                    );
+                })()}
 
                 {/* ── Name input ────────────────────────────────────────────── */}
                 <div className="plan-name-section">
