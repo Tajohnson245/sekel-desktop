@@ -490,6 +490,7 @@ export default function Dashboard() {
             {showBriefing && intelligence && (
                 <PreSessionBriefing
                     intelligence={intelligence}
+                    planDeckIds={activePlanResult?.plan.deckFilter ?? null}
                     onDismiss={() => setShowBriefing(false)}
                     onBegin={(deckId) => {
                         setShowBriefing(false);

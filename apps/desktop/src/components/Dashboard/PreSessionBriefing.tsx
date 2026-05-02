@@ -6,6 +6,12 @@ import type { Deck } from '../../lib/types';
 
 interface Props {
     intelligence: IntelligenceSummary;
+    /**
+     * Deck UUIDs the active plan covers. When non-null and non-empty, the
+     * deck dropdown is restricted to these. Null means no plan or
+     * unscoped plan — show all decks.
+     */
+    planDeckIds: string[] | null;
     onDismiss: () => void;
     onBegin: (deckId: string) => void;
 }
@@ -18,15 +24,30 @@ function weightLabel(min: number, max: number): string {
     return `${Math.round(min)}–${Math.round(max)}%`;
 }
 
-export default function PreSessionBriefing({ intelligence, onDismiss, onBegin }: Props) {
-    const { data: decks = [] } = useDecks();
-    const [selectedDeckId, setSelectedDeckId] = useState<string>(
-        intelligence.suggestedDeckId ?? decks[0]?.id ?? ''
-    );
+export default function PreSessionBriefing({ intelligence, planDeckIds, onDismiss, onBegin }: Props) {
+    const { data: allDecks = [] } = useDecks();
+
+    // Restrict to plan-scoped decks when a plan is active. If the filter would
+    // produce zero decks (every scoped deck has been deleted), fall back to
+    // all decks so the user isn't stranded — the dashboard already warns them.
+    const scopedDecks = planDeckIds && planDeckIds.length > 0
+        ? allDecks.filter((d: Deck) => planDeckIds.includes(d.id))
+        : allDecks;
+    const decks: Deck[] = scopedDecks.length > 0 ? scopedDecks : allDecks;
+
+    // Default selection: suggestedDeckId only if it's still in scope, else
+    // the first scoped deck.
+    const initialDeckId = (() => {
+        const suggested = intelligence.suggestedDeckId;
+        if (suggested && decks.some(d => d.id === suggested)) return suggested;
+        return decks[0]?.id ?? '';
+    })();
+
+    const [selectedDeckId, setSelectedDeckId] = useState<string>(initialDeckId);
 
     const { daysUntilExam, examLabel, weakestSystem, prioritizedCardCount } = intelligence;
 
-    const deckId = selectedDeckId || intelligence.suggestedDeckId || decks[0]?.id;
+    const deckId = selectedDeckId || decks[0]?.id;
 
     return (
         <div className="presession-overlay" onClick={onDismiss}>
