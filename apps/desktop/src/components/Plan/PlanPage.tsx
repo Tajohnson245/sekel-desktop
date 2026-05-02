@@ -598,8 +598,20 @@ function CreatePlanPanel({
         if (suggestion) setCardsPerDay(null);
     }, [suggestion?.recommendedNewPerDay]);
 
-    // Use suggestion as default once loaded
-    const effectiveRate = cardsPerDay ?? suggestedRate;
+    // Slider max is bounded by unseen cards in scope (can't plan more new
+    // cards/day than exist), with a comfort floor so the suggestion has
+    // visual headroom and a hard ceiling for realism.
+    const sliderMax = Math.max(
+        1,
+        Math.min(
+            suggestion?.unseenTotal ?? 1,
+            100,
+            Math.max(suggestedRate * 2, 50),
+        ),
+    );
+
+    // Use suggestion as default once loaded; clamp to slider range
+    const effectiveRate = Math.min(cardsPerDay ?? suggestedRate, sliderMax);
     const noDeckSelected = Array.isArray(selectedDeckIds) && selectedDeckIds.length === 0;
 
     // Live stats computed client-side so the slider is instant
@@ -704,7 +716,7 @@ function CreatePlanPanel({
                     <input
                         type="range"
                         min={1}
-                        max={Math.min(100, Math.max(suggestedRate * 2, 50))}
+                        max={sliderMax}
                         value={effectiveRate}
                         onChange={e => setCardsPerDay(Number(e.target.value))}
                         className="plan-slider"
@@ -874,6 +886,7 @@ export default function PlanPage() {
     const [isCreating, setIsCreating] = useState(false);
     const [historyOpen, setHistoryOpen] = useState(true);
     const [allPlansOpen, setAllPlansOpen] = useState(false);
+    const [confirmingActiveDelete, setConfirmingActiveDelete] = useState(false);
 
     const { data: examProfile, isLoading: examLoading } = useExamProfile();
     const examKey   = examProfile?.exam_key ?? null;
@@ -883,6 +896,7 @@ export default function PlanPage() {
     const { data: allPlans = [],   isLoading: plansLoading }       = usePlans();
 
     const archivePlanMutation = useArchivePlan();
+    const deletePlanMutation  = useDeletePlan();
 
     // Treat "no exam profile" as "no active plan" so an orphan plan in the DB
     // doesn't surface here.
@@ -953,6 +967,10 @@ export default function PlanPage() {
                                 ? t('plan.no_active_plan_desc')
                                 : 'Set your exam date in your profile to start a new plan. Your archived plans are below.'}
                         </p>
+                        <button className="btn btn-primary plan-empty-cta" onClick={handleStartPlan}>
+                            {examKey ? <Plus size={16} /> : <GraduationCap size={16} />}
+                            {examKey ? t('plan.new_plan') : 'Set up exam'}
+                        </button>
                     </div>
                     <section className="plan-card plan-history-section">
                         <button
@@ -983,28 +1001,66 @@ export default function PlanPage() {
                     <p className="text-muted">{activePlan.name}</p>
                 </div>
                 <div className="plan-header-actions">
-                    <button
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => setAllPlansOpen(true)}
-                    >
-                        <LayoutList size={15} />
-                        {t('plan.all_plans')}
-                    </button>
-                    <button
-                        className="btn btn-ghost btn-sm"
-                        title={t('plan.archive_active')}
-                        onClick={() => archivePlanMutation.mutate(activePlan.id, {
-                            onSuccess: () => showToast(t('plan.archived_saved'), 'success'),
-                        })}
-                        disabled={archivePlanMutation.isPending}
-                    >
-                        <Archive size={15} />
-                        {t('plan.archive_active')}
-                    </button>
-                    <button className="btn btn-primary" onClick={() => setIsCreating(true)}>
-                        <Plus size={15} />
-                        {t('plan.new_plan')}
-                    </button>
+                    {confirmingActiveDelete ? (
+                        <>
+                            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                Permanently delete this plan? Reviews stay; the plan and its scope are removed.
+                            </span>
+                            <button
+                                className="btn btn-danger btn-sm"
+                                onClick={() => deletePlanMutation.mutate(activePlan.id, {
+                                    onSuccess: () => {
+                                        setConfirmingActiveDelete(false);
+                                        showToast('Plan deleted', 'success');
+                                    },
+                                    onError: () => showToast('Failed to delete plan', 'error'),
+                                })}
+                                disabled={deletePlanMutation.isPending}
+                            >
+                                Confirm
+                            </button>
+                            <button
+                                className="btn btn-ghost btn-sm"
+                                onClick={() => setConfirmingActiveDelete(false)}
+                                disabled={deletePlanMutation.isPending}
+                            >
+                                Cancel
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <button
+                                className="btn btn-ghost btn-sm"
+                                onClick={() => setAllPlansOpen(true)}
+                            >
+                                <LayoutList size={15} />
+                                {t('plan.all_plans')}
+                            </button>
+                            <button
+                                className="btn btn-ghost btn-sm"
+                                title={t('plan.archive_active')}
+                                onClick={() => archivePlanMutation.mutate(activePlan.id, {
+                                    onSuccess: () => showToast(t('plan.archived_saved'), 'success'),
+                                })}
+                                disabled={archivePlanMutation.isPending}
+                            >
+                                <Archive size={15} />
+                                {t('plan.archive_active')}
+                            </button>
+                            <button
+                                className="btn btn-ghost btn-sm plan-history-delete"
+                                title="Delete plan permanently"
+                                onClick={() => setConfirmingActiveDelete(true)}
+                            >
+                                <Trash2 size={15} />
+                                Delete
+                            </button>
+                            <button className="btn btn-primary" onClick={() => setIsCreating(true)}>
+                                <Plus size={15} />
+                                {t('plan.new_plan')}
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
 
