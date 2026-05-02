@@ -389,7 +389,7 @@
         "subtitle": "Upload documents (PDF, DOCX, PPTX, Images) or YouTube videos to generate a study plan and flashcards.",
         "upload_header": "Upload Documents",
         "drag_drop": "Drag & Drop or <0>Choose file</0> to upload",
-        "formats": "PDF, DOCX, PPTX, TXT, Images",
+        "formats": "PDF, DOCX, PPTX, XLSX, CSV, TXT, MD",
         "or": "OR",
         "import_youtube": "Import from YouTube",
         "paste_link": "Paste YouTube Link",

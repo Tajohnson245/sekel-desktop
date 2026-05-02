@@ -21,9 +21,17 @@ export default function DocumentUpload({ onFilesSelected, onUrlSelected, isProce
 
     const handleFiles = (files: FileList | null) => {
         if (!files || files.length === 0) return;
-        const validFiles = Array.from(files);
-        if (onFilesSelected) {
-            onFilesSelected(validFiles);
+        // Reject images — they aren't supported as flashcard source documents.
+        // The file-picker `accept` filters this for click-to-upload, but
+        // drag-drop bypasses `accept` entirely, so filter here too.
+        const all = Array.from(files);
+        const accepted = all.filter(f => !f.type.startsWith('image/'));
+        const rejected = all.length - accepted.length;
+        if (rejected > 0) {
+            showToast(`Skipped ${rejected} image${rejected === 1 ? '' : 's'} — only documents are supported.`, 'error');
+        }
+        if (accepted.length > 0 && onFilesSelected) {
+            onFilesSelected(accepted);
         }
     };
 
@@ -78,7 +86,7 @@ export default function DocumentUpload({ onFilesSelected, onUrlSelected, isProce
                     multiple
                     onChange={handleFileSelect}
                     style={{ display: 'none' }}
-                    accept=".pdf,.docx,.pptx,.xlsx,.xls,.csv,.txt,.md,.png,.jpg,.jpeg,.webp"
+                    accept=".pdf,.docx,.pptx,.xlsx,.xls,.csv,.txt,.md"
                     disabled={isProcessing}
                 />
 
