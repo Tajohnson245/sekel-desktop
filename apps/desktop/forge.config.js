@@ -166,6 +166,7 @@ module.exports = {
       name: '@electron-forge/maker-squirrel',
       config: {
         name: 'Sekel',
+        setupExe: 'Sekel.exe',
         setupIcon: path.join(__dirname, 'assets', 'sekel_logo.ico'),
       },
     },
