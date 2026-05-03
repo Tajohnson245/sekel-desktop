@@ -21,7 +21,7 @@ const VERSION_FILE = path.join(__dirname, 'version.json');
 
 // Map each app to the packages it owns (versioned together)
 const APP_PACKAGES = {
-  desktop: ['apps/desktop', 'packages/components', 'packages/db'],
+  desktop: ['apps/desktop', 'packages/components', 'packages/db', 'packages/observability'],
 };
 
 function readVersionFile() {

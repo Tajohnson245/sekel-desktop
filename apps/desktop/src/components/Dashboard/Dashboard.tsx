@@ -204,6 +204,8 @@ export default function Dashboard() {
             return midB - midA;
         });
 
+    const showReadiness = hasExamDate && !!intelligence?.hasClassifications && readinessSystems.length > 0;
+
     // Exam countdown sub-label
     const countdownSub = hasExamDate
         ? (hasActivePlan
@@ -375,7 +377,7 @@ export default function Dashboard() {
             )}
 
             {/* ── Exam Readiness ────────────────────────────────────────────── */}
-            {hasExamDate && intelligence?.hasClassifications && readinessSystems.length > 0 && (
+            {showReadiness && (
                 <section className="dash-section">
                     <h3 className="dash-section__title">Exam Readiness</h3>
                     <div className="db-card db-card--readiness">

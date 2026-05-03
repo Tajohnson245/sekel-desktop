@@ -36,14 +36,114 @@ function weekMultiplier(week: number): number {
     return idx < WEEKLY_MULTIPLIERS.length ? WEEKLY_MULTIPLIERS[idx] : STEADY_STATE;
 }
 
-function cumulativeReviews(week: number): number {
-    let sum = 0;
-    for (let w = 1; w <= week; w++) sum += weekMultiplier(w);
-    return sum;
+
+// ── Exhaustion-aware weekly preview ──────────────────────────────────────────
+//
+// Models what actually happens when the card supply runs out:
+//   - new cards drop to 0 once all unseenTotal cards are introduced
+//   - reviews come only from cohorts that were actually introduced
+//
+// For week w:
+//   newPerDay = rate (w < exhaustWeek), prorated (w == exhaustWeek), 0 after
+//   reviews   = sum over cohorts 1..min(w, exhaustWeek) of
+//               rate × weekMultiplier(age) × cohortFraction / 7
+
+interface WeekRow {
+    week: number;
+    newCardsPerDay: number;
+    reviews: number;
+    mins: number;
 }
 
-function clientDailyMinutes(n: number, week: number): number {
-    return n * 0.75 + (n * cumulativeReviews(week) / 7) * 0.33;
+function buildWeeklyPreview(
+    rate: number,
+    unseenTotal: number,
+    availableDays: number,
+    maxWeeks: number,
+): { weeks: WeekRow[]; peakMinutes: number; daysToExhaust: number } {
+    if (rate <= 0 || unseenTotal <= 0) return { weeks: [], peakMinutes: 0, daysToExhaust: 0 };
+
+    const daysToExhaust = Math.min(Math.ceil(unseenTotal / rate), availableDays);
+    const exhaustWeek   = Math.ceil(daysToExhaust / 7);
+    const lastWeekDays  = daysToExhaust % 7 || 7;
+    const totalWeeks    = Math.min(Math.ceil(availableDays / 7), maxWeeks);
+
+    let peakMinutes = 0;
+    const weeks: WeekRow[] = [];
+
+    for (let w = 1; w <= totalWeeks; w++) {
+        const newCardsPerDay =
+            w < exhaustWeek   ? rate :
+            w === exhaustWeek ? Math.round(rate * lastWeekDays / 7) :
+            0;
+
+        let weeklyReviews = 0;
+        for (let c = 1; c <= Math.min(w, exhaustWeek); c++) {
+            const fraction = c === exhaustWeek ? lastWeekDays / 7 : 1;
+            weeklyReviews += rate * weekMultiplier(w - c + 1) * fraction;
+        }
+        const reviews = Math.round(weeklyReviews / 7);
+        const mins    = Math.round(newCardsPerDay * 0.75 + reviews * 0.33);
+
+        if (mins > peakMinutes) peakMinutes = mins;
+        weeks.push({ week: w, newCardsPerDay, reviews, mins });
+    }
+
+    return { weeks, peakMinutes, daysToExhaust };
+}
+
+// ── Plan narrative ────────────────────────────────────────────────────────────
+//
+// Generates a plain-English paragraph summarising what the user is signing up
+// for. Handles three distinct scenarios:
+//   1. Front-loaded  — new cards exhaust well before the exam date
+//   2. Paced         — new cards introduced throughout the full study window
+//   3. Partial cover — rate too low to reach all cards before the exam
+
+function buildPlanNarrative(
+    rate: number,
+    unseenTotal: number,
+    availableDays: number,
+    daysToExhaust: number,
+    coveragePct: number,
+    peakMinutes: number,
+    examLabel: string,
+): string {
+    const reviewOnlyDays = availableDays - daysToExhaust;
+    const plural = (n: number, word: string) => `${n.toLocaleString()} ${word}${n !== 1 ? 's' : ''}`;
+    const examStr = examLabel || 'your exam';
+
+    // ── Sentence 1: intro phase ──────────────────────────────────────────────
+    let intro: string;
+    if (daysToExhaust >= availableDays) {
+        // Cards pace through (or beyond) the full window
+        intro = `At ${plural(rate, 'new card')} per day, you'll be introducing cards throughout your entire ${plural(availableDays, 'day')} study window, right up to ${examStr}.`;
+    } else if (reviewOnlyDays <= 7) {
+        // Exhausts in the last week — effectively paced
+        intro = `At ${plural(rate, 'new card')} per day, you'll finish introducing all ${unseenTotal.toLocaleString()} cards with about ${plural(reviewOnlyDays, 'day')} to spare before ${examStr}.`;
+    } else {
+        // Meaningfully front-loaded
+        intro = `At ${plural(rate, 'new card')} per day, you'll introduce all ${unseenTotal.toLocaleString()} cards in ${plural(daysToExhaust, 'day')} — then spend the remaining ${plural(reviewOnlyDays, 'day')} in pure review mode before ${examStr}.`;
+    }
+
+    // ── Sentence 2: time commitment ──────────────────────────────────────────
+    const peakStr = fmtMinutes(peakMinutes);
+    let timeNote: string;
+    if (daysToExhaust < availableDays && reviewOnlyDays > 7) {
+        // Review load after exhaustion is much lower than during intro phase
+        const reviewRows = buildWeeklyPreview(rate, unseenTotal, availableDays, Math.ceil(availableDays / 7));
+        const steadyMins = reviewRows.weeks.slice(-1)[0]?.mins ?? 0;
+        timeNote = `Your busiest days are during the intro phase, peaking around ${peakStr}/day, then settling to roughly ${fmtMinutes(steadyMins)}/day once reviews mature into longer intervals.`;
+    } else {
+        timeNote = `Study time builds gradually as your review pile grows, peaking around ${peakStr}/day.`;
+    }
+
+    // ── Sentence 3: coverage ────────────────────────────────────────────────
+    const coverageNote = coveragePct === 100
+        ? `You'll cover 100% of the selected deck before ${examStr}.`
+        : `At this pace you'll cover ${coveragePct}% of the selected deck (${Math.round(unseenTotal * coveragePct / 100).toLocaleString()} of ${unseenTotal.toLocaleString()} cards) — consider increasing your daily target to reach more cards.`;
+
+    return `${intro} ${timeNote} ${coverageNote}`;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -900,20 +1000,35 @@ function CreatePlanPanel({
         const { unseenTotal, availableDays } = suggestion;
         const projectedCount = Math.min(unseenTotal, effectiveRate * availableDays);
         const coveragePct    = unseenTotal > 0 ? Math.round((projectedCount / unseenTotal) * 100) : 100;
-        const peakMinutes    = Math.round(clientDailyMinutes(effectiveRate, 8));
-        const weeklyPreview  = Array.from({ length: Math.min(Math.ceil(availableDays / 7), 8) }, (_, i) => {
-            const week = i + 1;
-            const reviews = Math.round((effectiveRate * cumulativeReviews(week)) / 7);
-            const mins    = Math.round(clientDailyMinutes(effectiveRate, week));
-            return { week, reviews, mins };
-        });
-        return { projectedCount, coveragePct, peakMinutes, weeklyPreview, unseenTotal, availableDays };
+        const preview        = buildWeeklyPreview(effectiveRate, unseenTotal, availableDays, 8);
+        return {
+            projectedCount,
+            coveragePct,
+            peakMinutes:   preview.peakMinutes,
+            weeklyPreview: preview.weeks,
+            daysToExhaust: preview.daysToExhaust,
+            unseenTotal,
+            availableDays,
+        };
     }, [suggestion, effectiveRate]);
 
     async function handleCommit() {
         if (!suggestion) return;
+        // Rebuild the weekly projection for the user's chosen rate (not the system recommendation)
+        // so the active plan's schedule table reflects what they actually committed to.
+        const preview = buildWeeklyPreview(effectiveRate, suggestion.unseenTotal, suggestion.availableDays, 16);
+        const correctedSnapshot = {
+            ...suggestion,
+            weeklyProjection: preview.weeks.map(r => ({
+                week:                   r.week,
+                newCardsPerDay:         r.newCardsPerDay,
+                estimatedReviewsPerDay: r.reviews,
+                estimatedTotalMinutes:  r.mins,
+            })),
+            projectedPeakDailyMinutes: preview.peakMinutes,
+        };
         createPlan.mutate(
-            { examKey, cardsPerDay: effectiveRate, name: name.trim() || defaultPlanName(), snapshot: suggestion },
+            { examKey, cardsPerDay: effectiveRate, name: name.trim() || defaultPlanName(), snapshot: correctedSnapshot },
             { onSuccess: () => onDone() },
         );
     }
@@ -1062,6 +1177,19 @@ function CreatePlanPanel({
                             </div>
                         </div>
 
+                        {/* Plan narrative — plain-English summary of what this plan looks like */}
+                        <p className="plan-narrative">
+                            {buildPlanNarrative(
+                                effectiveRate,
+                                liveStats.unseenTotal,
+                                liveStats.availableDays,
+                                liveStats.daysToExhaust,
+                                liveStats.coveragePct,
+                                liveStats.peakMinutes,
+                                examLabel,
+                            )}
+                        </p>
+
                         {/* Mini weekly projection */}
                         <div className="plan-preview-table-wrap">
                             <table className="plan-table plan-preview-table">
@@ -1075,9 +1203,9 @@ function CreatePlanPanel({
                                 </thead>
                                 <tbody>
                                     {liveStats.weeklyPreview.map(row => (
-                                        <tr key={row.week}>
+                                        <tr key={row.week} className={row.newCardsPerDay === 0 ? 'plan-table-row--review-only' : ''}>
                                             <td>{t('plan.week_n', { n: row.week })}</td>
-                                            <td>{effectiveRate}</td>
+                                            <td>{row.newCardsPerDay}</td>
                                             <td>{row.reviews}</td>
                                             <td>{fmtMinutes(row.mins)}</td>
                                         </tr>

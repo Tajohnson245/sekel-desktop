@@ -216,6 +216,11 @@
     align-items: stretch;
 }
 
+/* When no Exam Readiness card, right column spans the full width */
+.db-lower-split--full {
+    grid-template-columns: 1fr;
+}
+
 .db-card--readiness {
     /* Exam readiness fills its section width naturally */
 }

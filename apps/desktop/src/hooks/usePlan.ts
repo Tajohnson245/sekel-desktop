@@ -170,13 +170,22 @@ export function useArchivePlan() {
 // ── Delete plan ───────────────────────────────────────────────────────────────
 
 export function useDeletePlan() {
-    const userId = useAuthStore(s => s.user?.id);
-    const qc     = useQueryClient();
+    const userId          = useAuthStore(s => s.user?.id);
+    const clearActivePlan = usePlanStore(s => s.clearActivePlan);
+    const qc              = useQueryClient();
 
     return useMutation({
         mutationFn: (planId: string) => deletePlan(userId!, planId),
-        onSuccess: () => {
-            qc.invalidateQueries({ queryKey: planKeys.active(userId ?? '') });
+        onSuccess: (_data, planId) => {
+            // Eagerly remove the deleted plan so the UI doesn't flash stale data
+            // while the background refetch is in-flight (mirrors useArchivePlan pattern)
+            qc.setQueryData(planKeys.list(userId ?? ''), (old: Plan[] | undefined) =>
+                old?.filter(p => p.id !== planId) ?? []
+            );
+            // Safety: clear store in case an active plan was somehow deleted
+            clearActivePlan();
+            // Broad partial-key invalidation covers both '' and exam-scoped active queries
+            qc.invalidateQueries({ queryKey: ['plan', 'active', userId ?? ''] });
             qc.invalidateQueries({ queryKey: planKeys.list(userId ?? '') });
         },
     });

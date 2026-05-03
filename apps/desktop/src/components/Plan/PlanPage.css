@@ -706,6 +706,27 @@
   color:       var(--mist);
 }
 
+.plan-narrative {
+  font-family:  var(--font-body, 'Outfit', sans-serif);
+  font-size:    0.875rem;
+  line-height:  1.65;
+  color:        var(--mist);
+  margin:       0 0 var(--space-lg);
+  padding:      0.875rem 1rem;
+  background:   var(--ink-muted);
+  border-radius: var(--radius-sm, var(--r-sm));
+  border-left:  3px solid var(--teal);
+}
+
+.plan-narrative strong {
+  color:       var(--fog);
+  font-weight: 600;
+}
+
+.plan-table-row--review-only td {
+  color: var(--mist);
+}
+
 .plan-preview-table-wrap {
   overflow-x: auto;
 }

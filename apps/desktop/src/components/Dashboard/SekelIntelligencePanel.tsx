@@ -1,4 +1,4 @@
-import { Sparkles, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Sparkles, Eye, EyeOff } from 'lucide-react';
 import type { IntelligenceSummary } from '../../hooks/useSekelIntelligence';
 import './SekelIntelligencePanel.css';
 
@@ -31,15 +31,36 @@ export default function SekelIntelligencePanel({ intelligence, onStartFocused, o
     // ── No exam profile set ──────────────────────────────────────────
     if (daysUntilExam === null && !examLabel) {
         return (
-            <div className="intel-panel intel-panel--prompt">
-                <div className="intel-panel__prompt-row">
-                    <Sparkles size={16} className="intel-icon--teal" />
-                    <span className="intel-panel__prompt-text">
-                        Set your exam date to unlock <strong>SEKEL Intelligence</strong>
-                    </span>
-                    <button className="intel-panel__cta-link" onClick={onGoToProfile}>
-                        Set exam →
-                    </button>
+            <div className="intel-panel intel-panel--setup">
+                <div className="intel-setup-content">
+                    <div className="intel-setup-left">
+                        <div className="intel-setup-eyebrow">
+                            <Sparkles size={13} className="intel-icon--teal" />
+                            <span>SEKEL Intelligence</span>
+                        </div>
+                        <h3 className="intel-setup-title">AI-powered study insights</h3>
+                        <p className="intel-setup-desc">
+                            Set your exam date to unlock personalized weak-system detection,
+                            blueprint coverage, and focused study sessions.
+                        </p>
+                        <button className="intel-setup-cta" onClick={onGoToProfile}>
+                            Set your exam date →
+                        </button>
+                    </div>
+                    <ul className="intel-setup-features">
+                        <li className="intel-setup-feature">
+                            <span className="intel-setup-feature__dot" />
+                            Weak system detection
+                        </li>
+                        <li className="intel-setup-feature">
+                            <span className="intel-setup-feature__dot" />
+                            Blueprint weight analysis
+                        </li>
+                        <li className="intel-setup-feature">
+                            <span className="intel-setup-feature__dot" />
+                            Focused study sessions
+                        </li>
+                    </ul>
                 </div>
             </div>
         );
@@ -48,15 +69,36 @@ export default function SekelIntelligencePanel({ intelligence, onStartFocused, o
     // ── Cards not classified yet ─────────────────────────────────────
     if (!hasClassifications) {
         return (
-            <div className="intel-panel intel-panel--prompt">
-                <div className="intel-panel__prompt-row">
-                    <AlertCircle size={16} className="intel-icon--amber" />
-                    <span className="intel-panel__prompt-text">
-                        Classify your cards to enable <strong>SEKEL Intelligence</strong>
-                    </span>
-                    <button className="intel-panel__cta-link" onClick={onGoToDecks}>
-                        Classify cards →
-                    </button>
+            <div className="intel-panel intel-panel--setup">
+                <div className="intel-setup-content">
+                    <div className="intel-setup-left">
+                        <div className="intel-setup-eyebrow">
+                            <Sparkles size={13} className="intel-icon--teal" />
+                            <span>SEKEL Intelligence</span>
+                        </div>
+                        <h3 className="intel-setup-title">One step away from AI insights</h3>
+                        <p className="intel-setup-desc">
+                            Classify your cards to enable personalized weak-system detection
+                            and exam blueprint coverage analysis.
+                        </p>
+                        <button className="intel-setup-cta" onClick={onGoToDecks}>
+                            Classify cards →
+                        </button>
+                    </div>
+                    <ul className="intel-setup-features">
+                        <li className="intel-setup-feature">
+                            <span className="intel-setup-feature__dot" />
+                            Exam blueprint alignment
+                        </li>
+                        <li className="intel-setup-feature">
+                            <span className="intel-setup-feature__dot" />
+                            Weak system detection
+                        </li>
+                        <li className="intel-setup-feature">
+                            <span className="intel-setup-feature__dot" />
+                            Focused study sessions
+                        </li>
+                    </ul>
                 </div>
             </div>
         );

@@ -24,14 +24,6 @@
     "desktop": {
       "cache": false,
       "persistent": true
-    },
-    "web": {
-      "cache": false,
-      "persistent": true
-    },
-    "survey": {
-      "cache": false,
-      "persistent": true
     }
   }
 }

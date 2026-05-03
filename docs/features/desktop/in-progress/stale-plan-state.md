@@ -1,0 +1,52 @@
+# Stale Plan State
+> Auto-created by post-task hook. Update with intent and description.
+
+---
+
+**Status:** `In Progress`
+**Target Version:** `desktop/vX.X.X` | TBD
+**Branch:** `SEKEL-110-stale-plan-state`
+**Created:** 2026-04-04
+**Last Updated:** 2026-04-21
+**Shipped:** —
+
+---
+
+## Overview
+
+2–4 sentences: what this feature is, why it exists, and how it fits into Sekel.
+
+## Architecture
+
+Key files, packages, and how they connect. Use a directory tree or bullet list.
+
+## Key Decisions
+
+1. **Decision** — Why this approach was chosen over alternatives.
+
+## Known Limitations / Future Work
+
+- What was intentionally left out or deferred.
+
+---
+
+## Changelog
+
+<!-- append-only; maintained by post-task hook — do not edit manually -->
+
+| Date | Description |
+|------|-------------|
+| 2026-04-04 | Doc created. apps/desktop/src/hooks/usePlan.ts |
+| 2026-04-04 | apps/desktop/src/components/Dashboard/Dashboard.css,apps/desktop/src/components/Dashboard/Dashboard.tsx,apps/desktop/src/components/Dashboard/SekelIntelligencePanel.css,apps/desktop/src/components/Dashboard/SekelIntelligencePanel.tsx,apps/desktop/src/hooks/usePlan.ts |
+| 2026-04-04 | apps/desktop/src/components/Dashboard/Dashboard.css,apps/desktop/src/components/Dashboard/Dashboard.tsx,apps/desktop/src/components/Dashboard/SekelIntelligencePanel.css,apps/desktop/src/components/Dashboard/SekelIntelligencePanel.tsx,apps/desktop/src/hooks/usePlan.ts |
+| 2026-04-04 | apps/desktop/src/components/Plan/PlanPage.css,apps/desktop/src/components/Plan/PlanPage.tsx,apps/desktop/src/main/db/planService.ts |
+| 2026-04-05 | apps/desktop/src/components/Plan/PlanPage.css,apps/desktop/src/components/Plan/PlanPage.tsx,apps/desktop/src/main/db/planService.ts |
+| 2026-04-05 | apps/desktop/src/components/Plan/PlanPage.css,apps/desktop/src/components/Plan/PlanPage.tsx,apps/desktop/src/main/db/planService.ts |
+| 2026-04-05 | apps/desktop/src/components/Plan/PlanPage.tsx |
+| 2026-04-21 | Task completed |
+| 2026-04-21 | Task completed |
+| 2026-04-21 | Task completed |
+| 2026-04-21 | Task completed |
+| 2026-04-21 | .circleci/config.yml,.dockerignore,.github/workflows/bump-version.yml,.github/workflows/release-survey.yml,.github/workflows/release-webapps.yml,apps/community/.gitignore,apps/community/Dockerfile,apps/community/eslint.config.mjs |
+| 2026-04-21 | .circleci/config.yml,.dockerignore,.github/workflows/bump-version.yml,.github/workflows/release-survey.yml,.github/workflows/release-webapps.yml,apps/community/.gitignore,apps/community/Dockerfile,apps/community/eslint.config.mjs |
+| 2026-04-21 | .claude/settings.local.json |

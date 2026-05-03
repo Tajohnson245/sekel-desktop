@@ -3,8 +3,10 @@
     "private": true,
     "packageManager": "npm@11.6.2",
     "workspaces": [
-        "apps/*",
-        "packages/*"
+        "apps/desktop",
+        "packages/db",
+        "packages/observability",
+        "packages/components"
     ],
     "scripts": {
         "dev": "turbo run dev",
