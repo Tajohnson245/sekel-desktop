@@ -55,3 +55,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 | 2026-05-02 | .claude/settings.local.json,Sekel-1.8.1.Setup.exe |
 | 2026-05-02 | .claude/settings.local.json,Sekel-1.8.1.Setup.exe |
 | 2026-05-02 | .claude/settings.local.json,apps/desktop/src/components/Plan/PlanPage.css,apps/desktop/src/components/Plan/PlanPage.tsx,apps/desktop/src/hooks/usePlan.ts,apps/desktop/src/lib/queries.ts,apps/desktop/src/locales/en/translation.json,apps/desktop/src/main/db/planService.ts,apps/desktop/src/types/electron.d.ts |
+| 2026-05-02 | .claude/settings.local.json,Sekel-1.8.1.Setup.exe |
