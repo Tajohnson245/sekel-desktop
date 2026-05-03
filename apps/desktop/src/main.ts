@@ -295,15 +295,31 @@ app.whenReady().then(() => {
     }
     cleanupStaleTempDirs().catch((err) => log.error('Temp cleanup failed', { error: err instanceof Error ? err.message : String(err) }));
 
-    // Check for updates only in production (packaged app)
-    if (app.isPackaged) {
+    // Check for updates only in production (packaged app, Windows only — the
+    // R2 release feed currently only ships Squirrel.Windows artifacts).
+    if (app.isPackaged && process.platform === 'win32') {
         updateElectronApp({
             updateSource: {
                 type: UpdateSourceType.StaticStorage,
-                baseUrl: 'https://pub-1dd00656fa304302a2db06169963ac20.r2.dev'
+                // release.yml uploads to ${platform}/${arch}/${filename}, so the
+                // auto-updater's baseUrl has to include /win32/x64. Without that
+                // path Squirrel hits the bucket root and gets a 404 on the
+                // RELEASES manifest, never finding updates. Diagnosed via
+                // %LocalAppData%\Sekel\Squirrel-CheckForUpdate.log.
+                baseUrl: 'https://pub-1dd00656fa304302a2db06169963ac20.r2.dev/win32/x64'
             },
-            updateInterval: '1 hour',
-            notifyUser: true
+            updateInterval: '10 minutes',
+            notifyUser: true,
+            // update-electron-app's ILogger expects a `log` method which our
+            // @sekel/observability logger doesn't have — adapt it inline so
+            // every check-for-update / download / error event flows into our
+            // structured log file.
+            logger: {
+                log:   (...args: unknown[]) => log.info(args.map(String).join(' ')),
+                info:  (...args: unknown[]) => log.info(args.map(String).join(' ')),
+                warn:  (...args: unknown[]) => log.warn(args.map(String).join(' ')),
+                error: (...args: unknown[]) => log.error(args.map(String).join(' ')),
+            },
         });
     }
 
