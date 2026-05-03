@@ -1,7 +1,7 @@
 {
   "name": "@sekel/desktop",
-  "version": "1.0.0",
-  "description": "Anki but better",
+  "version": "1.0.1",
+  "description": "Intelligent flashcards for exam prep",
   "homepage": "https://github.com/Tajohnson245/sekel-desktop#readme",
   "bugs": {
     "url": "https://github.com/Tajohnson245/sekel-desktop/issues"
