@@ -343,6 +343,8 @@
         "format_basic": "Basique (Q&R)",
         "format_cloze": "Texte à trous",
         "format_reversed": "Inversé",
+        "format_true_false": "Vrai / Faux",
+        "format_compare_contrast": "Comparer et contraster",
         "difficulty": "Difficulté",
         "difficulty_essential": "Essentiel uniquement",
         "difficulty_detailed": "Détaillé",

@@ -18,6 +18,7 @@ import {
     type RebalanceDelta,
     type DeckUnseenCount,
     type PlanProgress,
+    type PlanActivityCounts,
 } from '../lib/queries';
 import { useAuthStore } from '../stores/authStore';
 import { usePlanStore } from '../stores/planStore';
@@ -262,4 +263,4 @@ export function usePlanProgress(plan: Plan | null | undefined) {
     });
 }
 
-export type { PlanResult, Plan, ActivePlanResult, RebalanceDelta, DeckUnseenCount, PlanProgress };
+export type { PlanResult, Plan, ActivePlanResult, RebalanceDelta, DeckUnseenCount, PlanProgress, PlanActivityCounts };

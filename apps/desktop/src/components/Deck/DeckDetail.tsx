@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { ArrowLeft, BookOpen, Trash2, Zap, Plus, Pencil } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useDeck, useDeckStats } from '../../hooks/useDecks';
-import { useNoteTypes, useCreateNoteType, useNotesByDeck, useDeleteNote } from '../../hooks/useNotes';
+import { useNoteTypes, useCreateNoteType, useDeleteAllCardsInDeck } from '../../hooks/useNotes';
 import { useAppNavigation } from '../../hooks/useAppNavigation';
 import { useAuthStore } from '../../stores/authStore';
 import { useExamProfile } from '../../hooks/useExamProfile';
@@ -23,9 +23,8 @@ export default function DeckDetail() {
     const { data: deck, isLoading: deckLoading } = useDeck(id);
     const { data: stats } = useDeckStats(id);
     const { data: noteTypes = [] } = useNoteTypes(userId);
-    const { data: notes = [] } = useNotesByDeck(id);
     const createNoteType = useCreateNoteType();
-    const deleteNote = useDeleteNote();
+    const deleteAllCardsInDeck = useDeleteAllCardsInDeck();
     const { t } = useTranslation();
     const { showToast } = useToast();
 
@@ -62,10 +61,7 @@ export default function DeckDetail() {
     const handleDeleteAllCards = async () => {
         setIsDeleting(true);
         try {
-            // Delete all notes (cards are cascade deleted)
-            for (const note of notes) {
-                await deleteNote.mutateAsync({ id: note.id, deckId: id });
-            }
+            await deleteAllCardsInDeck.mutateAsync(id);
             setShowDeleteConfirm(false);
         } catch (_error) {
             showToast(t('errors.delete_cards'), 'error');

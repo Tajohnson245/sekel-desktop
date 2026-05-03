@@ -72,14 +72,8 @@
 
 .db-hero {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 0.875rem;
-}
-
-@media (max-width: 640px) {
-    .db-hero {
-        grid-template-columns: 1fr;
-    }
 }
 
 /* Stat card */
@@ -193,20 +187,33 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   Zones 3–5 — Lower split: Exam Readiness left, right column stacked
+   Section wrappers (Today / Your Decks / Exam Readiness / Quick Actions)
+   Each section is a label + content row. Rows use auto-fit so cards
+   stretch full-width when alone and pair up when there's space.
    ───────────────────────────────────────────────────────────────── */
 
-.db-lower-split {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.875rem;
-    align-items: start;
+.dash-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 0;
 }
 
-@media (max-width: 860px) {
-    .db-lower-split {
-        grid-template-columns: 1fr;
-    }
+.dash-section__title {
+    margin: 0;
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--mist);
+}
+
+.dash-section__row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    gap: 0.875rem;
+    align-items: stretch;
 }
 
 /* When no Exam Readiness card, right column spans the full width */
@@ -215,14 +222,7 @@
 }
 
 .db-card--readiness {
-    /* Exam readiness fills its grid cell height naturally */
-}
-
-.db-right-col {
-    display: flex;
-    flex-direction: column;
-    gap: 0.875rem;
-    min-width: 0;
+    /* Exam readiness fills its section width naturally */
 }
 
 /* ─────────────────────────────────────────────────────────────────
@@ -373,40 +373,13 @@
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   Activity + Plan + Quick Actions grid
-   Left col: activity on top, plan below (when active)
-   Right col: quick actions spanning both rows
+   Quick Actions — horizontal grid that stacks on narrow viewports
    ───────────────────────────────────────────────────────────────── */
 
-.db-apq-grid {
+.dash-quick-actions__grid {
     display: grid;
-    grid-template-columns: 1fr auto;
-    grid-template-rows: auto;
-    grid-template-areas: "activity actions";
-    gap: 0.875rem;
-    align-items: stretch;
-}
-
-.db-apq-grid--has-plan {
-    grid-template-rows: auto auto;
-    grid-template-areas:
-        "activity actions"
-        "plan     actions";
-}
-
-.db-apq-grid__activity { grid-area: activity; }
-.db-apq-grid__plan     { grid-area: plan; }
-.db-apq-grid__actions  { grid-area: actions; }
-
-@media (max-width: 680px) {
-    .db-apq-grid,
-    .db-apq-grid--has-plan {
-        grid-template-columns: 1fr;
-        grid-template-areas:
-            "activity"
-            "plan"
-            "actions";
-    }
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.5rem;
 }
 
 /* Activity stats grid */
@@ -444,12 +417,6 @@
 }
 
 /* Quick action buttons */
-.db-quick-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
 .db-action-btn {
     display: flex;
     align-items: center;

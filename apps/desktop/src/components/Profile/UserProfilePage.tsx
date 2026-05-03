@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { useProfileStore } from '../../stores/profileStore';
 import { User, MapPin, Edit2 } from 'lucide-react';
@@ -16,6 +17,8 @@ export const UserProfilePage: React.FC = () => {
     const { profile, fetchProfile } = useProfileStore();
     const { t, i18n } = useTranslation();
     const { showToast } = useToast();
+    const location = useLocation();
+    const initialTab = location.hash.replace('#', '') || 'profile';
 
     useEffect(() => {
         if (user?.id) {
@@ -80,7 +83,7 @@ export const UserProfilePage: React.FC = () => {
                 </div>
             </div>
 
-            <Tabs defaultTab="profile">
+            <Tabs key={initialTab} defaultTab={initialTab}>
                 <TabList>
                     <Tab id="profile">{t('profile.tab_profile')}</Tab>
                     <Tab id="preferences">{t('profile.tab_preferences')}</Tab>

@@ -11,7 +11,6 @@ import { useActivePlan, usePlanRebalance, useClearPlanOverride } from '../hooks/
 import { usePlanStore } from '../stores/planStore';
 import { UserProfile } from '../components/UserProfile';
 import DocumentsPage from '../components/AIStudy/DocumentsPage';
-import { ExamOnboardingModal } from '../components/ExamOnboarding/ExamOnboardingModal';
 import { DeckEditorProvider } from '../contexts/DeckEditorContext';
 import { useDeckEditor } from '../contexts/DeckEditorContext';
 
@@ -64,10 +63,12 @@ function NavBar() {
                         className={`nav-link ${isActive(item.path) ? 'active' : ''}`}
                         onClick={() => navigate(item.path)}
                         aria-current={isActive(item.path) ? 'page' : undefined}
+                        aria-label={item.label}
+                        title={item.label}
                         data-testid={`nav-${item.id}`}
                     >
                         <Icon size={18} />
-                        {item.label}
+                        <span className="nav-link__label">{item.label}</span>
                         {isDrafts && drafts.length > 0 && (
                             <span className="nav-draft-badge">{drafts.length}</span>
                         )}
@@ -95,10 +96,12 @@ function HeaderBar() {
                 <button
                     className="btn btn-primary"
                     onClick={openDeckEditor}
+                    aria-label={t('nav.new_deck')}
+                    title={t('nav.new_deck')}
                     data-testid="header-new-deck-btn"
                 >
                     <Plus size={16} />
-                    {t('nav.new_deck')}
+                    <span className="header-cta__label">{t('nav.new_deck')}</span>
                 </button>
                 <UserProfile />
             </div>
@@ -163,17 +166,6 @@ export default function AppLayout() {
     const location = useLocation();
     const isDocumentsRoute = location.pathname === '/documents';
 
-    // Exam onboarding auto-show
-    const { data: examProfile, isLoading: examProfileLoading } = useExamProfile();
-    const [showExamOnboarding, setShowExamOnboarding] = useState(false);
-    const [onboardingDismissed, setOnboardingDismissed] = useState(false);
-
-    useEffect(() => {
-        if (!examProfileLoading && examProfile === null && !onboardingDismissed) {
-            setShowExamOnboarding(true);
-        }
-    }, [examProfile, examProfileLoading, onboardingDismissed]);
-
     return (
         <DeckEditorProvider>
             <div
@@ -195,18 +187,6 @@ export default function AppLayout() {
                     </div>
                     {!isDocumentsRoute && <Outlet />}
                 </main>
-
-                <ExamOnboardingModal
-                    isOpen={showExamOnboarding}
-                    onClose={() => {
-                        setShowExamOnboarding(false);
-                        setOnboardingDismissed(true);
-                    }}
-                    onComplete={() => {
-                        setShowExamOnboarding(false);
-                        setOnboardingDismissed(true);
-                    }}
-                />
             </div>
         </DeckEditorProvider>
     );

@@ -83,9 +83,26 @@ export function setupExamHandlers(): void {
     );
 
     instrumentedHandle('exam:delete-profile', (_e, userId: string) => {
-        getDb().prepare(
-            'DELETE FROM user_exam_profiles WHERE user_id = ? AND is_primary = 1'
-        ).run(userId);
+        const db = getDb();
+        const now = new Date().toISOString();
+        db.transaction(() => {
+            // Archive any active plans for this user's primary exam in the same
+            // transaction as the profile delete, so we never leave an orphaned
+            // active plan pointing at a removed exam profile.
+            db.prepare(`
+                UPDATE plans SET status = 'archived', updated_at = ?
+                WHERE user_id = ? AND status = 'active'
+                  AND exam_key IN (
+                      SELECT be.exam_key
+                      FROM user_exam_profiles uep
+                      JOIN blueprint_exams be ON be.id = uep.exam_id
+                      WHERE uep.user_id = ? AND uep.is_primary = 1
+                  )
+            `).run(now, userId, userId);
+            db.prepare(
+                'DELETE FROM user_exam_profiles WHERE user_id = ? AND is_primary = 1'
+            ).run(userId);
+        })();
     });
 
     instrumentedHandle('exam:fetch-all-card-ids', (_e, userId: string) => {

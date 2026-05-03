@@ -80,8 +80,8 @@ function StatCard({ label, value, unit, sub, emptyPrompt, onEmptyClick, highligh
 
 type ReadinessLevel = 'strong' | 'ok' | 'needs-work' | 'no-data';
 
-function readinessLevel(accuracy: number, hasData: boolean): ReadinessLevel {
-    if (!hasData) return 'no-data';
+function readinessLevel(accuracy: number | null, hasData: boolean): ReadinessLevel {
+    if (!hasData || accuracy === null) return 'no-data';
     if (accuracy >= 0.85) return 'strong';
     if (accuracy >= 0.70) return 'ok';
     return 'needs-work';
@@ -165,7 +165,10 @@ export default function Dashboard() {
     // ── Data fetching — all in parallel ──────────────────────────────────────
     const { data: intelligence }                          = useSekelIntelligence(userId);
     const { data: examProfile }                           = useExamProfile();
-    const { data: activePlanResult, isLoading: planLoad } = useActivePlan();
+    // Scope the plan to the current exam so a plan left over from a previous
+    // exam doesn't surface here. Treat "no exam profile" as "no plan" too.
+    const { data: rawActivePlan, isLoading: planLoad }    = useActivePlan(examProfile?.exam_key);
+    const activePlanResult                                = examProfile === null ? null : rawActivePlan;
     const { data: planProgress }                          = usePlanProgress(activePlanResult?.plan);
     const { dueCount }                                    = useGlobalDashboardStats(userId);
     const { data: todaySummary }                          = useTodaySummary(userId);
@@ -221,6 +224,20 @@ export default function Dashboard() {
                     sub={completedToday > 0 ? `${completedToday} completed today` : 'None completed yet'}
                 />
                 <StatCard
+                    label="Today's Activity"
+                    value={todaySummary && todaySummary.totalReviews > 0 ? todaySummary.totalReviews : null}
+                    unit={todaySummary && todaySummary.totalReviews === 1 ? 'card' : 'cards'}
+                    sub={todaySummary && todaySummary.totalReviews > 0
+                        ? [
+                            todayRetention !== null ? `${todayRetention}% retention` : null,
+                            todaySummary.totalTimeMs > 0 ? `${Math.round(todaySummary.totalTimeMs / 60000)}m study` : null,
+                            todaySummary.newCount > 0 ? `${todaySummary.newCount} new` : null,
+                        ].filter(Boolean).join(' · ')
+                        : null}
+                    emptyPrompt="No reviews yet today"
+                    onEmptyClick={() => goToDecks()}
+                />
+                <StatCard
                     label="Study Streak"
                     value={streak > 0 ? streak : null}
                     unit={streak !== 1 ? 'days' : 'day'}
@@ -234,7 +251,7 @@ export default function Dashboard() {
                     unit="days"
                     sub={countdownSub}
                     emptyPrompt="Set your exam date"
-                    onEmptyClick={() => goToProfile()}
+                    onEmptyClick={() => goToProfile('study')}
                     highlight={hasActivePlan && !onPace ? 'warn' : undefined}
                 />
             </div>
@@ -247,7 +264,7 @@ export default function Dashboard() {
                             intelligence={intelligence}
                             onStartFocused={() => setShowBriefing(true)}
                             onHide={() => userId && updateProfile(userId, { intelligence_enabled: false })}
-                            onGoToProfile={() => goToProfile()}
+                            onGoToProfile={() => goToProfile('study')}
                             onGoToDecks={() => goToDecks()}
                         />
                     ) : (
@@ -268,16 +285,106 @@ export default function Dashboard() {
                 </p>
             )}
 
-            {/* ── Zones 3–5: Lower split — Exam Readiness left, Deck Health + Activity right ── */}
-            <div className={`db-lower-split${showReadiness ? '' : ' db-lower-split--full'}`}>
+            {/* ── Plan Overview ───────────────────────────────────────────── */}
+            <section className="dash-section">
+                <div className="dash-section__row">
+                    {/* Plan Overview */}
+                    <div className="db-card">
+                        <div className="db-card__header">
+                            <h3 className="db-card__title">Plan Overview</h3>
+                            {activePlanResult && (
+                                <button
+                                    className="db-card__subtitle-link"
+                                    onClick={() => navigate('/plan')}
+                                >
+                                    View plan →
+                                </button>
+                            )}
+                        </div>
+                        {activePlanResult ? (
+                            <div className="db-plan-overview">
+                                <div className="db-plan-row">
+                                    <span className="db-plan-row__label">Today's target</span>
+                                    <span className="db-plan-row__value">
+                                        {planProgress?.studiedToday ?? 0}
+                                        <span className="db-plan-row__of"> / {activePlanResult.plan.cardsPerDay} new cards</span>
+                                    </span>
+                                </div>
+                                <div className="db-plan-progress-bar">
+                                    <div
+                                        className="db-plan-progress-bar__fill"
+                                        style={{
+                                            width: `${Math.min(100, Math.round(((planProgress?.studiedToday ?? 0) / activePlanResult.plan.cardsPerDay) * 100))}%`,
+                                        }}
+                                    />
+                                </div>
+                                <div className="db-plan-stats">
+                                    {planProgress != null && (
+                                        <div className="db-plan-stat">
+                                            <span className="db-plan-stat__value">{planProgress.studiedSincePlanStart}</span>
+                                            <span className="db-plan-stat__label">introduced</span>
+                                        </div>
+                                    )}
+                                    {planProgress != null && (
+                                        <div className="db-plan-stat">
+                                            <span className="db-plan-stat__value">{planProgress.currentUnseen}</span>
+                                            <span className="db-plan-stat__label">unseen</span>
+                                        </div>
+                                    )}
+                                    <div className="db-plan-stat">
+                                        <span className="db-plan-stat__value">
+                                            {Math.round(activePlanResult.plan.snapshot.projectedCoverage * 100)}%
+                                        </span>
+                                        <span className="db-plan-stat__label">proj. coverage</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            <button
+                                className="db-stat-card__empty-prompt"
+                                onClick={() => navigate('/plan')}
+                            >
+                                Start a plan →
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </section>
 
-                {/* Left — Exam Readiness */}
-                {showReadiness && (
+            {/* ── Your Decks ────────────────────────────────────────────────── */}
+            {decks.length > 0 && (
+                <section className="dash-section">
+                    <h3 className="dash-section__title">Your Decks</h3>
+                    <div className="db-card">
+                        <div className="db-card__header">
+                            <h3 className="db-card__title">Deck Health</h3>
+                            {!hasExamDate && (
+                                <span className="db-card__subtitle">Set an exam date to see classification coverage</span>
+                            )}
+                        </div>
+                        <div className="db-deck-list">
+                            {decks.map(deck => (
+                                <DeckHealthRow
+                                    key={deck.id}
+                                    deck={deck}
+                                    userId={userId!}
+                                    examKey={examProfile?.exam_key}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                </section>
+            )}
+
+            {/* ── Exam Readiness ────────────────────────────────────────────── */}
+            {showReadiness && (
+                <section className="dash-section">
+                    <h3 className="dash-section__title">Exam Readiness</h3>
                     <div className="db-card db-card--readiness">
                         <div className="db-card__header">
-                            <h3 className="db-card__title">Exam Readiness</h3>
+                            <h3 className="db-card__title">By blueprint weight</h3>
                             <span className="db-card__subtitle">
-                                {examProfile!.exam_label} · by weight
+                                {examProfile!.exam_label}
                             </span>
                         </div>
                         <div className="db-readiness-table">
@@ -297,7 +404,7 @@ export default function Dashboard() {
                                             {Math.round(system.blueprintWeightMin)}–{Math.round(system.blueprintWeightMax)}%
                                         </span>
                                         <span className="db-readiness-row__pct">
-                                            {hasData ? `${Math.round(system.accuracy * 100)}%` : '—'}
+                                            {hasData && system.accuracy !== null ? `${Math.round(system.accuracy * 100)}%` : '—'}
                                         </span>
                                         <span className={`db-readiness-row__indicator db-readiness-row__indicator--${level}`}>
                                             {READINESS_LABELS[level]}
@@ -307,175 +414,50 @@ export default function Dashboard() {
                             })}
                         </div>
                     </div>
-                )}
+                </section>
+            )}
 
-                {/* Right column — Deck Health + Activity stacked */}
-                <div className="db-right-col">
-
-                    {/* Deck Health */}
-                    {decks.length > 0 && (
-                        <div className="db-card">
-                            <div className="db-card__header">
-                                <h3 className="db-card__title">Deck Health</h3>
-                            </div>
-                            <div className="db-deck-list">
-                                {decks.map(deck => (
-                                    <DeckHealthRow
-                                        key={deck.id}
-                                        deck={deck}
-                                        userId={userId!}
-                                        examKey={examProfile?.exam_key}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Today's Activity + Plan Overview + Quick Actions
-                        Grid: activity/plan stack left, quick actions spans right */}
-                    <div className={`db-apq-grid${activePlanResult ? ' db-apq-grid--has-plan' : ''}`}>
-
-                        {/* Today's Activity
-                            NOTE: "Last session" granularity (date, duration, deck, systems covered per session)
-                            is not available from existing IPC handlers. There is no fetchLastCompletedSession(userId)
-                            call exposed via preload. Using fetchTodaySummary as a proxy for daily activity. */}
-                        <div className="db-card db-apq-grid__activity">
-                            <div className="db-card__header">
-                                <h3 className="db-card__title">Today's Activity</h3>
-                            </div>
-                            {todaySummary && todaySummary.totalReviews > 0 ? (
-                                <div className="db-activity-stats">
-                                    <div className="db-activity-stat">
-                                        <span className="db-activity-stat__value">{todaySummary.totalReviews}</span>
-                                        <span className="db-activity-stat__label">cards reviewed</span>
-                                    </div>
-                                    {todayRetention !== null && (
-                                        <div className="db-activity-stat">
-                                            <span className="db-activity-stat__value">{todayRetention}%</span>
-                                            <span className="db-activity-stat__label">retention</span>
-                                        </div>
-                                    )}
-                                    {todaySummary.totalTimeMs > 0 && (
-                                        <div className="db-activity-stat">
-                                            <span className="db-activity-stat__value">
-                                                {Math.round(todaySummary.totalTimeMs / 60000)}m
-                                            </span>
-                                            <span className="db-activity-stat__label">study time</span>
-                                        </div>
-                                    )}
-                                    {todaySummary.newCount > 0 && (
-                                        <div className="db-activity-stat">
-                                            <span className="db-activity-stat__value">{todaySummary.newCount}</span>
-                                            <span className="db-activity-stat__label">new cards</span>
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <p className="db-activity-empty">No reviews yet today.</p>
-                            )}
-                        </div>
-
-                        {/* Plan Overview — only when a plan is active */}
-                        {activePlanResult && (
-                            <div className="db-card db-apq-grid__plan">
-                                <div className="db-card__header">
-                                    <h3 className="db-card__title">Plan Overview</h3>
-                                    <button
-                                        className="db-card__subtitle-link"
-                                        onClick={() => navigate('/plan')}
-                                    >
-                                        View plan →
-                                    </button>
-                                </div>
-                                <div className="db-plan-overview">
-                                    <div className="db-plan-row">
-                                        <span className="db-plan-row__label">Today's target</span>
-                                        <span className="db-plan-row__value">
-                                            {planProgress?.studiedToday ?? 0}
-                                            <span className="db-plan-row__of"> / {activePlanResult.plan.cardsPerDay} new cards</span>
-                                        </span>
-                                    </div>
-                                    <div className="db-plan-progress-bar">
-                                        <div
-                                            className="db-plan-progress-bar__fill"
-                                            style={{
-                                                width: `${Math.min(100, Math.round(((planProgress?.studiedToday ?? 0) / activePlanResult.plan.cardsPerDay) * 100))}%`,
-                                            }}
-                                        />
-                                    </div>
-                                    <div className="db-plan-stats">
-                                        {planProgress != null && (
-                                            <div className="db-plan-stat">
-                                                <span className="db-plan-stat__value">{planProgress.studiedSincePlanStart}</span>
-                                                <span className="db-plan-stat__label">introduced</span>
-                                            </div>
-                                        )}
-                                        {planProgress != null && (
-                                            <div className="db-plan-stat">
-                                                <span className="db-plan-stat__value">{planProgress.currentUnseen}</span>
-                                                <span className="db-plan-stat__label">unseen</span>
-                                            </div>
-                                        )}
-                                        <div className="db-plan-stat">
-                                            <span className="db-plan-stat__value">
-                                                {Math.round(activePlanResult.plan.snapshot.projectedCoverage * 100)}%
-                                            </span>
-                                            <span className="db-plan-stat__label">proj. coverage</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Quick Actions — spans all rows on the right */}
-                        <div className="db-card db-apq-grid__actions">
-                            <div className="db-card__header">
-                                <h3 className="db-card__title">Quick Actions</h3>
-                            </div>
-                            <div className="db-quick-actions">
-                                <button
-                                    className="db-action-btn"
-                                    onClick={() => {
-                                        const deckId = intelligence?.suggestedDeckId;
-                                        if (deckId) {
-                                            navigate(`/decks/${deckId}/study?mode=due`);
-                                        } else {
-                                            navigate('/decks');
-                                        }
-                                    }}
-                                >
-                                    <BookOpen size={15} />
-                                    Start Today's Session
-                                </button>
-                                <button
-                                    className="db-action-btn"
-                                    onClick={() => navigate('/documents')}
-                                >
-                                    <Zap size={15} />
-                                    Generate Flashcards
-                                </button>
-                                <button
-                                    className="db-action-btn"
-                                    onClick={() => navigate('/plan')}
-                                >
-                                    <CalendarDays size={15} />
-                                    Go to Plan
-                                </button>
-                                <button
-                                    className="db-action-btn"
-                                    onClick={() => setShowFeedback(true)}
-                                >
-                                    <MessageSquare size={15} />
-                                    Send Feedback
-                                </button>
-                            </div>
-                        </div>
-
-                    </div>{/* end db-apq-grid */}
-
-                </div>{/* end db-right-col */}
-
-            </div>{/* end db-lower-split */}
+            {/* ── Quick Actions ─────────────────────────────────────────────── */}
+            <section className="dash-section">
+                <h3 className="dash-section__title">Quick Actions</h3>
+                <div className="dash-quick-actions__grid">
+                    <button
+                        className="db-action-btn"
+                        onClick={() => {
+                            const deckId = intelligence?.suggestedDeckId;
+                            if (deckId) {
+                                navigate(`/decks/${deckId}/study?mode=due`);
+                            } else {
+                                navigate('/decks');
+                            }
+                        }}
+                    >
+                        <BookOpen size={15} />
+                        Start Today's Session
+                    </button>
+                    <button
+                        className="db-action-btn"
+                        onClick={() => navigate('/documents')}
+                    >
+                        <Zap size={15} />
+                        Generate Flashcards
+                    </button>
+                    <button
+                        className="db-action-btn"
+                        onClick={() => navigate('/plan')}
+                    >
+                        <CalendarDays size={15} />
+                        Go to Plan
+                    </button>
+                    <button
+                        className="db-action-btn"
+                        onClick={() => setShowFeedback(true)}
+                    >
+                        <MessageSquare size={15} />
+                        Send Feedback
+                    </button>
+                </div>
+            </section>
 
             {/* Feedback Modal */}
             {showFeedback && (
@@ -486,11 +468,12 @@ export default function Dashboard() {
             {showBriefing && intelligence && (
                 <PreSessionBriefing
                     intelligence={intelligence}
+                    planDeckIds={activePlanResult?.plan.deckFilter ?? null}
                     onDismiss={() => setShowBriefing(false)}
                     onBegin={(deckId) => {
                         setShowBriefing(false);
                         const weakKeys = intelligence.systemBreakdown
-                            .filter(s => s.accuracy < 0.80)
+                            .filter(s => s.accuracy !== null && s.accuracy < 0.80)
                             .map(s => s.systemKey);
                         const systemsParam = weakKeys.length > 0 ? `&systems=${weakKeys.join(',')}` : '';
                         navigate(`/decks/${deckId}/study?mode=due&focus=intelligence${systemsParam}`);

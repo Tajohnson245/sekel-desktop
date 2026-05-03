@@ -3,9 +3,10 @@ import { useAuthStore } from '../../../stores/authStore';
 import { useProfileStore } from '../../../stores/profileStore';
 import { Bell, Brain, Clock, GraduationCap, Plus, Sparkles, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Button, useToast, ToggleSwitch } from '../../UI';
+import { Button, Modal, useToast, ToggleSwitch } from '../../UI';
 import { useDecks, useUpdateDeck } from '../../../hooks/useDecks';
 import { useExamProfile, useUpdateExamProfile, useDeleteExamProfile } from '../../../hooks/useExamProfile';
+import { useActivePlan } from '../../../hooks/usePlan';
 import { isExamDateSet, EXAM_DATE_SENTINEL } from '../../../lib/queries';
 import { ExamOnboardingModal } from '../../ExamOnboarding/ExamOnboardingModal';
 
@@ -35,12 +36,14 @@ export function StudyTab() {
 
     // Exam profile state
     const { data: examProfile } = useExamProfile();
+    const { data: activePlanResult } = useActivePlan();
     const updateExamProfile = useUpdateExamProfile();
     const deleteExamProfile = useDeleteExamProfile();
     const [showExamModal, setShowExamModal] = useState(false);
     const [confirmDeleteExam, setConfirmDeleteExam] = useState(false);
     const [localExamDate, setLocalExamDate] = useState('');
     const [localSessionMode, setLocalSessionMode] = useState<'auto' | 'mixed' | 'triage'>('auto');
+    const [showDateConfirm, setShowDateConfirm] = useState(false);
 
     // Classify Cards state
     const [classifyDeckId, setClassifyDeckId] = useState('');
@@ -55,11 +58,43 @@ export function StudyTab() {
         }
     }, [examProfile]);
 
-    const handleExamDateSave = () => {
+    const persistedExamDate = isExamDateSet(examProfile?.exam_date) ? examProfile?.exam_date ?? '' : '';
+
+    const saveExamDate = () => {
         updateExamProfile.mutate(
             { exam_date: localExamDate || EXAM_DATE_SENTINEL },
             { onSuccess: () => showToast(t('exam.date_saved'), 'success') }
         );
+    };
+
+    const handleExamDateBlur = () => {
+        if (localExamDate === persistedExamDate) return;
+        if (activePlanResult) {
+            setShowDateConfirm(true);
+        } else {
+            saveExamDate();
+        }
+    };
+
+    const handleConfirmDateChange = () => {
+        saveExamDate();
+        setShowDateConfirm(false);
+    };
+
+    const handleCancelDateChange = () => {
+        setLocalExamDate(persistedExamDate);
+        setShowDateConfirm(false);
+    };
+
+    const handleRemoveExam = () => {
+        const hadPlan = !!activePlanResult?.plan.id;
+        deleteExamProfile.mutate(undefined, {
+            onSuccess: () => {
+                setConfirmDeleteExam(false);
+                showToast(hadPlan ? 'Exam removed and plan archived' : 'Exam configuration removed', 'success');
+            },
+            onError: () => showToast('Failed to remove exam configuration', 'error'),
+        });
     };
 
     const handleSessionModeChange = (mode: 'auto' | 'mixed' | 'triage') => {
@@ -204,7 +239,7 @@ export function StudyTab() {
                                         className="field-input"
                                         value={localExamDate}
                                         onChange={(e) => setLocalExamDate(e.target.value)}
-                                        onBlur={handleExamDateSave}
+                                        onBlur={handleExamDateBlur}
                                         min={new Date().toISOString().split('T')[0]}
                                         style={{ width: '170px' }}
                                     />
@@ -234,21 +269,13 @@ export function StudyTab() {
                                 {confirmDeleteExam ? (
                                     <>
                                         <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                                            Remove exam configuration?
+                                            {activePlanResult
+                                                ? 'Remove exam? Your active study plan will be archived.'
+                                                : 'Remove exam configuration?'}
                                         </span>
                                         <Button
                                             variant="danger"
-                                            onClick={() => {
-                                                deleteExamProfile.mutate(undefined, {
-                                                    onSuccess: () => {
-                                                        setConfirmDeleteExam(false);
-                                                        showToast('Exam configuration removed', 'success');
-                                                    },
-                                                    onError: () => {
-                                                        showToast('Failed to remove exam configuration', 'error');
-                                                    },
-                                                });
-                                            }}
+                                            onClick={handleRemoveExam}
                                             isLoading={deleteExamProfile.isPending}
                                             disabled={deleteExamProfile.isPending}
                                         >
@@ -278,6 +305,32 @@ export function StudyTab() {
                         onClose={() => setShowExamModal(false)}
                         onComplete={handleExamSwitchComplete}
                     />
+
+                    <Modal
+                        isOpen={showDateConfirm}
+                        onClose={handleCancelDateChange}
+                        title="Update exam date?"
+                        size="sm"
+                        footer={
+                            <>
+                                <Button variant="ghost" onClick={handleCancelDateChange}>
+                                    Cancel
+                                </Button>
+                                <Button
+                                    variant="primary"
+                                    onClick={handleConfirmDateChange}
+                                    isLoading={updateExamProfile.isPending}
+                                    disabled={updateExamProfile.isPending}
+                                >
+                                    Update date
+                                </Button>
+                            </>
+                        }
+                    >
+                        <p style={{ margin: 0, fontSize: '0.9rem' }}>
+                            Your study plan will rebalance to fit the new exam date. Daily targets may change.
+                        </p>
+                    </Modal>
                 </div>
 
                 {/* Classify Cards */}

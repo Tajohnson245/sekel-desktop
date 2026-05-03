@@ -27,7 +27,21 @@
       "Bash(npx vite:*)",
       "Bash(npx @electron/rebuild -f -w better-sqlite3)",
       "Bash(git -C c:/Users/tajoh/Git/sekel log --oneline --all)",
-      "Bash(git -C c:/Users/tajoh/Git/sekel show HEAD~5:apps/desktop/src/stores/profileStore.ts)"
+      "Bash(git -C c:/Users/tajoh/Git/sekel show HEAD~5:apps/desktop/src/stores/profileStore.ts)",
+      "Bash(git ls-remote *)",
+      "Bash(git remote *)",
+      "Bash(xargs git *)",
+      "Bash(sort -t- -k2 -n -u)",
+      "Bash(git rebase *)",
+      "Bash(git reset *)",
+      "Bash(gh pr *)",
+      "Bash(gh secret *)",
+      "Bash(gh run *)",
+      "PowerShell($sig = Get-AuthenticodeSignature -FilePath '/tmp/sig-check/Sekel-1.8.1.Setup.exe'; $sig | Format-List Status, StatusMessage, Path, SignatureType, IsOSBinary, TimeStamperCertificate; Write-Output '=== Signer Certificate ==='; $sig.SignerCertificate | Format-List Subject, Issuer, NotBefore, NotAfter, SerialNumber, Thumbprint; Write-Output '=== Timestamp Certificate ==='; if \\($sig.TimeStamperCertificate\\) { $sig.TimeStamperCertificate | Format-List Subject, Issuer, NotBefore, NotAfter } else { Write-Output 'no timestamp certificate' })",
+      "Bash(cygpath -w \"$\\(pwd\\)/Sekel-1.8.1.Setup.exe\")",
+      "PowerShell($sig = Get-AuthenticodeSignature -FilePath 'C:\\\\Users\\\\tajoh\\\\Git\\\\sekel-desktop\\\\Sekel-1.8.1.Setup.exe'; $sig | Format-List Status, StatusMessage, Path, SignatureType, IsOSBinary; Write-Output '=== Signer Certificate ==='; $sig.SignerCertificate | Format-List Subject, Issuer, NotBefore, NotAfter, SerialNumber, Thumbprint; Write-Output '=== Timestamp Certificate ==='; if \\($sig.TimeStamperCertificate\\) { $sig.TimeStamperCertificate | Format-List Subject, Issuer, NotBefore, NotAfter } else { Write-Output 'no timestamp certificate present' })",
+      "PowerShell($sig = Get-AuthenticodeSignature -FilePath 'C:\\\\Users\\\\tajoh\\\\Git\\\\sekel-desktop\\\\Sekel-1.8.1.Setup.exe'; Write-Output '=== AUTHENTICODE SIGNATURE ==='; $sig | Format-List Status, StatusMessage, Path, SignatureType, IsOSBinary; if \\($sig.SignerCertificate\\) { Write-Output '=== Signer Certificate ==='; $sig.SignerCertificate | Format-List Subject, Issuer, NotBefore, NotAfter, Thumbprint } else { Write-Output '\\(no signer certificate\\)' }; if \\($sig.TimeStamperCertificate\\) { Write-Output '=== Timestamp Certificate ==='; $sig.TimeStamperCertificate | Format-List Subject, Issuer, NotBefore, NotAfter } else { Write-Output '\\(no timestamp certificate\\)' })",
+      "PowerShell($sig = Get-AuthenticodeSignature -FilePath 'C:\\\\Users\\\\tajoh\\\\Git\\\\sekel-desktop\\\\Sekel-1.8.1.Setup.exe'; Write-Output \"Signature status: $\\($sig.Status\\)\"; Write-Output \"Signer: $\\($sig.SignerCertificate.Subject\\)\"; Write-Output \\('File size: {0:N0} bytes' -f \\(Get-Item 'C:\\\\Users\\\\tajoh\\\\Git\\\\sekel-desktop\\\\Sekel-1.8.1.Setup.exe'\\).Length\\))"
     ]
   }
 }

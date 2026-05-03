@@ -384,6 +384,8 @@
         "format_basic": "Básico (P&R)",
         "format_cloze": "Eliminación Cloze",
         "format_reversed": "Invertido",
+        "format_true_false": "Verdadero / Falso",
+        "format_compare_contrast": "Comparar y contrastar",
         "difficulty": "Dificultad",
         "difficulty_essential": "Solo Esencial",
         "difficulty_detailed": "Detallado",

@@ -54,6 +54,7 @@ export const fetchNotesByDeck = (deckId: string) => db().fetchNotesByDeck(deckId
 export const createNote = (note: NoteInsert) => db().createNote(note);
 export const updateNote = (id: string, updates: NoteUpdate) => db().updateNote(id, updates);
 export const deleteNote = (id: string) => db().deleteNote(id);
+export const deleteAllCardsInDeck = (deckId: string) => db().deleteAllCardsInDeck(deckId);
 export const createNoteWithCards = (note: NoteInsert, templateCount?: number) => db().createNoteWithCards(note, templateCount);
 
 // ── Note Types ───────────────────────────────────────────────────────────────
@@ -107,7 +108,7 @@ export const deleteExamProfile = (userId: string) => examApi().deleteProfile(use
 export const fetchAllCardIds   = (userId: string) => examApi().fetchAllCardIds(userId);
 
 // ── Plan ──────────────────────────────────────────────────────────────────────
-export type { PlanResult, WeeklyProjection, SystemCoverageRow, RebalanceDelta, Plan, ActivePlanResult, DeckUnseenCount, PlanProgress } from '../types/electron';
+export type { PlanResult, WeeklyProjection, SystemCoverageRow, RebalanceDelta, Plan, ActivePlanResult, DeckUnseenCount, PlanProgress, PlanActivityCounts } from '../types/electron';
 const planApi = () => window.electronAPI.plan;
 export const computePlan          = (userId: string, examKey: string, deckIds?: string[]) => planApi().compute(userId, examKey, deckIds);
 export const getPlanProgress      = (userId: string, activatedAt: string, deckFilter: string[] | null) => planApi().getProgress(userId, activatedAt, deckFilter);

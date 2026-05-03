@@ -10,7 +10,6 @@
  *
  * Examples:
  *   node scripts/bump.js desktop 1.5.0
- *   node scripts/bump.js survey 0.2.0
  *   node scripts/bump.js --check
  */
 

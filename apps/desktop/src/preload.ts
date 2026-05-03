@@ -3,7 +3,12 @@ import type { AIGenerationOptions } from './types/electron';
 
 contextBridge.exposeInMainWorld('electronAPI', {
     generateCards: (text: string, count?: number, language?: string, options?: AIGenerationOptions) => ipcRenderer.invoke('generate-cards', text, count, language, options),
-    generateCardsFromContext: (summary: string, content: string, count: number, language?: string, options?: AIGenerationOptions) => ipcRenderer.invoke('generate-cards-from-context', { summary, content, count, language, options }),
+    generateCardsFromContext: (summary: string, content: string, count: number, language?: string, options?: AIGenerationOptions, chunks?: Array<{ id: number; text: string }>) => ipcRenderer.invoke('generate-cards-from-context', { summary, content, count, language, options, chunks }),
+    onAIProgress: (cb: (progress: { phase: 'chunking' | 'generating' | 'refining' | 'done'; current: number; total: number }) => void) => {
+        const listener = (_event: unknown, progress: { phase: 'chunking' | 'generating' | 'refining' | 'done'; current: number; total: number }) => cb(progress);
+        ipcRenderer.on('ai-progress', listener);
+        return () => ipcRenderer.removeListener('ai-progress', listener);
+    },
     parseDocument: (file: { name: string, buffer?: ArrayBuffer, url?: string, type: string, language?: string }) => ipcRenderer.invoke('parse-document', file),
     generateSummary: (documents: Record<string, string>, language?: string) => ipcRenderer.invoke('generate-summary', documents, language),
     getSupabaseConfig: () => ipcRenderer.invoke('get-supabase-config'),
@@ -62,6 +67,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         createNote:            (note: unknown) => ipcRenderer.invoke('db:createNote', note),
         updateNote:            (id: string, updates: unknown) => ipcRenderer.invoke('db:updateNote', id, updates),
         deleteNote:            (id: string) => ipcRenderer.invoke('db:deleteNote', id),
+        deleteAllCardsInDeck:  (deckId: string) => ipcRenderer.invoke('db:deleteAllCardsInDeck', deckId),
         createNoteWithCards:   (note: unknown, templateCount?: number) => ipcRenderer.invoke('db:createNoteWithCards', note, templateCount),
         // Note Types
         fetchNoteTypes:        (userId: string) => ipcRenderer.invoke('db:fetchNoteTypes', userId),
