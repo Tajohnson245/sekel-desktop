@@ -6,8 +6,6 @@
 #
 # Examples:
 #   bash scripts/generate-changelog.sh desktop v1.9.0
-#   bash scripts/generate-changelog.sh web v1.5.0
-#   bash scripts/generate-changelog.sh community v0.2.0
 #
 # Scans docs/features/<app>/ready/ for all docs, compiles them into a
 # changelog at docs/changelog/<app>-<version>.md, then moves each doc
@@ -22,7 +20,7 @@ set -euo pipefail
 if [ $# -ne 2 ]; then
   echo "Usage: bash scripts/generate-changelog.sh <app> <version>" >&2
   echo "  e.g. bash scripts/generate-changelog.sh desktop v1.9.0" >&2
-  echo "  Apps: desktop, web, community, infrastructure" >&2
+  echo "  Apps: desktop, infrastructure" >&2
   exit 1
 fi
 

@@ -10,7 +10,6 @@
  *
  * Examples:
  *   node scripts/bump.js desktop 1.5.0
- *   node scripts/bump.js survey 0.2.0
  *   node scripts/bump.js --check
  */
 
@@ -23,9 +22,6 @@ const VERSION_FILE = path.join(__dirname, 'version.json');
 // Map each app to the packages it owns (versioned together)
 const APP_PACKAGES = {
   desktop: ['apps/desktop', 'packages/components', 'packages/db'],
-  web: ['apps/web', 'packages/web-components'],
-  community: ['apps/community', 'packages/community-components'],
-  survey: ['apps/survey', 'packages/survey-components'],
 };
 
 function readVersionFile() {

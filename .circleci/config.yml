@@ -8,9 +8,6 @@ executors:
   linux-22:
     docker:
       - image: cimg/node:22.13
-  linux-20:
-    docker:
-      - image: cimg/node:20.18
   macos-exec:
     macos:
       xcode: 16.4.0
@@ -231,57 +228,6 @@ jobs:
           path: apps/desktop/out/make
           destination: desktop-macos-x64
 
-  # ── Web (all branches) ───────────────────────────────────────────────────
-  web-ci:
-    executor: linux-20
-    steps:
-      - checkout
-      - install-deps
-      - run:
-          name: Lint
-          command: npx turbo run lint --filter=@sekel/web
-      - run:
-          name: Type check
-          command: npx turbo run typecheck --filter=@sekel/web
-      - run:
-          name: Build
-          command: npx turbo run build --filter=@sekel/web
-
-  # ── Community (all branches) ─────────────────────────────────────────────
-  # community-ci:
-  #   executor: linux-20
-  #   steps:
-  #     - checkout
-  #     - install-deps
-  #     - run:
-  #         name: Lint
-  #         command: npx turbo run lint --filter=@sekel/community
-  #     - run:
-  #         name: Type check
-  #         command: npx turbo run typecheck --filter=@sekel/community
-  #     - run:
-  #         name: Build
-  #         command: npx turbo run build --filter=@sekel/community
-
-  # ── Survey (all branches) ────────────────────────────────────────────────
-  # survey-ci:
-  #   executor: linux-20
-  #   environment:
-  #     NEXT_PUBLIC_APP_URL: http://localhost:3002
-  #     ADMIN_EMAILS: ci@sekel.io
-  #   steps:
-  #     - checkout
-  #     - install-deps
-  #     - run:
-  #         name: Lint
-  #         command: npx turbo run lint --filter=@sekel/survey
-  #     - run:
-  #         name: Type check
-  #         command: npx turbo run typecheck --filter=@sekel/survey
-  #     - run:
-  #         name: Build
-  #         command: npx turbo run build --filter=@sekel/survey
-
 workflows:
   ci:
     jobs:
@@ -290,9 +236,6 @@ workflows:
       - desktop-unit-tests:
           requires:
             - desktop-lint-typecheck
-      - web-ci
-      # - community-ci
-      # - survey-ci
 
       # Platform builds — main and dev only (expensive, release-gating)
       - desktop-build-linux:

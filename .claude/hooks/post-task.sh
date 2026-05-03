@@ -27,23 +27,14 @@ detect_app() {
     changed="$(git -C "$REPO_ROOT" diff HEAD~1 HEAD --name-only 2>/dev/null)"
   fi
 
-  local desktop_count web_count community_count survey_count
+  local desktop_count
   desktop_count="$(echo "$changed" | grep -c "^apps/desktop/" 2>/dev/null || echo 0)"
-  web_count="$(echo "$changed"     | grep -c "^apps/web/"     2>/dev/null || echo 0)"
-  community_count="$(echo "$changed" | grep -c "^apps/community/" 2>/dev/null || echo 0)"
-  survey_count="$(echo "$changed"  | grep -c "^apps/survey/"  2>/dev/null || echo 0)"
 
-  local max_app="infrastructure"
-  local max_count=0
-  for pair in "desktop:$desktop_count" "web:$web_count" "community:$community_count" "survey:$survey_count"; do
-    app="${pair%%:*}"
-    count="${pair##*:}"
-    if [ "$count" -gt "$max_count" ] 2>/dev/null; then
-      max_count="$count"
-      max_app="$app"
-    fi
-  done
-  echo "$max_app"
+  if [ "$desktop_count" -gt 0 ] 2>/dev/null; then
+    echo "desktop"
+  else
+    echo "infrastructure"
+  fi
 }
 
 APP="$(detect_app)"
@@ -52,7 +43,7 @@ APP="$(detect_app)"
 
 DOC_PATH=""
 for status_dir in in-progress ready shipped; do
-  for app_dir in desktop web community infrastructure survey; do
+  for app_dir in desktop infrastructure; do
     candidate="$REPO_ROOT/docs/features/$app_dir/$status_dir/$FEATURE_NAME.md"
     if [ -f "$candidate" ]; then
       DOC_PATH="$candidate"
