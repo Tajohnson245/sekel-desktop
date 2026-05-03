@@ -1,4 +1,18 @@
 import { app, BrowserWindow, dialog, ipcMain, protocol } from 'electron';
+
+// Handle Squirrel.Windows install/update/uninstall events. When the installer
+// invokes our binary with --squirrel-install / --squirrel-updated /
+// --squirrel-uninstall / --squirrel-obsolete, this hook performs the
+// shortcut-creation / removal work and returns true so we exit immediately
+// without ever creating a BrowserWindow. Without this guard the app briefly
+// shows a window during install, which Squirrel then closes and re-launches
+// — the "double launch" flicker.
+// Use require() so the module is hit synchronously before any other init.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+if (require('electron-squirrel-startup')) {
+    app.quit();
+}
+
 import Store from 'electron-store';
 import path from 'node:path';
 import fs from 'node:fs';

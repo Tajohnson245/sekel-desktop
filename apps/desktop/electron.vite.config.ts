@@ -4,7 +4,11 @@ import path from 'path';
 
 export default defineConfig(({ mode }) => {
     const envDir = path.resolve(__dirname, '../..');
-    const env = loadEnv(mode, envDir, ['VITE_', 'OPENAI_', 'ADMIN_', 'SUPABASE_']);
+    // Merge filesystem .env files AND process.env so CI runners (which have no
+    // .env files; values come from GitHub Secrets via the workflow's env:
+    // block) can supply build-time substitutions for the main-process bundle.
+    const fileEnv = loadEnv(mode, envDir, ['VITE_', 'OPENAI_', 'ADMIN_', 'SUPABASE_']);
+    const env = { ...fileEnv, ...process.env };
 
 
     return {

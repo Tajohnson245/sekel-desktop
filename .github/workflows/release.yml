@@ -60,11 +60,20 @@ jobs:
 
       # Build and produce installer artifacts (unsigned). Windows artifacts get
       # signed in the next step by the official Azure Trusted Signing action.
+      #
+      # All env vars below are read by electron-vite's loadEnv() merge with
+      # process.env (see apps/desktop/electron.vite.config.ts) and baked into
+      # the main-process bundle via the define: block. The renderer picks up
+      # VITE_-prefixed vars automatically through Vite's import.meta.env.
       - name: Build and make
         working-directory: apps/desktop
         env:
           VITE_SUPABASE_PROJECT_URL: ${{ secrets.VITE_SUPABASE_PROJECT_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           FORGE_ARCH: ${{ matrix.arch }}
         run: npm run make
 
