@@ -1074,3 +1074,112 @@
   background: rgba(var(--accent-rgb, 99, 102, 241), 0.15);
   color:      var(--accent);
 }
+
+/* ── Plan activity panel (rating breakdown) ──────────────────────────────── */
+
+.plan-activity-header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  margin-bottom:   var(--space-lg);
+  gap:             var(--space-md);
+  flex-wrap:       wrap;
+}
+
+.plan-activity-header .plan-section-title {
+  margin: 0;
+}
+
+.plan-activity-tabs {
+  display: inline-flex;
+  gap:     2px;
+  padding: 2px;
+  background:    var(--bg, var(--ink-soft));
+  border:        1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.plan-activity-tab {
+  background:    transparent;
+  border:        none;
+  color:         var(--mist);
+  font-family:   var(--font-mono);
+  font-size:     11px;
+  padding:       4px 10px;
+  border-radius: var(--radius-sm, 4px);
+  cursor:        pointer;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: background 0.15s, color 0.15s;
+}
+
+.plan-activity-tab:hover {
+  color: var(--text-primary, var(--fog));
+}
+
+.plan-activity-tab--active {
+  background: var(--surface);
+  color:      var(--text-primary, var(--fog));
+}
+
+.plan-activity-rows {
+  display:        flex;
+  flex-direction: column;
+  gap:            var(--space-sm);
+  margin-bottom:  var(--space-lg);
+}
+
+.plan-activity-row {
+  display:        grid;
+  grid-template-columns: 70px 1fr 60px;
+  align-items:    center;
+  gap:            var(--space-md);
+}
+
+.plan-activity-label {
+  font-size:    13px;
+  color:        var(--text-primary, var(--fog));
+  font-weight:  500;
+}
+
+.plan-activity-bar-wrap {
+  height:        8px;
+  border-radius: 4px;
+  background:    var(--bg, var(--ink-soft));
+  overflow:      hidden;
+}
+
+.plan-activity-bar {
+  height:        100%;
+  border-radius: 4px;
+  transition:    width 0.4s ease;
+}
+
+.plan-activity-bar--again { background: var(--danger,  #ef4444); }
+.plan-activity-bar--hard  { background: var(--warning, #f59e0b); }
+.plan-activity-bar--good  { background: var(--success, #22c55e); }
+.plan-activity-bar--easy  { background: var(--accent,  #06b6d4); }
+
+.plan-activity-count {
+  font-family:  var(--font-mono);
+  font-size:    13px;
+  text-align:   right;
+  color:        var(--text-primary, var(--fog));
+  font-variant-numeric: tabular-nums;
+}
+
+.plan-activity-summary {
+  margin:      0;
+  padding-top: var(--space-md);
+  border-top:  1px solid var(--border);
+  font-size:   13px;
+  color:       var(--mist);
+}
+
+.plan-activity-empty {
+  margin:    0;
+  padding:   var(--space-xl) 0;
+  text-align: center;
+  color:     var(--mist);
+  font-size: 13px;
+}

@@ -18,6 +18,8 @@ import {
     usePlanProgress,
     type Plan,
     type DeckUnseenCount,
+    type PlanProgress,
+    type PlanActivityCounts,
 } from '../../hooks/usePlan';
 import { usePlanStore } from '../../stores/planStore';
 import type { SystemCoverageRow } from '../../lib/queries';
@@ -317,6 +319,9 @@ function ActivePlanDetail({ plan, examLabel }: { plan: Plan; examLabel: string }
                 <OverrideControl currentNewPerDay={plan.cardsPerDay} />
             </section>
 
+            {/* ── Plan activity (rating breakdown) ──────────────────────────── */}
+            {progress && <PlanActivityPanel progress={progress} />}
+
             {/* ── Weekly projection ─────────────────────────────────────────── */}
             <section className="plan-card">
                 <h3 className="plan-section-title">{t('plan.weekly_projection_title')}</h3>
@@ -377,6 +382,89 @@ function ActivePlanDetail({ plan, examLabel }: { plan: Plan; examLabel: string }
                 </section>
             )}
         </>
+    );
+}
+
+// ── Plan activity panel (rating breakdown for cards in scope) ───────────────
+
+type ActivityWindow = 'today' | 'week' | 'since';
+
+function PlanActivityPanel({ progress }: { progress: PlanProgress }) {
+    const { t } = useTranslation();
+    const [window, setWindow] = useState<ActivityWindow>('today');
+
+    const counts: PlanActivityCounts =
+        window === 'today' ? progress.activityToday
+        : window === 'week'  ? progress.activityLast7Days
+        :                      progress.activitySincePlanStart;
+
+    const passRate = counts.total > 0
+        ? Math.round(((counts.total - counts.again) / counts.total) * 100)
+        : null;
+
+    // Bar widths are relative to the largest single rating bucket so a
+    // dominant bucket doesn't crush the others to invisibility.
+    const maxBucket = Math.max(counts.again, counts.hard, counts.good, counts.easy, 1);
+
+    const rows: { key: keyof PlanActivityCounts; label: string; cls: string }[] = [
+        { key: 'again', label: t('plan.again'), cls: 'plan-activity-bar--again' },
+        { key: 'hard',  label: t('plan.hard'),  cls: 'plan-activity-bar--hard'  },
+        { key: 'good',  label: t('plan.good'),  cls: 'plan-activity-bar--good'  },
+        { key: 'easy',  label: t('plan.easy'),  cls: 'plan-activity-bar--easy'  },
+    ];
+
+    return (
+        <section className="plan-card">
+            <div className="plan-activity-header">
+                <h3 className="plan-section-title">{t('plan.activity_title')}</h3>
+                <div className="plan-activity-tabs" role="tablist">
+                    {(['today', 'week', 'since'] as const).map(w => (
+                        <button
+                            key={w}
+                            role="tab"
+                            aria-selected={window === w}
+                            className={`plan-activity-tab ${window === w ? 'plan-activity-tab--active' : ''}`}
+                            onClick={() => setWindow(w)}
+                        >
+                            {w === 'today' ? t('plan.activity_today')
+                                : w === 'week' ? t('plan.activity_week')
+                                :                t('plan.activity_since_start')}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {counts.total === 0 ? (
+                <p className="plan-activity-empty">{t('plan.activity_empty')}</p>
+            ) : (
+                <>
+                    <div className="plan-activity-rows">
+                        {rows.map(row => {
+                            const value = counts[row.key] as number;
+                            const widthPct = (value / maxBucket) * 100;
+                            return (
+                                <div key={row.key} className="plan-activity-row">
+                                    <span className="plan-activity-label">{row.label}</span>
+                                    <div className="plan-activity-bar-wrap">
+                                        <div
+                                            className={`plan-activity-bar ${row.cls}`}
+                                            style={{ width: `${widthPct}%` }}
+                                        />
+                                    </div>
+                                    <span className="plan-activity-count">{value.toLocaleString()}</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    <p className="plan-activity-summary">
+                        {t('plan.activity_summary', {
+                            total: counts.total.toLocaleString(),
+                            rate:  passRate ?? 0,
+                        })}
+                    </p>
+                </>
+            )}
+        </section>
     );
 }
 
