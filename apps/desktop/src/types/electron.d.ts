@@ -534,7 +534,15 @@ interface ElectronPlan {
     fetchPlansReferencingDecks: (userId: string, deckIds: string[]) => Promise<{ id: string; name: string }[]>;
 }
 
+interface DeepLinkAPI {
+    /** Returns the URL the app was launched with (cold-start), or null. Cleared on read. */
+    getInitial: () => Promise<string | null>;
+    /** Subscribe to deep links delivered while the app is already running. Returns an unsubscribe fn. */
+    on: (cb: (url: string) => void) => () => void;
+}
+
 interface ElectronAPI {
+    deepLink: DeepLinkAPI;
     generateCards: (text: string, count?: number, language?: string, options?: AIGenerationOptions) => Promise<GeneratedCard[]>;
     generateCardsFromContext: (summary: string, content: string, count: number, language?: string, options?: AIGenerationOptions, chunks?: DocumentChunk[]) => Promise<GenerationResult>;
     onAIProgress: (cb: (progress: AIProgress) => void) => () => void;

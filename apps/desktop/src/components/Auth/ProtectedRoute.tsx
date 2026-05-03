@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../../stores/authStore';
+import { useDeepLinkAuth } from '../../hooks/useDeepLinkAuth';
 import { AuthPage } from './AuthPage';
 
 interface ProtectedRouteProps {
@@ -14,6 +15,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     useEffect(() => {
         initialize();
     }, [initialize]);
+
+    // Apply any sekel:// auth callbacks (email confirmation, password reset).
+    useDeepLinkAuth();
 
     if (isLoading) {
         return (

@@ -2,6 +2,17 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type { AIGenerationOptions } from './types/electron';
 
 contextBridge.exposeInMainWorld('electronAPI', {
+    // ── Deep linking (sekel:// URLs from email-confirmation, password reset, etc.) ──
+    deepLink: {
+        // Returns the URL the app was launched with, if any. Cleared on read.
+        getInitial: () => ipcRenderer.invoke('deep-link:get-initial') as Promise<string | null>,
+        // Subscribe to deep links delivered while the app is already running.
+        on: (cb: (url: string) => void) => {
+            const listener = (_event: unknown, url: string) => cb(url);
+            ipcRenderer.on('deep-link', listener);
+            return () => ipcRenderer.removeListener('deep-link', listener);
+        },
+    },
     generateCards: (text: string, count?: number, language?: string, options?: AIGenerationOptions) => ipcRenderer.invoke('generate-cards', text, count, language, options),
     generateCardsFromContext: (summary: string, content: string, count: number, language?: string, options?: AIGenerationOptions, chunks?: Array<{ id: number; text: string }>) => ipcRenderer.invoke('generate-cards-from-context', { summary, content, count, language, options, chunks }),
     onAIProgress: (cb: (progress: { phase: 'chunking' | 'generating' | 'refining' | 'done'; current: number; total: number }) => void) => {

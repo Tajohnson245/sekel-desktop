@@ -4,8 +4,17 @@ export function signIn(client: SupabaseClient, email: string, password: string) 
     return client.auth.signInWithPassword({ email, password });
 }
 
-export function signUp(client: SupabaseClient, email: string, password: string) {
-    return client.auth.signUp({ email, password });
+export function signUp(
+    client: SupabaseClient,
+    email: string,
+    password: string,
+    options?: { emailRedirectTo?: string },
+) {
+    return client.auth.signUp({
+        email,
+        password,
+        options: options?.emailRedirectTo ? { emailRedirectTo: options.emailRedirectTo } : undefined,
+    });
 }
 
 export function signOut(client: SupabaseClient) {

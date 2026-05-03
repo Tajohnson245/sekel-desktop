@@ -24,7 +24,12 @@ export const SignupForm: React.FC = () => {
         setError(null);
         setMessage(null);
 
-        const { error: signupError } = await signUp(supabase, email, password);
+        const { error: signupError } = await signUp(supabase, email, password, {
+            // Supabase email-confirmation redirect target. The desktop app
+            // registers `sekel://` as a protocol handler in forge.config.js,
+            // so the OS opens us when the user clicks the link in their email.
+            emailRedirectTo: 'sekel://auth/callback',
+        });
 
         if (signupError) {
             setError(signupError.message);

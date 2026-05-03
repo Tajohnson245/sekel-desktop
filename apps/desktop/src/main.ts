@@ -13,6 +13,58 @@ if (require('electron-squirrel-startup')) {
     app.quit();
 }
 
+// ── Deep linking (sekel:// custom URL scheme) ────────────────────────────────
+// Used for Supabase email confirmation, password reset, magic-link callbacks.
+// The OS opens us with a URL like sekel://auth/callback#access_token=...&...
+// which we forward to the renderer so it can complete the auth flow.
+
+const DEEP_LINK_PROTOCOL = 'sekel';
+
+// Without a single-instance lock, clicking a deep link would spawn a new
+// process on Windows/Linux instead of routing to the running app. The
+// 'second-instance' event below depends on this.
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) {
+    app.quit();
+    process.exit(0);
+}
+
+// Held until the renderer is ready, then delivered. Also acts as a fallback
+// when the renderer mounts after the deep-link event fires.
+let pendingDeepLink: string | null = null;
+let mainWindowRef: import('electron').BrowserWindow | null = null;
+
+function extractDeepLink(argv: string[]): string | null {
+    return argv.find(a => typeof a === 'string' && a.startsWith(`${DEEP_LINK_PROTOCOL}://`)) ?? null;
+}
+
+function deliverDeepLink(url: string) {
+    if (mainWindowRef && !mainWindowRef.isDestroyed()) {
+        mainWindowRef.webContents.send('deep-link', url);
+        if (mainWindowRef.isMinimized()) mainWindowRef.restore();
+        mainWindowRef.focus();
+    } else {
+        pendingDeepLink = url;
+    }
+}
+
+// Cold-start: on Windows/Linux the URL is in argv. macOS uses the open-url
+// event below (which fires for both cold start and while running).
+if (process.platform !== 'darwin') {
+    const initial = extractDeepLink(process.argv);
+    if (initial) pendingDeepLink = initial;
+}
+
+app.on('second-instance', (_event, argv) => {
+    const url = extractDeepLink(argv);
+    if (url) deliverDeepLink(url);
+});
+
+app.on('open-url', (event, url) => {
+    event.preventDefault();
+    deliverDeepLink(url);
+});
+
 import Store from 'electron-store';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -119,6 +171,7 @@ const createWindow = () => {
         },
     });
 
+    mainWindowRef = mainWindow;
     mainWindow.once('ready-to-show', () => {
         mainWindow.show();
     });
@@ -127,6 +180,7 @@ const createWindow = () => {
     mainWindow.on('close', () => {
         const bounds = mainWindow.getBounds();
         store.set('windowState', bounds);
+        if (mainWindowRef === mainWindow) mainWindowRef = null;
     });
 
     if (process.env.ELECTRON_RENDERER_URL) {
@@ -142,6 +196,25 @@ const createWindow = () => {
 };
 
 app.whenReady().then(() => {
+    // Register the app as the OS handler for sekel:// URLs. In dev (when run
+    // via `electron .`) we have to pass the path explicitly so the OS knows
+    // what command to run. In production the binary path is enough.
+    if (process.defaultApp) {
+        if (process.argv.length >= 2) {
+            app.setAsDefaultProtocolClient(DEEP_LINK_PROTOCOL, process.execPath, [path.resolve(process.argv[1])]);
+        }
+    } else {
+        app.setAsDefaultProtocolClient(DEEP_LINK_PROTOCOL);
+    }
+
+    // Renderer asks for the cold-start deep link once it mounts. Returning
+    // here also clears the buffer so we don't redeliver on reload.
+    ipcMain.handle('deep-link:get-initial', () => {
+        const url = pendingDeepLink;
+        pendingDeepLink = null;
+        return url;
+    });
+
     try {
         initDatabase();
     } catch (err) {

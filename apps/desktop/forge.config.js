@@ -44,6 +44,16 @@ module.exports = {
       ProductName: 'Sekel',
       FileDescription: 'SEKEL - Intelligent Flashcards',
     },
+    // Custom URL scheme for deep linking (Supabase email confirmation,
+    // password reset, etc. redirect to sekel://auth/callback). On macOS this
+    // becomes a CFBundleURLTypes entry in Info.plist; on Windows the Squirrel
+    // installer registers the scheme via registry write.
+    protocols: [
+      {
+        name: 'Sekel',
+        schemes: ['sekel'],
+      },
+    ],
     fileAssociations: [
       {
         ext: 'spkg',
