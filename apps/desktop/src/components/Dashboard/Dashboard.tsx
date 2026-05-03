@@ -222,6 +222,20 @@ export default function Dashboard() {
                     sub={completedToday > 0 ? `${completedToday} completed today` : 'None completed yet'}
                 />
                 <StatCard
+                    label="Today's Activity"
+                    value={todaySummary && todaySummary.totalReviews > 0 ? todaySummary.totalReviews : null}
+                    unit={todaySummary && todaySummary.totalReviews === 1 ? 'card' : 'cards'}
+                    sub={todaySummary && todaySummary.totalReviews > 0
+                        ? [
+                            todayRetention !== null ? `${todayRetention}% retention` : null,
+                            todaySummary.totalTimeMs > 0 ? `${Math.round(todaySummary.totalTimeMs / 60000)}m study` : null,
+                            todaySummary.newCount > 0 ? `${todaySummary.newCount} new` : null,
+                        ].filter(Boolean).join(' · ')
+                        : null}
+                    emptyPrompt="No reviews yet today"
+                    onEmptyClick={() => goToDecks()}
+                />
+                <StatCard
                     label="Study Streak"
                     value={streak > 0 ? streak : null}
                     unit={streak !== 1 ? 'days' : 'day'}
@@ -269,47 +283,9 @@ export default function Dashboard() {
                 </p>
             )}
 
-            {/* ── Today: today's activity + plan overview ──────────────────── */}
+            {/* ── Plan Overview ───────────────────────────────────────────── */}
             <section className="dash-section">
-                <h3 className="dash-section__title">Today</h3>
                 <div className="dash-section__row">
-                    {/* Today's Activity */}
-                    <div className="db-card">
-                        <div className="db-card__header">
-                            <h3 className="db-card__title">Today's Activity</h3>
-                        </div>
-                        {todaySummary && todaySummary.totalReviews > 0 ? (
-                            <div className="db-activity-stats">
-                                <div className="db-activity-stat">
-                                    <span className="db-activity-stat__value">{todaySummary.totalReviews}</span>
-                                    <span className="db-activity-stat__label">cards reviewed</span>
-                                </div>
-                                {todayRetention !== null && (
-                                    <div className="db-activity-stat">
-                                        <span className="db-activity-stat__value">{todayRetention}%</span>
-                                        <span className="db-activity-stat__label">retention</span>
-                                    </div>
-                                )}
-                                {todaySummary.totalTimeMs > 0 && (
-                                    <div className="db-activity-stat">
-                                        <span className="db-activity-stat__value">
-                                            {Math.round(todaySummary.totalTimeMs / 60000)}m
-                                        </span>
-                                        <span className="db-activity-stat__label">study time</span>
-                                    </div>
-                                )}
-                                {todaySummary.newCount > 0 && (
-                                    <div className="db-activity-stat">
-                                        <span className="db-activity-stat__value">{todaySummary.newCount}</span>
-                                        <span className="db-activity-stat__label">new cards</span>
-                                    </div>
-                                )}
-                            </div>
-                        ) : (
-                            <p className="db-activity-empty">No reviews yet today.</p>
-                        )}
-                    </div>
-
                     {/* Plan Overview */}
                     <div className="db-card">
                         <div className="db-card__header">

@@ -72,14 +72,8 @@
 
 .db-hero {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 0.875rem;
-}
-
-@media (max-width: 640px) {
-    .db-hero {
-        grid-template-columns: 1fr;
-    }
 }
 
 /* Stat card */
