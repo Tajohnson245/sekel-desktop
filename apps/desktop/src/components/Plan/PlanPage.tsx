@@ -536,7 +536,7 @@ function WeeklyProjectionCard({ plan }: { plan: Plan }) {
                 {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </button>
 
-            {expanded && (
+            <div className={`plan-collapse ${expanded ? 'plan-collapse--open' : ''}`}>
                 <div className="plan-collapsible-body plan-weeks-carousel">
                     <button
                         type="button"
@@ -587,7 +587,7 @@ function WeeklyProjectionCard({ plan }: { plan: Plan }) {
                         ›
                     </button>
                 </div>
-            )}
+            </div>
         </section>
     );
 }
@@ -641,8 +641,8 @@ function SystemCoverageCard({
                 {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </button>
 
-            {expanded && (
-                hasClassifiedCards ? (
+            <div className={`plan-collapse ${expanded ? 'plan-collapse--open' : ''}`}>
+                {hasClassifiedCards ? (
                     <div className="plan-collapsible-body plan-sys-grid">
                         {sorted.map(sys => (
                             <SystemCard key={sys.systemKey} sys={sys} />
@@ -654,8 +654,8 @@ function SystemCoverageCard({
                         <p className="plan-coverage-empty-title">{t('plan.coverage_unclassified_title')}</p>
                         <p className="plan-coverage-empty-desc">{t('plan.coverage_unclassified_desc')}</p>
                     </div>
-                )
-            )}
+                )}
+            </div>
         </section>
     );
 }
@@ -738,7 +738,7 @@ function HistoryRow({ plan }: { plan: Plan }) {
                 </div>
             </div>
 
-            {expanded && (
+            <div className={`plan-collapse ${expanded ? 'plan-collapse--open' : ''}`}>
                 <div className="plan-history-detail">
                     <div className="plan-history-stats">
                         <div className="plan-history-stat">
@@ -767,7 +767,7 @@ function HistoryRow({ plan }: { plan: Plan }) {
                         </div>
                     </div>
                 </div>
-            )}
+            </div>
         </div>
     );
 }
@@ -1302,11 +1302,11 @@ export default function PlanPage() {
                             <span className="plan-section-title">{t('plan.history_title')} ({archivedPlans.length})</span>
                             {historyOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                         </button>
-                        {historyOpen && (
+                        <div className={`plan-collapse ${historyOpen ? 'plan-collapse--open' : ''}`}>
                             <div className="plan-history-list">
                                 {archivedPlans.map(p => <HistoryRow key={p.id} plan={p} />)}
                             </div>
-                        )}
+                        </div>
                     </section>
                 </div>
             );
@@ -1403,13 +1403,13 @@ export default function PlanPage() {
                         {historyOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </button>
 
-                    {historyOpen && (
+                    <div className={`plan-collapse ${historyOpen ? 'plan-collapse--open' : ''}`}>
                         <div className="plan-history-list">
                             {archivedPlans.map(p => (
                                 <HistoryRow key={p.id} plan={p} />
                             ))}
                         </div>
-                    )}
+                    </div>
                 </section>
             )}
         </div>
