@@ -89,6 +89,11 @@ const createWindow = () => {
         x: windowState.x,
         y: windowState.y,
         icon: path.join(__dirname, '..', '..', 'assets', 'sekel_logo_draft copy.ico'),
+        // Defer display until the renderer is ready to paint — kills the
+        // brief blank/white flash on launch. Background colour matches the
+        // app shell so the first paint isn't jarring.
+        show: false,
+        backgroundColor: '#0E141B',
         webPreferences: {
             preload: path.join(__dirname, '../preload/preload.js'),
             contextIsolation: true,
@@ -98,6 +103,10 @@ const createWindow = () => {
             allowRunningInsecureContent: false,
             navigateOnDragDrop: false,
         },
+    });
+
+    mainWindow.once('ready-to-show', () => {
+        mainWindow.show();
     });
 
     // Save window state on close

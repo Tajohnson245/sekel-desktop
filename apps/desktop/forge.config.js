@@ -168,6 +168,7 @@ module.exports = {
         name: 'Sekel',
         setupExe: 'Sekel.exe',
         setupIcon: path.join(__dirname, 'assets', 'sekel_logo.ico'),
+        loadingGif: path.join(__dirname, 'assets', 'sekel_loading.gif'),
       },
     },
     {
