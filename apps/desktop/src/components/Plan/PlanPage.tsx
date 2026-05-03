@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CalendarDays, Plus, ChevronDown, ChevronUp, RotateCcw, Archive, Trash2, BookOpen, LayoutList, AlertTriangle, GraduationCap } from 'lucide-react';
 import { useToast } from '../UI';
@@ -123,29 +123,74 @@ function OverrideControl({ currentNewPerDay }: { currentNewPerDay: number }) {
     );
 }
 
-// ── System coverage row ───────────────────────────────────────────────────────
+// ── System coverage card (grid item with circular progress ring) ────────────
 
-function SystemRow({ sys }: { sys: SystemCoverageRow }) {
-    const pctDisplay    = sys.totalCards > 0 ? `${sys.coveragePct}%` : '—';
-    const weightDisplay = `${sys.blueprintWeightMidpoint.toFixed(0)}%`;
+function SystemCard({ sys }: { sys: SystemCoverageRow }) {
+    const isUnclassified = sys.totalCards === 0;
+    const status: 'high' | 'medium' | 'low' | 'unclassified' = isUnclassified
+        ? 'unclassified'
+        : sys.performanceNeed >= 0.6 ? 'high'
+        : sys.performanceNeed >= 0.3 ? 'medium'
+        :                              'low';
+    const statusLabel =
+        status === 'high'         ? 'High need'
+        : status === 'medium'     ? 'Med need'
+        : status === 'low'        ? 'On track'
+        :                           'No data';
+
+    // SVG ring: r=16, pathLength=100 → pct directly maps to stroke-dashoffset
+    const pct       = isUnclassified ? 0 : sys.coveragePct;
+    const dashOffset = 100 - pct;
 
     return (
-        <tr>
-            <td className="plan-sys-name">{sys.label}</td>
-            <td className="plan-sys-weight">{weightDisplay}</td>
-            <td className="plan-sys-cards">{sys.cardsInPlan} / {sys.totalCards}</td>
-            <td className="plan-sys-coverage">
-                <div className="plan-coverage-bar-wrap">
-                    <div className="plan-coverage-bar-fill" style={{ width: `${sys.coveragePct}%` }} />
-                </div>
-                <span>{pctDisplay}</span>
-            </td>
-            <td>
-                <span className={`plan-perf-badge ${performanceColor(sys.performanceNeed)}`}>
-                    {sys.performanceNeed >= 0.6 ? 'High' : sys.performanceNeed >= 0.3 ? 'Med' : 'Low'}
+        <div className={`plan-sys-card plan-sys-card--${status}`}>
+            <div className="plan-sys-card__top">
+                <span className="plan-sys-card__name" title={sys.label}>{sys.label}</span>
+                <span className={`plan-sys-card__status plan-sys-card__status--${status}`}>
+                    {statusLabel}
                 </span>
-            </td>
-        </tr>
+            </div>
+
+            <div className="plan-sys-card__ring-row">
+                <svg className="plan-sys-card__ring" viewBox="0 0 36 36" aria-hidden="true">
+                    <circle
+                        className="plan-sys-card__ring-track"
+                        cx="18" cy="18" r="16"
+                        fill="none" strokeWidth="3"
+                        pathLength="100"
+                    />
+                    <circle
+                        className="plan-sys-card__ring-fill"
+                        cx="18" cy="18" r="16"
+                        fill="none" strokeWidth="3"
+                        pathLength="100"
+                        strokeDasharray="100"
+                        strokeDashoffset={dashOffset}
+                        strokeLinecap="round"
+                        transform="rotate(-90 18 18)"
+                    />
+                </svg>
+                <div className="plan-sys-card__ring-center">
+                    <span className="plan-sys-card__pct">
+                        {isUnclassified ? '—' : `${sys.coveragePct}%`}
+                    </span>
+                    <span className="plan-sys-card__pct-label">covered</span>
+                </div>
+            </div>
+
+            <div className="plan-sys-card__footer">
+                <div className="plan-sys-card__footer-stat">
+                    <span className="plan-sys-card__footer-value">
+                        {sys.cardsInPlan}<span className="plan-sys-card__footer-of">/{sys.totalCards}</span>
+                    </span>
+                    <span className="plan-sys-card__footer-label">cards</span>
+                </div>
+                <div className="plan-sys-card__footer-stat">
+                    <span className="plan-sys-card__footer-value">{sys.blueprintWeightMidpoint.toFixed(0)}%</span>
+                    <span className="plan-sys-card__footer-label">blueprint</span>
+                </div>
+            </div>
+        </div>
     );
 }
 
@@ -323,63 +368,11 @@ function ActivePlanDetail({ plan, examLabel }: { plan: Plan; examLabel: string }
             {progress && <PlanActivityPanel progress={progress} />}
 
             {/* ── Weekly projection ─────────────────────────────────────────── */}
-            <section className="plan-card">
-                <h3 className="plan-section-title">{t('plan.weekly_projection_title')}</h3>
-                <div className="plan-table-wrap">
-                    <table className="plan-table">
-                        <thead>
-                            <tr>
-                                <th>{t('plan.col_week')}</th>
-                                <th>{t('plan.col_new_per_day')}</th>
-                                <th>{t('plan.col_reviews_per_day')}</th>
-                                <th>{t('plan.col_daily_time')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {snapshot.weeklyProjection.map(row => (
-                                <tr key={row.week}>
-                                    <td>{t('plan.week_n', { n: row.week })}</td>
-                                    <td>{row.newCardsPerDay}</td>
-                                    <td>{row.estimatedReviewsPerDay}</td>
-                                    <td>{fmtMinutes(row.estimatedTotalMinutes)}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+            <WeeklyProjectionCard plan={plan} />
 
             {/* ── System coverage ───────────────────────────────────────────── */}
             {snapshot.systemCoverage.length > 0 && (
-                <section className="plan-card">
-                    <h3 className="plan-section-title">{t('plan.system_coverage_title')}</h3>
-                    {hasClassifiedCards ? (
-                        <div className="plan-table-wrap">
-                            <table className="plan-table plan-sys-table">
-                                <thead>
-                                    <tr>
-                                        <th>{t('plan.col_system')}</th>
-                                        <th>{t('plan.col_blueprint_pct')}</th>
-                                        <th>{t('plan.col_cards_in_plan')}</th>
-                                        <th>{t('plan.col_coverage')}</th>
-                                        <th>{t('plan.col_performance_need')}</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {snapshot.systemCoverage.map(sys => (
-                                        <SystemRow key={sys.systemKey} sys={sys} />
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    ) : (
-                        <div className="plan-coverage-empty">
-                            <BookOpen size={32} className="plan-coverage-empty-icon" />
-                            <p className="plan-coverage-empty-title">{t('plan.coverage_unclassified_title')}</p>
-                            <p className="plan-coverage-empty-desc">{t('plan.coverage_unclassified_desc')}</p>
-                        </div>
-                    )}
-                </section>
+                <SystemCoverageCard systems={snapshot.systemCoverage} hasClassifiedCards={hasClassifiedCards} />
             )}
         </>
     );
@@ -463,6 +456,205 @@ function PlanActivityPanel({ progress }: { progress: PlanProgress }) {
                         })}
                     </p>
                 </>
+            )}
+        </section>
+    );
+}
+
+// ── Weekly projection card (collapsible, with current-week summary) ──────────
+
+function WeeklyProjectionCard({ plan }: { plan: Plan }) {
+    const { t } = useTranslation();
+    const [expanded, setExpanded] = useState(true);
+    const weeks = plan.snapshot.weeklyProjection;
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const currentCardRef = useRef<HTMLDivElement>(null);
+
+    // Current week derived from when the plan activated. Clamp to the visible
+    // window so a plan studied past its last projected week still resolves.
+    const daysSince     = Math.floor((Date.now() - new Date(plan.activatedAt).getTime()) / 86_400_000);
+    const currentWeekIx = weeks.length > 0
+        ? Math.min(weeks.length - 1, Math.max(0, Math.floor(daysSince / 7)))
+        : 0;
+    const currentWeek   = weeks[currentWeekIx];
+    const peakWeek      = weeks.length > 0
+        ? weeks.reduce((max, w) => w.estimatedTotalMinutes > max.estimatedTotalMinutes ? w : max, weeks[0])
+        : null;
+    const isAtPeak      = currentWeek && peakWeek ? currentWeek.week === peakWeek.week : true;
+
+    // Center the current week card whenever the carousel becomes visible.
+    useEffect(() => {
+        if (!expanded) return;
+        const target = currentCardRef.current;
+        const container = scrollRef.current;
+        if (!target || !container) return;
+        // Center within the scroll container without affecting the page scroll
+        // (scrollIntoView on a horizontally-scrolling child can also nudge the
+        // outer page; this manual calc avoids that).
+        const targetCenter = target.offsetLeft + target.offsetWidth / 2;
+        container.scrollLeft = targetCenter - container.clientWidth / 2;
+    }, [expanded, currentWeekIx]);
+
+    if (weeks.length === 0 || !currentWeek || !peakWeek) return null;
+
+    const scrollByCards = (direction: 1 | -1) => {
+        const container = scrollRef.current;
+        if (!container) return;
+        // Scroll one "card width + gap" — derive from the first child so it
+        // tracks any future CSS changes.
+        const firstCard = container.querySelector('.plan-week-card') as HTMLElement | null;
+        if (!firstCard) return;
+        const step = firstCard.offsetWidth + 12; // matches .plan-weeks-track gap
+        container.scrollBy({ left: step * direction, behavior: 'smooth' });
+    };
+
+    return (
+        <section className="plan-card">
+            <button
+                type="button"
+                className="plan-collapsible-header"
+                onClick={() => setExpanded(v => !v)}
+                aria-expanded={expanded}
+            >
+                <div className="plan-collapsible-header__left">
+                    <h3 className="plan-section-title">{t('plan.weekly_projection_title')}</h3>
+                    <p className="plan-collapsible-summary">
+                        {t('plan.weekly_summary_main', { current: currentWeek.week, total: weeks.length })}
+                        {' · '}
+                        {t('plan.weekly_summary_now', { mins: fmtMinutes(currentWeek.estimatedTotalMinutes) })}
+                        {!isAtPeak && (
+                            <>
+                                {' · '}
+                                {t('plan.weekly_summary_peak', {
+                                    mins: fmtMinutes(peakWeek.estimatedTotalMinutes),
+                                    week: peakWeek.week,
+                                })}
+                            </>
+                        )}
+                    </p>
+                </div>
+                {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+
+            {expanded && (
+                <div className="plan-collapsible-body plan-weeks-carousel">
+                    <button
+                        type="button"
+                        className="plan-weeks-nav plan-weeks-nav--prev"
+                        onClick={(e) => { e.stopPropagation(); scrollByCards(-1); }}
+                        aria-label="Previous week"
+                    >
+                        ‹
+                    </button>
+                    <div className="plan-weeks-track" ref={scrollRef}>
+                        {weeks.map(row => {
+                            const isCurrent = row.week === currentWeek.week;
+                            const isPast    = row.week < currentWeek.week;
+                            return (
+                                <div
+                                    key={row.week}
+                                    ref={isCurrent ? currentCardRef : null}
+                                    className={`plan-week-card${isCurrent ? ' plan-week-card--current' : ''}${isPast ? ' plan-week-card--past' : ''}`}
+                                    aria-current={isCurrent ? 'true' : undefined}
+                                >
+                                    <div className="plan-week-card__header">
+                                        <span className="plan-week-card__week">{t('plan.week_n', { n: row.week })}</span>
+                                        {isCurrent && (
+                                            <span className="plan-current-week-marker">{t('plan.you_are_here')}</span>
+                                        )}
+                                    </div>
+                                    <div className="plan-week-card__stats">
+                                        <div className="plan-week-card__stat">
+                                            <span className="plan-week-card__value">{row.newCardsPerDay}</span>
+                                            <span className="plan-week-card__label">{t('plan.col_new_per_day')}</span>
+                                        </div>
+                                        <div className="plan-week-card__stat">
+                                            <span className="plan-week-card__value">{row.estimatedReviewsPerDay}</span>
+                                            <span className="plan-week-card__label">{t('plan.col_reviews_per_day')}</span>
+                                        </div>
+                                    </div>
+                                    <div className="plan-week-card__time">{fmtMinutes(row.estimatedTotalMinutes)}/day</div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    <button
+                        type="button"
+                        className="plan-weeks-nav plan-weeks-nav--next"
+                        onClick={(e) => { e.stopPropagation(); scrollByCards(1); }}
+                        aria-label="Next week"
+                    >
+                        ›
+                    </button>
+                </div>
+            )}
+        </section>
+    );
+}
+
+// ── System coverage card (collapsible, sorted by status) ─────────────────────
+
+function SystemCoverageCard({
+    systems,
+    hasClassifiedCards,
+}: {
+    systems: SystemCoverageRow[];
+    hasClassifiedCards: boolean;
+}) {
+    const { t } = useTranslation();
+    const [expanded, setExpanded] = useState(true);
+
+    // Status rank: needs-work (0) → on-track (1) → unclassified (2). Stable
+    // within a bucket via secondary sort on blueprint weight.
+    const ranked = (sys: SystemCoverageRow): number => {
+        if (sys.totalCards === 0) return 2;
+        if (sys.performanceNeed >= 0.3) return 0;
+        return 1;
+    };
+    const sorted = [...systems].sort((a, b) => {
+        const r = ranked(a) - ranked(b);
+        return r !== 0 ? r : b.blueprintWeightMidpoint - a.blueprintWeightMidpoint;
+    });
+
+    const needsWorkCount = sorted.filter(s => ranked(s) === 0).length;
+    const onTrackCount   = sorted.filter(s => ranked(s) === 1).length;
+    const unclassCount   = sorted.filter(s => ranked(s) === 2).length;
+
+    return (
+        <section className="plan-card">
+            <button
+                type="button"
+                className="plan-collapsible-header"
+                onClick={() => setExpanded(v => !v)}
+                aria-expanded={expanded}
+            >
+                <div className="plan-collapsible-header__left">
+                    <h3 className="plan-section-title">{t('plan.system_coverage_title')}</h3>
+                    {hasClassifiedCards && (
+                        <p className="plan-collapsible-summary">
+                            {needsWorkCount > 0 && <span className="plan-status-pill plan-status-pill--warn">{needsWorkCount} needs work</span>}
+                            {onTrackCount > 0   && <span className="plan-status-pill plan-status-pill--ok">{onTrackCount} on track</span>}
+                            {unclassCount > 0   && <span className="plan-status-pill plan-status-pill--muted">{unclassCount} unclassified</span>}
+                        </p>
+                    )}
+                </div>
+                {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+
+            {expanded && (
+                hasClassifiedCards ? (
+                    <div className="plan-collapsible-body plan-sys-grid">
+                        {sorted.map(sys => (
+                            <SystemCard key={sys.systemKey} sys={sys} />
+                        ))}
+                    </div>
+                ) : (
+                    <div className="plan-coverage-empty plan-collapsible-body">
+                        <BookOpen size={32} className="plan-coverage-empty-icon" />
+                        <p className="plan-coverage-empty-title">{t('plan.coverage_unclassified_title')}</p>
+                        <p className="plan-coverage-empty-desc">{t('plan.coverage_unclassified_desc')}</p>
+                    </div>
+                )
             )}
         </section>
     );
