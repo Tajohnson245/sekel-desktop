@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuthStore } from '../stores/authStore';
 
 /**
  * Listens for sekel:// deep links delivered by the main process and
@@ -40,9 +41,19 @@ export function useDeepLinkAuth() {
                     });
                     if (error) {
                         console.error('[deep-link] setSession failed', error);
+                        return;
                     }
                     // onAuthStateChange in authStore picks up the new session
-                    // and updates the React tree; no further action needed.
+                    // and updates the React tree.
+                    //
+                    // For password recovery (type=recovery) flag the store so
+                    // ProtectedRoute renders the reset-password form instead
+                    // of dropping the user straight into the dashboard with a
+                    // session they didn't intentionally create.
+                    const flowType = params.get('type');
+                    if (flowType === 'recovery') {
+                        useAuthStore.getState().setRecoveryMode(true);
+                    }
                 }
             } catch (err) {
                 console.error('[deep-link] failed to parse', url, err);

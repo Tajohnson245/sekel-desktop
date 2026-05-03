@@ -168,6 +168,11 @@ const createWindow = () => {
             webSecurity: true,
             allowRunningInsecureContent: false,
             navigateOnDragDrop: false,
+            // Disable DevTools entirely in packaged builds. This kills both
+            // the Ctrl+Shift+I shortcut and any programmatic openDevTools()
+            // call. The View > Toggle Developer Tools menu item is also
+            // hidden in production via menu.ts.
+            devTools: !app.isPackaged,
         },
     });
 

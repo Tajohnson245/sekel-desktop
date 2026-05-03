@@ -21,6 +21,17 @@ export function signOut(client: SupabaseClient) {
     return client.auth.signOut();
 }
 
+export function resetPasswordForEmail(
+    client: SupabaseClient,
+    email: string,
+    options?: { redirectTo?: string },
+) {
+    return client.auth.resetPasswordForEmail(
+        email,
+        options?.redirectTo ? { redirectTo: options.redirectTo } : undefined,
+    );
+}
+
 export function getSession(client: SupabaseClient) {
     return client.auth.getSession();
 }

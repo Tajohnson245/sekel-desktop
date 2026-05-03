@@ -4,7 +4,11 @@ import { supabase } from '../../lib/supabase';
 import { signIn } from '@sekel/db';
 import { Button, Input } from '../UI';
 
-export const LoginForm: React.FC = () => {
+interface Props {
+    onForgotPassword: () => void;
+}
+
+export const LoginForm: React.FC<Props> = ({ onForgotPassword }) => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
@@ -49,6 +53,9 @@ export const LoginForm: React.FC = () => {
                     {loading ? t('auth.logging_in') : t('auth.login')}
                 </Button>
             </form>
+            <button className="auth-link-btn" onClick={onForgotPassword}>
+                {t('auth.forgot_password_link')}
+            </button>
         </div>
     );
 };

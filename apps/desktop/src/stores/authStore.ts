@@ -14,10 +14,19 @@ interface AuthState {
     session: Session | null;
     isLoading: boolean;
     error: string | null;
+    /**
+     * True after the user clicks a password-recovery email link and lands
+     * back in the app via sekel://. While true, the auth boundary renders
+     * the reset-password form instead of the dashboard, even though a
+     * Supabase session is active. Cleared once the user submits a new
+     * password.
+     */
+    recoveryMode: boolean;
     setUser: (user: User | null) => void;
     setSession: (session: Session | null) => void;
     setLoading: (isLoading: boolean) => void;
     setError: (error: string | null) => void;
+    setRecoveryMode: (recoveryMode: boolean) => void;
     initialize: () => Promise<void>;
     signOut: () => Promise<void>;
     updatePassword: (password: string) => Promise<void>;
@@ -29,10 +38,12 @@ export const useAuthStore = create<AuthState>((set) => ({
     session: null,
     isLoading: true,
     error: null,
+    recoveryMode: false,
     setUser: (user) => set({ user }),
     setSession: (session) => set({ session, user: session?.user ?? null }),
     setLoading: (isLoading) => set({ isLoading }),
     setError: (error) => set({ error }),
+    setRecoveryMode: (recoveryMode) => set({ recoveryMode }),
     initialize: async () => {
         try {
             set({ isLoading: true });
@@ -57,7 +68,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             }
             const { error } = await authSignOut(supabase);
             if (error) throw error;
-            set({ session: null, user: null });
+            set({ session: null, user: null, recoveryMode: false });
         } catch (err: unknown) {
             set({ error: err instanceof Error ? err.message : String(err) });
         } finally {

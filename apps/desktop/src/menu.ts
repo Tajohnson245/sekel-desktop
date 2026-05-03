@@ -84,8 +84,13 @@ const template: MenuItemConstructorOptions[] = [
         submenu: [
             { role: 'reload' },
             { role: 'forceReload' },
-            { role: 'toggleDevTools' },
-            { type: 'separator' },
+            // Toggle DevTools is dev-only — packaged production builds don't
+            // expose this menu item. The webPreferences.devTools: false flag
+            // in main.ts also disables the Ctrl+Shift+I keyboard shortcut for
+            // packaged builds.
+            ...(app.isPackaged
+                ? [] as MenuItemConstructorOptions[]
+                : [{ role: 'toggleDevTools' }, { type: 'separator' }] as MenuItemConstructorOptions[]),
             { role: 'resetZoom' },
             { role: 'zoomIn' },
             { role: 'zoomOut' },

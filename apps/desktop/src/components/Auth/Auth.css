@@ -112,6 +112,30 @@
     text-decoration: underline;
 }
 
+.auth-link-btn {
+    margin-top: 1rem;
+    background: none;
+    border: none;
+    color: var(--primary);
+    cursor: pointer;
+    font-size: 0.85rem;
+    text-decoration: none;
+    padding: 0.25rem 0;
+    width: 100%;
+    text-align: center;
+}
+
+.auth-link-btn:hover {
+    text-decoration: underline;
+}
+
+.auth-form-desc {
+    color: var(--text-secondary, var(--mist));
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin: 0 0 1rem;
+}
+
 .loading-screen {
     display: flex;
     flex-direction: column;
