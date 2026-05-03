@@ -625,6 +625,14 @@ export function getPlanRebalanceDelta(userId: string, examKey: string): Rebalanc
 
 // ── getPlanProgress ───────────────────────────────────────────────────────────
 
+export interface PlanActivityCounts {
+    again: number;
+    hard:  number;
+    good:  number;
+    easy:  number;
+    total: number;
+}
+
 export interface PlanProgress {
     /** New cards introduced (state_before = 'new') since plan was activated. */
     studiedSincePlanStart: number;
@@ -632,6 +640,10 @@ export interface PlanProgress {
     currentUnseen: number;
     /** New cards introduced today. */
     studiedToday: number;
+    /** Rating breakdown of all reviews (new + review states) for cards in scope. */
+    activityToday:           PlanActivityCounts;
+    activityLast7Days:       PlanActivityCounts;
+    activitySincePlanStart:  PlanActivityCounts;
 }
 
 /**
@@ -690,10 +702,55 @@ export function getPlanProgress(
         currentUnseen = unseenRow.cnt;
     }
 
+    // ── Rating breakdown (Again/Hard/Good/Easy) for three windows ────────────
+    type ActivityRow = {
+        again: number | null;
+        hard:  number | null;
+        good:  number | null;
+        easy:  number | null;
+        total: number | null;
+    };
+
+    const activityStmt = db.prepare(`
+        SELECT
+            SUM(CASE WHEN rating = 'again' THEN 1 ELSE 0 END) AS again,
+            SUM(CASE WHEN rating = 'hard'  THEN 1 ELSE 0 END) AS hard,
+            SUM(CASE WHEN rating = 'good'  THEN 1 ELSE 0 END) AS good,
+            SUM(CASE WHEN rating = 'easy'  THEN 1 ELSE 0 END) AS easy,
+            COUNT(*)                                          AS total
+        FROM reviews
+        WHERE user_id = ? AND review_time >= ?
+        ${reviewDeckClause}
+    `);
+
+    const toCounts = (row: ActivityRow): PlanActivityCounts => ({
+        again: row.again ?? 0,
+        hard:  row.hard  ?? 0,
+        good:  row.good  ?? 0,
+        easy:  row.easy  ?? 0,
+        total: row.total ?? 0,
+    });
+
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const activityToday = toCounts(
+        activityStmt.get(userId, midnight.toISOString(), ...(deckFilter ?? [])) as ActivityRow
+    );
+    const activityLast7Days = toCounts(
+        activityStmt.get(userId, sevenDaysAgo.toISOString(), ...(deckFilter ?? [])) as ActivityRow
+    );
+    const activitySincePlanStart = toCounts(
+        activityStmt.get(userId, activatedAt, ...(deckFilter ?? [])) as ActivityRow
+    );
+
     return {
         studiedSincePlanStart: sinceRow.cnt,
         currentUnseen,
         studiedToday: todayRow.cnt,
+        activityToday,
+        activityLast7Days,
+        activitySincePlanStart,
     };
 }
 

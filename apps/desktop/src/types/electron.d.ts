@@ -497,6 +497,14 @@ export interface ActivePlanResult {
     currentDailyNewLimit: number;
 }
 
+export interface PlanActivityCounts {
+    again: number;
+    hard:  number;
+    good:  number;
+    easy:  number;
+    total: number;
+}
+
 export interface PlanProgress {
     /** New cards introduced since plan was activated. */
     studiedSincePlanStart: number;
@@ -504,6 +512,10 @@ export interface PlanProgress {
     currentUnseen: number;
     /** New cards introduced today. */
     studiedToday: number;
+    /** Rating breakdown of all reviews for cards in scope. */
+    activityToday:           PlanActivityCounts;
+    activityLast7Days:       PlanActivityCounts;
+    activitySincePlanStart:  PlanActivityCounts;
 }
 
 interface ElectronPlan {

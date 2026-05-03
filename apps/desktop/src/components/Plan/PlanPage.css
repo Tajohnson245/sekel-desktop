@@ -3,7 +3,7 @@
    ========================================================================== */
 
 .plan-page {
-  max-width:  1100px;
+  max-width:  1400px;
   margin:     0 auto;
   padding:    0 var(--space-xl);
 }
@@ -619,6 +619,58 @@
   padding:       var(--space-xl);
 }
 
+.plan-narrative {
+  display:        flex;
+  flex-direction: column;
+  gap:            var(--space-md);
+  margin-bottom:  var(--space-xl);
+  padding-bottom: var(--space-xl);
+  border-bottom:  1px solid var(--border);
+}
+
+.plan-narrative-title {
+  font-family:    var(--font-mono);
+  font-size:      11px;
+  color:          var(--mist);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin:         0;
+}
+
+.plan-narrative p {
+  margin:      0;
+  font-size:   14px;
+  line-height: 1.6;
+  color:       var(--text-primary, var(--fog));
+}
+
+.plan-narrative strong {
+  color:       var(--accent);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.plan-narrative-warn {
+  display:       flex;
+  align-items:   flex-start;
+  gap:           var(--space-sm);
+  padding:       var(--space-md);
+  background:    color-mix(in srgb, var(--warning, #f59e0b) 8%, transparent);
+  border:        1px solid color-mix(in srgb, var(--warning, #f59e0b) 30%, transparent);
+  border-radius: var(--radius-md);
+  color:         var(--text-primary, var(--fog));
+}
+
+.plan-narrative-warn svg {
+  flex-shrink: 0;
+  color:       var(--warning, #f59e0b);
+  margin-top:  3px;
+}
+
+.plan-narrative-warn strong {
+  color: var(--warning, #f59e0b);
+}
+
 .plan-live-stats {
   display:  grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -1021,4 +1073,529 @@
 .plan-list-badge--active {
   background: rgba(var(--accent-rgb, 99, 102, 241), 0.15);
   color:      var(--accent);
+}
+
+/* ── Plan activity panel (rating breakdown) ──────────────────────────────── */
+
+.plan-activity-header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  margin-bottom:   var(--space-lg);
+  gap:             var(--space-md);
+  flex-wrap:       wrap;
+}
+
+.plan-activity-header .plan-section-title {
+  margin: 0;
+}
+
+.plan-activity-tabs {
+  display: inline-flex;
+  gap:     2px;
+  padding: 2px;
+  background:    var(--bg, var(--ink-soft));
+  border:        1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.plan-activity-tab {
+  background:    transparent;
+  border:        none;
+  color:         var(--mist);
+  font-family:   var(--font-mono);
+  font-size:     11px;
+  padding:       4px 10px;
+  border-radius: var(--radius-sm, 4px);
+  cursor:        pointer;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: background 0.15s, color 0.15s;
+}
+
+.plan-activity-tab:hover {
+  color: var(--text-primary, var(--fog));
+}
+
+.plan-activity-tab--active {
+  background: var(--surface);
+  color:      var(--text-primary, var(--fog));
+}
+
+.plan-activity-rows {
+  display:        flex;
+  flex-direction: column;
+  gap:            var(--space-sm);
+  margin-bottom:  var(--space-lg);
+}
+
+.plan-activity-row {
+  display:        grid;
+  grid-template-columns: 70px 1fr 60px;
+  align-items:    center;
+  gap:            var(--space-md);
+}
+
+.plan-activity-label {
+  font-size:    13px;
+  color:        var(--text-primary, var(--fog));
+  font-weight:  500;
+}
+
+.plan-activity-bar-wrap {
+  height:        8px;
+  border-radius: 4px;
+  background:    var(--bg, var(--ink-soft));
+  overflow:      hidden;
+}
+
+.plan-activity-bar {
+  height:        100%;
+  border-radius: 4px;
+  transition:    width 0.4s ease;
+}
+
+.plan-activity-bar--again { background: var(--danger,  #ef4444); }
+.plan-activity-bar--hard  { background: var(--warning, #f59e0b); }
+.plan-activity-bar--good  { background: var(--success, #22c55e); }
+.plan-activity-bar--easy  { background: var(--accent,  #06b6d4); }
+
+.plan-activity-count {
+  font-family:  var(--font-mono);
+  font-size:    13px;
+  text-align:   right;
+  color:        var(--text-primary, var(--fog));
+  font-variant-numeric: tabular-nums;
+}
+
+.plan-activity-summary {
+  margin:      0;
+  padding-top: var(--space-md);
+  border-top:  1px solid var(--border);
+  font-size:   13px;
+  color:       var(--mist);
+}
+
+.plan-activity-empty {
+  margin:    0;
+  padding:   var(--space-xl) 0;
+  text-align: center;
+  color:     var(--mist);
+  font-size: 13px;
+}
+
+/* ── Collapsible card header ─────────────────────────────────────────────── */
+
+.plan-collapsible-header {
+  display:         flex;
+  align-items:     center;
+  justify-content: space-between;
+  width:           100%;
+  background:      transparent;
+  border:          none;
+  padding:         0;
+  margin:          0;
+  cursor:          pointer;
+  text-align:      left;
+  color:           inherit;
+  gap:             var(--space-md);
+}
+
+.plan-collapsible-header:hover .plan-section-title,
+.plan-collapsible-header:focus-visible .plan-section-title {
+  color: var(--accent);
+}
+
+.plan-collapsible-header__left {
+  display:        flex;
+  flex-direction: column;
+  gap:            4px;
+  min-width:      0;
+  flex:           1 1 auto;
+}
+
+.plan-collapsible-header .plan-section-title {
+  margin: 0;
+  transition: color 0.15s;
+}
+
+.plan-collapsible-summary {
+  margin:      0;
+  font-size:   13px;
+  color:       var(--mist);
+  display:     flex;
+  flex-wrap:   wrap;
+  gap:         var(--space-sm);
+  align-items: center;
+}
+
+/* margin-top is replaced by padding-top inside the inner element so the gap
+   is part of the clipped content — without this, the margin escapes
+   overflow:hidden during a close animation and the gap holds open for a
+   frame before snapping shut. */
+.plan-collapsible-body {
+  padding-top: var(--space-lg);
+}
+
+/* Smooth open/close. Modern Chromium/Safari/Firefox honour grid-template-rows
+   transitions between 0fr and 1fr — no JS height-measuring needed. */
+.plan-collapse {
+  display:               grid;
+  grid-template-rows:    0fr;
+  /* Single duration on both properties so opacity and height finish together;
+     standard material easing feels balanced opening and closing. */
+  transition:            grid-template-rows 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+                         opacity            0.32s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity:               0;
+}
+
+.plan-collapse--open {
+  grid-template-rows: 1fr;
+  opacity:            1;
+}
+
+.plan-collapse > * {
+  overflow:   hidden;
+  min-height: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .plan-collapse {
+    transition: none;
+  }
+}
+
+/* ── Weekly projection carousel ──────────────────────────────────────────── */
+
+.plan-weeks-carousel {
+  position: relative;
+  display:  flex;
+  align-items: stretch;
+  gap:      var(--space-sm);
+}
+
+.plan-weeks-track {
+  display:        flex;
+  gap:            12px;
+  overflow-x:     auto;
+  overflow-y:     hidden;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  padding:        4px 2px;
+  flex:           1 1 auto;
+  min-width:      0;
+}
+
+.plan-weeks-track::-webkit-scrollbar {
+  display: none;
+}
+
+.plan-week-card {
+  flex:            0 0 168px;
+  scroll-snap-align: center;
+  background:      var(--bg, var(--ink-soft));
+  border:          1px solid var(--border);
+  border-radius:   var(--radius-md);
+  padding:         var(--space-md);
+  display:         flex;
+  flex-direction:  column;
+  gap:             var(--space-sm);
+  transition:      border-color 0.15s, opacity 0.15s, transform 0.15s;
+}
+
+.plan-week-card--past {
+  opacity: 0.55;
+}
+
+.plan-week-card--current {
+  border-color: var(--accent);
+  background:   color-mix(in srgb, var(--accent) 6%, var(--bg, var(--ink-soft)));
+  box-shadow:   0 0 0 1px var(--accent);
+}
+
+.plan-week-card__header {
+  display:     flex;
+  align-items: center;
+  gap:         var(--space-sm);
+  flex-wrap:   wrap;
+}
+
+.plan-week-card__week {
+  font-family:    var(--font-mono);
+  font-size:      11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color:          var(--mist);
+}
+
+.plan-week-card--current .plan-week-card__week {
+  color: var(--accent);
+}
+
+.plan-week-card__stats {
+  display:               grid;
+  grid-template-columns: 1fr 1fr;
+  gap:                   var(--space-sm);
+}
+
+.plan-week-card__stat {
+  display:        flex;
+  flex-direction: column;
+  gap:            2px;
+}
+
+.plan-week-card__value {
+  font-family: var(--font-display);
+  font-size:   22px;
+  font-weight: 700;
+  color:       var(--text-primary, var(--fog));
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.plan-week-card__label {
+  font-family:    var(--font-mono);
+  font-size:      10px;
+  color:          var(--mist);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.plan-week-card__time {
+  font-family: var(--font-mono);
+  font-size:   13px;
+  color:       var(--text-primary, var(--fog));
+  padding-top: var(--space-sm);
+  border-top:  1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+
+.plan-weeks-nav {
+  flex-shrink:   0;
+  width:         32px;
+  background:    var(--surface);
+  border:        1px solid var(--border);
+  border-radius: var(--radius-md);
+  color:         var(--mist);
+  font-size:     22px;
+  line-height:   1;
+  cursor:        pointer;
+  display:       flex;
+  align-items:   center;
+  justify-content: center;
+  transition:    color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.plan-weeks-nav:hover {
+  color:        var(--accent);
+  border-color: var(--accent);
+}
+
+.plan-weeks-nav:focus-visible {
+  outline:        2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.plan-current-week-marker {
+  display:        inline-block;
+  font-family:    var(--font-mono);
+  font-size:      9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color:          var(--accent);
+  background:     color-mix(in srgb, var(--accent) 15%, transparent);
+  border-radius:  4px;
+  padding:        2px 6px;
+}
+
+/* ── System coverage card grid ───────────────────────────────────────────── */
+
+.plan-sys-grid {
+  display:               grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap:                   var(--space-md);
+}
+
+.plan-sys-card {
+  background:    var(--bg, var(--ink-soft));
+  border:        1px solid var(--border);
+  border-left:   3px solid var(--border);
+  border-radius: var(--radius-md);
+  padding:       var(--space-md);
+  display:       flex;
+  flex-direction: column;
+  gap:           var(--space-md);
+  transition:    border-color 0.15s, transform 0.15s;
+}
+
+.plan-sys-card:hover {
+  transform: translateY(-1px);
+}
+
+.plan-sys-card--high   { border-left-color: var(--danger,  #ef4444); }
+.plan-sys-card--medium { border-left-color: var(--warning, #f59e0b); }
+.plan-sys-card--low    { border-left-color: var(--success, #22c55e); }
+.plan-sys-card--unclassified { border-left-color: var(--mist); opacity: 0.75; }
+
+.plan-sys-card__top {
+  display:         flex;
+  align-items:     flex-start;
+  justify-content: space-between;
+  gap:             var(--space-sm);
+}
+
+.plan-sys-card__name {
+  font-size:    13px;
+  font-weight:  500;
+  color:        var(--text-primary, var(--fog));
+  line-height:  1.3;
+  flex:         1 1 auto;
+  min-width:    0;
+  /* Reserve space for up to 3 lines so cards with short names match cards
+     with long ones — keeps all grid items the same height. */
+  min-height:   calc(1.3em * 3);
+}
+
+.plan-sys-card__status {
+  flex-shrink:   0;
+  font-family:   var(--font-mono);
+  font-size:     9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding:       2px 6px;
+  border-radius: 4px;
+  white-space:   nowrap;
+}
+
+.plan-sys-card__status--high {
+  background: color-mix(in srgb, var(--danger, #ef4444) 15%, transparent);
+  color:      var(--danger, #ef4444);
+}
+.plan-sys-card__status--medium {
+  background: color-mix(in srgb, var(--warning, #f59e0b) 15%, transparent);
+  color:      var(--warning, #f59e0b);
+}
+.plan-sys-card__status--low {
+  background: color-mix(in srgb, var(--success, #22c55e) 15%, transparent);
+  color:      var(--success, #22c55e);
+}
+.plan-sys-card__status--unclassified {
+  background: color-mix(in srgb, var(--mist) 12%, transparent);
+  color:      var(--mist);
+}
+
+.plan-sys-card__ring-row {
+  position:        relative;
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  height:          84px;
+}
+
+.plan-sys-card__ring {
+  width:  84px;
+  height: 84px;
+}
+
+.plan-sys-card__ring-track {
+  stroke: color-mix(in srgb, var(--border) 80%, transparent);
+}
+
+.plan-sys-card--high   .plan-sys-card__ring-fill { stroke: var(--danger,  #ef4444); }
+.plan-sys-card--medium .plan-sys-card__ring-fill { stroke: var(--warning, #f59e0b); }
+.plan-sys-card--low    .plan-sys-card__ring-fill { stroke: var(--success, #22c55e); }
+.plan-sys-card--unclassified .plan-sys-card__ring-fill { stroke: var(--mist); }
+
+.plan-sys-card__ring-fill {
+  transition: stroke-dashoffset 0.5s ease;
+}
+
+.plan-sys-card__ring-center {
+  position:        absolute;
+  inset:           0;
+  display:         flex;
+  flex-direction:  column;
+  align-items:     center;
+  justify-content: center;
+}
+
+.plan-sys-card__pct {
+  font-family: var(--font-display);
+  font-size:   22px;
+  font-weight: 700;
+  color:       var(--text-primary, var(--fog));
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.plan-sys-card__pct-label {
+  font-family:    var(--font-mono);
+  font-size:      9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color:          var(--mist);
+  margin-top:     2px;
+}
+
+.plan-sys-card__footer {
+  display:               grid;
+  grid-template-columns: 1fr 1fr;
+  gap:                   var(--space-sm);
+  padding-top:           var(--space-sm);
+  border-top:            1px solid var(--border);
+}
+
+.plan-sys-card__footer-stat {
+  display:        flex;
+  flex-direction: column;
+  gap:            2px;
+}
+
+.plan-sys-card__footer-value {
+  font-family:  var(--font-mono);
+  font-size:    13px;
+  color:        var(--text-primary, var(--fog));
+  font-variant-numeric: tabular-nums;
+}
+
+.plan-sys-card__footer-of {
+  color: var(--mist);
+}
+
+.plan-sys-card__footer-label {
+  font-family:    var(--font-mono);
+  font-size:      9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color:          var(--mist);
+}
+
+/* ── Status pills used in system coverage summary ────────────────────────── */
+
+.plan-status-pill {
+  display:        inline-block;
+  font-family:    var(--font-mono);
+  font-size:      11px;
+  letter-spacing: 0.04em;
+  padding:        2px 8px;
+  border-radius:  999px;
+  border:         1px solid transparent;
+}
+
+.plan-status-pill--warn {
+  background:   color-mix(in srgb, var(--warning, #f59e0b) 12%, transparent);
+  color:        var(--warning, #f59e0b);
+  border-color: color-mix(in srgb, var(--warning, #f59e0b) 30%, transparent);
+}
+
+.plan-status-pill--ok {
+  background:   color-mix(in srgb, var(--success, #22c55e) 12%, transparent);
+  color:        var(--success, #22c55e);
+  border-color: color-mix(in srgb, var(--success, #22c55e) 30%, transparent);
+}
+
+.plan-status-pill--muted {
+  background:   color-mix(in srgb, var(--mist) 10%, transparent);
+  color:        var(--mist);
+  border-color: var(--border);
 }
