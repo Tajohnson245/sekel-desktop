@@ -323,7 +323,11 @@
         "reviews_per_day": "Repasos por día",
         "export_collection": "Exportar colección",
         "export_collection_desc": "Exporta todos tus mazos, tarjetas e historial de repasos como un archivo .spkg. Incluye multimedia.",
-        "export_collection_btn": "Exportar todo"
+        "export_collection_btn": "Exportar todo",
+        "help_and_tour": "Ayuda y recorrido",
+        "replay_tour": "Repetir el recorrido de la app",
+        "replay_tour_desc": "Vuelve a ver las diapositivas de bienvenida y el recorrido por las funciones.",
+        "replay_tour_btn": "Repetir recorrido"
     },
     "verification": {
         "complete": "Verificación Completa",
@@ -661,5 +665,92 @@
         "retry": "Intentar de nuevo",
         "reload": "Recargar aplicación",
         "go_back": "Volver"
+    },
+    "onboarding": {
+        "skip": "Omitir",
+        "skip_tour": "Omitir recorrido",
+        "minimize": "Minimizar",
+        "minimize_tour": "Minimizar recorrido",
+        "back": "Atrás",
+        "next": "Siguiente",
+        "start_tour": "Iniciar recorrido",
+        "finish": "Finalizar",
+        "step_label": "Paso {{current}} de {{total}}",
+        "slide_label": "Diapositiva {{current}} de {{total}}",
+        "resume": "Continuar recorrido · Paso {{current}} de {{total}}",
+        "skip_confirm_title": "¿Omitir el recorrido?",
+        "skip_confirm_body": "Puedes repetirlo en cualquier momento desde tu perfil, en la pestaña Cuenta.",
+        "skip_confirm_keep": "Continuar",
+        "slides": {
+            "1": {
+                "eyebrow": "Bienvenido a Sekel",
+                "headline": "No todas las tarjetas merecen tu tiempo.",
+                "body": "Sekel sabe cuáles sí."
+            },
+            "2": {
+                "eyebrow": "Cómo piensa Sekel",
+                "headline": "Aprende el temario de tu examen y tu rendimiento.",
+                "body": "Lo de mayor rendimiento primero, refuerzo en lo débil, reequilibrio en días ocupados."
+            },
+            "3": {
+                "eyebrow": "Listo cuando quieras",
+                "headline": "Vamos a recorrer la app.",
+                "body": "Recorrido rápido, unos 90 segundos. Puedes omitirlo o repetirlo cuando quieras."
+            }
+        },
+        "steps": {
+            "dashboard-hero": {
+                "title": "Tu día de un vistazo",
+                "body": "Tarjetas pendientes, actividad de hoy, racha y cuenta atrás del examen — todo en una fila."
+            },
+            "dashboard-intelligence": {
+                "title": "SEKEL Intelligence",
+                "body": "Lee tu rendimiento y te dice qué estudiar a continuación, no solo lo que está vencido."
+            },
+            "dashboard-plan-overview": {
+                "title": "Tu plan",
+                "body": "Las metas diarias se ajustan sobre la marcha. ¿Te saltaste un día? Sekel reequilibra para mantenerte en ruta."
+            },
+            "dashboard-decks-grid": {
+                "title": "Mazos y preparación para el examen",
+                "body": "Estado de cada mazo, ponderado por tu temario para saber dónde enfocarte."
+            },
+            "documents-upload": {
+                "title": "Generar tarjetas",
+                "body": "Suelta un PDF, video o apuntes. Sekel los convierte en tarjetas inteligentes — lo más relevante primero."
+            },
+            "plan-targets": {
+                "title": "Planes",
+                "body": "Define metas diarias, observa cómo crece la cobertura y reequilibra cuando la vida se cruza."
+            },
+            "decks": {
+                "title": "Tus mazos",
+                "body": "Todos tus mazos están aquí. Toca cualquiera para estudiar o revisar tarjetas."
+            },
+            "image-occlusion": {
+                "title": "Tarjetas visuales",
+                "body": "Para anatomía, diagramas y vías. Cubre lo importante y revélalo mientras estudias."
+            },
+            "drafts": {
+                "title": "Borradores",
+                "body": "Las tarjetas que empiezas pero no terminas esperan aquí — retómalas cuando quieras."
+            },
+            "profile-info": {
+                "title": "Perfil",
+                "body": "Nombre, avatar, examen y fecha objetivo — lo básico que Sekel usa para ajustar tu plan."
+            },
+            "profile-preferences": {
+                "title": "Preferencias",
+                "body": "Tema, notificaciones, inteligencia activada o no, y límites diarios viven aquí."
+            },
+            "profile-backup": {
+                "title": "Copia de seguridad",
+                "body": "Tus mazos se sincronizan, y puedes exportarlos cuando quieras para respaldo o migración."
+            },
+            "profile-account": {
+                "title": "Cuenta",
+                "body": "Contraseña, importación/exportación de datos, comentarios y el botón para repetir el recorrido están aquí."
+            }
+        }
     }
 }

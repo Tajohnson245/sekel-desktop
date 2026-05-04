@@ -282,7 +282,11 @@
         "reviews_per_day": "Révisions par jour",
         "export_collection": "Exporter la collection",
         "export_collection_desc": "Exportez tous vos paquets, cartes et historique de révision dans un fichier .spkg. Les médias sont inclus.",
-        "export_collection_btn": "Tout exporter"
+        "export_collection_btn": "Tout exporter",
+        "help_and_tour": "Aide et visite",
+        "replay_tour": "Rejouer la visite de l'application",
+        "replay_tour_desc": "Reparcourez les diapos de bienvenue et la visite des fonctionnalités.",
+        "replay_tour_btn": "Rejouer la visite"
     },
     "verification": {
         "complete": "Vérification Complète",
@@ -661,5 +665,92 @@
         "retry": "Réessayer",
         "reload": "Recharger l'application",
         "go_back": "Retour"
+    },
+    "onboarding": {
+        "skip": "Passer",
+        "skip_tour": "Passer la visite",
+        "minimize": "Réduire",
+        "minimize_tour": "Réduire la visite",
+        "back": "Retour",
+        "next": "Suivant",
+        "start_tour": "Démarrer la visite",
+        "finish": "Terminer",
+        "step_label": "Étape {{current}} sur {{total}}",
+        "slide_label": "Diapositive {{current}} sur {{total}}",
+        "resume": "Reprendre la visite · Étape {{current}} sur {{total}}",
+        "skip_confirm_title": "Passer la visite ?",
+        "skip_confirm_body": "Vous pouvez la rejouer à tout moment depuis votre profil, onglet Compte.",
+        "skip_confirm_keep": "Continuer",
+        "slides": {
+            "1": {
+                "eyebrow": "Bienvenue sur Sekel",
+                "headline": "Toutes les cartes ne valent pas votre temps.",
+                "body": "Sekel sait lesquelles le valent."
+            },
+            "2": {
+                "eyebrow": "Comment Sekel pense",
+                "headline": "Il apprend votre programme d'examen et vos performances.",
+                "body": "Le plus rentable d'abord, les points faibles renforcés, les journées chargées rééquilibrées."
+            },
+            "3": {
+                "eyebrow": "Quand vous voulez",
+                "headline": "Faisons un tour.",
+                "body": "Visite rapide, environ 90 secondes. Vous pouvez la passer ou la rejouer à tout moment."
+            }
+        },
+        "steps": {
+            "dashboard-hero": {
+                "title": "Votre journée en un coup d'œil",
+                "body": "Cartes à réviser, activité du jour, série en cours et compte à rebours de l'examen — tout sur une ligne."
+            },
+            "dashboard-intelligence": {
+                "title": "SEKEL Intelligence",
+                "body": "Lit vos performances et vous dit ce qu'il faut étudier ensuite — pas seulement ce qui est en retard."
+            },
+            "dashboard-plan-overview": {
+                "title": "Votre plan",
+                "body": "Les objectifs quotidiens s'ajustent en temps réel. Une journée manquée ? Sekel rééquilibre pour vous garder sur la bonne voie."
+            },
+            "dashboard-decks-grid": {
+                "title": "Paquets et préparation à l'examen",
+                "body": "État de chaque paquet, pondéré selon votre programme d'examen pour savoir où concentrer vos efforts."
+            },
+            "documents-upload": {
+                "title": "Générer des cartes",
+                "body": "Déposez un PDF, une vidéo ou des notes. Sekel les transforme en cartes intelligentes — le plus rentable d'abord."
+            },
+            "plan-targets": {
+                "title": "Plans",
+                "body": "Définissez des objectifs quotidiens, suivez votre couverture et rééquilibrez quand la vie s'en mêle."
+            },
+            "decks": {
+                "title": "Vos paquets",
+                "body": "Tous vos paquets sont ici. Touchez-en un pour étudier ou parcourir les cartes."
+            },
+            "image-occlusion": {
+                "title": "Cartes visuelles",
+                "body": "Pour l'anatomie, les schémas et les voies. Couvrez ce qui compte, révélez en étudiant."
+            },
+            "drafts": {
+                "title": "Brouillons",
+                "body": "Les cartes commencées mais non finies attendent ici — reprenez-les quand vous voulez."
+            },
+            "profile-info": {
+                "title": "Profil",
+                "body": "Nom, avatar, examen et date cible — les bases que Sekel utilise pour ajuster votre plan."
+            },
+            "profile-preferences": {
+                "title": "Préférences",
+                "body": "Thème, notifications, intelligence activée ou non, et limites quotidiennes vivent ici."
+            },
+            "profile-backup": {
+                "title": "Sauvegarde",
+                "body": "Vos paquets se synchronisent, et vous pouvez exporter à tout moment pour la sauvegarde ou la migration."
+            },
+            "profile-account": {
+                "title": "Compte",
+                "body": "Mot de passe, import/export de données, retours et bouton Rejouer la visite vivent ici."
+            }
+        }
     }
 }

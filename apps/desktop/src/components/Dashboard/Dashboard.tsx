@@ -215,7 +215,7 @@ export default function Dashboard() {
         <div className="dashboard">
 
             {/* ── Zone 1: Hero Row ──────────────────────────────────────────── */}
-            <div className="db-hero">
+            <div className="db-hero" data-tour-id="dashboard-hero-row">
                 <StatCard
                     label="Cards Due Today"
                     value={dueCount}
@@ -255,7 +255,7 @@ export default function Dashboard() {
             </div>
 
             {/* ── Zone 2: SEKEL Intelligence ────────────────────────────────── */}
-            <div className="db-section">
+            <div className="db-section" data-tour-id="dashboard-intelligence">
                 {intelligence ? (
                     intelligenceEnabled ? (
                         <SekelIntelligencePanel
@@ -284,7 +284,7 @@ export default function Dashboard() {
             )}
 
             {/* ── Plan Overview ───────────────────────────────────────────── */}
-            <section className="dash-section">
+            <section className="dash-section" data-tour-id="dashboard-plan-overview">
                 <div className="dash-section__row">
                     {/* Plan Overview */}
                     <div className="db-card">
@@ -351,7 +351,7 @@ export default function Dashboard() {
 
             {/* ── Your Decks ────────────────────────────────────────────────── */}
             {decks.length > 0 && (
-                <section className="dash-section">
+                <section className="dash-section" data-tour-id="dashboard-decks-grid">
                     <h3 className="dash-section__title">Your Decks</h3>
                     <div className="db-card">
                         <div className="db-card__header">
