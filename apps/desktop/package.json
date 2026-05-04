@@ -1,6 +1,6 @@
 {
   "name": "@sekel/desktop",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Intelligent flashcards for exam prep",
   "homepage": "https://github.com/Tajohnson245/sekel-desktop#readme",
   "bugs": {
@@ -44,6 +44,7 @@
   "devDependencies": {
     "@electron-forge/cli": "^7.11.1",
     "@electron-forge/maker-deb": "^7.11.1",
+    "@electron-forge/maker-dmg": "^7.11.1",
     "@electron-forge/maker-rpm": "^7.11.1",
     "@electron-forge/maker-squirrel": "^7.11.1",
     "@electron-forge/maker-zip": "^7.11.1",

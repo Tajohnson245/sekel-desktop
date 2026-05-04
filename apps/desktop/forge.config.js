@@ -183,7 +183,23 @@ module.exports = {
     },
     {
       name: '@electron-forge/maker-zip',
-      platforms: ['darwin', 'linux'],
+      platforms: ['linux'],
+    },
+    // macOS: ship a .dmg drag-to-Applications installer instead of a raw .zip.
+    // Unsigned (no Apple Developer ID) — first launch still triggers a
+    // Gatekeeper warning that the user clears via right-click → Open. Auto-
+    // updates remain Windows-only because Squirrel.Mac requires code signing.
+    //
+    // The `name` field embeds the arch so the arm64 and x64 outputs don't
+    // collide when the multi-arch CI matrix uploads both to the same GitHub
+    // Release. FORGE_ARCH is set by the `make` script in package.json.
+    {
+      name: '@electron-forge/maker-dmg',
+      platforms: ['darwin'],
+      config: {
+        name: `Sekel-${require('./package.json').version}-${process.env.FORGE_ARCH || process.arch}`,
+        format: 'ULFO',
+      },
     },
   ],
   plugins: [
