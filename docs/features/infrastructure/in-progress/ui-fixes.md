@@ -37,3 +37,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 | Date | Description |
 |------|-------------|
 | 2026-05-04 | Doc created. .claude/settings.local.json |
+| 2026-05-04 | .claude/settings.local.json,apps/desktop/src/components/AIStudy/DocumentsPage.css,apps/desktop/src/components/ExamOnboarding/ExamOnboardingModal.css |
