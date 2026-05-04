@@ -37,13 +37,13 @@
 }
 
 .exam-list-item:hover {
-    border-color: var(--accent);
+    border-color: var(--teal);
     background: var(--bg-hover, var(--bg-secondary));
 }
 
 .exam-list-item.selected {
-    border-color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 10%, var(--bg-secondary));
+    border-color: var(--teal);
+    background: color-mix(in srgb, var(--teal) 10%, var(--bg-secondary));
     font-weight: 600;
 }
 
@@ -68,9 +68,9 @@
 }
 
 .exam-deck-checkbox.checked {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: var(--bg);
+    background: var(--teal);
+    border-color: var(--teal);
+    color: var(--ink);
 }
 
 .exam-deck-name {
