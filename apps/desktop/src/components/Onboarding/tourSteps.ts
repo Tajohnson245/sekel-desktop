@@ -5,6 +5,7 @@ export type TourStepRoute =
     | { kind: 'decks' }
     | { kind: 'imageOcclusion' }
     | { kind: 'drafts' }
+    | { kind: 'statistics' }
     | { kind: 'profile'; tab?: string };
 
 /**
@@ -16,6 +17,14 @@ export interface TourContext {
     hasDecks: boolean;
     hasActivePlan: boolean;
     hasIntelligence: boolean;
+    /** True when the dashboard's Exam Readiness section actually renders:
+     *  user has an exam date, classifications exist, and at least one
+     *  system has data. */
+    hasExamReadiness: boolean;
+    /** True when the active plan's snapshot has at least one system covered —
+     *  i.e. the user has classified cards. Without it the System Coverage
+     *  card on /plan never renders. */
+    hasSystemCoverage: boolean;
 }
 
 /**
@@ -48,10 +57,21 @@ export const TOUR_STEPS: TourStep[] = [
         targetSelector: '[data-tour-id="dashboard-plan-overview"]',
     },
     {
-        id: 'dashboard-decks-grid',
+        id: 'dashboard-deck-health',
         route: { kind: 'dashboard' },
-        targetSelector: '[data-tour-id="dashboard-decks-grid"]',
+        targetSelector: '[data-tour-id="dashboard-deck-health"]',
         precondition: (c) => c.hasDecks,
+    },
+    {
+        id: 'dashboard-exam-readiness',
+        route: { kind: 'dashboard' },
+        targetSelector: '[data-tour-id="dashboard-exam-readiness"]',
+        precondition: (c) => c.hasExamReadiness,
+    },
+    {
+        id: 'dashboard-quick-actions',
+        route: { kind: 'dashboard' },
+        targetSelector: '[data-tour-id="dashboard-quick-actions"]',
     },
     {
         id: 'documents-upload',
@@ -63,6 +83,24 @@ export const TOUR_STEPS: TourStep[] = [
         route: { kind: 'plan' },
         targetSelector: '[data-tour-id="plan-targets"]',
         precondition: (c) => c.hasActivePlan,
+    },
+    {
+        id: 'plan-activity',
+        route: { kind: 'plan' },
+        targetSelector: '[data-tour-id="plan-activity"]',
+        precondition: (c) => c.hasActivePlan,
+    },
+    {
+        id: 'plan-weekly-workload',
+        route: { kind: 'plan' },
+        targetSelector: '[data-tour-id="plan-weekly-workload"]',
+        precondition: (c) => c.hasActivePlan,
+    },
+    {
+        id: 'plan-system-coverage',
+        route: { kind: 'plan' },
+        targetSelector: '[data-tour-id="plan-system-coverage"]',
+        precondition: (c) => c.hasSystemCoverage,
     },
     {
         id: 'decks',
@@ -77,6 +115,11 @@ export const TOUR_STEPS: TourStep[] = [
     {
         id: 'drafts',
         route: { kind: 'drafts' },
+    },
+    {
+        id: 'statistics',
+        route: { kind: 'statistics' },
+        targetSelector: '[data-tour-id="statistics-page"]',
     },
     {
         id: 'profile-info',

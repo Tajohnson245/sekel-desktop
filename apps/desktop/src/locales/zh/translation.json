@@ -705,15 +705,23 @@
             },
             "dashboard-intelligence": {
                 "title": "SEKEL 智能",
-                "body": "读取你的表现,告诉你接下来应该学什么——而不仅仅是什么过期了。"
+                "body": "按考试系统跟踪你的准确率。每个系统完成 10 次复习后解锁,让你看到自己的强项和弱项。"
             },
             "dashboard-plan-overview": {
                 "title": "你的计划",
                 "body": "每日目标会随时调整。错过一天?Sekel 会重新平衡,让你保持节奏。"
             },
-            "dashboard-decks-grid": {
-                "title": "牌组与考试准备",
-                "body": "每个牌组的状态,按你的考试大纲加权,让你知道在哪里发力。"
+            "dashboard-deck-health": {
+                "title": "牌组健康状况",
+                "body": "每个牌组的概览——卡片总数、已分类、到期数——你正在学习的一切。"
+            },
+            "dashboard-exam-readiness": {
+                "title": "考试准备",
+                "body": "考试大纲中的每个系统,包含权重、记忆率和当前状态。"
+            },
+            "dashboard-quick-actions": {
+                "title": "快捷操作",
+                "body": "直接进入今天的学习、从文档生成卡片,或打开你的计划。"
             },
             "documents-upload": {
                 "title": "生成卡片",
@@ -722,6 +730,18 @@
             "plan-targets": {
                 "title": "计划",
                 "body": "设定每日目标,跟踪覆盖率,生活打乱节奏时随时重新平衡。"
+            },
+            "plan-activity": {
+                "title": "计划活动",
+                "body": "今天、本周,或自计划开始以来——按评级的分布显示你的复习情况。"
+            },
+            "plan-weekly-workload": {
+                "title": "每周工作量",
+                "body": "每周预计的复习数和学习时间,让你看清楚接下来的节奏。"
+            },
+            "plan-system-coverage": {
+                "title": "系统覆盖",
+                "body": "你的计划对每个考试系统的覆盖程度——一眼看出强项和薄弱环节。"
             },
             "decks": {
                 "title": "你的牌组",
@@ -734,6 +754,10 @@
             "drafts": {
                 "title": "草稿",
                 "body": "你开始但未完成的卡片在这里等着——随时回来继续。"
+            },
+            "statistics": {
+                "title": "统计",
+                "body": "卡片成熟度、记忆率、错过的主题和复习热力图——一眼看清你的进度。"
             },
             "profile-info": {
                 "title": "个人资料",

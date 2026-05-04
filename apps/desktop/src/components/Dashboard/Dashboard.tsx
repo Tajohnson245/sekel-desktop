@@ -353,7 +353,7 @@ export default function Dashboard() {
 
             {/* ── Your Decks ────────────────────────────────────────────────── */}
             {decks.length > 0 && (
-                <section className="dash-section" data-tour-id="dashboard-decks-grid">
+                <section className="dash-section" data-tour-id="dashboard-deck-health">
                     <h3 className="dash-section__title">Your Decks</h3>
                     <div className="db-card">
                         <div className="db-card__header">
@@ -378,7 +378,7 @@ export default function Dashboard() {
 
             {/* ── Exam Readiness ────────────────────────────────────────────── */}
             {showReadiness && (
-                <section className="dash-section">
+                <section className="dash-section" data-tour-id="dashboard-exam-readiness">
                     <h3 className="dash-section__title">Exam Readiness</h3>
                     <div className="db-card db-card--readiness">
                         <div className="db-card__header">
@@ -418,7 +418,7 @@ export default function Dashboard() {
             )}
 
             {/* ── Quick Actions ─────────────────────────────────────────────── */}
-            <section className="dash-section">
+            <section className="dash-section" data-tour-id="dashboard-quick-actions">
                 <h3 className="dash-section__title">Quick Actions</h3>
                 <div className="dash-quick-actions__grid">
                     <button
