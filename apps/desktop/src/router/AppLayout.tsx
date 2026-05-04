@@ -14,6 +14,7 @@ import DocumentsPage from '../components/AIStudy/DocumentsPage';
 import { DeckEditorProvider } from '../contexts/DeckEditorContext';
 import { useDeckEditor } from '../contexts/DeckEditorContext';
 import { OnboardingTour } from '../components/Onboarding/OnboardingTour';
+import UpdateAvailableModal from '../components/Update/UpdateAvailableModal';
 import { useVisibleTourStepIds } from '../components/Onboarding/useVisibleTourStepIds';
 import { useOnboardingStore, ONBOARDING_LOCALSTORAGE_KEY } from '../stores/onboardingStore';
 
@@ -224,6 +225,7 @@ export default function AppLayout() {
                 </main>
 
                 <OnboardingTour />
+                <UpdateAvailableModal />
             </div>
         </DeckEditorProvider>
     );

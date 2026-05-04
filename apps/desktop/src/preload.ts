@@ -163,6 +163,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
         fetchAllCardIds: (userId: string) => ipcRenderer.invoke('exam:fetch-all-card-ids', userId),
     },
 
+    update: {
+        onDownloaded: (cb: (data: { version: string; notes: string | null }) => void) => {
+            const listener = (_event: unknown, data: { version: string; notes: string | null }) => cb(data);
+            ipcRenderer.on('update:downloaded', listener);
+            return () => ipcRenderer.removeListener('update:downloaded', listener);
+        },
+        install: () => ipcRenderer.invoke('update:install'),
+    },
+
     plan: {
         compute:      (userId: string, examKey: string, deckIds?: string[]) =>
                           ipcRenderer.invoke('plan:compute', userId, examKey, deckIds),

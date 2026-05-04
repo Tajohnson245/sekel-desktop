@@ -534,6 +534,16 @@ interface ElectronPlan {
     fetchPlansReferencingDecks: (userId: string, deckIds: string[]) => Promise<{ id: string; name: string }[]>;
 }
 
+export interface UpdateDownloadedPayload {
+    version: string;
+    notes: string | null;
+}
+
+interface ElectronUpdate {
+    onDownloaded: (cb: (data: UpdateDownloadedPayload) => void) => () => void;
+    install: () => Promise<void>;
+}
+
 interface ElectronAPI {
     generateCards: (text: string, count?: number, language?: string, options?: AIGenerationOptions) => Promise<GeneratedCard[]>;
     generateCardsFromContext: (summary: string, content: string, count: number, language?: string, options?: AIGenerationOptions, chunks?: DocumentChunk[]) => Promise<GenerationResult>;
@@ -550,6 +560,7 @@ interface ElectronAPI {
     backup: ElectronBackup;
     exam: ElectronExam;
     plan: ElectronPlan;
+    update: ElectronUpdate;
 }
 
 declare global {

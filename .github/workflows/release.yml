@@ -68,3 +68,25 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.CF_R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.CF_R2_SECRET_ACCESS_KEY }}
         run: npm run publish
+
+  # Runs once after every matrix combo has uploaded artifacts. Uses GitHub's
+  # built-in --generate-notes to compose the release body from PR titles and
+  # commit subjects in the range, then flips the draft flag to published.
+  # The desktop client's update modal fetches this body at update-downloaded
+  # time. (Wired to allow swapping in an AI summarizer later without touching
+  # the modal.)
+  publish-notes:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish release with auto-generated notes
+        env:
+          # publisher-github creates the release on Tajohnson245/sekel (see
+          # apps/desktop/forge.config.js publishers[0].config.repository).
+          GH_TOKEN: ${{ secrets.GH_RELEASES_TOKEN || secrets.GITHUB_TOKEN }}
+          GH_REPO: Tajohnson245/sekel
+        shell: bash
+        run: |
+          set -e
+          TAG="v${GITHUB_REF_NAME#desktop/v}"
+          gh release edit "$TAG" --draft=false --generate-notes
