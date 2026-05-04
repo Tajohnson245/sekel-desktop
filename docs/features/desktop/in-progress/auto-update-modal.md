@@ -37,3 +37,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 | Date | Description |
 |------|-------------|
 | 2026-05-04 | Doc created. .claude/settings.local.json,.github/workflows/release.yml,apps/desktop/src/main.ts,apps/desktop/src/preload.ts,apps/desktop/src/router/AppLayout.tsx,apps/desktop/src/types/electron.d.ts,apps/desktop/src/components/Update/,scripts/test-release-notes.sh |
+| 2026-05-04 | .claude/settings.local.json,.github/workflows/release.yml,apps/desktop/src/main.ts,apps/desktop/src/preload.ts,apps/desktop/src/router/AppLayout.tsx,apps/desktop/src/types/electron.d.ts,apps/desktop/src/components/Update/ |
