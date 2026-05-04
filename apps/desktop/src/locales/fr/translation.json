@@ -705,15 +705,23 @@
             },
             "dashboard-intelligence": {
                 "title": "SEKEL Intelligence",
-                "body": "Lit vos performances et vous dit ce qu'il faut étudier ensuite — pas seulement ce qui est en retard."
+                "body": "Suit votre précision par système d'examen. Se débloque après 10 révisions par système, pour voir où vous êtes fort ou faible."
             },
             "dashboard-plan-overview": {
                 "title": "Votre plan",
                 "body": "Les objectifs quotidiens s'ajustent en temps réel. Une journée manquée ? Sekel rééquilibre pour vous garder sur la bonne voie."
             },
-            "dashboard-decks-grid": {
-                "title": "Paquets et préparation à l'examen",
-                "body": "État de chaque paquet, pondéré selon votre programme d'examen pour savoir où concentrer vos efforts."
+            "dashboard-deck-health": {
+                "title": "État de vos paquets",
+                "body": "Aperçu par paquet — total de cartes, classées et à réviser — pour tout ce que vous étudiez."
+            },
+            "dashboard-exam-readiness": {
+                "title": "Préparation à l'examen",
+                "body": "Chaque système de votre programme d'examen, avec son poids, sa rétention et son statut actuel."
+            },
+            "dashboard-quick-actions": {
+                "title": "Actions rapides",
+                "body": "Allez directement à la session du jour, générez des cartes depuis un document ou ouvrez votre plan."
             },
             "documents-upload": {
                 "title": "Générer des cartes",
@@ -722,6 +730,18 @@
             "plan-targets": {
                 "title": "Plans",
                 "body": "Définissez des objectifs quotidiens, suivez votre couverture et rééquilibrez quand la vie s'en mêle."
+            },
+            "plan-activity": {
+                "title": "Activité du plan",
+                "body": "Aujourd'hui, cette semaine ou depuis le début du plan — la répartition par note montre comment vos révisions se passent."
+            },
+            "plan-weekly-workload": {
+                "title": "Charge hebdomadaire",
+                "body": "Révisions et temps d'étude prévus par semaine pour voir ce qui arrive et garder le rythme."
+            },
+            "plan-system-coverage": {
+                "title": "Couverture par système",
+                "body": "Ce que votre plan couvre de chaque système d'examen — un aperçu rapide de vos forces et faiblesses."
             },
             "decks": {
                 "title": "Vos paquets",
@@ -734,6 +754,10 @@
             "drafts": {
                 "title": "Brouillons",
                 "body": "Les cartes commencées mais non finies attendent ici — reprenez-les quand vous voulez."
+            },
+            "statistics": {
+                "title": "Statistiques",
+                "body": "Maturité des cartes, rétention, sujets ratés et heatmaps de révision — votre progression en un coup d'œil."
             },
             "profile-info": {
                 "title": "Profil",

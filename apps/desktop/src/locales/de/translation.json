@@ -705,15 +705,23 @@
             },
             "dashboard-intelligence": {
                 "title": "SEKEL Intelligence",
-                "body": "Liest deine Leistung und sagt dir, was du als Nächstes lernen solltest — nicht nur, was überfällig ist."
+                "body": "Verfolgt deine Genauigkeit pro Prüfungssystem. Schaltet sich nach 10 Wiederholungen pro System frei, damit du siehst, wo du stark oder schwach bist."
             },
             "dashboard-plan-overview": {
                 "title": "Dein Plan",
                 "body": "Tägliche Ziele passen sich laufend an. Tag verpasst? Sekel rebalanciert, damit du auf Kurs bleibst."
             },
-            "dashboard-decks-grid": {
-                "title": "Stapel & Prüfungsbereitschaft",
-                "body": "Status pro Stapel, gewichtet nach deinem Prüfungsstoff, damit du weißt, wo du dich konzentrieren solltest."
+            "dashboard-deck-health": {
+                "title": "Status deiner Stapel",
+                "body": "Übersicht pro Stapel — Gesamtkarten, klassifiziert und fällig — für alles, was du gerade lernst."
+            },
+            "dashboard-exam-readiness": {
+                "title": "Prüfungsbereitschaft",
+                "body": "Jedes System aus deinem Prüfungsstoff mit Gewichtung, Retention und aktuellem Status."
+            },
+            "dashboard-quick-actions": {
+                "title": "Schnellaktionen",
+                "body": "Direkt zur heutigen Session, Karten aus einem Dokument generieren oder den Plan öffnen."
             },
             "documents-upload": {
                 "title": "Karten generieren",
@@ -722,6 +730,18 @@
             "plan-targets": {
                 "title": "Pläne",
                 "body": "Lege tägliche Ziele fest, sieh, wie die Abdeckung wächst, und gleiche aus, wenn das Leben dazwischenkommt."
+            },
+            "plan-activity": {
+                "title": "Plan-Aktivität",
+                "body": "Heute, diese Woche oder seit Planstart — die Bewertungsaufschlüsselung zeigt, wie deine Wiederholungen laufen."
+            },
+            "plan-weekly-workload": {
+                "title": "Wöchentliche Auslastung",
+                "body": "Prognostizierte Wiederholungen und Lernzeit pro Woche — sieh, was kommt, und teile dir die Zeit ein."
+            },
+            "plan-system-coverage": {
+                "title": "Systemabdeckung",
+                "body": "Wie viel deines Prüfungsstoffs dein Plan pro System abdeckt — ein schneller Blick auf Stärken und Lücken."
             },
             "decks": {
                 "title": "Deine Stapel",
@@ -734,6 +754,10 @@
             "drafts": {
                 "title": "Entwürfe",
                 "body": "Karten, die du angefangen, aber nicht beendet hast, warten hier — nimm sie jederzeit wieder auf."
+            },
+            "statistics": {
+                "title": "Statistiken",
+                "body": "Kartenreife, Retention, verpasste Themen und Wiederholungs-Heatmaps — dein Fortschritt auf einen Blick."
             },
             "profile-info": {
                 "title": "Profil",
