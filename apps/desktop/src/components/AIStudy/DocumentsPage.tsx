@@ -241,7 +241,7 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
             </div>
 
             {step === 'upload' && (
-                <div className="upload-section">
+                <div className="upload-section" data-tour-id="documents-upload-zone">
                     <DocumentUpload
                         onFilesSelected={handleFilesSelected}
                         onUrlSelected={handleUrlSelected}

@@ -9,6 +9,9 @@ interface ProfileState {
     profile: UserProfile | null;
     isLoading: boolean;
     error: string | null;
+    /** True once fetchProfile has resolved at least once (success or null).
+     *  Lets callers tell "no row exists" from "haven't fetched yet". */
+    hasAttemptedFetch: boolean;
     fetchProfile: (userId: string) => Promise<void>;
     updateProfile: (userId: string, updates: Partial<UserProfile>) => Promise<void>;
     upsertProfile: (userId: string, updates: Partial<UserProfile>) => Promise<void>;
@@ -17,12 +20,22 @@ interface ProfileState {
     removeBackground: (userId: string) => Promise<void>;
 }
 
-export const useProfileStore = create<ProfileState>((set) => ({
+export const useProfileStore = create<ProfileState>((set, get) => ({
     profile: null,
     isLoading: false,
     error: null,
+    hasAttemptedFetch: false,
 
     fetchProfile: async (userId: string) => {
+        const { isLoading, hasAttemptedFetch, profile } = get();
+        // Skip if a fetch is already in flight.
+        if (isLoading) return;
+        // Brand-new user has no user_profiles row yet — don't keep re-hitting
+        // Supabase for it. The row gets created on the first upsert (theme
+        // change, onboarding completion, etc.), which writes directly into
+        // the store, so a future fetch isn't needed.
+        if (hasAttemptedFetch && profile === null) return;
+
         set({ isLoading: true, error: null });
         try {
             const data = await fetchUserProfile(supabase, userId);
@@ -38,7 +51,7 @@ export const useProfileStore = create<ProfileState>((set) => ({
         } catch (err: unknown) {
             set({ error: err instanceof Error ? err.message : String(err) });
         } finally {
-            set({ isLoading: false });
+            set({ isLoading: false, hasAttemptedFetch: true });
         }
     },
 

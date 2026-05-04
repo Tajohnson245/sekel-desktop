@@ -1,0 +1,325 @@
+/* ==========================================================================
+   Onboarding Tour
+   z-index map:
+     1100 — backdrop / spotlight layer
+     1150 — welcome slide overlay
+     1200 — tour card / resume chip
+     1300 — skip confirm dialog
+   ========================================================================== */
+
+/* ----- Welcome slides (full-screen) ----- */
+
+.onboarding-overlay {
+    position:        fixed;
+    inset:           0;
+    z-index:         1150;
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    background:      rgba(15, 17, 23, 0.78);
+    backdrop-filter: blur(4px);
+    padding:         var(--space-xl);
+    animation:       onboarding-fade-in 200ms ease forwards;
+}
+
+.onboarding-slide {
+    width:            100%;
+    max-width:        560px;
+    background:       var(--ink-soft);
+    border:           1px solid var(--ink-muted);
+    border-radius:    var(--r-lg);
+    box-shadow:       var(--shadow-lg);
+    padding:          var(--space-2xl);
+    text-align:       left;
+    animation:        onboarding-rise 220ms ease forwards;
+}
+
+.onboarding-slide-eyebrow {
+    font-family:    var(--font-mono, var(--font-body));
+    font-size:      11px;
+    font-weight:    600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color:          var(--teal);
+    margin-bottom:  var(--space-md);
+}
+
+.onboarding-slide-headline {
+    font-family: var(--font-display, var(--font-body));
+    font-size:   28px;
+    font-weight: 600;
+    line-height: 1.2;
+    color:       var(--fog);
+    margin:      0 0 var(--space-md) 0;
+}
+
+.onboarding-slide-body {
+    font-family: var(--font-body);
+    font-size:   15px;
+    line-height: 1.55;
+    color:       var(--mist, var(--fog));
+    margin:      0 0 var(--space-xl) 0;
+}
+
+.onboarding-dots {
+    display:        flex;
+    gap:            var(--space-xs);
+    margin-bottom:  var(--space-xl);
+}
+
+.onboarding-dot {
+    width:         8px;
+    height:        8px;
+    border-radius: 50%;
+    background:    var(--ink-muted);
+    transition:    background 160ms ease, transform 160ms ease;
+}
+
+.onboarding-dot.is-active {
+    background: var(--teal);
+    transform:  scale(1.15);
+}
+
+.onboarding-slide-actions {
+    display:         flex;
+    align-items:     center;
+    justify-content: space-between;
+    gap:             var(--space-md);
+}
+
+.onboarding-slide-actions-right {
+    display: flex;
+    gap:     var(--space-sm);
+}
+
+/* ----- Spotlight / backdrop (in-app tour) ----- */
+
+.onboarding-spotlight-layer {
+    position: fixed;
+    inset:    0;
+    z-index:  1100;
+    pointer-events: none;
+}
+
+.onboarding-backdrop {
+    position:   fixed;
+    background: rgba(15, 17, 23, 0.62);
+    pointer-events: auto;
+}
+
+.onboarding-backdrop-top    { top: 0; left: 0; right: 0; }
+.onboarding-backdrop-bottom { left: 0; right: 0; }
+.onboarding-backdrop-left   { /* positioned inline */ }
+.onboarding-backdrop-right  { /* positioned inline */ }
+
+.onboarding-backdrop-fallback {
+    position: fixed;
+    inset:    0;
+    z-index:  1100;
+    background: rgba(15, 17, 23, 0.62);
+    pointer-events: auto;
+}
+
+/* Used when a step intentionally has no spotlight (e.g. Profile tabs).
+   The user is meant to read the underlying page, so the dim is much lighter
+   — just enough to signal "tour is active" without obscuring content. */
+.onboarding-backdrop-soft {
+    position: fixed;
+    inset:    0;
+    z-index:  1100;
+    background: rgba(15, 17, 23, 0.22);
+    pointer-events: auto;
+}
+
+.onboarding-spotlight-ring {
+    position:       fixed;
+    border-radius:  var(--r-md);
+    box-shadow:     0 0 0 2px var(--teal), var(--teal-glow);
+    pointer-events: none;
+    transition:     top 160ms ease, left 160ms ease, width 160ms ease, height 160ms ease;
+}
+
+/* ----- Tour card (floating, bottom-right) ----- */
+
+.onboarding-tour-card {
+    position:      fixed;
+    bottom:        var(--space-xl);
+    right:         var(--space-xl);
+    z-index:       1200;
+    width:         360px;
+    max-width:     calc(100vw - var(--space-xl) * 2);
+    background:    var(--ink-soft);
+    border:        1px solid var(--teal-border);
+    border-radius: var(--r-lg);
+    box-shadow:    var(--shadow-lg), var(--teal-glow);
+    padding:       var(--space-lg) var(--space-xl);
+    animation:     onboarding-rise 200ms ease forwards;
+}
+
+.onboarding-tour-card-header {
+    display:         flex;
+    align-items:     center;
+    justify-content: space-between;
+    margin-bottom:   var(--space-sm);
+}
+
+.onboarding-tour-step-label {
+    font-family:    var(--font-mono, var(--font-body));
+    font-size:      11px;
+    font-weight:    600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color:          var(--teal);
+}
+
+.onboarding-tour-card-controls {
+    display: flex;
+    gap:     var(--space-xs);
+}
+
+.onboarding-tour-icon-btn {
+    display:         inline-flex;
+    align-items:     center;
+    justify-content: center;
+    width:           24px;
+    height:          24px;
+    border:          none;
+    border-radius:   var(--r-sm);
+    background:      transparent;
+    color:           var(--mist, var(--fog));
+    cursor:          pointer;
+    transition:      background 120ms ease, color 120ms ease;
+}
+
+.onboarding-tour-icon-btn:hover {
+    background: var(--ink-muted);
+    color:      var(--fog);
+}
+
+.onboarding-tour-card-title {
+    font-family: var(--font-display, var(--font-body));
+    font-size:   18px;
+    font-weight: 600;
+    color:       var(--fog);
+    margin:      0 0 var(--space-xs) 0;
+    line-height: 1.3;
+}
+
+.onboarding-tour-card-body {
+    font-family: var(--font-body);
+    font-size:   14px;
+    line-height: 1.5;
+    color:       var(--mist, var(--fog));
+    margin:      0 0 var(--space-md) 0;
+}
+
+.onboarding-tour-progress {
+    display:        flex;
+    gap:            4px;
+    margin-bottom:  var(--space-md);
+}
+
+.onboarding-tour-progress-dot {
+    flex:          0 0 auto;
+    width:         18px;
+    height:        4px;
+    border-radius: 2px;
+    background:    var(--ink-muted);
+    transition:    background 120ms ease;
+}
+
+.onboarding-tour-progress-dot.is-done   { background: var(--teal-border); }
+.onboarding-tour-progress-dot.is-active { background: var(--teal); }
+
+.onboarding-tour-card-actions {
+    display:         flex;
+    justify-content: space-between;
+    gap:             var(--space-sm);
+}
+
+/* ----- Resume chip (minimized state) ----- */
+
+.onboarding-resume-chip {
+    position:      fixed;
+    bottom:        var(--space-xl);
+    right:         var(--space-xl);
+    z-index:       1200;
+    display:       inline-flex;
+    align-items:   center;
+    gap:           var(--space-xs);
+    padding:       10px var(--space-md);
+    background:    var(--ink-soft);
+    color:         var(--teal);
+    border:        1px solid var(--teal-border);
+    border-radius: 999px;
+    font-family:   var(--font-body);
+    font-size:     13px;
+    font-weight:   500;
+    cursor:        pointer;
+    box-shadow:    var(--shadow-md);
+    transition:    transform 120ms ease, box-shadow 120ms ease;
+}
+
+.onboarding-resume-chip:hover {
+    transform:  translateY(-1px);
+    box-shadow: var(--shadow-lg), var(--teal-glow);
+}
+
+/* ----- Skip confirm dialog ----- */
+
+.onboarding-skip-confirm-overlay {
+    position:        fixed;
+    inset:           0;
+    z-index:         1300;
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    background:      rgba(15, 17, 23, 0.62);
+    backdrop-filter: blur(2px);
+    animation:       onboarding-fade-in 160ms ease forwards;
+}
+
+.onboarding-skip-confirm {
+    width:         100%;
+    max-width:     400px;
+    background:    var(--ink-soft);
+    border:        1px solid var(--ink-muted);
+    border-radius: var(--r-lg);
+    box-shadow:    var(--shadow-lg);
+    padding:       var(--space-xl);
+    animation:     onboarding-rise 180ms ease forwards;
+}
+
+.onboarding-skip-confirm h3 {
+    font-family: var(--font-display, var(--font-body));
+    font-size:   18px;
+    font-weight: 600;
+    color:       var(--fog);
+    margin:      0 0 var(--space-sm) 0;
+}
+
+.onboarding-skip-confirm p {
+    font-family: var(--font-body);
+    font-size:   14px;
+    line-height: 1.5;
+    color:       var(--mist, var(--fog));
+    margin:      0 0 var(--space-lg) 0;
+}
+
+.onboarding-skip-confirm-actions {
+    display:         flex;
+    justify-content: flex-end;
+    gap:             var(--space-sm);
+}
+
+/* ----- Animations ----- */
+
+@keyframes onboarding-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes onboarding-rise {
+    from { opacity: 0; transform: translateY(8px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0)   scale(1);    }
+}

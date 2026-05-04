@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useAuthStore } from '../../../stores/authStore';
-import { Lock, Trash2, Upload, Download } from 'lucide-react';
+import { Lock, Trash2, Upload, Download, Compass } from 'lucide-react';
 import ImportAnkiButton from '../../Deck/ImportAnkiButton';
 import { useTranslation } from 'react-i18next';
 import { Modal, Button, Input, useToast } from '../../UI';
 import { deckKeys } from '../../../hooks/useDecks';
 import { useQueryClient } from '@tanstack/react-query';
 import { FeedbackSection } from '../FeedbackSection';
+import { useOnboardingStore, ONBOARDING_LOCALSTORAGE_KEY } from '../../../stores/onboardingStore';
+import { useVisibleTourStepIds } from '../../Onboarding/useVisibleTourStepIds';
 
 export function AccountTab() {
     const { t } = useTranslation();
@@ -46,6 +48,14 @@ export function AccountTab() {
         } finally {
             setExportingCollection(false);
         }
+    };
+
+    const startOnboarding = useOnboardingStore((s) => s.start);
+    const visibleTourStepIds = useVisibleTourStepIds();
+
+    const handleReplayTour = () => {
+        try { localStorage.removeItem(ONBOARDING_LOCALSTORAGE_KEY); } catch { /* ignore */ }
+        if (visibleTourStepIds.length > 0) startOnboarding(visibleTourStepIds);
     };
 
     const handleDeleteAccount = async () => {
@@ -95,6 +105,37 @@ export function AccountTab() {
                                 icon={<Download size={14} />}
                             >
                                 {exportingCollection ? t('common.loading') : t('profile.export_collection_btn')}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Help & Tour */}
+            <section className="profile-section">
+                <div className="section-header">
+                    <h3>
+                        <Compass size={18} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'middle' }} />
+                        {t('profile.help_and_tour', 'Help & tour')}
+                    </h3>
+                </div>
+                <div className="profile-grid">
+                    <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div>
+                                <label className="field-label">
+                                    {t('profile.replay_tour', 'Replay app tour')}
+                                </label>
+                                <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0.2rem 0 0' }}>
+                                    {t('profile.replay_tour_desc', 'Walk through the welcome slides and feature tour again.')}
+                                </p>
+                            </div>
+                            <Button
+                                variant="secondary"
+                                onClick={handleReplayTour}
+                                icon={<Compass size={14} />}
+                            >
+                                {t('profile.replay_tour_btn', 'Replay tour')}
                             </Button>
                         </div>
                     </div>

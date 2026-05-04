@@ -282,7 +282,11 @@
         "reviews_per_day": "Wiederholungen pro Tag",
         "export_collection": "Sammlung exportieren",
         "export_collection_desc": "Exportiere alle deine Stapel, Karten und Wiederholungsverläufe als .spkg-Datei. Medien sind enthalten.",
-        "export_collection_btn": "Alles exportieren"
+        "export_collection_btn": "Alles exportieren",
+        "help_and_tour": "Hilfe & Rundgang",
+        "replay_tour": "App-Rundgang wiederholen",
+        "replay_tour_desc": "Sieh dir die Willkommensfolien und den Rundgang durch die Funktionen erneut an.",
+        "replay_tour_btn": "Rundgang wiederholen"
     },
     "verification": {
         "complete": "Verifizierung Abgeschlossen",
@@ -661,5 +665,92 @@
         "retry": "Erneut versuchen",
         "reload": "App neu laden",
         "go_back": "Zurück"
+    },
+    "onboarding": {
+        "skip": "Überspringen",
+        "skip_tour": "Rundgang überspringen",
+        "minimize": "Minimieren",
+        "minimize_tour": "Rundgang minimieren",
+        "back": "Zurück",
+        "next": "Weiter",
+        "start_tour": "Rundgang starten",
+        "finish": "Fertig",
+        "step_label": "Schritt {{current}} von {{total}}",
+        "slide_label": "Folie {{current}} von {{total}}",
+        "resume": "Rundgang fortsetzen · Schritt {{current}} von {{total}}",
+        "skip_confirm_title": "Rundgang überspringen?",
+        "skip_confirm_body": "Du kannst ihn jederzeit aus deinem Profil unter Konto wiederholen.",
+        "skip_confirm_keep": "Weitermachen",
+        "slides": {
+            "1": {
+                "eyebrow": "Willkommen bei Sekel",
+                "headline": "Nicht jede Karte ist deine Zeit wert.",
+                "body": "Sekel weiß, welche es sind."
+            },
+            "2": {
+                "eyebrow": "So denkt Sekel",
+                "headline": "Es lernt deinen Prüfungsstoff und deine Leistung.",
+                "body": "Wichtiges zuerst, Schwächen verstärkt, volle Tage neu ausbalanciert."
+            },
+            "3": {
+                "eyebrow": "Bereit, wenn du es bist",
+                "headline": "Lass uns dich herumführen.",
+                "body": "Kurzer Rundgang, etwa 90 Sekunden. Du kannst ihn jederzeit überspringen oder wiederholen."
+            }
+        },
+        "steps": {
+            "dashboard-hero": {
+                "title": "Dein Tag auf einen Blick",
+                "body": "Fällige Karten, heutige Aktivität, Serie und Prüfungs-Countdown — alles in einer Reihe."
+            },
+            "dashboard-intelligence": {
+                "title": "SEKEL Intelligence",
+                "body": "Liest deine Leistung und sagt dir, was du als Nächstes lernen solltest — nicht nur, was überfällig ist."
+            },
+            "dashboard-plan-overview": {
+                "title": "Dein Plan",
+                "body": "Tägliche Ziele passen sich laufend an. Tag verpasst? Sekel rebalanciert, damit du auf Kurs bleibst."
+            },
+            "dashboard-decks-grid": {
+                "title": "Stapel & Prüfungsbereitschaft",
+                "body": "Status pro Stapel, gewichtet nach deinem Prüfungsstoff, damit du weißt, wo du dich konzentrieren solltest."
+            },
+            "documents-upload": {
+                "title": "Karten generieren",
+                "body": "Lege ein PDF, Video oder Notizen ab. Sekel macht daraus smarte Karten — Wichtiges zuerst."
+            },
+            "plan-targets": {
+                "title": "Pläne",
+                "body": "Lege tägliche Ziele fest, sieh, wie die Abdeckung wächst, und gleiche aus, wenn das Leben dazwischenkommt."
+            },
+            "decks": {
+                "title": "Deine Stapel",
+                "body": "Alle deine Stapel sind hier. Tippe auf einen, um zu lernen oder Karten anzusehen."
+            },
+            "image-occlusion": {
+                "title": "Visuelle Karten",
+                "body": "Für Anatomie, Diagramme und Wege. Verdecke, was wichtig ist, und decke beim Lernen auf."
+            },
+            "drafts": {
+                "title": "Entwürfe",
+                "body": "Karten, die du angefangen, aber nicht beendet hast, warten hier — nimm sie jederzeit wieder auf."
+            },
+            "profile-info": {
+                "title": "Profil",
+                "body": "Name, Avatar, Prüfung und Zieltermin — die Basis, mit der Sekel deinen Plan abstimmt."
+            },
+            "profile-preferences": {
+                "title": "Einstellungen",
+                "body": "Theme, Benachrichtigungen, Intelligence ein/aus und tägliche Limits leben hier."
+            },
+            "profile-backup": {
+                "title": "Sicherung",
+                "body": "Deine Stapel werden synchronisiert, und du kannst jederzeit zur Sicherung oder Migration exportieren."
+            },
+            "profile-account": {
+                "title": "Konto",
+                "body": "Passwort, Daten-Import/Export, Feedback und der Button zum Wiederholen des Rundgangs leben hier."
+            }
+        }
     }
 }

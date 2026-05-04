@@ -251,7 +251,7 @@ function ActivePlanDetail({ plan, examLabel }: { plan: Plan; examLabel: string }
     return (
         <>
             {/* ── Summary hero ──────────────────────────────────────────────── */}
-            <section className="plan-card plan-summary">
+            <section className="plan-card plan-summary" data-tour-id="plan-targets">
                 <div className="plan-summary-meta">
                     <span className="plan-exam-label">
                         {examLabel} · {snapshot.availableDays} {t('plan.days_away')}

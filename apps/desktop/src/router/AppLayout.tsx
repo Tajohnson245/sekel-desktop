@@ -13,6 +13,9 @@ import { UserProfile } from '../components/UserProfile';
 import DocumentsPage from '../components/AIStudy/DocumentsPage';
 import { DeckEditorProvider } from '../contexts/DeckEditorContext';
 import { useDeckEditor } from '../contexts/DeckEditorContext';
+import { OnboardingTour } from '../components/Onboarding/OnboardingTour';
+import { useVisibleTourStepIds } from '../components/Onboarding/useVisibleTourStepIds';
+import { useOnboardingStore, ONBOARDING_LOCALSTORAGE_KEY } from '../stores/onboardingStore';
 
 function useIsAdmin() {
     const { user } = useAuthStore();
@@ -166,6 +169,38 @@ export default function AppLayout() {
     const location = useLocation();
     const isDocumentsRoute = location.pathname === '/documents';
 
+    const onboardingPhase = useOnboardingStore((s) => s.phase);
+    const startOnboarding = useOnboardingStore((s) => s.start);
+    const visibleTourStepIds = useVisibleTourStepIds();
+    const isProfileLoading = useProfileStore((s) => s.isLoading);
+    const hasAttemptedProfileFetch = useProfileStore((s) => s.hasAttemptedFetch);
+    const fetchProfile = useProfileStore((s) => s.fetchProfile);
+
+    // Make sure the profile fetch runs as soon as we have a user, regardless
+    // of which route they land on. A brand-new user has no user_profiles row
+    // yet (Supabase returns 406 / PGRST116) and the fetch settles with null.
+    useEffect(() => {
+        if (user?.id && !profile && !isProfileLoading && !hasAttemptedProfileFetch) {
+            fetchProfile(user.id);
+        }
+    }, [user?.id, profile, isProfileLoading, hasAttemptedProfileFetch, fetchProfile]);
+
+    useEffect(() => {
+        if (!user) return;
+        if (!hasAttemptedProfileFetch || isProfileLoading) return;
+        if (onboardingPhase !== 'idle') return;
+        const completedLocally = (() => {
+            try { return localStorage.getItem(ONBOARDING_LOCALSTORAGE_KEY) === '1'; }
+            catch { return false; }
+        })();
+        // Brand-new user with no user_profiles row OR existing user whose
+        // onboarded_at is still null both count as first-time.
+        const needsTour = !profile || !profile.onboarded_at;
+        if (needsTour && !completedLocally && visibleTourStepIds.length > 0) {
+            startOnboarding(visibleTourStepIds);
+        }
+    }, [user, profile, hasAttemptedProfileFetch, isProfileLoading, onboardingPhase, startOnboarding, visibleTourStepIds]);
+
     return (
         <DeckEditorProvider>
             <div
@@ -187,6 +222,8 @@ export default function AppLayout() {
                     </div>
                     {!isDocumentsRoute && <Outlet />}
                 </main>
+
+                <OnboardingTour />
             </div>
         </DeckEditorProvider>
     );

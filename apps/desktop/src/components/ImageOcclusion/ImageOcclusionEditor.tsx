@@ -462,7 +462,7 @@ export default function ImageOcclusionEditor() {
 
             <div className="occlusion-layout">
                 {/* Canvas Area */}
-                <div className="occlusion-canvas-area">
+                <div className="occlusion-canvas-area" data-tour-id="occlusion-canvas">
                     {/* Toolbar */}
                     {imageUrl && (
                         <div className="occlusion-toolbar">
