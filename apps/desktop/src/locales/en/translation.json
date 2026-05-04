@@ -859,15 +859,23 @@
             },
             "dashboard-intelligence": {
                 "title": "SEKEL Intelligence",
-                "body": "Reads your performance and tells you what to study next — not just what's overdue."
+                "body": "Tracks your accuracy per exam system. Unlocks after 10 reviews per system so you can see where you're strong and where you're weak."
             },
             "dashboard-plan-overview": {
                 "title": "Your plan",
                 "body": "Daily targets adjust as you go. Miss a day? Sekel rebalances so you stay on track."
             },
-            "dashboard-decks-grid": {
-                "title": "Decks & exam readiness",
-                "body": "Per-deck health, weighted to your exam blueprint so you know where to focus."
+            "dashboard-deck-health": {
+                "title": "Your deck health",
+                "body": "A per-deck snapshot — total cards, classified, and due — for everything you're studying."
+            },
+            "dashboard-exam-readiness": {
+                "title": "Exam readiness",
+                "body": "Each system from your exam blueprint with its weight, retention, and current status."
+            },
+            "dashboard-quick-actions": {
+                "title": "Quick actions",
+                "body": "Jump straight to today's session, generate cards from a document, or open your plan."
             },
             "documents-upload": {
                 "title": "Generate flashcards",
@@ -876,6 +884,18 @@
             "plan-targets": {
                 "title": "Plans",
                 "body": "Set daily targets, watch coverage roll up, and rebalance when life happens."
+            },
+            "plan-activity": {
+                "title": "Plan activity",
+                "body": "Today, this week, or since the plan started — your rating breakdown shows how reviews are landing."
+            },
+            "plan-weekly-workload": {
+                "title": "Weekly workload",
+                "body": "Forecasted reviews and study time per week so you can see what's coming and pace yourself."
+            },
+            "plan-system-coverage": {
+                "title": "System coverage",
+                "body": "How much of each exam system your plan covers — quick read on where you're stronger or thinner."
             },
             "decks": {
                 "title": "Your decks",
@@ -888,6 +908,10 @@
             "drafts": {
                 "title": "Drafts",
                 "body": "Cards you start but don't finish wait here — pick them back up anytime."
+            },
+            "statistics": {
+                "title": "Statistics",
+                "body": "Card maturity, retention, missed topics, and review heatmaps — your progress at a glance."
             },
             "profile-info": {
                 "title": "Profile",

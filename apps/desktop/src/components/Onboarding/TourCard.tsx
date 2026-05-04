@@ -16,6 +16,7 @@ function expectedPathname(step: TourStep): string {
         case 'decks': return '/decks';
         case 'imageOcclusion': return '/image-occlusion';
         case 'drafts': return '/drafts';
+        case 'statistics': return '/statistics';
         case 'profile': return '/profile';
     }
 }
@@ -49,6 +50,7 @@ export function TourCard() {
             case 'decks': nav.goToDecks(); break;
             case 'imageOcclusion': nav.goToImageOcclusion(); break;
             case 'drafts': nav.goToDrafts(); break;
+            case 'statistics': nav.goToStatistics(); break;
             case 'profile': nav.goToProfile(step.route.tab); break;
         }
     }, [stepIndex]);

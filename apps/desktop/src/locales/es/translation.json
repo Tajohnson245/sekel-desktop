@@ -705,15 +705,23 @@
             },
             "dashboard-intelligence": {
                 "title": "SEKEL Intelligence",
-                "body": "Lee tu rendimiento y te dice qué estudiar a continuación, no solo lo que está vencido."
+                "body": "Sigue tu precisión por sistema del examen. Se desbloquea tras 10 repasos por sistema, para que veas dónde eres fuerte y dónde flojo."
             },
             "dashboard-plan-overview": {
                 "title": "Tu plan",
                 "body": "Las metas diarias se ajustan sobre la marcha. ¿Te saltaste un día? Sekel reequilibra para mantenerte en ruta."
             },
-            "dashboard-decks-grid": {
-                "title": "Mazos y preparación para el examen",
-                "body": "Estado de cada mazo, ponderado por tu temario para saber dónde enfocarte."
+            "dashboard-deck-health": {
+                "title": "Estado de tus mazos",
+                "body": "Resumen por mazo — total de tarjetas, clasificadas y pendientes — de todo lo que estás estudiando."
+            },
+            "dashboard-exam-readiness": {
+                "title": "Preparación para el examen",
+                "body": "Cada sistema de tu temario, con su peso, retención y estado actual."
+            },
+            "dashboard-quick-actions": {
+                "title": "Acciones rápidas",
+                "body": "Salta directo a la sesión de hoy, genera tarjetas desde un documento o abre tu plan."
             },
             "documents-upload": {
                 "title": "Generar tarjetas",
@@ -722,6 +730,18 @@
             "plan-targets": {
                 "title": "Planes",
                 "body": "Define metas diarias, observa cómo crece la cobertura y reequilibra cuando la vida se cruza."
+            },
+            "plan-activity": {
+                "title": "Actividad del plan",
+                "body": "Hoy, esta semana o desde el inicio del plan — el desglose por calificación muestra cómo van tus repasos."
+            },
+            "plan-weekly-workload": {
+                "title": "Carga semanal",
+                "body": "Repasos y tiempo de estudio previstos por semana para que veas lo que viene y mantengas el ritmo."
+            },
+            "plan-system-coverage": {
+                "title": "Cobertura por sistema",
+                "body": "Cuánto cubre tu plan de cada sistema del examen — un vistazo rápido a dónde estás fuerte o flojo."
             },
             "decks": {
                 "title": "Tus mazos",
@@ -734,6 +754,10 @@
             "drafts": {
                 "title": "Borradores",
                 "body": "Las tarjetas que empiezas pero no terminas esperan aquí — retómalas cuando quieras."
+            },
+            "statistics": {
+                "title": "Estadísticas",
+                "body": "Madurez de las tarjetas, retención, temas fallidos y mapas de repaso — tu progreso de un vistazo."
             },
             "profile-info": {
                 "title": "Perfil",
