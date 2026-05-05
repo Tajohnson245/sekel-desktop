@@ -20,12 +20,19 @@ Update this file as part of every release (Step 3 of the release checklist).
 
 ## Desktop (`apps/desktop`)
 
-Current stable: **v1.8.0** (tags `desktop/v1.8.0`, `v1.8.0`)
-Next release tag: `desktop/v1.8.1`
+Current stable: **v1.0.4** (tag `desktop/v1.0.4`)
+Next release tag: `desktop/v1.0.5`
+
+> Note: the desktop app was reset to v1.0.0 in commit `c350529` ("version 1 release") after the monorepo cleanup. Tags `v1.1.0`–`v1.8.0` below predate that reset and are kept as historical context.
 
 | Version | Date | Tag | Key Changes |
 |---------|------|-----|-------------|
-| v1.8.0 | 2026-03-23 | `desktop/v1.8.0`, `v1.8.0` | macOS Intel (x64) dual-arch CI build support, FORGE_ARCH env var for arch targeting (SEKEL-056) |
+| v1.0.4 | 2026-05-04 | `desktop/v1.0.4` | Custom in-app update modal with auto-generated release notes — replaces the stock Electron auto-update dialog; new `publish-notes` CI job publishes each release with `gh --generate-notes` (SEKEL-117) |
+| v1.0.3 | _(2026-04+)_ | `desktop/v1.0.3` | macOS .dmg installer + install docs |
+| v1.0.2 | _(2026-04+)_ | `desktop/v1.0.2` | Auto-updater 404 fix — RELEASES baseUrl missing /win32/x64 path |
+| v1.0.1 | _(2026-04+)_ | `desktop/v1.0.1` | Bump to 1.0.1, drop "Anki but better" tagline |
+| v1.0.0 | _(2026-04+)_ | `desktop/v1.0.0` | Version 1 release — fresh start after monorepo cleanup |
+| v1.8.0 | 2026-03-23 | `desktop/v1.8.0`, `v1.8.0` | macOS Intel (x64) dual-arch CI build support, FORGE_ARCH env var for arch targeting (SEKEL-056) — pre-reset legacy lineage |
 | v1.7.0 | 2026-03-23 | `v1.7.0` | Study session interactions (spacebar/click-to-flip), custom background image upload, card note image edit fix, session analytics scrollable (SEKEL-051–054) |
 | v1.6.0 | 2026-03-23 | _(no tag — released by merge to main)_ | User feedback form in profile page (modal with area checkboxes, description, screenshot upload, desired fix), Supabase feedback table + storage bucket, study session layout improvements (SEKEL-049–050) |
 | v1.5.3 | 2026-03-22 | `desktop/v1.5.3` | Fix images not rendering — DOMPurify was stripping sekel-media:// URLs |

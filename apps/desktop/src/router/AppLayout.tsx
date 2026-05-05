@@ -13,6 +13,7 @@ import { UserProfile } from '../components/UserProfile';
 import DocumentsPage from '../components/AIStudy/DocumentsPage';
 import { DeckEditorProvider } from '../contexts/DeckEditorContext';
 import { useDeckEditor } from '../contexts/DeckEditorContext';
+import UpdateAvailableModal from '../components/Update/UpdateAvailableModal';
 
 function useIsAdmin() {
     const { user } = useAuthStore();
@@ -187,6 +188,8 @@ export default function AppLayout() {
                     </div>
                     {!isDocumentsRoute && <Outlet />}
                 </main>
+
+                <UpdateAvailableModal />
             </div>
         </DeckEditorProvider>
     );
