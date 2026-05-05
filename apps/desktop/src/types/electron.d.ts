@@ -541,6 +541,16 @@ interface DeepLinkAPI {
     on: (cb: (url: string) => void) => () => void;
 }
 
+export interface UpdateDownloadedPayload {
+    version: string;
+    notes: string | null;
+}
+
+interface ElectronUpdate {
+    onDownloaded: (cb: (data: UpdateDownloadedPayload) => void) => () => void;
+    install: () => Promise<void>;
+}
+
 interface ElectronAPI {
     deepLink: DeepLinkAPI;
     generateCards: (text: string, count?: number, language?: string, options?: AIGenerationOptions) => Promise<GeneratedCard[]>;
@@ -558,6 +568,7 @@ interface ElectronAPI {
     backup: ElectronBackup;
     exam: ElectronExam;
     plan: ElectronPlan;
+    update: ElectronUpdate;
 }
 
 declare global {

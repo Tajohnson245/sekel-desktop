@@ -153,3 +153,25 @@ jobs:
               aws s3 cp "$f" "s3://sekel-releases/$PLATFORM/$ARCH/$base" \
                 --endpoint-url "$ENDPOINT"
             done
+
+  # Runs once after every matrix combo has uploaded artifacts. Uses GitHub's
+  # built-in --generate-notes to compose the release body from PR titles and
+  # commit subjects in the range, then flips the draft flag to published.
+  # The desktop client's update modal fetches this body at update-downloaded
+  # time. (Wired so an AI summarizer can be swapped in later without touching
+  # the modal.)
+  publish-notes:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish release with auto-generated notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -e
+          # release.yml's earlier steps create the GitHub Release with tag
+          # name v${version} (not desktop/v${version}) — see "Ensure GitHub
+          # Release exists" above.
+          TAG="v${GITHUB_REF_NAME#desktop/v}"
+          gh release edit "$TAG" --draft=false --generate-notes
