@@ -154,12 +154,16 @@ jobs:
                 --endpoint-url "$ENDPOINT"
             done
 
-  # Runs once after every matrix combo has uploaded artifacts. Uses GitHub's
-  # built-in --generate-notes to compose the release body from PR titles and
-  # commit subjects in the range, then flips the draft flag to published.
-  # The desktop client's update modal fetches this body at update-downloaded
-  # time. (Wired so an AI summarizer can be swapped in later without touching
+  # Runs once after every matrix combo has uploaded artifacts. Composes the
+  # release body from PR titles and commit subjects via the GitHub
+  # generate-notes API, then flips the draft flag to published. The desktop
+  # client's update modal fetches this body at update-downloaded time.
+  # (Wired so an AI summarizer can be swapped in later without touching
   # the modal.)
+  #
+  # NOTE: gh release edit does not support --generate-notes (only gh release
+  # create does), so we call the GitHub API directly and pass the result via
+  # --notes-file. See https://cli.github.com/manual/gh_release_edit.
   publish-notes:
     needs: release
     runs-on: ubuntu-latest
@@ -174,4 +178,12 @@ jobs:
           # name v${version} (not desktop/v${version}) — see "Ensure GitHub
           # Release exists" above.
           TAG="v${GITHUB_REF_NAME#desktop/v}"
-          gh release edit "$TAG" --draft=false --generate-notes
+          gh api -X POST "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
+            -f tag_name="$TAG" --jq '.body' > /tmp/release_notes.md
+          if [ ! -s /tmp/release_notes.md ]; then
+            echo "Release $TAG" > /tmp/release_notes.md
+          fi
+          echo "::group::Generated notes"
+          cat /tmp/release_notes.md
+          echo "::endgroup::"
+          gh release edit "$TAG" --draft=false --notes-file /tmp/release_notes.md
