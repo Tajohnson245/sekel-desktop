@@ -246,6 +246,11 @@ body,
     flex-shrink: 0;
     gap: 1rem;
     min-width: 0;
+    /* Stack above the onboarding spotlight (1100) so the nav stays
+       visible during the tour. Welcome slides (1150), tour card (1200),
+       and skip-confirm (1300) still float over everything. */
+    position: relative;
+    z-index: 1110;
 }
 
 .header-left {

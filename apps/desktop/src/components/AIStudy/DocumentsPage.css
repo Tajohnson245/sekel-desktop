@@ -212,7 +212,7 @@
     border-radius: var(--radius-lg);
     border: 1px solid var(--border);
     overflow: hidden;
-    min-height: 520px;
+    height: 520px;
 }
 
 /* Sidebar */

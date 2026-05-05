@@ -282,7 +282,11 @@
         "reviews_per_day": "每天复习",
         "export_collection": "导出收藏",
         "export_collection_desc": "将所有牌组、卡片和复习历史导出为 .spkg 文件。包含媒体文件。",
-        "export_collection_btn": "导出全部"
+        "export_collection_btn": "导出全部",
+        "help_and_tour": "帮助与导览",
+        "replay_tour": "重新播放应用导览",
+        "replay_tour_desc": "再次浏览欢迎幻灯片和功能导览。",
+        "replay_tour_btn": "重新播放导览"
     },
     "verification": {
         "complete": "验证完成",
@@ -661,5 +665,116 @@
         "retry": "重试",
         "reload": "重新加载应用",
         "go_back": "返回"
+    },
+    "onboarding": {
+        "skip": "跳过",
+        "skip_tour": "跳过导览",
+        "minimize": "最小化",
+        "minimize_tour": "最小化导览",
+        "back": "返回",
+        "next": "下一步",
+        "start_tour": "开始导览",
+        "finish": "完成",
+        "step_label": "第 {{current}} 步,共 {{total}} 步",
+        "slide_label": "第 {{current}} 张,共 {{total}} 张",
+        "resume": "继续导览 · 第 {{current}} 步,共 {{total}} 步",
+        "skip_confirm_title": "跳过导览?",
+        "skip_confirm_body": "你随时可以从个人资料的「账户」选项卡重新播放。",
+        "skip_confirm_keep": "继续",
+        "slides": {
+            "1": {
+                "eyebrow": "欢迎使用 Sekel",
+                "headline": "并非每张卡片都值得你花时间。",
+                "body": "Sekel 知道哪些值得。"
+            },
+            "2": {
+                "eyebrow": "Sekel 的思考方式",
+                "headline": "学习你的考试大纲和你的表现。",
+                "body": "高产出优先,弱项强化,忙碌的日子重新平衡。"
+            },
+            "3": {
+                "eyebrow": "随时准备好",
+                "headline": "我们带你看看吧。",
+                "body": "快速导览,大约 90 秒。你可以随时跳过或重新播放。"
+            }
+        },
+        "steps": {
+            "dashboard-hero": {
+                "title": "今日概览",
+                "body": "到期卡片、今日活动、连续天数和考试倒计时——全在一行里。"
+            },
+            "dashboard-intelligence": {
+                "title": "SEKEL 智能",
+                "body": "按考试系统跟踪你的准确率。每个系统完成 10 次复习后解锁,让你看到自己的强项和弱项。"
+            },
+            "dashboard-plan-overview": {
+                "title": "你的计划",
+                "body": "每日目标会随时调整。错过一天?Sekel 会重新平衡,让你保持节奏。"
+            },
+            "dashboard-deck-health": {
+                "title": "牌组健康状况",
+                "body": "每个牌组的概览——卡片总数、已分类、到期数——你正在学习的一切。"
+            },
+            "dashboard-exam-readiness": {
+                "title": "考试准备",
+                "body": "考试大纲中的每个系统,包含权重、记忆率和当前状态。"
+            },
+            "dashboard-quick-actions": {
+                "title": "快捷操作",
+                "body": "直接进入今天的学习、从文档生成卡片,或打开你的计划。"
+            },
+            "documents-upload": {
+                "title": "生成卡片",
+                "body": "拖入 PDF、视频或笔记。Sekel 会把它们变成智能卡片——高产出优先。"
+            },
+            "plan-targets": {
+                "title": "计划",
+                "body": "设定每日目标,跟踪覆盖率,生活打乱节奏时随时重新平衡。"
+            },
+            "plan-activity": {
+                "title": "计划活动",
+                "body": "今天、本周,或自计划开始以来——按评级的分布显示你的复习情况。"
+            },
+            "plan-weekly-workload": {
+                "title": "每周工作量",
+                "body": "每周预计的复习数和学习时间,让你看清楚接下来的节奏。"
+            },
+            "plan-system-coverage": {
+                "title": "系统覆盖",
+                "body": "你的计划对每个考试系统的覆盖程度——一眼看出强项和薄弱环节。"
+            },
+            "decks": {
+                "title": "你的牌组",
+                "body": "你所有的牌组都在这里。点击任意牌组开始学习或浏览卡片。"
+            },
+            "image-occlusion": {
+                "title": "视觉卡片",
+                "body": "适用于解剖、图表和路径。遮住重点,在学习时揭示。"
+            },
+            "drafts": {
+                "title": "草稿",
+                "body": "你开始但未完成的卡片在这里等着——随时回来继续。"
+            },
+            "statistics": {
+                "title": "统计",
+                "body": "卡片成熟度、记忆率、错过的主题和复习热力图——一眼看清你的进度。"
+            },
+            "profile-info": {
+                "title": "个人资料",
+                "body": "姓名、头像、考试和目标日期——Sekel 用来调整你的计划的基础信息。"
+            },
+            "profile-preferences": {
+                "title": "偏好设置",
+                "body": "主题、通知、智能开关和每日限额都在这里。"
+            },
+            "profile-backup": {
+                "title": "备份",
+                "body": "你的牌组会同步,你也可以随时导出以备份或迁移。"
+            },
+            "profile-account": {
+                "title": "账户",
+                "body": "密码、数据导入/导出、反馈和重新播放导览按钮都在这里。"
+            }
+        }
     }
 }

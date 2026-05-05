@@ -53,7 +53,7 @@ export default function StatisticsPage() {
     }
 
     return (
-        <div className="statistics-page">
+        <div className="statistics-page" data-tour-id="statistics-page">
             <div className="page-header">
                 <h2>{t('stats.title')}</h2>
                 <p className="text-muted">{t('stats.subtitle')}</p>

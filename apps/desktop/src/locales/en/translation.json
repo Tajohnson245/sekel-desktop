@@ -408,7 +408,11 @@
         "role_placeholder": "e.g. Medical Student",
         "school_placeholder": "University Name",
         "degree_placeholder": "e.g. Medical Doctor",
-        "exam_placeholder": "e.g. USMLE Step 1"
+        "exam_placeholder": "e.g. USMLE Step 1",
+        "help_and_tour": "Help & tour",
+        "replay_tour": "Replay app tour",
+        "replay_tour_desc": "Walk through the welcome slides and feature tour again.",
+        "replay_tour_btn": "Replay tour"
     },
     "verification": {
         "complete": "Verification Complete",
@@ -831,5 +835,116 @@
         "retry": "Try Again",
         "reload": "Reload App",
         "go_back": "Go Back"
+    },
+    "onboarding": {
+        "skip": "Skip",
+        "skip_tour": "Skip tour",
+        "minimize": "Minimize",
+        "minimize_tour": "Minimize tour",
+        "back": "Back",
+        "next": "Next",
+        "start_tour": "Start tour",
+        "finish": "Finish",
+        "step_label": "Step {{current}} of {{total}}",
+        "slide_label": "Slide {{current}} of {{total}}",
+        "resume": "Resume tour · Step {{current}} of {{total}}",
+        "skip_confirm_title": "Skip the tour?",
+        "skip_confirm_body": "You can replay it anytime from your profile under Account.",
+        "skip_confirm_keep": "Keep going",
+        "slides": {
+            "1": {
+                "eyebrow": "Welcome to Sekel",
+                "headline": "Not every card is worth your time.",
+                "body": "Sekel knows which ones are."
+            },
+            "2": {
+                "eyebrow": "How Sekel thinks",
+                "headline": "It learns your exam blueprint and your performance.",
+                "body": "High-yield first, weak areas reinforced, busy days rebalanced."
+            },
+            "3": {
+                "eyebrow": "Ready when you are",
+                "headline": "Let's show you around.",
+                "body": "Quick tour, about 90 seconds. You can skip or replay anytime."
+            }
+        },
+        "steps": {
+            "dashboard-hero": {
+                "title": "Your day at a glance",
+                "body": "Cards due, today's activity, your streak, and exam countdown — all in one row."
+            },
+            "dashboard-intelligence": {
+                "title": "SEKEL Intelligence",
+                "body": "Tracks your accuracy per exam system. Unlocks after 10 reviews per system so you can see where you're strong and where you're weak."
+            },
+            "dashboard-plan-overview": {
+                "title": "Your plan",
+                "body": "Daily targets adjust as you go. Miss a day? Sekel rebalances so you stay on track."
+            },
+            "dashboard-deck-health": {
+                "title": "Your deck health",
+                "body": "A per-deck snapshot — total cards, classified, and due — for everything you're studying."
+            },
+            "dashboard-exam-readiness": {
+                "title": "Exam readiness",
+                "body": "Each system from your exam blueprint with its weight, retention, and current status."
+            },
+            "dashboard-quick-actions": {
+                "title": "Quick actions",
+                "body": "Jump straight to today's session, generate cards from a document, or open your plan."
+            },
+            "documents-upload": {
+                "title": "Generate flashcards",
+                "body": "Drop a PDF, video, or notes. Sekel turns them into smart cards — high-yield first."
+            },
+            "plan-targets": {
+                "title": "Plans",
+                "body": "Set daily targets, watch coverage roll up, and rebalance when life happens."
+            },
+            "plan-activity": {
+                "title": "Plan activity",
+                "body": "Today, this week, or since the plan started — your rating breakdown shows how reviews are landing."
+            },
+            "plan-weekly-workload": {
+                "title": "Weekly workload",
+                "body": "Forecasted reviews and study time per week so you can see what's coming and pace yourself."
+            },
+            "plan-system-coverage": {
+                "title": "System coverage",
+                "body": "How much of each exam system your plan covers — quick read on where you're stronger or thinner."
+            },
+            "decks": {
+                "title": "Your decks",
+                "body": "All your decks live here. Tap any deck to study or browse cards."
+            },
+            "image-occlusion": {
+                "title": "Visual cards",
+                "body": "For anatomy, diagrams, and pathways. Cover what matters, reveal as you study."
+            },
+            "drafts": {
+                "title": "Drafts",
+                "body": "Cards you start but don't finish wait here — pick them back up anytime."
+            },
+            "statistics": {
+                "title": "Statistics",
+                "body": "Card maturity, retention, missed topics, and review heatmaps — your progress at a glance."
+            },
+            "profile-info": {
+                "title": "Profile",
+                "body": "Name, avatar, exam, and target date — the basics Sekel uses to tune your plan."
+            },
+            "profile-preferences": {
+                "title": "Preferences",
+                "body": "Theme, notifications, intelligence on/off, and daily limits live here."
+            },
+            "profile-backup": {
+                "title": "Backup",
+                "body": "Your decks sync, and you can export anytime for safekeeping or migration."
+            },
+            "profile-account": {
+                "title": "Account",
+                "body": "Password, data import/export, feedback, and the Replay tour button live here."
+            }
+        }
     }
 }

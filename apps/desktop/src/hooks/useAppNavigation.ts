@@ -5,6 +5,7 @@ export function useAppNavigation() {
 
     return {
         goToDashboard: () => navigate('/'),
+        goToPlan: () => navigate('/plan'),
         goToDecks: () => navigate('/decks'),
         goToDeck: (deckId: string) => navigate(`/decks/${deckId}`),
         goToStudy: (deckId: string, mode: 'due' | 'all' = 'due') =>

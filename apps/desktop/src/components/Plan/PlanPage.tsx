@@ -351,7 +351,7 @@ function ActivePlanDetail({ plan, examLabel }: { plan: Plan; examLabel: string }
     return (
         <>
             {/* ── Summary hero ──────────────────────────────────────────────── */}
-            <section className="plan-card plan-summary">
+            <section className="plan-card plan-summary" data-tour-id="plan-targets">
                 <div className="plan-summary-meta">
                     <span className="plan-exam-label">
                         {examLabel} · {snapshot.availableDays} {t('plan.days_away')}
@@ -507,7 +507,7 @@ function PlanActivityPanel({ progress }: { progress: PlanProgress }) {
     ];
 
     return (
-        <section className="plan-card">
+        <section className="plan-card" data-tour-id="plan-activity">
             <div className="plan-activity-header">
                 <h3 className="plan-section-title">{t('plan.activity_title')}</h3>
                 <div className="plan-activity-tabs" role="tablist">
@@ -609,7 +609,7 @@ function WeeklyProjectionCard({ plan }: { plan: Plan }) {
     };
 
     return (
-        <section className="plan-card">
+        <section className="plan-card" data-tour-id="plan-weekly-workload">
             <button
                 type="button"
                 className="plan-collapsible-header"
@@ -721,7 +721,7 @@ function SystemCoverageCard({
     const unclassCount   = sorted.filter(s => ranked(s) === 2).length;
 
     return (
-        <section className="plan-card">
+        <section className="plan-card" data-tour-id="plan-system-coverage">
             <button
                 type="button"
                 className="plan-collapsible-header"
