@@ -40,3 +40,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 | 2026-05-05 | apps/desktop/src/components/Card/CardList.tsx,apps/desktop/src/components/Study/StudySession.tsx,apps/desktop/src/index.css |
 | 2026-05-05 | apps/desktop/src/components/AIStudy/AICardGenerator.tsx |
 | 2026-05-05 | Task completed |
+| 2026-05-05 | apps/desktop/src/components/AIStudy/AICardGenerator.css,apps/desktop/src/components/AIStudy/AICardGenerator.tsx,apps/desktop/src/components/Card/CardList.tsx,apps/desktop/src/components/Dashboard/PreSessionBriefing.tsx,apps/desktop/src/components/Dashboard/SekelIntelligencePanel.css,apps/desktop/src/components/Deck/DeckList.tsx,apps/desktop/src/components/Drafts/DraftTray.css,apps/desktop/src/components/Drafts/DraftTray.tsx |
