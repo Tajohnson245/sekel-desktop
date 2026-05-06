@@ -767,6 +767,10 @@
                 "title": "Einstellungen",
                 "body": "Theme, Benachrichtigungen, Intelligence ein/aus und tägliche Limits leben hier."
             },
+            "profile-study": {
+                "title": "Lernen",
+                "body": "Deine Prüfung, dein Zieltermin und deine täglichen Lernziele — Sekel nutzt diese, um deinen Plan zu formen."
+            },
             "profile-backup": {
                 "title": "Sicherung",
                 "body": "Deine Stapel werden synchronisiert, und du kannst jederzeit zur Sicherung oder Migration exportieren."
