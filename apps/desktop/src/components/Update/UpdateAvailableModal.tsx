@@ -3,8 +3,6 @@ import { Modal, Button } from '../UI';
 import type { UpdateDownloadedPayload } from '../../types/electron';
 import './Update.css';
 
-const RELEASES_REPO = 'Tajohnson245/sekel-desktop';
-
 function parseBullets(notes: string): string[] {
     return notes
         .split('\n')
@@ -24,7 +22,6 @@ export default function UpdateAvailableModal() {
 
     const bullets = payload.notes ? parseBullets(payload.notes) : [];
     const tag = payload.version.startsWith('v') ? payload.version : `v${payload.version}`;
-    const releaseUrl = `https://github.com/${RELEASES_REPO}/releases/tag/${tag}`;
 
     const handleInstall = async () => {
         setInstalling(true);
@@ -61,19 +58,12 @@ export default function UpdateAvailableModal() {
                         : 'A new version of Sekel has been downloaded.'}
                 </p>
 
-                {bullets.length > 0 ? (
+                {bullets.length > 0 && (
                     <ul className="update-notes-list">
                         {bullets.map((b, i) => (
                             <li key={i}>{b}</li>
                         ))}
                     </ul>
-                ) : (
-                    <p className="update-modal-fallback">
-                        Release notes are not yet available.{' '}
-                        <a href={releaseUrl} target="_blank" rel="noreferrer">
-                            View on GitHub
-                        </a>
-                    </p>
                 )}
             </div>
         </Modal>
