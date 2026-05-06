@@ -37,3 +37,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 | Date | Description |
 |------|-------------|
 | 2026-05-05 | Doc created. apps/desktop/src/components/Deck/DeckList.tsx |
+| 2026-05-05 | apps/desktop/src/components/Card/CardList.tsx,apps/desktop/src/components/Study/StudySession.tsx,apps/desktop/src/index.css |
