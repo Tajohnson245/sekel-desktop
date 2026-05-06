@@ -334,7 +334,6 @@ export default function AICardGenerator({ extractedText, contextSummary, context
             {/* Empty State after processing */}
             {hasGenerated && cards.length === 0 && (
                 <div className="ai-empty-state" style={{ textAlign: 'center', padding: '3rem 1rem', background: 'var(--bg-muted)', borderRadius: 'var(--radius)', marginTop: '2rem' }}>
-                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🎉</div>
                     <h3 style={{ marginBottom: '0.5rem' }}>{t('ai.all_processed')}</h3>
                     <p className="text-muted" style={{ marginBottom: '1.5rem' }}>
                         {t('ai.all_processed_desc')}
