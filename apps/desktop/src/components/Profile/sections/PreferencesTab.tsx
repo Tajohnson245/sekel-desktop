@@ -4,7 +4,7 @@ import { useProfileStore } from '../../../stores/profileStore';
 import { useTheme } from '../../ThemeProvider';
 import { Upload, X, Monitor } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useToast, ToggleSwitch } from '../../UI';
+import { useToast, ToggleSwitch, Select } from '../../UI';
 import type { UserProfile } from '@sekel/db';
 
 const THEME_OPTIONS: { value: UserProfile['theme_preference']; color: string; }[] = [
@@ -34,25 +34,23 @@ export function PreferencesTab() {
                 {/* Language */}
                 <div className="profile-field">
                     <label className="field-label">{t('profile.language')}</label>
-                    <div className="select-container">
-                        <select
-                            className="field-input custom-select"
-                            value={i18n.language}
-                            onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
-                                const newLang = e.target.value;
-                                i18n.changeLanguage(newLang);
-                                if (user?.id) {
-                                    upsertProfile(user.id, { language: newLang });
-                                }
-                            }}
-                        >
-                            <option value="en">English</option>
-                            <option value="es">Spanish</option>
-                            <option value="fr">French</option>
-                            <option value="de">German</option>
-                            <option value="zh">Chinese</option>
-                        </select>
-                    </div>
+                    <Select
+                        value={i18n.language}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                            const newLang = e.target.value;
+                            i18n.changeLanguage(newLang);
+                            if (user?.id) {
+                                upsertProfile(user.id, { language: newLang });
+                            }
+                        }}
+                        options={[
+                            { value: 'en', label: 'English' },
+                            { value: 'es', label: 'Spanish' },
+                            { value: 'fr', label: 'French' },
+                            { value: 'de', label: 'German' },
+                            { value: 'zh', label: 'Chinese' },
+                        ]}
+                    />
                 </div>
 
                 {/* Theme */}

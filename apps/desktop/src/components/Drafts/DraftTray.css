@@ -239,22 +239,16 @@
     gap: 0.5rem;
 }
 
-.draft-deck-select {
+/* Wrapper takes the flex slot the bare <select> used to occupy */
+.draft-deck-select-wrap {
     flex: 1;
-    padding: 0.4rem 2.25rem 0.4rem 0.6rem;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--bg-input);
-    color: var(--text-primary);
+}
+
+/* Inner <select> override — compact size for the tray row */
+.draft-deck-select.form-select {
+    padding: 0.4rem 1.85rem 0.4rem 0.6rem;
+    min-height: 32px;
     font-size: 0.85rem;
-    cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 0.75rem center;
-    background-size: 0.9rem;
 }
 
 .draft-deck-select:focus {

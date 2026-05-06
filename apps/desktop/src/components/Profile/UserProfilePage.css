@@ -148,6 +148,45 @@
     flex-direction: column;
 }
 
+/* Span the full grid row inside .profile-grid */
+.profile-field--full {
+    grid-column: 1 / -1;
+}
+
+/* Header row inside a .profile-field — title on left, control on right */
+.profile-field-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.profile-field-row--mb {
+    margin-bottom: 0.5rem;
+}
+
+/* Inline icon at the start of a field label */
+.field-icon {
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+/* Small helper paragraph below a field heading */
+.field-helper {
+    font-size: 0.85rem;
+    margin: 0.2rem 0 0;
+}
+
+.field-helper--mb {
+    margin-bottom: 0.75rem;
+}
+
+/* Small variant of .field-label, used inside compact form rows */
+.field-label--sm {
+    display: block;
+    font-size: 0.8rem;
+    margin-bottom: 0.25rem;
+}
+
 .field-label {
     font-size: 0.85rem;
     color: var(--text-secondary);
@@ -179,10 +218,6 @@
     box-shadow: 0 0 0 2px var(--primary-light);
 }
 
-.select-container {
-    margin-top: 1rem;
-}
-
 .required-mark {
     color: var(--danger, #ef4444);
     margin-left: 2px;
@@ -207,29 +242,13 @@
     border: none;
 }
 
-/* Custom Select Styling */
-.custom-select {
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 0.75rem center;
-    background-size: 1rem;
-    padding-right: 2.5rem;
-    cursor: pointer;
-    font-weight: 500;
+/* Width overrides for the migrated <Select> instances in StudyTab. */
+.study-session-mode {
+    max-width: 290px;
 }
 
-.custom-select:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
-}
-
-.custom-select option {
-    background-color: var(--bg-card);
-    color: var(--text-primary);
-    padding: 0.5rem;
+.study-classify-deck {
+    max-width: 280px;
 }
 
 .danger-zone {
