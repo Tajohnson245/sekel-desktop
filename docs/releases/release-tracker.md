@@ -20,13 +20,14 @@ Update this file as part of every release (Step 3 of the release checklist).
 
 ## Desktop (`apps/desktop`)
 
-Current stable: **v1.0.5** (tag `desktop/v1.0.5`)
-Next release tag: `desktop/v1.0.6`
+Current stable: **v1.0.6** (tag `desktop/v1.0.6`)
+Next release tag: `desktop/v1.0.7`
 
 > Note: the desktop app was reset to v1.0.0 in commit `c350529` ("version 1 release") after the monorepo cleanup. Tags `v1.1.0`–`v1.8.0` below predate that reset and are kept as historical context.
 
 | Version | Date | Tag | Key Changes |
 |---------|------|-----|-------------|
+| v1.0.6 | 2026-05-05 | `desktop/v1.0.6` | UI/UX cleanup: Study tab added to onboarding tour (SEKEL-118), themed dropdown chevrons + native option-popup theming, empty-state emojis replaced with lucide icons (Decks/Cards/Study/AI), all native `<select>` migrated to shared `<Select>` component, StudyTab inline-style refactor, Help → Replay Tour menu (Ctrl/Cmd+Shift+T), `isExamDateSet` type-predicate fix (SEKEL-119) |
 | v1.0.5 | 2026-05-05 | `desktop/v1.0.5` | First-time-user onboarding tour with i18n + welcome slides + replay button; `onboarded_at` Supabase migration; tour UI fixes (z-index over navbar, card width for long tours, exam onboarding teal color, review sidebar scroll); ported from dev's SEKEL-115 + SEKEL-116 |
 | v1.0.4 | 2026-05-04 | `desktop/v1.0.4` | Custom in-app update modal with auto-generated release notes — replaces the stock Electron auto-update dialog; new `publish-notes` CI job publishes each release with `gh --generate-notes` (SEKEL-117) |
 | v1.0.3 | _(2026-04+)_ | `desktop/v1.0.3` | macOS .dmg installer + install docs |
