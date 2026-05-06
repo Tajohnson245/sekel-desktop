@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Sparkles, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useDueCards, useDueCardsFocused, useAllCardsForStudy, useUpdateCard, useDeck } from '../../hooks/useDecks';
 import { useCreateSession, useCompleteSession, useInsertReview } from '../../hooks/useSessions';
@@ -279,7 +279,7 @@ export default function StudySession() {
                     </Button>
                 </div>
                 <div className="empty-state" data-testid="no-cards-due">
-                    <div className="empty-icon">🎉</div>
+                    <CheckCircle2 size={40} className="empty-state__icon" />
                     <h3>{t('study.session_complete')}</h3>
                     <p className="text-muted">{t('study.back_to_decks')}</p>
                 </div>

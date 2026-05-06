@@ -767,6 +767,10 @@
                 "title": "Preferencias",
                 "body": "Tema, notificaciones, inteligencia activada o no, y límites diarios viven aquí."
             },
+            "profile-study": {
+                "title": "Estudio",
+                "body": "Tu examen, fecha objetivo y metas diarias de estudio — Sekel los usa para dar forma a tu plan."
+            },
             "profile-backup": {
                 "title": "Copia de seguridad",
                 "body": "Tus mazos se sincronizan, y puedes exportarlos cuando quieras para respaldo o migración."

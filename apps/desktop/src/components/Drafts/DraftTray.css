@@ -239,15 +239,16 @@
     gap: 0.5rem;
 }
 
-.draft-deck-select {
+/* Wrapper takes the flex slot the bare <select> used to occupy */
+.draft-deck-select-wrap {
     flex: 1;
-    padding: 0.4rem 0.6rem;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--bg-input);
-    color: var(--text-primary);
+}
+
+/* Inner <select> override — compact size for the tray row */
+.draft-deck-select.form-select {
+    padding: 0.4rem 1.85rem 0.4rem 0.6rem;
+    min-height: 32px;
     font-size: 0.85rem;
-    cursor: pointer;
 }
 
 .draft-deck-select:focus {

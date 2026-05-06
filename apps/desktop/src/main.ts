@@ -104,25 +104,27 @@ protocol.registerSchemesAsPrivileged([
 
 import { updateElectronApp, UpdateSourceType } from 'update-electron-app';
 
-// Auto-update notes are fetched from this repo's GitHub Releases at the
-// moment Squirrel finishes downloading the new version. release.yml's
-// publish-notes job populates the body with auto-generated bullets.
-const RELEASES_REPO = 'Tajohnson245/sekel-desktop';
+// Auto-update notes are fetched at the moment Squirrel finishes downloading
+// the new version. release.yml's publish-notes job mirrors the GitHub-
+// generated release body to R2 at notes/v${version}.md so the modal can
+// read them without authenticating — the repo is private and anonymous
+// api.github.com calls 404, so we don't reach for GitHub here at all.
+const RELEASE_NOTES_BASE_URL = 'https://pub-1dd00656fa304302a2db06169963ac20.r2.dev/notes';
 
-async function fetchGitHubReleaseNotes(version: string): Promise<string | null> {
+async function fetchReleaseNotes(version: string): Promise<string | null> {
     if (!version) return null;
     const tag = version.startsWith('v') ? version : `v${version}`;
-    const url = `https://api.github.com/repos/${RELEASES_REPO}/releases/tags/${tag}`;
+    const url = `${RELEASE_NOTES_BASE_URL}/${tag}.md`;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 5000);
     try {
         const res = await fetch(url, {
-            headers: { 'Accept': 'application/vnd.github+json', 'User-Agent': 'sekel-desktop' },
+            headers: { 'Accept': 'text/markdown, text/plain', 'User-Agent': 'sekel-desktop' },
             signal: controller.signal,
         });
         if (!res.ok) return null;
-        const data = await res.json() as { body?: string };
-        return typeof data.body === 'string' && data.body.trim() ? data.body.trim() : null;
+        const body = (await res.text()).trim();
+        return body || null;
     } catch {
         return null;
     } finally {
@@ -353,10 +355,10 @@ app.whenReady().then(() => {
         });
 
         // Squirrel.Windows always passes empty string for releaseNotes; fetch
-        // them from the GitHub Release body instead. Failure returns null —
-        // the modal renders a fallback message but still works.
+        // them from R2 instead. Failure returns null — the modal renders a
+        // fallback message but still works.
         autoUpdater.on('update-downloaded', async (_e, _notes, releaseName) => {
-            const notes = await fetchGitHubReleaseNotes(releaseName);
+            const notes = await fetchReleaseNotes(releaseName);
             if (mainWindowRef && !mainWindowRef.isDestroyed()) {
                 mainWindowRef.webContents.send('update:downloaded', { version: releaseName, notes });
             }

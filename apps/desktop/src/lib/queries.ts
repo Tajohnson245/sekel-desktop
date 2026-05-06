@@ -96,7 +96,8 @@ export const getYieldExplanation = (cardId: string, examKey: string) => yieldApi
 // ── Exam ──────────────────────────────────────────────────────────────────────
 export type { BlueprintExam, UserExamProfile } from '../types/electron';
 export const EXAM_DATE_SENTINEL = '9999-12-31';
-export const isExamDateSet = (date: string) => date !== EXAM_DATE_SENTINEL;
+export const isExamDateSet = (date: string | null | undefined): date is string =>
+    typeof date === 'string' && date !== EXAM_DATE_SENTINEL;
 const examApi = () => window.electronAPI.exam;
 export const listExams         = () => examApi().listExams();
 export const getExamProfile    = (userId: string) => examApi().getProfile(userId);

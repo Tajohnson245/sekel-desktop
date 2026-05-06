@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, Sparkles, AlertTriangle, Pencil } from 'lucide-react';
+import { Plus, Trash2, Sparkles, AlertTriangle, Pencil, FileText } from 'lucide-react';
 import { sanitize } from '../../lib/sanitize';
 import { useTranslation } from 'react-i18next';
 import { useCardsByDeck } from '../../hooks/useDecks';
@@ -89,7 +89,7 @@ export default function CardList({ deckId, onAddCard, onGenerateAI, onEdit }: Ca
 
             {cards.length === 0 ? (
                 <div className="empty-state" data-testid="empty-cards">
-                    <div className="empty-icon">📝</div>
+                    <FileText size={40} className="empty-state__icon" />
                     <h4>{t('card.no_cards')}</h4>
                     <p className="text-muted">{t('card.no_cards_desc')}</p>
                     <div className="empty-actions">

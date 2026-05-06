@@ -183,6 +183,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
         install: () => ipcRenderer.invoke('update:install'),
     },
 
+    tour: {
+        onReplay: (cb: () => void) => {
+            const listener = () => cb();
+            ipcRenderer.on('tour:replay', listener);
+            return () => ipcRenderer.removeListener('tour:replay', listener);
+        },
+    },
+
     plan: {
         compute:      (userId: string, examKey: string, deckIds?: string[]) =>
                           ipcRenderer.invoke('plan:compute', userId, examKey, deckIds),

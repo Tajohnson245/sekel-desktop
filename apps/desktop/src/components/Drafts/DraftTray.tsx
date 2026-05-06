@@ -3,7 +3,7 @@ import { Inbox, X, Trash2, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useDrafts, useDeleteDraft, useClearDrafts, usePromoteDraftToDeck, DRAFT_LIMIT } from '../../hooks/useDrafts';
 import { useDecks } from '../../hooks/useDecks';
-import { Button } from '../UI';
+import { Button, Select } from '../UI';
 import './DraftTray.css';
 
 interface DraftTrayProps {
@@ -137,7 +137,8 @@ export default function DraftTray({ userId }: DraftTrayProps) {
                                             </div>
 
                                             <div className="draft-item-actions">
-                                                <select
+                                                <Select
+                                                    containerClassName="draft-deck-select-wrap"
                                                     className="draft-deck-select"
                                                     value={selectedDeckIds[draft.id] ?? ''}
                                                     onChange={e => setSelectedDeckIds(prev => ({
@@ -145,14 +146,9 @@ export default function DraftTray({ userId }: DraftTrayProps) {
                                                         [draft.id]: e.target.value,
                                                     }))}
                                                     aria-label={t('drafts.select_deck')}
-                                                >
-                                                    <option value="">{t('drafts.select_deck')}</option>
-                                                    {deckOptions.map(opt => (
-                                                        <option key={opt.value} value={opt.value}>
-                                                            {opt.label}
-                                                        </option>
-                                                    ))}
-                                                </select>
+                                                    placeholder={t('drafts.select_deck')}
+                                                    options={deckOptions.map(opt => ({ value: opt.value, label: opt.label }))}
+                                                />
 
                                                 <Button
                                                     variant="primary"

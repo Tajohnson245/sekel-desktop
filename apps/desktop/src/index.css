@@ -182,6 +182,25 @@ body,
     color: var(--fg);
 }
 
+/* ── Native dropdown legibility ─────────────────────────────────
+   The browser-rendered <option> popup ignores the parent <select>'s
+   styling, so we set bg + text on options/optgroups directly. This
+   tracks the active theme via CSS variables, so light/dark/sunset all
+   stay readable without per-component rules. */
+select {
+    color: var(--text-primary);
+}
+
+select option,
+select optgroup {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+}
+
+select option:disabled {
+    color: var(--text-muted);
+}
+
 /* ── Custom scrollbar ───────────────────────────────────────────── */
 
 ::-webkit-scrollbar {
@@ -883,9 +902,10 @@ h3 {
     text-align: center;
 }
 
-.empty-icon {
-    font-size: 3rem;
+.empty-state__icon {
+    color: var(--text-muted);
     margin-bottom: 1rem;
+    opacity: 0.7;
 }
 
 .empty-state h3 {
