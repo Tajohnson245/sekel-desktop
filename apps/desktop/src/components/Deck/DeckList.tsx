@@ -133,7 +133,6 @@ export default function DeckList() {
 
             {decks.length === 0 ? (
                 <div className="empty-state" data-testid="empty-decks">
-                    <div className="empty-icon">📚</div>
                     <h3>{t('decks.no_decks')}</h3>
                     <p className="text-muted">{t('decks.start_creating')}</p>
                     <Button
