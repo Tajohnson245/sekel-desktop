@@ -250,7 +250,7 @@ export function StudyTab() {
                                         {t('exam.session_mode_label')}
                                     </label>
                                     <select
-                                        className="field-input"
+                                        className="field-input custom-select"
                                         value={localSessionMode}
                                         onChange={(e) => handleSessionModeChange(e.target.value as 'auto' | 'mixed' | 'triage')}
                                         style={{ width: '290px' }}
@@ -348,7 +348,7 @@ export function StudyTab() {
                     {examProfile ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                             <select
-                                className="field-input"
+                                className="field-input custom-select"
                                 value={classifyDeckId}
                                 onChange={(e) => { setClassifyDeckId(e.target.value); setClassifyResult(null); }}
                                 style={{ width: '280px' }}
