@@ -767,6 +767,10 @@
                 "title": "Préférences",
                 "body": "Thème, notifications, intelligence activée ou non, et limites quotidiennes vivent ici."
             },
+            "profile-study": {
+                "title": "Étude",
+                "body": "Votre examen, date cible et objectifs d'étude quotidiens — Sekel les utilise pour ajuster votre plan."
+            },
             "profile-backup": {
                 "title": "Sauvegarde",
                 "body": "Vos paquets se synchronisent, et vous pouvez exporter à tout moment pour la sauvegarde ou la migration."

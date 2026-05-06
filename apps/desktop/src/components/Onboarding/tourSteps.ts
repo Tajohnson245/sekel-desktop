@@ -130,6 +130,10 @@ export const TOUR_STEPS: TourStep[] = [
         route: { kind: 'profile', tab: 'preferences' },
     },
     {
+        id: 'profile-study',
+        route: { kind: 'profile', tab: 'study' },
+    },
+    {
         id: 'profile-backup',
         route: { kind: 'profile', tab: 'backup' },
     },

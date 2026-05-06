@@ -937,6 +937,10 @@
                 "title": "Preferences",
                 "body": "Theme, notifications, intelligence on/off, and daily limits live here."
             },
+            "profile-study": {
+                "title": "Study",
+                "body": "Your exam, target date, and daily study targets — Sekel uses these to shape your plan."
+            },
             "profile-backup": {
                 "title": "Backup",
                 "body": "Your decks sync, and you can export anytime for safekeeping or migration."
