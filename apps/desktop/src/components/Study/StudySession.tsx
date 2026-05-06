@@ -279,7 +279,6 @@ export default function StudySession() {
                     </Button>
                 </div>
                 <div className="empty-state" data-testid="no-cards-due">
-                    <div className="empty-icon">🎉</div>
                     <h3>{t('study.session_complete')}</h3>
                     <p className="text-muted">{t('study.back_to_decks')}</p>
                 </div>

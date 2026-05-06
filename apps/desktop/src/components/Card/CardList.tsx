@@ -89,7 +89,6 @@ export default function CardList({ deckId, onAddCard, onGenerateAI, onEdit }: Ca
 
             {cards.length === 0 ? (
                 <div className="empty-state" data-testid="empty-cards">
-                    <div className="empty-icon">📝</div>
                     <h4>{t('card.no_cards')}</h4>
                     <p className="text-muted">{t('card.no_cards_desc')}</p>
                     <div className="empty-actions">
