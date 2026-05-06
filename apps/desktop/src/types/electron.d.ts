@@ -551,6 +551,11 @@ interface ElectronUpdate {
     install: () => Promise<void>;
 }
 
+interface ElectronTour {
+    /** Fired when the user picks Help → Replay Tour from the application menu. */
+    onReplay: (cb: () => void) => () => void;
+}
+
 interface ElectronAPI {
     deepLink: DeepLinkAPI;
     generateCards: (text: string, count?: number, language?: string, options?: AIGenerationOptions) => Promise<GeneratedCard[]>;
@@ -569,6 +574,7 @@ interface ElectronAPI {
     exam: ElectronExam;
     plan: ElectronPlan;
     update: ElectronUpdate;
+    tour: ElectronTour;
 }
 
 declare global {

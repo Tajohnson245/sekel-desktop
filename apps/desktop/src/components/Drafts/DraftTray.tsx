@@ -138,7 +138,7 @@ export default function DraftTray({ userId }: DraftTrayProps) {
 
                                             <div className="draft-item-actions">
                                                 <select
-                                                    className="draft-deck-select"
+                                                    className="draft-deck-select custom-select"
                                                     value={selectedDeckIds[draft.id] ?? ''}
                                                     onChange={e => setSelectedDeckIds(prev => ({
                                                         ...prev,

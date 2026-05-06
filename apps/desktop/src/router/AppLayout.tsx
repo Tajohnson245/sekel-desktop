@@ -177,6 +177,16 @@ export default function AppLayout() {
     const hasAttemptedProfileFetch = useProfileStore((s) => s.hasAttemptedFetch);
     const fetchProfile = useProfileStore((s) => s.fetchProfile);
 
+    // Help → Replay Tour from the native app menu (Ctrl/Cmd+Shift+T) clears
+    // the local "completed" flag and re-runs the onboarding from step 0.
+    useEffect(() => {
+        if (typeof window.electronAPI?.tour?.onReplay !== 'function') return;
+        return window.electronAPI.tour.onReplay(() => {
+            try { localStorage.removeItem(ONBOARDING_LOCALSTORAGE_KEY); } catch { /* ignore */ }
+            if (visibleTourStepIds.length > 0) startOnboarding(visibleTourStepIds);
+        });
+    }, [startOnboarding, visibleTourStepIds]);
+
     // Make sure the profile fetch runs as soon as we have a user, regardless
     // of which route they land on. A brand-new user has no user_profiles row
     // yet (Supabase returns 406 / PGRST116) and the fetch settles with null.

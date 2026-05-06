@@ -115,7 +115,7 @@ export default function PreSessionBriefing({ intelligence, planDeckIds, onDismis
                         </label>
                         <select
                             id="briefing-deck-select"
-                            className="presession-deck-select__select"
+                            className="presession-deck-select__select custom-select"
                             value={selectedDeckId}
                             onChange={e => setSelectedDeckId(e.target.value)}
                         >

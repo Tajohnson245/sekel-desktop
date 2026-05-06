@@ -118,7 +118,7 @@ export default function DraftsPage() {
 
                             <div className="draft-card-actions">
                                 <select
-                                    className="draft-card-deck-select"
+                                    className="draft-card-deck-select custom-select"
                                     value={selectedDeckIds[draft.id] ?? ''}
                                     onChange={e => setSelectedDeckIds(prev => ({
                                         ...prev,

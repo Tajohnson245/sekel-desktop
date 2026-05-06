@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, X } from 'lucide-react';
+import { Plus, Trash2, X, Library } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useDecks, useBulkDeleteDecks } from '../../hooks/useDecks';
 import { useAppNavigation } from '../../hooks/useAppNavigation';
@@ -133,6 +133,7 @@ export default function DeckList() {
 
             {decks.length === 0 ? (
                 <div className="empty-state" data-testid="empty-decks">
+                    <Library size={40} className="empty-state__icon" />
                     <h3>{t('decks.no_decks')}</h3>
                     <p className="text-muted">{t('decks.start_creating')}</p>
                     <Button

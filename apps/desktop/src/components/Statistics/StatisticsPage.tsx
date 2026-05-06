@@ -87,7 +87,7 @@ export default function StatisticsPage() {
 
                         <div className="stats-controls-row">
                             <select
-                                className="stats-date-select"
+                                className="stats-date-select custom-select"
                                 value={cardDateRange == null ? 'all' : String(cardDateRange)}
                                 onChange={e => setCardDateRange(parseDateRange(e.target.value))}
                             >
@@ -112,7 +112,7 @@ export default function StatisticsPage() {
                     <div className="stats-tab-content">
                         <div className="stats-controls-row">
                             <select
-                                className="stats-date-select"
+                                className="stats-date-select custom-select"
                                 value={reviewDateRange == null ? 'all' : String(reviewDateRange)}
                                 onChange={e => setReviewDateRange(parseDateRange(e.target.value))}
                             >

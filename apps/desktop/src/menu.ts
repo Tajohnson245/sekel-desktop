@@ -120,6 +120,15 @@ const template: MenuItemConstructorOptions[] = [
         role: 'help',
         submenu: [
             {
+                label: 'Replay Tour',
+                accelerator: 'CmdOrCtrl+Shift+T',
+                click: () => {
+                    const win = BrowserWindow.getFocusedWindow();
+                    win?.webContents.send('tour:replay');
+                },
+            },
+            { type: 'separator' },
+            {
                 label: 'Learn More',
                 click: async () => {
                     await shell.openExternal('https://sekel.app');

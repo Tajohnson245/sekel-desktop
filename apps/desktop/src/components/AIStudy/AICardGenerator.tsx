@@ -333,9 +333,10 @@ export default function AICardGenerator({ extractedText, contextSummary, context
 
             {/* Empty State after processing */}
             {hasGenerated && cards.length === 0 && (
-                <div className="ai-empty-state" style={{ textAlign: 'center', padding: '3rem 1rem', background: 'var(--bg-muted)', borderRadius: 'var(--radius)', marginTop: '2rem' }}>
-                    <h3 style={{ marginBottom: '0.5rem' }}>{t('ai.all_processed')}</h3>
-                    <p className="text-muted" style={{ marginBottom: '1.5rem' }}>
+                <div className="ai-empty-state">
+                    <CheckCircle size={40} className="empty-state__icon" />
+                    <h3>{t('ai.all_processed')}</h3>
+                    <p className="text-muted">
                         {t('ai.all_processed_desc')}
                     </p>
                     <Button
@@ -357,7 +358,7 @@ export default function AICardGenerator({ extractedText, contextSummary, context
                             <div>
                                 <h3>{t('ai.generated_cards', { count: cards.length })}</h3>
                                 {generationStats && generationStats.filtered > 0 && (
-                                    <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                                    <p className="ai-generation-stats">
                                         {t('ai.generation_stats', { generated: generationStats.generated, filtered: generationStats.filtered })}
                                     </p>
                                 )}

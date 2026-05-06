@@ -201,6 +201,23 @@ select option:disabled {
     color: var(--text-muted);
 }
 
+/* ── Themed dropdown utility ────────────────────────────────────
+   Add `custom-select` to any native <select> to suppress the OS-rendered
+   caret and draw an inset chevron that follows the active theme. The
+   class lives at the top level so every dropdown — Stats, Drafts, Plan,
+   Profile, etc. — shares one source of truth. */
+.custom-select {
+    appearance:         none;
+    -webkit-appearance: none;
+    -moz-appearance:    none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat:   no-repeat;
+    background-position: right 0.75rem center;
+    background-size:     1rem;
+    padding-right:       2.5rem;
+    cursor:              pointer;
+}
+
 /* ── Custom scrollbar ───────────────────────────────────────────── */
 
 ::-webkit-scrollbar {
@@ -900,6 +917,12 @@ h3 {
     justify-content: center;
     padding: 3rem;
     text-align: center;
+}
+
+.empty-state__icon {
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+    opacity: 0.7;
 }
 
 .empty-state h3 {

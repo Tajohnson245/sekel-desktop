@@ -210,14 +210,14 @@ export function StudyTab() {
 
             <div className="profile-grid">
                 {/* Exam Configuration */}
-                <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <div className="profile-field profile-field--full">
+                    <div className="profile-field-row profile-field-row--mb">
                         <div>
                             <label className="field-label">
-                                <GraduationCap size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+                                <GraduationCap size={14} className="field-icon" />
                                 {t('exam.settings_title')}
                             </label>
-                            <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0.2rem 0 0' }}>
+                            <p className="text-muted field-helper">
                                 {t('exam.settings_desc')}
                             </p>
                         </div>
@@ -231,7 +231,7 @@ export function StudyTab() {
 
                             <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
                                 <div>
-                                    <label className="field-label" style={{ fontSize: '0.8rem', marginBottom: '0.25rem', display: 'block' }}>
+                                    <label className="field-label field-label--sm">
                                         {t('exam.date_label')}
                                     </label>
                                     <input
@@ -246,7 +246,7 @@ export function StudyTab() {
                                 </div>
 
                                 <div>
-                                    <label className="field-label" style={{ fontSize: '0.8rem', marginBottom: '0.25rem', display: 'block' }}>
+                                    <label className="field-label field-label--sm">
                                         {t('exam.session_mode_label')}
                                     </label>
                                     <select
@@ -334,12 +334,12 @@ export function StudyTab() {
                 </div>
 
                 {/* Classify Cards */}
-                <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
+                <div className="profile-field profile-field--full">
                     <label className="field-label">
-                        <Brain size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+                        <Brain size={14} className="field-icon" />
                         {t('classify.section_title')}
                     </label>
-                    <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0.2rem 0 0.75rem' }}>
+                    <p className="text-muted field-helper field-helper--mb">
                         {examProfile
                             ? t('classify.section_desc', { examLabel: examProfile.exam_label })
                             : t('classify.no_exam_hint')}
@@ -398,14 +398,14 @@ export function StudyTab() {
                 </div>
 
                 {/* Notification Reminders */}
-                <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <div className="profile-field profile-field--full">
+                    <div className="profile-field-row profile-field-row--mb">
                         <div>
                             <label className="field-label">
-                                <Bell size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+                                <Bell size={14} className="field-icon" />
                                 {t('profile.notifications')}
                             </label>
-                            <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0.2rem 0 0' }}>
+                            <p className="text-muted field-helper">
                                 {t('profile.notifications_desc')}
                             </p>
                         </div>
@@ -516,14 +516,14 @@ export function StudyTab() {
                 </div>
 
                 {/* SEKEL Intelligence */}
-                <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div className="profile-field profile-field--full">
+                    <div className="profile-field-row">
                         <div>
                             <label className="field-label">
-                                <Sparkles size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+                                <Sparkles size={14} className="field-icon" />
                                 SEKEL Intelligence
                             </label>
-                            <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0.2rem 0 0' }}>
+                            <p className="text-muted field-helper">
                                 Personalized study insights based on your exam blueprint
                             </p>
                         </div>
@@ -539,14 +539,14 @@ export function StudyTab() {
                 </div>
 
                 {/* Study Timer */}
-                <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div className="profile-field profile-field--full">
+                    <div className="profile-field-row">
                         <div>
                             <label className="field-label">
-                                <Clock size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+                                <Clock size={14} className="field-icon" />
                                 {t('profile.show_timer')}
                             </label>
-                            <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0.2rem 0 0' }}>
+                            <p className="text-muted field-helper">
                                 {t('profile.show_timer_desc')}
                             </p>
                         </div>
@@ -562,11 +562,11 @@ export function StudyTab() {
                 </div>
 
                 {/* Daily Study Limits */}
-                <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <div className="profile-field profile-field--full">
+                    <div className="profile-field-row profile-field-row--mb">
                         <div>
                             <label className="field-label">{t('profile.daily_limits')}</label>
-                            <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0.2rem 0 0' }}>
+                            <p className="text-muted field-helper">
                                 {t('profile.daily_limits_desc')}
                             </p>
                         </div>
@@ -583,7 +583,7 @@ export function StudyTab() {
                     {(profile?.daily_limits_enabled ?? true) && (
                         <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.75rem' }}>
                             <div>
-                                <label className="field-label" style={{ fontSize: '0.8rem', marginBottom: '0.25rem', display: 'block' }}>
+                                <label className="field-label field-label--sm">
                                     {t('profile.new_cards_per_day')}
                                 </label>
                                 <input
@@ -602,7 +602,7 @@ export function StudyTab() {
                                 />
                             </div>
                             <div>
-                                <label className="field-label" style={{ fontSize: '0.8rem', marginBottom: '0.25rem', display: 'block' }}>
+                                <label className="field-label field-label--sm">
                                     {t('profile.reviews_per_day')}
                                 </label>
                                 <input
@@ -625,7 +625,7 @@ export function StudyTab() {
                 </div>
 
                 {/* FSRS Scheduling */}
-                <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
+                <div className="profile-field profile-field--full">
                     <label className="field-label">{t('fsrs.enable_fsrs_for_decks')}</label>
                     <p className="text-muted" style={{ fontSize: '0.875rem', marginBottom: '0.75rem' }}>
                         {t('fsrs.description')}
@@ -707,18 +707,18 @@ export function StudyTab() {
                 </div>
 
                 {/* Time Travel */}
-                <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
+                <div className="profile-field profile-field--full">
                     <label className="field-label">
-                        <Clock size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+                        <Clock size={14} className="field-icon" />
                         {t('time_travel.title')}
                     </label>
-                    <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0.2rem 0 0.75rem' }}>
+                    <p className="text-muted field-helper field-helper--mb">
                         {t('time_travel.description')}
                     </p>
 
                     <div style={{ display: 'flex', alignItems: 'flex-end', gap: '1rem' }}>
                         <div>
-                            <label className="field-label" style={{ fontSize: '0.8rem', marginBottom: '0.25rem', display: 'block' }}>
+                            <label className="field-label field-label--sm">
                                 {t('time_travel.days_back')}
                             </label>
                             <input
