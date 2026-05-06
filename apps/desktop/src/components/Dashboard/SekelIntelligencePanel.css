@@ -449,15 +449,17 @@
     letter-spacing: 0.05em;
 }
 
-/* Chevron + appearance reset come from .custom-select in index.css */
-.presession-deck-select__select {
-    background-color: var(--secondary, var(--ink-muted));
-    border: 1px solid var(--border, var(--ink-muted));
-    border-radius: var(--r-sm);
-    color: var(--text, #e2e8f0);
-    padding: 0.5rem 0.75rem;
-    font-size: 0.875rem;
+.presession-deck-select__wrap {
     width: 100%;
+}
+
+/* Inner <select> override — slightly smaller default size with the panel's
+   secondary background instead of the package default. */
+.presession-deck-select__select.form-select {
+    background-color: var(--secondary, var(--ink-muted));
+    padding: 0.5rem 2rem 0.5rem 0.75rem;
+    min-height: 36px;
+    font-size: 0.875rem;
 }
 
 .presession-modal__actions {

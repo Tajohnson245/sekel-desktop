@@ -191,14 +191,15 @@
     gap: 0.5rem;
 }
 
-/* Chevron + appearance reset come from .custom-select in index.css */
-.draft-card-deck-select {
+/* Wrapper for the migrated <Select> in the draft card actions row */
+.draft-card-deck-select-wrap {
     width: 100%;
-    padding: 0.45rem 0.75rem;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background-color: var(--bg-input);
-    color: var(--text-primary);
+}
+
+/* Inner <select> override — slightly smaller than the package default */
+.draft-card-deck-select.form-select {
+    padding: 0.45rem 2rem 0.45rem 0.75rem;
+    min-height: 32px;
     font-size: 0.875rem;
 }
 

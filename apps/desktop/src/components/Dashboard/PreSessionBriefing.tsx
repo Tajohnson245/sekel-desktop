@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Sparkles, Calendar, Target, Layers } from 'lucide-react';
 import { useDecks } from '../../hooks/useDecks';
+import { Select } from '../UI';
 import type { IntelligenceSummary } from '../../hooks/useSekelIntelligence';
 import type { Deck } from '../../lib/types';
 
@@ -113,16 +114,14 @@ export default function PreSessionBriefing({ intelligence, planDeckIds, onDismis
                         <label className="presession-deck-select__label" htmlFor="briefing-deck-select">
                             Study deck
                         </label>
-                        <select
+                        <Select
                             id="briefing-deck-select"
-                            className="presession-deck-select__select custom-select"
+                            containerClassName="presession-deck-select__wrap"
+                            className="presession-deck-select__select"
                             value={selectedDeckId}
                             onChange={e => setSelectedDeckId(e.target.value)}
-                        >
-                            {decks.map((d: Deck) => (
-                                <option key={d.id} value={d.id}>{d.name}</option>
-                            ))}
-                        </select>
+                            options={decks.map((d: Deck) => ({ value: d.id, label: d.name }))}
+                        />
                     </div>
                 )}
 

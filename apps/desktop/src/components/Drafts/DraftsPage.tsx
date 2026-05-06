@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useDrafts, useDeleteDraft, useClearDrafts, usePromoteDraftToDeck, DRAFT_LIMIT } from '../../hooks/useDrafts';
 import { useDecks } from '../../hooks/useDecks';
 import { useAuthStore } from '../../stores/authStore';
-import { Button } from '../UI';
+import { Button, Select } from '../UI';
 import './DraftsPage.css';
 
 function formatDate(iso: string) {
@@ -117,22 +117,18 @@ export default function DraftsPage() {
                             </div>
 
                             <div className="draft-card-actions">
-                                <select
-                                    className="draft-card-deck-select custom-select"
+                                <Select
+                                    containerClassName="draft-card-deck-select-wrap"
+                                    className="draft-card-deck-select"
                                     value={selectedDeckIds[draft.id] ?? ''}
                                     onChange={e => setSelectedDeckIds(prev => ({
                                         ...prev,
                                         [draft.id]: e.target.value,
                                     }))}
                                     aria-label={t('drafts.select_deck')}
-                                >
-                                    <option value="">{t('drafts.select_deck')}</option>
-                                    {deckOptions.map(opt => (
-                                        <option key={opt.value} value={opt.value}>
-                                            {opt.label}
-                                        </option>
-                                    ))}
-                                </select>
+                                    placeholder={t('drafts.select_deck')}
+                                    options={deckOptions.map(opt => ({ value: opt.value, label: opt.label }))}
+                                />
 
                                 <div className="draft-card-btns">
                                     <Button

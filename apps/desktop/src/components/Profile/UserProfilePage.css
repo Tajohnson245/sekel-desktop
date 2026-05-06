@@ -218,10 +218,6 @@
     box-shadow: 0 0 0 2px var(--primary-light);
 }
 
-.select-container {
-    margin-top: 1rem;
-}
-
 .required-mark {
     color: var(--danger, #ef4444);
     margin-left: 2px;
@@ -246,14 +242,13 @@
     border: none;
 }
 
-/* Custom select focus state — base styling is now in index.css */
-.custom-select {
-    font-weight: 500;
+/* Width overrides for the migrated <Select> instances in StudyTab. */
+.study-session-mode {
+    max-width: 290px;
 }
 
-.custom-select:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+.study-classify-deck {
+    max-width: 280px;
 }
 
 .danger-zone {

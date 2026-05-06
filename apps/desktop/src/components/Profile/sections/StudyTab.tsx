@@ -3,7 +3,7 @@ import { useAuthStore } from '../../../stores/authStore';
 import { useProfileStore } from '../../../stores/profileStore';
 import { Bell, Brain, Clock, GraduationCap, Plus, Sparkles, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Button, Modal, useToast, ToggleSwitch } from '../../UI';
+import { Button, Modal, useToast, ToggleSwitch, Select } from '../../UI';
 import { useDecks, useUpdateDeck } from '../../../hooks/useDecks';
 import { useExamProfile, useUpdateExamProfile, useDeleteExamProfile } from '../../../hooks/useExamProfile';
 import { useActivePlan } from '../../../hooks/usePlan';
@@ -245,20 +245,19 @@ export function StudyTab() {
                                     />
                                 </div>
 
-                                <div>
+                                <div className="study-session-mode">
                                     <label className="field-label field-label--sm">
                                         {t('exam.session_mode_label')}
                                     </label>
-                                    <select
-                                        className="field-input custom-select"
+                                    <Select
                                         value={localSessionMode}
                                         onChange={(e) => handleSessionModeChange(e.target.value as 'auto' | 'mixed' | 'triage')}
-                                        style={{ width: '290px' }}
-                                    >
-                                        <option value="auto">{t('exam.mode_auto')}</option>
-                                        <option value="mixed">{t('exam.mode_mixed')}</option>
-                                        <option value="triage">{t('exam.mode_triage')}</option>
-                                    </select>
+                                        options={[
+                                            { value: 'auto',    label: t('exam.mode_auto') },
+                                            { value: 'mixed',   label: t('exam.mode_mixed') },
+                                            { value: 'triage',  label: t('exam.mode_triage') },
+                                        ]}
+                                    />
                                 </div>
                             </div>
 
@@ -347,18 +346,14 @@ export function StudyTab() {
 
                     {examProfile ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                            <select
-                                className="field-input custom-select"
+                            <Select
+                                containerClassName="study-classify-deck"
                                 value={classifyDeckId}
                                 onChange={(e) => { setClassifyDeckId(e.target.value); setClassifyResult(null); }}
-                                style={{ width: '280px' }}
                                 disabled={classifyRunning}
-                            >
-                                <option value="">{t('classify.select_deck_placeholder')}</option>
-                                {decks.map(deck => (
-                                    <option key={deck.id} value={deck.id}>{deck.name}</option>
-                                ))}
-                            </select>
+                                placeholder={t('classify.select_deck_placeholder')}
+                                options={decks.map(deck => ({ value: deck.id, label: deck.name }))}
+                            />
 
                             <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', cursor: 'pointer' }}>
                                 <input

@@ -17,7 +17,7 @@ import {
     ReviewHeatmap,
     MissRateTrendChart,
 } from '@sekel/components';
-import { Tabs, TabList, Tab, TabPanel } from '../UI';
+import { Tabs, TabList, Tab, TabPanel, Select } from '../UI';
 import { MissedTopicsBreakdown } from './MissedTopicsBreakdown';
 import type { DateRangeDays } from '../../lib/queries';
 import './StatisticsPage.css';
@@ -86,15 +86,13 @@ export default function StatisticsPage() {
                         {cardCounts && <CardCountsPieChart data={cardCounts} />}
 
                         <div className="stats-controls-row">
-                            <select
-                                className="stats-date-select custom-select"
+                            <Select
+                                containerClassName="stats-date-select-wrap"
+                                className="stats-date-select"
                                 value={cardDateRange == null ? 'all' : String(cardDateRange)}
                                 onChange={e => setCardDateRange(parseDateRange(e.target.value))}
-                            >
-                                {DATE_RANGE_OPTIONS.map(opt => (
-                                    <option key={opt.value} value={opt.value}>{t(opt.label)}</option>
-                                ))}
-                            </select>
+                                options={DATE_RANGE_OPTIONS.map(opt => ({ value: opt.value, label: t(opt.label) }))}
+                            />
                         </div>
 
                         {examKey ? (
@@ -111,15 +109,13 @@ export default function StatisticsPage() {
                 <TabPanel id="reviews">
                     <div className="stats-tab-content">
                         <div className="stats-controls-row">
-                            <select
-                                className="stats-date-select custom-select"
+                            <Select
+                                containerClassName="stats-date-select-wrap"
+                                className="stats-date-select"
                                 value={reviewDateRange == null ? 'all' : String(reviewDateRange)}
                                 onChange={e => setReviewDateRange(parseDateRange(e.target.value))}
-                            >
-                                {DATE_RANGE_OPTIONS.map(opt => (
-                                    <option key={opt.value} value={opt.value}>{t(opt.label)}</option>
-                                ))}
-                            </select>
+                                options={DATE_RANGE_OPTIONS.map(opt => ({ value: opt.value, label: t(opt.label) }))}
+                            />
                         </div>
 
                         <ReviewHeatmap data={reviewHistory} />

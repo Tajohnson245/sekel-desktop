@@ -55,15 +55,18 @@
   gap:         var(--space-sm);
 }
 
-/* Chevron + appearance reset come from .custom-select in index.css */
-.stats-date-select {
-  padding:       0.35rem 0.65rem;
-  border:        1px solid var(--border, rgba(255,255,255,0.12));
-  border-radius: var(--r-sm);
-  background-color: var(--surface-1, transparent);
-  color:         var(--fog);
-  font-family:   var(--font-mono);
-  font-size:     13px;
+/* Wrapper for the migrated <Select> in the stats controls row */
+.stats-date-select-wrap {
+  width: auto;
+}
+
+/* Mono-font + compact size override on the inner <select>; layout, chevron,
+   and focus state come from .form-select in the shared package. */
+.stats-date-select.form-select {
+  font-family: var(--font-mono);
+  font-size:   13px;
+  min-height:  32px;
+  padding:     0.35rem 2rem 0.35rem 0.65rem;
 }
 
 .stats-date-select:focus {
