@@ -75,9 +75,71 @@ This applies in reverse too: deploying a new edge function to prod is harmless u
 
 - Work branches: `SEKEL-<NNN>-<kebab-description>` — Linear ticket first, then short description (e.g. `SEKEL-121-feedback-form-triage`). No type prefix. Kebab-case, lowercase, ≤ 50 chars.
 - Release branches: `release/v<X.Y.Z>` (e.g. `release/v1.0.6`) — the lone version-tied exception.
-- Tags: annotated, `v<X.Y.Z>` — `git tag -a v1.0.6 -m "Release v1.0.6"`.
+- Tags: annotated. **Trigger tag** (fires CI build): `desktop/v<X.Y.Z>` — created by the Bump Version workflow. **GitHub Release tag** (auto-update reads from this): `v<X.Y.Z>` (no prefix) — created automatically by `release.yml`. Don't rename either: the auto-updater reads R2 at `notes/v<X.Y.Z>.md` and breaks if the convention slips.
 
 Full reference: `.claude/skills/github-workflows/references/naming-conventions.md`.
+
+## Release flow — step by step
+
+The pipeline is largely automated via two workflows:
+
+- **`bump-version.yml`** (manual `workflow_dispatch`) — runs `scripts/bump.js`, commits the version change, creates annotated `desktop/v<X.Y.Z>` tag, pushes both.
+- **`release.yml`** (triggered by `desktop/v*.*.*` tag push) — matrix-builds installers (win-x64, macOS-arm64/x64, linux-x64), Azure Trusted Signing for Windows, uploads to GitHub Release + Cloudflare R2 (the auto-update endpoint), and publishes auto-generated release notes mirrored to R2.
+
+### Per-release sequence
+
+Starting state: SEKEL branches merged into `dev`, dev CI green, no P0s open, prod schema/functions match what `dev` expects.
+
+1. **Cut the release branch from `dev`:**
+   ```
+   git checkout dev && git pull
+   git checkout -b release/v<X.Y.Z>
+   git push -u origin release/v<X.Y.Z>
+   ```
+2. **Update `CHANGELOG.md`** on the release branch — prepend a new section with version + date and Keep-a-Changelog category headings (Added / Changed / Fixed / Removed / Security). Commit.
+3. **Push prod schema + edge functions** (until `release.yml` is updated to do this in CI):
+   ```
+   npm run db:push:prod          # apps/desktop, applies any pending migrations
+   npm run functions:deploy:prod # only if functions changed since last release
+   ```
+   Verify everything's healthy in the prod Supabase dashboard before continuing.
+4. **Trigger Bump Version against the release branch:**
+   ```
+   gh workflow run bump-version.yml --ref release/v<X.Y.Z> \
+     -f app=desktop -f version=<X.Y.Z>
+   ```
+   The workflow commits the bump on `release/v<X.Y.Z>` and pushes the `desktop/v<X.Y.Z>` tag. Tag push fires `release.yml`.
+5. **Wait for `release.yml`:** the matrix build → sign → upload → publish-notes flow takes ~15–25 minutes. Monitor in Actions.
+6. **Merge release branch into `main`** (no fast-forward):
+   ```
+   git checkout main && git pull
+   git merge --no-ff release/v<X.Y.Z>
+   git push origin main
+   ```
+7. **Back-merge release branch into `dev`** so any release-branch-only fixes (CHANGELOG, late patches) are captured:
+   ```
+   git checkout dev && git pull
+   git merge --no-ff release/v<X.Y.Z>
+   git push origin dev
+   ```
+8. **Delete the release branch** (local + remote):
+   ```
+   git branch -d release/v<X.Y.Z>
+   git push origin --delete release/v<X.Y.Z>
+   ```
+9. **Verify in production**: install the auto-updated client, confirm the version, smoke-test feedback / auth / Sentry env tag.
+
+### Versioning (SemVer)
+
+- **MAJOR** — breaking change to public API or user-visible behavior
+- **MINOR** — new backwards-compatible feature
+- **PATCH** — backwards-compatible bug fix
+- **Pre-release** suffixes: `-alpha.N`, `-beta.N`, `-rc.N` (alpha → beta → rc → release)
+
+### What's not yet wired (TODO)
+
+- `release.yml` does **not** run `db push` or `functions deploy` against prod yet. Step 3 above is the manual workaround. Wiring this into CI requires adding the `SUPABASE_ACCESS_TOKEN` GitHub secret and a job in `release.yml` that runs *before* the matrix build.
+- The `.claude/skills/github-workflows/references/release-checklist.md` reference still has generic GitHub Flow / GitFlow checklists in addition to the Sekel-specific bits — worth pruning to match this section.
 
 ## Feature docs
 - Active work: `docs/features/desktop/in-progress/<slug>.md`
