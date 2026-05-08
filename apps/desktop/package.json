@@ -78,6 +78,7 @@
     "@sekel/components": "*1.0.6",
     "@sekel/db": "*1.0.6",
     "@sekel/observability": "*1.0.6",
+    "@sentry/electron": "^7.13.0",
     "@supabase/supabase-js": "^2.95.3",
     "@tanstack/react-query": "^5.90.20",
     "better-sqlite3": "^12.6.2",

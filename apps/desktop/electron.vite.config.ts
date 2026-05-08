@@ -30,7 +30,10 @@ export default defineConfig(({ mode }) => {
             },
         },
         preload: {
-            plugins: [externalizeDepsPlugin()],
+            // BrowserWindow uses sandbox:true — only a small allowlist of modules
+            // (electron, events, timers, url) is available via require() at runtime.
+            // Bundle @sentry/electron into preload.js so its renderer entry can load.
+            plugins: [externalizeDepsPlugin({ exclude: ['@sentry/electron'] })],
             build: {
                 outDir: 'dist/preload',
                 rollupOptions: {
