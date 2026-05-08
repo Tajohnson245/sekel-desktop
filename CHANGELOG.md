@@ -18,6 +18,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ### Security
 
+## [1.0.7] - 2026-05-08
+
+### Added
+- **Sentry observability** — Sentry Electron SDK initialised in main, preload, and renderer processes, tagged with `environment` (production/development) and `release` (app version). User context set on auth so events can be traced to a submitter without joining tables. (SEKEL-120)
+- **Feedback form triage** — feedback form now captures a feedback `type` (bug / feature_request / question / other), a short `summary` (≤120 chars), and the app version automatically. OS is detected from `process.platform` rather than typed by the user. Submission failures are captured to Sentry with `feature: feedback` tag. (SEKEL-121)
+- **Feedback → Discord pipeline** — every feedback INSERT fires a Supabase Edge Function (`feedback-discord`) that posts a color-coded embed to a Discord channel. Embed includes summary, type, areas, OS, app version, full description, desired fix, screenshot (inline), submitter email (looked up via service role), and a sequential `Feedback-NNN` ticket ID. Auth is via shared `x-webhook-secret` header. (SEKEL-122)
+- **Sequential feedback IDs** — `ticket_number bigserial` column on `public.feedback` produces human-friendly `Feedback-001`-style IDs surfaced in Discord and reusable for any future triage workflow. (SEKEL-122)
+- **Server-side release deploy in CI** — `release.yml` now runs a `deploy-server` job before the matrix build that applies pending prod migrations and redeploys edge functions. The matrix build is gated via `needs:` so a release never ships a client without the matching schema. Required GitHub secrets: `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROD_DB_PASSWORD`. (SEKEL-122)
+- **Repo conventions captured in `CLAUDE.md`** — full development & release flow, branch naming, server-vs-client drift caveat, and Feedback-NNN convention recorded so they survive across sessions. (SEKEL-122)
+- **Env-specific Supabase npm scripts** — `link:dev|prod`, `db:push:dev|prod`, `secrets:list|set:dev|prod`, `functions:deploy:dev|prod` — no more passing `--project-ref` by hand for routine deploys. (SEKEL-122)
+
+### Changed
+- **GitHub Workflows skill** rewritten to enforce the actual repo branch convention `SEKEL-<NNN>-<description>` instead of the generic `feature/`, `fix/`, etc. type prefixes. `release-checklist.md` rewritten as Sekel-specific (cut from dev, Bump Version on the release branch, back-merge to dev, delete). (SEKEL-122)
+- **Feedback form copy** reworded for clarity; SEKEL casing standardised. (SEKEL-121)
+
+### Fixed
+- **`db:push:dev|prod` npm scripts** now use `link + db push --linked` instead of passing `--project-ref` to `db push` (the CLI rejects that flag on this subcommand). (SEKEL-122)
+
 ## [1.3.0] - 2026-03-11
 
 ### Added
