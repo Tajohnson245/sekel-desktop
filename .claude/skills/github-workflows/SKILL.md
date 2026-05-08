@@ -115,42 +115,39 @@ release/x.y   ← optional stabilization branch cut from main
 
 Read `references/naming-conventions.md` for full examples.
 
-**Format:** `<type>/<ticket-or-scope>/<short-description>`
+This repo uses a single work-branch pattern. No `feature/`, `fix/`, `chore/` etc. prefixes — the Linear ticket already classifies the work.
 
-**Types:**
-- `feature/` — new functionality
-- `fix/` — bug fixes
-- `hotfix/` — urgent production fixes (GitFlow only)
-- `release/` — release preparation (GitFlow only)
-- `chore/` — maintenance, dependency updates, tooling
-- `docs/` — documentation only
-- `refactor/` — code restructuring, no behavior change
-- `test/` — adding or fixing tests
-- `experiment/` — exploratory/spike work, may be discarded
+**Format for work branches:** `SEKEL-<NNN>-<short-description>`
+
+- `SEKEL-<NNN>` — Linear ticket (e.g. `SEKEL-121`)
+- `<short-description>` — 2–5 words, kebab-case, lowercase
+- Examples in this repo: `SEKEL-121-feedback-form-triage`, `SEKEL-119-remove-decks-empty-emoji`, `SEKEL-118-tour-add-study-tab`
 
 **Enforcement rules:**
-- All lowercase
-- Hyphens only — no underscores, no spaces
+- All lowercase, hyphens only — no underscores, no slashes, no type prefix
 - Max 50 characters total
-- Ticket number before description when applicable: `feature/PROJ-123/user-auth`
-- Reject generic names: `fix/bug`, `feature/stuff`, `update/changes` are not acceptable
+- Ticket prefix is mandatory; if no ticket exists yet, file one first
+- Reject generic names like `fix-bug`, `update-stuff`, `wip`
+
+**The two exceptions** (version-tied, not ticket-tied):
+- `main` and `dev` — long-lived integration branches (`dev` is the working default; PRs target `main` for releases)
+- `release/v<X.Y.Z>` — release branches cut from `dev` (e.g. `release/v1.0.6`)
 
 ### Branch Mode Behavior
 
 ```
-🔍 Step 1 of 4 — Understanding your branch...
-   I'll ask a few quick questions so I can suggest the best name.
+🔍 Step 1 of 3 — Understanding your branch...
+   I'll ask a few quick questions so I can suggest the right name.
 ```
 
-1. Ask: "What type of work is this? (feature, fix, chore, docs, refactor, test, experiment)"
-2. Ask: "Do you have a ticket or issue number? (e.g., PROJ-123, #42, or none)"
-3. Ask: "Describe what this branch will do in a few words."
-4. Generate 2–3 valid name options with brief justifications
-5. Ask the user to confirm or pick one
-6. Output the exact command:
+1. Ask: "What's the Linear ticket? (e.g., SEKEL-122)"
+   - If user has no ticket: stop and tell them to file one in Linear first — this repo's convention requires it
+2. Ask: "Describe what this branch will do in 2–5 words."
+3. Generate the name and output the exact command:
 
 ```bash
-git checkout -b feature/PROJ-123/user-auth
+git checkout dev && git pull
+git checkout -b SEKEL-122-short-description
 ```
 
 ---

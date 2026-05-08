@@ -1,74 +1,31 @@
-# Branch & Tag Naming Conventions — Full Reference
+# Branch & Tag Naming Conventions — Sekel
 
-## Branch Name Format
+This repo uses a **single work-branch pattern** — no type prefixes. The Linear ticket classifies the work, so `feature/`, `fix/`, `chore/` etc. are not used here.
+
+---
+
+## Work Branch Format
 
 ```
-<type>/<ticket-or-scope>/<short-description>
+SEKEL-<NNN>-<short-description>
 ```
 
-- All lowercase
-- Hyphens only (no underscores, no spaces, no dots)
+**Rules:**
+- Linear ticket prefix `SEKEL-<NNN>` is mandatory — if no ticket exists, file one first
+- Description is 2–5 words, kebab-case, lowercase
+- Hyphens only — no underscores, no slashes, no type prefix
 - Max 50 characters total
-- Ticket number comes before the description when applicable
+- One branch per ticket; if scope grows, split the ticket
 
 ---
 
-## Branch Types
+## Real Examples From This Repo
 
-| Prefix | Purpose | Branch from | Merges to |
-|--------|---------|-------------|-----------|
-| `feature/` | New functionality | develop (GitFlow) or main | develop or main |
-| `fix/` | Bug fixes | develop or main | develop or main |
-| `hotfix/` | Urgent production fixes (GitFlow) | main | main AND develop |
-| `release/` | Release preparation (GitFlow) | develop | main AND develop |
-| `chore/` | Maintenance, deps, tooling | develop or main | develop or main |
-| `docs/` | Documentation only | develop or main | develop or main |
-| `refactor/` | Code restructuring, no behavior change | develop or main | develop or main |
-| `test/` | Adding or fixing tests | develop or main | develop or main |
-| `experiment/` | Exploratory/spike work, may be discarded | develop or main | may never merge |
-
----
-
-## Good Branch Names — 20+ Real-World Examples
-
-### Feature branches
 ```
-feature/PROJ-123/user-auth                  ✅ Jira ticket + clear scope
-feature/ABC-456/dark-mode-toggle            ✅ Linear ticket + feature name
-feature/#42/export-to-csv                   ✅ GitHub issue + action
-feature/onboarding/welcome-email            ✅ scope + description (no ticket)
-feature/payments/stripe-webhook-handler     ✅ scope + specific component
-feature/SEKEL-009/resend-waitlist-api       ✅ project convention example
-```
-
-### Fix branches
-```
-fix/PROJ-789/login-redirect-loop            ✅ ticket + specific bug
-fix/#101/null-pointer-in-cart               ✅ GitHub issue + location
-fix/dashboard/chart-overflow-on-mobile      ✅ scope + symptom
-fix/email-validation-regex                  ✅ simple, no ticket needed
-```
-
-### Hotfix branches (GitFlow)
-```
-hotfix/v1.2.4/fix-payment-crash             ✅ version + specific fix
-hotfix/v2.0.1/xss-in-user-profile          ✅ version + security context
-```
-
-### Release branches (GitFlow)
-```
-release/v2.0.0                              ✅ clean version tag
-release/v1.5.0-beta.1                       ✅ pre-release
-```
-
-### Chore/docs/refactor branches
-```
-chore/upgrade-react-19                      ✅ specific change
-chore/PROJ-200/remove-legacy-auth           ✅ ticket + scope
-docs/api-authentication-guide              ✅ specific doc topic
-refactor/user-service/extract-validators   ✅ scope + action
-test/cart-checkout-e2e                      ✅ what is being tested
-experiment/llm-summary-feature              ✅ clearly exploratory
+SEKEL-121-feedback-form-triage          ✅
+SEKEL-120-sentry-observability          ✅
+SEKEL-119-remove-decks-empty-emoji      ✅
+SEKEL-118-tour-add-study-tab            ✅
 ```
 
 ---
@@ -76,73 +33,89 @@ experiment/llm-summary-feature              ✅ clearly exploratory
 ## Bad Branch Names — What to Reject
 
 ```
-fix/bug                    ❌ Too generic — what bug?
-feature/stuff              ❌ Meaningless
-update/changes             ❌ Says nothing
-my-branch                  ❌ No type, no context
-PROJ-123                   ❌ Ticket only — no description
-Feature/AddLogin           ❌ Wrong case, no hyphens
-fix_null_pointer           ❌ Underscores not allowed
-feature/implement-the-new-user-authentication-system-with-google-oauth  ❌ Too long (>50 chars)
-wip                        ❌ Use a draft PR instead
-temp                       ❌ Name it properly or don't push it
+feature/SEKEL-121-feedback-form    ❌ No type prefix in this repo
+fix/login-bug                      ❌ No type prefix; needs ticket
+SEKEL_121_feedback_form            ❌ Underscores not allowed
+sekel-121-feedback-form            ❌ Ticket prefix must be uppercase
+SEKEL-121                          ❌ Ticket only — needs description
+121-feedback-form                  ❌ Missing SEKEL- prefix
+my-branch                          ❌ No ticket, no convention
+wip                                ❌ Use a draft PR instead
+SEKEL-121-implement-the-new-feedback-triage-system-with-sentry  ❌ Too long (>50 chars)
 ```
 
 ---
 
-## Ticket Number Patterns
+## Long-Lived Branches
 
-| System | Pattern | Branch Example |
-|--------|---------|---------------|
-| Jira | `PROJ-123` | `feature/PROJ-123/user-auth` |
-| Linear | `ABC-456` (team prefix) | `fix/ENG-789/retry-on-timeout` |
-| GitHub Issues | `#42` or `gh-42` | `feature/#42/export-to-csv` |
-| No ticketing system | Use scope instead | `feature/payments/add-refund-flow` |
+| Branch | Purpose |
+|--------|---------|
+| `main` | Release target — what's in production |
+| `dev` | Integration / working default — work branches cut from here, merge back via PR |
 
----
-
-## Environment Branch Conventions
-
-For teams using environment-named branches:
-
-```
-staging        ← mirrors what's deployed to staging; auto-deploys
-sandbox        ← experimental environment, may be unstable
-production     ← avoid; use main instead (main implies deployable)
-```
-
-These should be treated as deployment targets, not development branches. Never develop directly on `staging` or `sandbox`.
+Releases flow `dev` → `release/v*` → `main` (see release branches below).
 
 ---
 
-## Tag Naming Conventions
+## Release Branches (the only exception to the no-prefix rule)
 
-Tags always start with `v`:
+Releases are version-tied, not ticket-tied, so they keep a prefix:
 
 ```
-v1.2.3              ← standard SemVer release
-v1.2.3-alpha.1      ← alpha pre-release (first alpha of 1.2.3)
-v1.2.3-beta.2       ← second beta of 1.2.3
-v1.2.3-rc.1         ← release candidate
-v2.0.0              ← major version bump
-v0.1.0              ← initial development release
+release/v<X.Y.Z>
 ```
 
-**Always use annotated tags for releases:**
+**Examples:**
+```
+release/v1.0.6       ✅
+release/v1.0.5       ✅
+release/v1.5.0-beta.1 ✅ pre-release
+```
+
+Cut from `dev`. Merged to `main` and tagged when shipped.
+
+---
+
+## Tag Naming
+
+Tags always start with `v` and use SemVer:
+
+```
+v1.0.6              ← standard release
+v1.3.0-alpha.1      ← alpha pre-release
+v1.3.0-beta.2       ← beta
+v1.3.0-rc.1         ← release candidate
+```
+
+**Always use annotated tags** so the tag has a tagger, date, and message:
+
 ```bash
-git tag -a v1.2.3 -m "Release v1.2.3"
+git tag -a v1.0.6 -m "Release v1.0.6"
 ```
-Lightweight tags (`git tag v1.2.3`) lack a tagger, date, and message — don't use them for releases.
 
-**Tag ordering matters:** alpha → beta → rc → release
+Don't use lightweight tags (`git tag v1.0.6`) for releases.
+
+**Tag ordering:** alpha → beta → rc → release
+
 ```
 v1.3.0-alpha.1
 v1.3.0-alpha.2
 v1.3.0-beta.1
-v1.3.0-beta.2
 v1.3.0-rc.1
 v1.3.0
 ```
+
+---
+
+## What if there's no ticket?
+
+There should always be a ticket. If you're tempted to skip:
+
+- One-off doc fix? → file a ticket anyway, takes 30 seconds in Linear, keeps history coherent
+- Tiny typo? → still goes through a SEKEL-NNN branch
+- Genuinely exploratory spike that may never merge? → file a Linear ticket marked as a spike
+
+The ticket is the canonical source of truth for *why* the branch exists. The repo trades a small bit of overhead for a clean, queryable git history.
 
 ---
 
@@ -150,7 +123,6 @@ v1.3.0
 
 | Anti-pattern | Problem | Better approach |
 |-------------|---------|----------------|
-| `dev` | Ambiguous — is it develop or a dev's personal branch? | Use `develop` (GitFlow) or eliminate entirely |
-| `staging` as development branch | Blurs deploy target with development | Keep staging as a deploy mirror only |
-| `feature/big-rewrite` open for months | Massive merge conflicts, staleness | Use feature flags + trunk-based short branches |
-| Personal branches (`john/stuff`) | No type, no context, messy namespace | Enforce naming conventions team-wide |
+| `SEKEL-NNN-big-rewrite` open for months | Massive merge conflicts, staleness | Split the ticket; use feature flags + short branches |
+| Personal branches (`tajoh/stuff`) | No ticket, no convention | File a ticket and rename |
+| `staging` / `production` as dev branches | Blurs deploy targets with development | Use `main`/`dev`; keep deploy targets separate if you ever introduce them |

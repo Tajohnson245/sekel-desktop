@@ -94,14 +94,17 @@ Before starting any release process, verify:
 
 ---
 
-## Hotfix Checklist (GitFlow)
+## Hotfix Checklist
 
 **Use when:** Critical production bug that cannot wait for the next release cycle.
 
-- [ ] **Branch from main (NOT develop):**
+A hotfix still gets a Linear ticket and follows the standard `SEKEL-<NNN>-<description>` naming — the only thing that changes is which branch you cut from and merge back to.
+
+- [ ] **File a Linear ticket** (e.g. `SEKEL-145`) — even for hotfixes, the ticket is the system of record
+- [ ] **Branch from main (NOT dev):**
   ```bash
   git checkout main && git pull origin main
-  git checkout -b hotfix/vX.Y.Z/description-of-fix
+  git checkout -b SEKEL-NNN-short-description
   ```
 - [ ] **Implement fix** — minimal change only, no unrelated work
 - [ ] **Update version** (PATCH bump only): `X.Y.Z → X.Y.(Z+1)`
@@ -114,20 +117,20 @@ Before starting any release process, verify:
 - [ ] **Merge to main:**
   ```bash
   git checkout main
-  git merge --no-ff hotfix/vX.Y.Z/description-of-fix
+  git merge --no-ff SEKEL-NNN-short-description
   git tag -a vX.Y.Z -m "Release vX.Y.Z"
   git push origin main && git push origin vX.Y.Z
   ```
-- [ ] **Merge to develop:**
+- [ ] **Merge to dev:**
   ```bash
-  git checkout develop
-  git merge --no-ff hotfix/vX.Y.Z/description-of-fix
-  git push origin develop
+  git checkout dev
+  git merge --no-ff SEKEL-NNN-short-description
+  git push origin dev
   ```
-- [ ] **Delete hotfix branch:**
+- [ ] **Delete branch:**
   ```bash
-  git branch -d hotfix/vX.Y.Z/description-of-fix
-  git push origin --delete hotfix/vX.Y.Z/description-of-fix
+  git branch -d SEKEL-NNN-short-description
+  git push origin --delete SEKEL-NNN-short-description
   ```
 
 ---
@@ -159,9 +162,9 @@ If a bad release reaches production:
    ```
 2. **Deploy the previous version** (revert your CD pipeline to point at the last good tag)
 3. **Do NOT use `git revert` on main for a release** — it creates confusing history
-4. **Create a hotfix branch** from the last good tag if a fix is needed:
+4. **Create a hotfix branch** from the last good tag if a fix is needed (file a Linear ticket first):
    ```bash
-   git checkout -b hotfix/vX.Y.Z/revert-bad-feature vX.Y.(Z-1)
+   git checkout -b SEKEL-NNN-revert-bad-feature vX.Y.(Z-1)
    ```
 5. **Fix forward** with a new patch release (`vX.Y.(Z+1)`) rather than unpublishing
 6. **Never delete a published tag** — consumers may depend on it; mark the GitHub Release as a pre-release instead

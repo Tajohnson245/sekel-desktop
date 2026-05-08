@@ -1,6 +1,12 @@
 {
   "permissions": {
     "allow": [
+      "Bash(grep:*)",
+      "Bash(egrep:*)",
+      "Bash(fgrep:*)",
+      "Bash(rg:*)",
+      "Bash(node:*)",
+      "Bash(npx:*)",
       "Bash(npm run make)",
       "Bash(npm --version)",
       "Bash(git -C \"c:/Users/tajoh/Git/sekel\" push origin main)",
