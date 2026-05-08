@@ -72,3 +72,4 @@ Key files:
 | 2026-05-08 | apps/desktop/package.json |
 | 2026-05-08 | Task completed |
 | 2026-05-08 | Task completed |
+| 2026-05-08 | CLAUDE.md |
