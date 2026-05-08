@@ -20,7 +20,7 @@
         "expand": "Erweitern",
         "collapse": "Einklappen",
         "remove": "Entfernen",
-        "loading_app": "Sekel wird geladen..."
+        "loading_app": "SEKEL wird geladen..."
     },
     "nav": {
         "dashboard": "Dashboard",
@@ -182,7 +182,7 @@
         "first_name": "Vorname",
         "last_name": "Nachname",
         "confirm_password": "Passwort bestätigen",
-        "login_title": "Bei Sekel anmelden",
+        "login_title": "Bei SEKEL anmelden",
         "signup_title": "Konto erstellen",
         "have_account": "Hast du schon ein Konto? Anmelden",
         "no_account": "Kein Konto? Registrieren",
@@ -487,7 +487,7 @@
             "overwrite": "Überschreiben",
             "merge": "Zusammenführen"
         },
-        "conflictWarning": "{{count}} Deck(s) existieren bereits in Sekel",
+        "conflictWarning": "{{count}} Deck(s) existieren bereits in SEKEL",
         "overwriteConfirm": "Beim Überschreiben werden alle Karten und Wiederholungen in \"{{name}}\" ersetzt. Dies kann nicht rückgängig gemacht werden.",
         "confirmOverwrite": "Überschreiben bestätigen",
         "importButton": "{{count}} Deck(s) importieren",
@@ -566,7 +566,7 @@
     },
     "feedback": {
         "title": "Feedback",
-        "section_description": "Helfen Sie uns, Sekel zu verbessern",
+        "section_description": "Helfen Sie uns, SEKEL zu verbessern",
         "send_feedback": "Feedback senden",
         "problem_area": "Problembereich",
         "area_study_sessions": "Lernsitzungen",
@@ -631,11 +631,11 @@
         "menu_label": "Exportieren",
         "modal_title": "Stapel exportieren",
         "format_label": "Exportformat",
-        "format_spkg_desc": "Alle Karten — Sekel-natives Format",
+        "format_spkg_desc": "Alle Karten — SEKEL-natives Format",
         "format_apkg_desc": "Nur ursprünglich importierte Karten",
-        "spkg_body": "Alle {{totalCards}} Karten werden im Sekel-Format exportiert.",
+        "spkg_body": "Alle {{totalCards}} Karten werden im SEKEL-Format exportiert.",
         "modal_body": "Exportieren Sie Ihren Stapel im Originalformat als .apkg-Datei.",
-        "modal_body_spkg_only": "Nur Sekel-native Karten exportieren",
+        "modal_body_spkg_only": "Nur SEKEL-native Karten exportieren",
         "modal_no_anki_cards": "Keine ursprünglich importierten Karten zum Exportieren vorhanden",
         "button_export": "Exportieren",
         "button_cancel": "Abbrechen",
@@ -683,12 +683,12 @@
         "skip_confirm_keep": "Weitermachen",
         "slides": {
             "1": {
-                "eyebrow": "Willkommen bei Sekel",
+                "eyebrow": "Willkommen bei SEKEL",
                 "headline": "Nicht jede Karte ist deine Zeit wert.",
-                "body": "Sekel weiß, welche es sind."
+                "body": "SEKEL weiß, welche es sind."
             },
             "2": {
-                "eyebrow": "So denkt Sekel",
+                "eyebrow": "So denkt SEKEL",
                 "headline": "Es lernt deinen Prüfungsstoff und deine Leistung.",
                 "body": "Wichtiges zuerst, Schwächen verstärkt, volle Tage neu ausbalanciert."
             },
@@ -709,7 +709,7 @@
             },
             "dashboard-plan-overview": {
                 "title": "Dein Plan",
-                "body": "Tägliche Ziele passen sich laufend an. Tag verpasst? Sekel rebalanciert, damit du auf Kurs bleibst."
+                "body": "Tägliche Ziele passen sich laufend an. Tag verpasst? SEKEL rebalanciert, damit du auf Kurs bleibst."
             },
             "dashboard-deck-health": {
                 "title": "Status deiner Stapel",
@@ -725,7 +725,7 @@
             },
             "documents-upload": {
                 "title": "Karten generieren",
-                "body": "Lege ein PDF, Video oder Notizen ab. Sekel macht daraus smarte Karten — Wichtiges zuerst."
+                "body": "Lege ein PDF, Video oder Notizen ab. SEKEL macht daraus smarte Karten — Wichtiges zuerst."
             },
             "plan-targets": {
                 "title": "Pläne",
@@ -761,7 +761,7 @@
             },
             "profile-info": {
                 "title": "Profil",
-                "body": "Name, Avatar, Prüfung und Zieltermin — die Basis, mit der Sekel deinen Plan abstimmt."
+                "body": "Name, Avatar, Prüfung und Zieltermin — die Basis, mit der SEKEL deinen Plan abstimmt."
             },
             "profile-preferences": {
                 "title": "Einstellungen",
@@ -769,7 +769,7 @@
             },
             "profile-study": {
                 "title": "Lernen",
-                "body": "Deine Prüfung, dein Zieltermin und deine täglichen Lernziele — Sekel nutzt diese, um deinen Plan zu formen."
+                "body": "Deine Prüfung, dein Zieltermin und deine täglichen Lernziele — SEKEL nutzt diese, um deinen Plan zu formen."
             },
             "profile-backup": {
                 "title": "Sicherung",

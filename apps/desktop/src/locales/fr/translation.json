@@ -20,7 +20,7 @@
         "expand": "Développer",
         "collapse": "Réduire",
         "remove": "Supprimer",
-        "loading_app": "Chargement de Sekel..."
+        "loading_app": "Chargement de SEKEL..."
     },
     "nav": {
         "dashboard": "Tableau de bord",
@@ -182,7 +182,7 @@
         "first_name": "Prénom",
         "last_name": "Nom",
         "confirm_password": "Confirmer le mot de passe",
-        "login_title": "Connexion à Sekel",
+        "login_title": "Connexion à SEKEL",
         "signup_title": "Créer un compte",
         "have_account": "Vous avez déjà un compte ? Connectez-vous",
         "no_account": "Pas de compte ? Inscrivez-vous",
@@ -487,7 +487,7 @@
             "overwrite": "Écraser",
             "merge": "Fusionner"
         },
-        "conflictWarning": "{{count}} paquet(s) existent déjà dans Sekel",
+        "conflictWarning": "{{count}} paquet(s) existent déjà dans SEKEL",
         "overwriteConfirm": "Écraser remplacera toutes les cartes et révisions dans \"{{name}}\". Cette action est irréversible.",
         "confirmOverwrite": "Confirmer l'écrasement",
         "importButton": "Importer {{count}} paquet(s)",
@@ -566,7 +566,7 @@
     },
     "feedback": {
         "title": "Commentaires",
-        "section_description": "Aidez-nous à améliorer Sekel",
+        "section_description": "Aidez-nous à améliorer SEKEL",
         "send_feedback": "Envoyer des commentaires",
         "problem_area": "Zone du problème",
         "area_study_sessions": "Sessions d'étude",
@@ -631,11 +631,11 @@
         "menu_label": "Exporter",
         "modal_title": "Exporter le paquet",
         "format_label": "Format d'exportation",
-        "format_spkg_desc": "Toutes les cartes — format natif Sekel",
+        "format_spkg_desc": "Toutes les cartes — format natif SEKEL",
         "format_apkg_desc": "Cartes importées à l'origine uniquement",
-        "spkg_body": "Les {{totalCards}} cartes seront exportées au format Sekel.",
+        "spkg_body": "Les {{totalCards}} cartes seront exportées au format SEKEL.",
         "modal_body": "Exportez votre paquet au format d'origine en fichier .apkg.",
-        "modal_body_spkg_only": "Exporter uniquement les cartes Sekel natives",
+        "modal_body_spkg_only": "Exporter uniquement les cartes SEKEL natives",
         "modal_no_anki_cards": "Aucune carte importée à l'origine à exporter",
         "button_export": "Exporter",
         "button_cancel": "Annuler",
@@ -683,12 +683,12 @@
         "skip_confirm_keep": "Continuer",
         "slides": {
             "1": {
-                "eyebrow": "Bienvenue sur Sekel",
+                "eyebrow": "Bienvenue sur SEKEL",
                 "headline": "Toutes les cartes ne valent pas votre temps.",
-                "body": "Sekel sait lesquelles le valent."
+                "body": "SEKEL sait lesquelles le valent."
             },
             "2": {
-                "eyebrow": "Comment Sekel pense",
+                "eyebrow": "Comment SEKEL pense",
                 "headline": "Il apprend votre programme d'examen et vos performances.",
                 "body": "Le plus rentable d'abord, les points faibles renforcés, les journées chargées rééquilibrées."
             },
@@ -709,7 +709,7 @@
             },
             "dashboard-plan-overview": {
                 "title": "Votre plan",
-                "body": "Les objectifs quotidiens s'ajustent en temps réel. Une journée manquée ? Sekel rééquilibre pour vous garder sur la bonne voie."
+                "body": "Les objectifs quotidiens s'ajustent en temps réel. Une journée manquée ? SEKEL rééquilibre pour vous garder sur la bonne voie."
             },
             "dashboard-deck-health": {
                 "title": "État de vos paquets",
@@ -725,7 +725,7 @@
             },
             "documents-upload": {
                 "title": "Générer des cartes",
-                "body": "Déposez un PDF, une vidéo ou des notes. Sekel les transforme en cartes intelligentes — le plus rentable d'abord."
+                "body": "Déposez un PDF, une vidéo ou des notes. SEKEL les transforme en cartes intelligentes — le plus rentable d'abord."
             },
             "plan-targets": {
                 "title": "Plans",
@@ -761,7 +761,7 @@
             },
             "profile-info": {
                 "title": "Profil",
-                "body": "Nom, avatar, examen et date cible — les bases que Sekel utilise pour ajuster votre plan."
+                "body": "Nom, avatar, examen et date cible — les bases que SEKEL utilise pour ajuster votre plan."
             },
             "profile-preferences": {
                 "title": "Préférences",
@@ -769,7 +769,7 @@
             },
             "profile-study": {
                 "title": "Étude",
-                "body": "Votre examen, date cible et objectifs d'étude quotidiens — Sekel les utilise pour ajuster votre plan."
+                "body": "Votre examen, date cible et objectifs d'étude quotidiens — SEKEL les utilise pour ajuster votre plan."
             },
             "profile-backup": {
                 "title": "Sauvegarde",

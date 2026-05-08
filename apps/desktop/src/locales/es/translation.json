@@ -20,7 +20,7 @@
         "expand": "Expandir",
         "collapse": "Contraer",
         "remove": "Eliminar",
-        "loading_app": "Cargando Sekel..."
+        "loading_app": "Cargando SEKEL..."
     },
     "nav": {
         "dashboard": "Tablero",
@@ -223,7 +223,7 @@
         "first_name": "Nombre",
         "last_name": "Apellido",
         "confirm_password": "Confirmar Contraseña",
-        "login_title": "Iniciar sesión en Sekel",
+        "login_title": "Iniciar sesión en SEKEL",
         "signup_title": "Crear una cuenta",
         "have_account": "¿Ya tienes una cuenta? Inicia sesión",
         "no_account": "¿No tienes una cuenta? Regístrate",
@@ -487,7 +487,7 @@
             "overwrite": "Sobrescribir",
             "merge": "Combinar"
         },
-        "conflictWarning": "{{count}} mazo(s) ya existen en Sekel",
+        "conflictWarning": "{{count}} mazo(s) ya existen en SEKEL",
         "overwriteConfirm": "Sobrescribir reemplazará todas las tarjetas y repasos en \"{{name}}\". Esto no se puede deshacer.",
         "confirmOverwrite": "Confirmar sobrescritura",
         "importButton": "Importar {{count}} Mazo(s)",
@@ -566,7 +566,7 @@
     },
     "feedback": {
         "title": "Comentarios",
-        "section_description": "Ayúdanos a mejorar Sekel",
+        "section_description": "Ayúdanos a mejorar SEKEL",
         "send_feedback": "Enviar comentarios",
         "problem_area": "Área del problema",
         "area_study_sessions": "Sesiones de estudio",
@@ -631,11 +631,11 @@
         "menu_label": "Exportar",
         "modal_title": "Exportar mazo",
         "format_label": "Formato de exportación",
-        "format_spkg_desc": "Todas las tarjetas — formato nativo de Sekel",
+        "format_spkg_desc": "Todas las tarjetas — formato nativo de SEKEL",
         "format_apkg_desc": "Solo tarjetas importadas originalmente",
-        "spkg_body": "Se exportarán las {{totalCards}} tarjetas en formato Sekel.",
+        "spkg_body": "Se exportarán las {{totalCards}} tarjetas en formato SEKEL.",
         "modal_body": "Exporta tu mazo en el formato original como archivo .apkg.",
-        "modal_body_spkg_only": "Exportar solo tarjetas nativas de Sekel",
+        "modal_body_spkg_only": "Exportar solo tarjetas nativas de SEKEL",
         "modal_no_anki_cards": "No hay tarjetas importadas originalmente para exportar",
         "button_export": "Exportar",
         "button_cancel": "Cancelar",
@@ -683,12 +683,12 @@
         "skip_confirm_keep": "Continuar",
         "slides": {
             "1": {
-                "eyebrow": "Bienvenido a Sekel",
+                "eyebrow": "Bienvenido a SEKEL",
                 "headline": "No todas las tarjetas merecen tu tiempo.",
-                "body": "Sekel sabe cuáles sí."
+                "body": "SEKEL sabe cuáles sí."
             },
             "2": {
-                "eyebrow": "Cómo piensa Sekel",
+                "eyebrow": "Cómo piensa SEKEL",
                 "headline": "Aprende el temario de tu examen y tu rendimiento.",
                 "body": "Lo de mayor rendimiento primero, refuerzo en lo débil, reequilibrio en días ocupados."
             },
@@ -709,7 +709,7 @@
             },
             "dashboard-plan-overview": {
                 "title": "Tu plan",
-                "body": "Las metas diarias se ajustan sobre la marcha. ¿Te saltaste un día? Sekel reequilibra para mantenerte en ruta."
+                "body": "Las metas diarias se ajustan sobre la marcha. ¿Te saltaste un día? SEKEL reequilibra para mantenerte en ruta."
             },
             "dashboard-deck-health": {
                 "title": "Estado de tus mazos",
@@ -725,7 +725,7 @@
             },
             "documents-upload": {
                 "title": "Generar tarjetas",
-                "body": "Suelta un PDF, video o apuntes. Sekel los convierte en tarjetas inteligentes — lo más relevante primero."
+                "body": "Suelta un PDF, video o apuntes. SEKEL los convierte en tarjetas inteligentes — lo más relevante primero."
             },
             "plan-targets": {
                 "title": "Planes",
@@ -761,7 +761,7 @@
             },
             "profile-info": {
                 "title": "Perfil",
-                "body": "Nombre, avatar, examen y fecha objetivo — lo básico que Sekel usa para ajustar tu plan."
+                "body": "Nombre, avatar, examen y fecha objetivo — lo básico que SEKEL usa para ajustar tu plan."
             },
             "profile-preferences": {
                 "title": "Preferencias",
@@ -769,7 +769,7 @@
             },
             "profile-study": {
                 "title": "Estudio",
-                "body": "Tu examen, fecha objetivo y metas diarias de estudio — Sekel los usa para dar forma a tu plan."
+                "body": "Tu examen, fecha objetivo y metas diarias de estudio — SEKEL los usa para dar forma a tu plan."
             },
             "profile-backup": {
                 "title": "Copia de seguridad",
