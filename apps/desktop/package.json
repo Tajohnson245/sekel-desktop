@@ -1,6 +1,6 @@
 {
   "name": "@sekel/desktop",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Intelligent flashcards for exam prep",
   "homepage": "https://github.com/Tajohnson245/sekel-desktop#readme",
   "bugs": {
@@ -85,9 +85,9 @@
     "vitest": "^4.1.0"
   },
   "dependencies": {
-    "@sekel/components": "*1.0.6",
-    "@sekel/db": "*1.0.6",
-    "@sekel/observability": "*1.0.6",
+    "@sekel/components": "*1.0.7",
+    "@sekel/db": "*1.0.7",
+    "@sekel/observability": "*1.0.7",
     "@sentry/electron": "^7.13.0",
     "@supabase/supabase-js": "^2.95.3",
     "@tanstack/react-query": "^5.90.20",
