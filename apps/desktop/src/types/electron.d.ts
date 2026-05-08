@@ -581,6 +581,9 @@ declare global {
     interface Window {
         electronAPI: ElectronAPI;
     }
+    // Inlined at build time by electron.vite.config.ts from package.json's
+    // version field. Available in renderer and preload bundles.
+    const __APP_VERSION__: string;
 }
 
 export { };

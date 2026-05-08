@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/electron/renderer';
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
@@ -8,6 +9,14 @@ import {
     updatePassword as authUpdatePassword,
     deleteAccount as authDeleteAccount,
 } from '@sekel/db';
+
+function syncSentryUser(user: User | null) {
+    if (user) {
+        Sentry.setUser({ id: user.id, email: user.email });
+    } else {
+        Sentry.setUser(null);
+    }
+}
 
 interface AuthState {
     user: User | null;
@@ -49,9 +58,11 @@ export const useAuthStore = create<AuthState>((set) => ({
             set({ isLoading: true });
             const { data: { session } } = await getSession(supabase);
             set({ session, user: session?.user ?? null });
+            syncSentryUser(session?.user ?? null);
 
             onAuthStateChange(supabase, (_event, session) => {
                 set({ session, user: session?.user ?? null, isLoading: false });
+                syncSentryUser(session?.user ?? null);
             });
         } catch (err: unknown) {
             set({ error: err instanceof Error ? err.message : String(err) });
