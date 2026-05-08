@@ -97,12 +97,14 @@ Starting state: SEKEL branches merged into `dev`, dev CI green, no P0s open, pro
    git push -u origin release/v<X.Y.Z>
    ```
 2. **Update `CHANGELOG.md`** on the release branch — prepend a new section with version + date and Keep-a-Changelog category headings (Added / Changed / Fixed / Removed / Security). Commit.
-3. **Push prod schema + edge functions** (until `release.yml` is updated to do this in CI):
+3. **Server-side deploy is automated.** When the `desktop/v*` tag is pushed, `release.yml`'s `deploy-server` job runs first — applies pending prod migrations and redeploys the `feedback-discord` edge function — and the matrix build only starts after it succeeds. No manual `db push` step needed.
+   *Manual fallback if CI breaks:*
    ```
    npm run db:push:prod          # apps/desktop, applies any pending migrations
    npm run functions:deploy:prod # only if functions changed since last release
    ```
-   Verify everything's healthy in the prod Supabase dashboard before continuing.
+   *Required GitHub secrets for the CI job:* `SUPABASE_ACCESS_TOKEN` (PAT from supabase.com/dashboard/account/tokens) and `SUPABASE_PROD_DB_PASSWORD` (Settings → Database → Connection string in the Supabase dashboard).
+   *Drift caveat:* there is a small window between schema landing and users auto-updating to the new client. For tightening migrations (NOT NULL / CHECK), use the expand-then-contract pattern — add the column nullable in this release, tighten in a later release once the new client is rolled out.
 4. **Trigger Bump Version against the release branch:**
    ```
    gh workflow run bump-version.yml --ref release/v<X.Y.Z> \
@@ -136,10 +138,10 @@ Starting state: SEKEL branches merged into `dev`, dev CI green, no P0s open, pro
 - **PATCH** — backwards-compatible bug fix
 - **Pre-release** suffixes: `-alpha.N`, `-beta.N`, `-rc.N` (alpha → beta → rc → release)
 
-### What's not yet wired (TODO)
+### Operational notes
 
-- `release.yml` does **not** run `db push` or `functions deploy` against prod yet. Step 3 above is the manual workaround. Wiring this into CI requires adding the `SUPABASE_ACCESS_TOKEN` GitHub secret and a job in `release.yml` that runs *before* the matrix build.
-- The `.claude/skills/github-workflows/references/release-checklist.md` reference still has generic GitHub Flow / GitFlow checklists in addition to the Sekel-specific bits — worth pruning to match this section.
+- The `deploy-server` CI job is gated by two GitHub secrets that must be present: `SUPABASE_ACCESS_TOKEN` and `SUPABASE_PROD_DB_PASSWORD`. If either is missing the job will fail-fast and the matrix build never runs — that's intentional, the release halts rather than shipping a client without the matching schema.
+- New edge functions added later need an explicit deploy step in `release.yml`'s `deploy-server` job (the current job only deploys `feedback-discord`). Add a step per function and treat `--no-verify-jwt` carefully.
 
 ## Feature docs
 - Active work: `docs/features/desktop/in-progress/<slug>.md`
