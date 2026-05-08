@@ -36,17 +36,46 @@ User feedback rows get a sequential, human-friendly display ID separate from Lin
 - Used in Discord notifications and any internal triage workflow
 - This is **not** a branch-naming convention — branches still follow `SEKEL-<NNN>-<description>`
 
-## Branch & tag naming
+## Development & release flow — read carefully
 
-- **Long-lived**: `main` (release target), `dev` (integration; default working branch)
-- **Work branches**: `SEKEL-<NNN>-<kebab-description>` — Linear ticket first, then short description
-  - Examples: `SEKEL-121-feedback-form-triage`, `SEKEL-119-remove-decks-empty-emoji`
-  - No type prefix (`feature/`, `fix/`, etc.) — the ticket classifies the work
-  - Kebab-case, lowercase, hyphens only, ≤ 50 chars
-- **Release branches**: `release/v<X.Y.Z>` (e.g. `release/v1.0.6`) — the lone exception, version-tied
-- **Tags**: annotated, `v<X.Y.Z>` — `git tag -a v1.0.6 -m "Release v1.0.6"`
+`main` and `dev` are **not** the same thing. Conflating them is the most common source of bad reasoning about this project.
 
-Work flow: branch from `dev` → PR back to `dev`. Release flow: `dev` → `release/v*` → merge to `main` + tag.
+- **`main`** — the historical record of what has been released. Only release branches merge here. Everything on `main` has a `v<X.Y.Z>` tag pointing at it.
+- **`dev`** — the integration line where in-flight work accumulates. SEKEL branches merge here as they land. `dev` is always **ahead** of `main` between releases.
+
+### Per-change flow
+
+1. Branch `SEKEL-<NNN>-<description>` from `dev`.
+2. Work; PR back to `dev`. (Multiple SEKEL branches can land before a release.)
+3. When ready to ship, cut `release/v<X.Y.Z>` from `dev` — this snapshots whatever's accumulated.
+4. Merge the release branch into `main` and tag `v<X.Y.Z>` (annotated). **This is the only path to `main`.**
+
+### What "in production" means
+
+"In production" = "in the latest tag on `main` and shipped to users via auto-update."
+
+It does **not** mean:
+- "Merged to `dev`" (that's just integration — users don't have it)
+- "Running on the prod Supabase project" (that's the backend — orthogonal to which app version users have)
+- "Currently working in my dev environment" (irrelevant to users)
+
+When asked about "production behavior," check `main`'s tag, not `dev`. The desktop app currently in users' hands is the one tagged on `main`, full stop.
+
+### Server vs client drift — be careful
+
+Server-side changes (Supabase migrations, edge functions, secrets) ship via CLI and can drift **ahead of `main`** even when no release has shipped:
+
+- Pushing a migration to the prod Supabase project changes the schema *immediately*, regardless of which desktop version users are running.
+- If the migration tightens constraints (NOT NULL, CHECK, new required columns) and the matching client code lives on `dev` but not yet in any released tag, **users on the previous release will start hitting errors**.
+- Before pushing a migration to prod, verify the client code that supplies the new columns/shape is already in the latest tag on `main` — or pair the migration with the release that ships the client code.
+
+This applies in reverse too: deploying a new edge function to prod is harmless until something starts calling it, but a *change* to an existing function may break older clients.
+
+### Branch & tag naming summary
+
+- Work branches: `SEKEL-<NNN>-<kebab-description>` — Linear ticket first, then short description (e.g. `SEKEL-121-feedback-form-triage`). No type prefix. Kebab-case, lowercase, ≤ 50 chars.
+- Release branches: `release/v<X.Y.Z>` (e.g. `release/v1.0.6`) — the lone version-tied exception.
+- Tags: annotated, `v<X.Y.Z>` — `git tag -a v1.0.6 -m "Release v1.0.6"`.
 
 Full reference: `.claude/skills/github-workflows/references/naming-conventions.md`.
 
