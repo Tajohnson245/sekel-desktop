@@ -369,7 +369,8 @@ export interface Feedback {
     os: string | null;
     mac_chip: string | null;
     app_version: string | null;
+    ticket_number: number;
     created_at: string;
 }
 
-export type FeedbackInsert = Omit<Feedback, 'id' | 'created_at'>;
+export type FeedbackInsert = Omit<Feedback, 'id' | 'ticket_number' | 'created_at'>;

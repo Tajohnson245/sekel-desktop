@@ -39,7 +39,15 @@
     "rebuild:node": "npm rebuild better-sqlite3",
     "db:push": "npx supabase db push",
     "db:reset": "npx supabase db reset",
-    "db:migrate": "npx supabase migration up"
+    "db:migrate": "npx supabase migration up",
+    "db:push:dev": "npx supabase db push --project-ref nrmfdiaaybilseqqvzam",
+    "db:push:prod": "npx supabase db push --project-ref uawkoueqectmkiyjcrtb",
+    "secrets:list:dev": "npx supabase secrets list --project-ref nrmfdiaaybilseqqvzam",
+    "secrets:list:prod": "npx supabase secrets list --project-ref uawkoueqectmkiyjcrtb",
+    "secrets:set:dev": "npx supabase secrets set --project-ref nrmfdiaaybilseqqvzam",
+    "secrets:set:prod": "npx supabase secrets set --project-ref uawkoueqectmkiyjcrtb",
+    "functions:deploy:dev": "npx supabase functions deploy --project-ref nrmfdiaaybilseqqvzam --no-verify-jwt",
+    "functions:deploy:prod": "npx supabase functions deploy --project-ref uawkoueqectmkiyjcrtb --no-verify-jwt"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.11.1",
