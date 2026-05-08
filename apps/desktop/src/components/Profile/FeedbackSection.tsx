@@ -3,8 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { MessageSquare, Upload, X } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import { supabase } from '../../lib/supabase';
-import { insertFeedback } from '@sekel/db';
+import { insertFeedback, type FeedbackType } from '@sekel/db';
 import { Button, Input, Modal, useToast } from '../UI';
+
+const FEEDBACK_TYPES: ReadonlyArray<FeedbackType> = ['bug', 'feature_request', 'question', 'other'] as const;
 
 const FEEDBACK_AREAS = [
     'Study Sessions',
@@ -20,6 +22,7 @@ const FEEDBACK_AREAS = [
 ] as const;
 
 const MAX_SCREENSHOT_SIZE = 5 * 1024 * 1024; // 5 MB
+const MAX_SUMMARY_LENGTH = 120;
 
 interface FeedbackSectionProps {
     /** When provided, component runs in controlled mode — no trigger button rendered. */
@@ -37,6 +40,8 @@ export const FeedbackSection: React.FC<FeedbackSectionProps> = ({ isOpen: contro
     const [isOpen, setIsOpen] = useState(false);
     const modalOpen   = controlled ? controlledOpen! : isOpen;
     const closeModal  = controlled ? (controlledClose ?? (() => {})) : () => setIsOpen(false);
+    const [type, setType] = useState<FeedbackType | null>(null);
+    const [summary, setSummary] = useState('');
     const [areas, setAreas] = useState<string[]>([]);
     const [description, setDescription] = useState('');
     const [desiredFix, setDesiredFix] = useState('');
@@ -80,6 +85,8 @@ export const FeedbackSection: React.FC<FeedbackSectionProps> = ({ isOpen: contro
     };
 
     const resetForm = () => {
+        setType(null);
+        setSummary('');
         setAreas([]);
         setDescription('');
         setDesiredFix('');
@@ -94,7 +101,12 @@ export const FeedbackSection: React.FC<FeedbackSectionProps> = ({ isOpen: contro
 
     const handleSubmit = async () => {
         if (!user) return;
-        if (areas.length === 0 || !description.trim()) {
+        const trimmedSummary = summary.trim();
+        if (!type || !trimmedSummary || areas.length === 0 || !description.trim()) {
+            showToast(t('feedback.validation_error'), 'error');
+            return;
+        }
+        if (trimmedSummary.length > MAX_SUMMARY_LENGTH) {
             showToast(t('feedback.validation_error'), 'error');
             return;
         }
@@ -122,12 +134,15 @@ export const FeedbackSection: React.FC<FeedbackSectionProps> = ({ isOpen: contro
 
             await insertFeedback(supabase, {
                 user_id: user.id,
+                type,
+                summary: trimmedSummary,
                 areas,
                 description: description.trim(),
                 screenshot_url: screenshotUrl,
                 desired_fix: desiredFix.trim() || null,
                 os: os || null,
                 mac_chip: os === 'macOS' ? (macChip || null) : null,
+                app_version: __APP_VERSION__,
             });
 
             showToast(t('feedback.submitted'), 'success');
@@ -183,7 +198,14 @@ export const FeedbackSection: React.FC<FeedbackSectionProps> = ({ isOpen: contro
                         <Button
                             variant="primary"
                             onClick={handleSubmit}
-                            disabled={submitting || areas.length === 0 || !description.trim()}
+                            disabled={
+                                submitting
+                                || !type
+                                || !summary.trim()
+                                || summary.trim().length > MAX_SUMMARY_LENGTH
+                                || areas.length === 0
+                                || !description.trim()
+                            }
                         >
                             {submitting ? t('feedback.submitting') : t('feedback.submit')}
                         </Button>
@@ -191,6 +213,45 @@ export const FeedbackSection: React.FC<FeedbackSectionProps> = ({ isOpen: contro
                 }
             >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                    {/* Feedback type */}
+                    <div>
+                        <label className="field-label">{t('feedback.type_label')}</label>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.5rem' }}>
+                            {FEEDBACK_TYPES.map(opt => (
+                                <label key={opt} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', padding: '0.35rem 0', cursor: 'pointer' }}>
+                                    <input
+                                        type="radio"
+                                        name="feedback_type"
+                                        checked={type === opt}
+                                        onChange={() => setType(opt)}
+                                        style={{ marginTop: '0.2rem' }}
+                                    />
+                                    <span style={{ display: 'flex', flexDirection: 'column' }}>
+                                        <span style={{ fontWeight: 500 }}>{t(`feedback.type_${opt}_label`)}</span>
+                                        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                            {t(`feedback.type_${opt}_desc`)}
+                                        </span>
+                                    </span>
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Summary */}
+                    <div>
+                        <label className="field-label">{t('feedback.summary_label')}</label>
+                        <Input
+                            className="field-input"
+                            value={summary}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSummary(e.target.value)}
+                            placeholder={t('feedback.summary_placeholder')}
+                            maxLength={MAX_SUMMARY_LENGTH}
+                        />
+                        <div style={{ marginTop: '0.25rem', fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'right' }}>
+                            {summary.length} / {MAX_SUMMARY_LENGTH}
+                        </div>
+                    </div>
+
                     {/* Problem area checkboxes */}
                     <div>
                         <label className="field-label">{t('feedback.problem_area')}</label>
