@@ -37,3 +37,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 | Date | Description |
 |------|-------------|
 | 2026-05-07 | Doc created. apps/desktop/electron.vite.config.ts,apps/desktop/index.html,apps/desktop/package.json,apps/desktop/src/main.ts,apps/desktop/src/preload.ts,apps/desktop/src/renderer.tsx,package-lock.json |
+| 2026-05-07 | apps/desktop/src/components/Profile/FeedbackSection.tsx |
