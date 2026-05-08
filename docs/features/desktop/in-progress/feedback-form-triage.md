@@ -38,3 +38,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 |------|-------------|
 | 2026-05-07 | Doc created. apps/desktop/electron.vite.config.ts,apps/desktop/index.html,apps/desktop/package.json,apps/desktop/src/main.ts,apps/desktop/src/preload.ts,apps/desktop/src/renderer.tsx,package-lock.json |
 | 2026-05-07 | apps/desktop/src/components/Profile/FeedbackSection.tsx |
+| 2026-05-07 | apps/desktop/src/locales/de/translation.json,apps/desktop/src/locales/es/translation.json,apps/desktop/src/locales/fr/translation.json,apps/desktop/src/locales/zh/translation.json |
