@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/electron/renderer';
 import React, { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { MessageSquare, Upload, X } from 'lucide-react';
@@ -154,7 +155,10 @@ export const FeedbackSection: React.FC<FeedbackSectionProps> = ({ isOpen: contro
             resetForm();
             closeModal();
         } catch (err) {
-            console.error('Feedback submission failed:', err);
+            Sentry.captureException(err, {
+                tags: { feature: 'feedback' },
+                extra: { feedback_type: type, has_screenshot: Boolean(screenshotFile) },
+            });
             showToast(t('feedback.error'), 'error');
         } finally {
             setSubmitting(false);
