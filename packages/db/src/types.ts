@@ -355,15 +355,20 @@ export interface UserProfile {
 // ─────────────────────────────────────────────────────────────────
 // Feedback
 // ─────────────────────────────────────────────────────────────────
+export type FeedbackType = 'bug' | 'feature_request' | 'question' | 'other';
+
 export interface Feedback {
     id: string;
     user_id: string;
+    type: FeedbackType;
+    summary: string;
     areas: string[];
     description: string;
     screenshot_url: string | null;
     desired_fix: string | null;
     os: string | null;
     mac_chip: string | null;
+    app_version: string | null;
     created_at: string;
 }
 

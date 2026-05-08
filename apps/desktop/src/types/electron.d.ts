@@ -557,6 +557,8 @@ interface ElectronTour {
 }
 
 interface ElectronAPI {
+    /** Static. NodeJS.Platform value resolved at preload load. */
+    platform: NodeJS.Platform;
     deepLink: DeepLinkAPI;
     generateCards: (text: string, count?: number, language?: string, options?: AIGenerationOptions) => Promise<GeneratedCard[]>;
     generateCardsFromContext: (summary: string, content: string, count: number, language?: string, options?: AIGenerationOptions, chunks?: DocumentChunk[]) => Promise<GenerationResult>;
@@ -581,6 +583,9 @@ declare global {
     interface Window {
         electronAPI: ElectronAPI;
     }
+    // Inlined at build time by electron.vite.config.ts from package.json's
+    // version field. Available in renderer and preload bundles.
+    const __APP_VERSION__: string;
 }
 
 export { };

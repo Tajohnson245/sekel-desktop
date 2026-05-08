@@ -93,7 +93,7 @@ function HeaderBar() {
     return (
         <header className="header">
             <div className="header-left">
-                <h1>Sekel</h1>
+                <h1>SEKEL</h1>
                 <NavBar />
             </div>
             <div className="header-right">
