@@ -9,6 +9,12 @@ Sentry.init({
 });
 
 contextBridge.exposeInMainWorld('electronAPI', {
+    // ── Static system info ───────────────────────────────────────────────
+    // Resolved once at preload load. process.platform is one of the few
+    // primitives available in sandboxed preload contexts. Renderer maps
+    // this to a friendly label at use time.
+    platform: process.platform,
+
     // ── Deep linking (sekel:// URLs from email-confirmation, password reset, etc.) ──
     deepLink: {
         // Returns the URL the app was launched with, if any. Cleared on read.
