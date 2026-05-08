@@ -69,3 +69,4 @@ Key files:
 | Date | Description |
 |------|-------------|
 | 2026-05-08 | Doc created. Migration, edge function, env-specific npm scripts, CLAUDE.md Feedback-NNN convention. |
+| 2026-05-08 | apps/desktop/package.json |
