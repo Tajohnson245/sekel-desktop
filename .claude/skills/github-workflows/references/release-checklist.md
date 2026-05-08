@@ -1,151 +1,139 @@
-# Release Checklist — Step-by-Step Execution Guide
+# Release Checklist — Sekel Desktop
 
-## Pre-Release Checks (All Strategies)
-
-Before starting any release process, verify:
-
-- [ ] All intended features/fixes are merged to the release source branch
-- [ ] CI is green on the release source branch
-- [ ] No P0/critical bugs are open against this release
-- [ ] Test coverage meets your project's threshold
-- [ ] Security scan has been run (if applicable: `npm audit`, `pip-audit`, Dependabot)
-- [ ] Changelog entries drafted (or commits are conventional enough to generate them)
-- [ ] Version number agreed upon by the team
+This is the canonical release checklist for `@sekel/desktop`. The high-level flow lives in `CLAUDE.md` — this file is the deep-dive reference for executing each step.
 
 ---
 
-## GitHub Flow Release Checklist
+## Pre-Release Checks
 
-**Starting point:** `main` branch, clean and up-to-date.
+Before cutting a release branch, verify:
 
-- [ ] **Verify branch:** `git branch --show-current` — must be `main`
-- [ ] **Clean state:** `git status` — must show nothing to commit
-- [ ] **Pull latest:** `git pull origin main`
-- [ ] **Check commits since last tag:**
-  ```bash
-  git log $(git describe --tags --abbrev=0)..HEAD --oneline
-  ```
-- [ ] **Determine version bump** (MAJOR/MINOR/PATCH) based on commit types
-- [ ] **Update version file(s):** `package.json`, `pyproject.toml`, `VERSION`, etc.
-- [ ] **Update CHANGELOG.md** — prepend new section at top
-- [ ] **Commit version bump:**
-  ```bash
-  git add package.json CHANGELOG.md
-  git commit -m "chore(release): bump version to vX.Y.Z"
-  ```
-- [ ] **Create annotated tag:**
-  ```bash
-  git tag -a vX.Y.Z -m "Release vX.Y.Z"
-  ```
-- [ ] **Push branch and tag:**
-  ```bash
-  git push origin main && git push origin vX.Y.Z
-  ```
-- [ ] **Create GitHub Release** (see post-release section)
+- [ ] All intended SEKEL branches are merged to `dev`
+- [ ] CI is green on `dev`
+- [ ] No P0 / critical bugs are open against this release
+- [ ] `npm run typecheck`, `npm run lint`, `npm test` all pass on `dev`
+- [ ] `npm audit` shows no critical/high severity vulnerabilities (or they are reviewed and acknowledged)
+- [ ] You have decided the version number (MAJOR/MINOR/PATCH per SemVer)
+- [ ] You have access to: `gh` CLI logged in, the prod Supabase dashboard, the Discord channel for verification
+- [ ] No outstanding tightening migrations on `dev` that would break older clients (use expand-then-contract for NOT NULL / CHECK additions)
 
 ---
 
-## GitFlow Release Checklist
+## Release Flow
 
-**Starting point:** Feature work complete on `develop`.
+**Starting point:** `dev` is clean and up to date locally.
 
-### Cut the Release Branch
-- [ ] **Switch to develop:** `git checkout develop && git pull origin develop`
-- [ ] **Cut release branch:** `git checkout -b release/vX.Y.Z`
-- [ ] **Update version files:** `package.json`, etc.
-- [ ] **Update CHANGELOG.md**
-- [ ] **Commit:**
-  ```bash
-  git commit -am "chore(release): bump version to vX.Y.Z"
-  ```
-- [ ] Push release branch: `git push origin release/vX.Y.Z`
+### 1. Cut the release branch from `dev`
 
-### Stabilize (bug fixes only on release branch)
-- [ ] Only bug fixes are committed to `release/vX.Y.Z` — no new features
-- [ ] CI must be green throughout
+```bash
+git checkout dev && git pull origin dev
+git checkout -b release/v<X.Y.Z>
+git push -u origin release/v<X.Y.Z>
+```
 
-### Merge to Main
-- [ ] **Switch to main:** `git checkout main && git pull origin main`
-- [ ] **Merge release branch:**
-  ```bash
-  git merge --no-ff release/vX.Y.Z
-  ```
-- [ ] **Tag on main:**
-  ```bash
-  git tag -a vX.Y.Z -m "Release vX.Y.Z"
-  ```
-- [ ] **Push main and tag:**
-  ```bash
-  git push origin main && git push origin vX.Y.Z
-  ```
+### 2. Update `CHANGELOG.md`
 
-### Merge Back to Develop
-- [ ] **Switch to develop:** `git checkout develop`
-- [ ] **Merge release branch:**
-  ```bash
-  git merge --no-ff release/vX.Y.Z
-  ```
-- [ ] **Push develop:** `git push origin develop`
-- [ ] **Delete release branch:**
-  ```bash
-  git branch -d release/vX.Y.Z
-  git push origin --delete release/vX.Y.Z
-  ```
+On the release branch, prepend a new section above `[Unreleased]` with the version, today's date, and Keep-a-Changelog category headings (Added / Changed / Fixed / Removed / Security). Move any pending entries from `[Unreleased]` into the new section. Commit:
+
+```bash
+git commit -am "docs(changelog): release v<X.Y.Z>"
+git push origin release/v<X.Y.Z>
+```
+
+### 3. Trigger Bump Version against the release branch
+
+```bash
+gh workflow run bump-version.yml \
+  --ref release/v<X.Y.Z> \
+  -f app=desktop \
+  -f version=<X.Y.Z>
+```
+
+This commits the version bump on the release branch, creates the annotated `desktop/v<X.Y.Z>` tag, and pushes both. The tag push fires `release.yml`.
+
+### 4. Wait for `release.yml`
+
+`release.yml` runs in two stages:
+
+1. **`deploy-server`** — links to the prod Supabase project, applies pending migrations via `db push`, redeploys the `feedback-discord` edge function. Required GitHub secrets: `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROD_DB_PASSWORD`. If either is missing, the workflow fails and the matrix build never runs.
+2. **`release` (matrix)** — builds installers for win-x64 / macOS-arm64 / macOS-x64 / linux-x64, signs Windows artifacts via Azure Trusted Signing, uploads to GitHub Release + Cloudflare R2, then `publish-notes` composes notes via the GitHub `generate-notes` API and flips the draft to published.
+
+Total time: ~15–25 minutes. Monitor in Actions.
+
+### 5. Merge release branch into `main`
+
+```bash
+git checkout main && git pull origin main
+git merge --no-ff release/v<X.Y.Z>
+git push origin main
+```
+
+`--no-ff` preserves the release branch in history.
+
+### 6. Back-merge release branch into `dev`
+
+Captures any fixes made on the release branch (e.g. CHANGELOG edits, last-minute patches) so `dev` stays current.
+
+```bash
+git checkout dev && git pull origin dev
+git merge --no-ff release/v<X.Y.Z>
+git push origin dev
+```
+
+### 7. Delete the release branch
+
+```bash
+git branch -d release/v<X.Y.Z>
+git push origin --delete release/v<X.Y.Z>
+```
+
+### 8. Verify in production
+
+- [ ] Auto-updater on an installed copy of the previous release picks up `desktop/v<X.Y.Z>` and downloads it
+- [ ] New version launches; about/version pane reads `<X.Y.Z>`
+- [ ] Sentry's environment dropdown now shows `production` for events from this build
+- [ ] Submit a feedback form; embed appears in the configured Discord channel
+- [ ] Smoke-test auth, study session, key new features for this release
 
 ---
 
-## Hotfix Checklist (GitFlow)
+## Hotfix Checklist
 
-**Use when:** Critical production bug that cannot wait for the next release cycle.
+Use when a critical production bug cannot wait for the next dev-cycle release.
 
-- [ ] **Branch from main (NOT develop):**
+A hotfix still gets a Linear ticket and follows the standard `SEKEL-<NNN>-<description>` naming. The only thing that changes is which branch you cut from and merge back to.
+
+- [ ] **File a Linear ticket** (e.g. `SEKEL-145`) — required even for hotfixes
+- [ ] **Branch from `main`** (not `dev`):
   ```bash
   git checkout main && git pull origin main
-  git checkout -b hotfix/vX.Y.Z/description-of-fix
+  git checkout -b SEKEL-NNN-short-description
   ```
 - [ ] **Implement fix** — minimal change only, no unrelated work
-- [ ] **Update version** (PATCH bump only): `X.Y.Z → X.Y.(Z+1)`
-- [ ] **Update CHANGELOG.md** — add a `### Security` or `### Fixed` entry
-- [ ] **Commit:**
+- [ ] **Update `CHANGELOG.md`** with a `### Security` or `### Fixed` entry under a new `[X.Y.(Z+1)] - YYYY-MM-DD` heading
+- [ ] **Trigger Bump Version against this branch:**
   ```bash
-  git commit -am "fix: <description of critical fix>"
-  git commit -am "chore(release): bump version to vX.Y.Z"
+  gh workflow run bump-version.yml --ref SEKEL-NNN-short-description \
+    -f app=desktop -f version=<X.Y.(Z+1)>
   ```
-- [ ] **Merge to main:**
+- [ ] **Wait for `release.yml`** to ship installers (same flow as a regular release)
+- [ ] **Merge to `main`:**
   ```bash
   git checkout main
-  git merge --no-ff hotfix/vX.Y.Z/description-of-fix
-  git tag -a vX.Y.Z -m "Release vX.Y.Z"
-  git push origin main && git push origin vX.Y.Z
+  git merge --no-ff SEKEL-NNN-short-description
+  git push origin main
   ```
-- [ ] **Merge to develop:**
+- [ ] **Merge to `dev`** so the fix isn't lost on the next release branch:
   ```bash
-  git checkout develop
-  git merge --no-ff hotfix/vX.Y.Z/description-of-fix
-  git push origin develop
+  git checkout dev
+  git merge --no-ff SEKEL-NNN-short-description
+  git push origin dev
   ```
-- [ ] **Delete hotfix branch:**
+- [ ] **Delete the branch:**
   ```bash
-  git branch -d hotfix/vX.Y.Z/description-of-fix
-  git push origin --delete hotfix/vX.Y.Z/description-of-fix
+  git branch -d SEKEL-NNN-short-description
+  git push origin --delete SEKEL-NNN-short-description
   ```
-
----
-
-## Post-Release Checklist
-
-After the tag is pushed:
-
-- [ ] **Create GitHub Release:**
-  ```bash
-  gh release create vX.Y.Z --title "vX.Y.Z" --notes "$(cat CHANGELOG_excerpt.md)"
-  ```
-  Or use the GitHub UI: Releases → Draft a new release → pick the tag.
-- [ ] **Attach artifacts** if applicable (compiled binaries, dist archives)
-- [ ] **Close the milestone** in GitHub Issues (if used)
-- [ ] **Notify team** (Slack, email, Discord — wherever your team communicates)
-- [ ] **Update deployment documentation** if the release changes infrastructure/config
-- [ ] **Verify deployment** — confirm the release is running in production
 
 ---
 
@@ -155,13 +143,39 @@ If a bad release reaches production:
 
 1. **Identify the last good tag:**
    ```bash
-   git tag --sort=-v:refname | head -10
+   git tag --list 'desktop/v*' --sort=-v:refname | head -10
    ```
-2. **Deploy the previous version** (revert your CD pipeline to point at the last good tag)
-3. **Do NOT use `git revert` on main for a release** — it creates confusing history
-4. **Create a hotfix branch** from the last good tag if a fix is needed:
+2. **Roll back the auto-updater pointer** — clients pull installers from Cloudflare R2 at `<platform>/<arch>/<filename>`. Re-uploading the previous release's artifacts to the same path (or pointing the auto-update modal to a previous tag) is the fastest rollback.
+3. **Do NOT `git revert` on `main`** — it confuses the release history. Fix forward instead.
+4. **Cut a hotfix branch from the last good tag** if a fix is needed:
    ```bash
-   git checkout -b hotfix/vX.Y.Z/revert-bad-feature vX.Y.(Z-1)
+   git checkout -b SEKEL-NNN-revert-bad-feature desktop/v<X.Y.(Z-1)>
    ```
-5. **Fix forward** with a new patch release (`vX.Y.(Z+1)`) rather than unpublishing
-6. **Never delete a published tag** — consumers may depend on it; mark the GitHub Release as a pre-release instead
+5. **Fix forward** with a new patch release (`X.Y.(Z+1)`) rather than unpublishing.
+6. **Never delete a published tag** — clients may still reference it. Mark the GitHub Release as a pre-release in the dashboard if you need to discourage updaters from picking it up.
+
+---
+
+## Versioning Rules (SemVer)
+
+| Change Type | Bump | Example |
+|-------------|------|---------|
+| Breaking change to a public API or user-visible behavior | MAJOR | 1.5.3 → 2.0.0 |
+| New backwards-compatible feature | MINOR | 1.5.3 → 1.6.0 |
+| Backwards-compatible bug fix | PATCH | 1.5.3 → 1.5.4 |
+| Pre-release alpha | PATCH + suffix | 1.6.0-alpha.1 |
+| Pre-release beta | PATCH + suffix | 1.6.0-beta.2 |
+| Release candidate | PATCH + suffix | 1.6.0-rc.1 |
+
+Tag ordering: alpha → beta → rc → release. Always use annotated tags.
+
+---
+
+## Tag Naming — Why Two Tags Per Release
+
+Each desktop release produces two tags pointing at the same commit:
+
+- `desktop/v<X.Y.Z>` — created by `bump-version.yml`. This is the **trigger tag**: pushing it fires `release.yml`.
+- `v<X.Y.Z>` — created by `release.yml`'s `Ensure GitHub Release exists` step. This is the **GitHub Release tag**: it's what `gh release` operates on, and it's what the auto-update modal looks up at `https://pub-...r2.dev/notes/v<X.Y.Z>.md`.
+
+Don't change either name. The auto-update flow breaks if either convention slips.

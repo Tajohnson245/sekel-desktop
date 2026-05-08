@@ -1,7 +1,20 @@
+import * as Sentry from '@sentry/electron/renderer';
 import { contextBridge, ipcRenderer } from 'electron';
 import type { AIGenerationOptions } from './types/electron';
 
+Sentry.init({
+    dsn: 'https://cacb0014cc3c9ce493a71a738929f415@o4511351709171712.ingest.us.sentry.io/4511351710285824',
+    environment: process.env.NODE_ENV === 'production' ? 'production' : 'development',
+    release: __APP_VERSION__,
+});
+
 contextBridge.exposeInMainWorld('electronAPI', {
+    // ── Static system info ───────────────────────────────────────────────
+    // Resolved once at preload load. process.platform is one of the few
+    // primitives available in sandboxed preload contexts. Renderer maps
+    // this to a friendly label at use time.
+    platform: process.platform,
+
     // ── Deep linking (sekel:// URLs from email-confirmation, password reset, etc.) ──
     deepLink: {
         // Returns the URL the app was launched with, if any. Cleared on read.

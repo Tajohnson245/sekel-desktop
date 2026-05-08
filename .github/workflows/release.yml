@@ -9,7 +9,62 @@ permissions:
   contents: write
 
 jobs:
+  # Apply pending migrations + deploy edge functions to the prod Supabase
+  # project BEFORE the desktop installer is built and uploaded. This couples
+  # the server schema/functions to the client release: by the time the new
+  # installer is on R2 and users start auto-updating, prod is already on the
+  # matching schema.
+  #
+  # Caveat: there is a small window (minutes between this job finishing and
+  # users actually auto-updating) where the prod schema is ahead of clients
+  # still on the previous release. For tightening migrations (NOT NULL,
+  # CHECK), prefer the expand-then-contract pattern: this release adds the
+  # column nullable; a later release tightens it once the new client is
+  # rolled out.
+  #
+  # Required GitHub secrets:
+  #   - SUPABASE_ACCESS_TOKEN     personal access token from
+  #                               https://supabase.com/dashboard/account/tokens
+  #   - SUPABASE_PROD_DB_PASSWORD database password for the prod project
+  #                               (Settings → Database → Connection string)
+  deploy-server:
+    name: Deploy server-side (Supabase)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link to prod project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_PROD_DB_PASSWORD }}
+        working-directory: apps/desktop
+        run: supabase link --project-ref uawkoueqectmkiyjcrtb
+
+      - name: List pending migrations (informational)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        working-directory: apps/desktop
+        run: supabase migration list
+
+      - name: Apply prod migrations
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        working-directory: apps/desktop
+        run: supabase db push --linked --yes
+
+      - name: Deploy feedback-discord edge function
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        working-directory: apps/desktop
+        run: supabase functions deploy feedback-discord --project-ref uawkoueqectmkiyjcrtb --no-verify-jwt
+
   release:
+    needs: deploy-server
     runs-on: ${{ matrix.os }}
 
     strategy:

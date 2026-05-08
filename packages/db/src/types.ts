@@ -355,16 +355,22 @@ export interface UserProfile {
 // ─────────────────────────────────────────────────────────────────
 // Feedback
 // ─────────────────────────────────────────────────────────────────
+export type FeedbackType = 'bug' | 'feature_request' | 'question' | 'other';
+
 export interface Feedback {
     id: string;
     user_id: string;
+    type: FeedbackType;
+    summary: string;
     areas: string[];
     description: string;
     screenshot_url: string | null;
     desired_fix: string | null;
     os: string | null;
     mac_chip: string | null;
+    app_version: string | null;
+    ticket_number: number;
     created_at: string;
 }
 
-export type FeedbackInsert = Omit<Feedback, 'id' | 'created_at'>;
+export type FeedbackInsert = Omit<Feedback, 'id' | 'ticket_number' | 'created_at'>;

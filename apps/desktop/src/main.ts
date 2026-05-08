@@ -1,4 +1,11 @@
+import * as Sentry from '@sentry/electron/main';
 import { app, autoUpdater, BrowserWindow, dialog, ipcMain, protocol } from 'electron';
+
+Sentry.init({
+    dsn: 'https://cacb0014cc3c9ce493a71a738929f415@o4511351709171712.ingest.us.sentry.io/4511351710285824',
+    environment: process.env.NODE_ENV === 'production' ? 'production' : 'development',
+    release: app.getVersion(),
+});
 
 // Handle Squirrel.Windows install/update/uninstall events. When the installer
 // invokes our binary with --squirrel-install / --squirrel-updated /

@@ -1,6 +1,7 @@
 import { defineConfig, externalizeDepsPlugin, loadEnv } from 'electron-vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import pkg from './package.json';
 
 export default defineConfig(({ mode }) => {
     const envDir = path.resolve(__dirname, '../..');
@@ -9,12 +10,19 @@ export default defineConfig(({ mode }) => {
     // block) can supply build-time substitutions for the main-process bundle.
     const fileEnv = loadEnv(mode, envDir, ['VITE_', 'OPENAI_', 'ADMIN_', 'SUPABASE_']);
     const env = { ...fileEnv, ...process.env };
+    // Renderer + preload don't have access to electron's app.getVersion(),
+    // so we inline the version at build time for Sentry's release tag and
+    // for any other renderer-side metadata that needs it.
+    const appVersion = JSON.stringify(pkg.version);
 
 
     return {
         main: {
             plugins: [externalizeDepsPlugin({ exclude: ['electron-store', '@sekel/observability'] })],
             define: {
+                // Electron does not set NODE_ENV in packaged builds; inline it
+                // here so Sentry's environment tag resolves correctly.
+                'process.env.NODE_ENV': JSON.stringify(mode),
                 'process.env.OPENAI_API_KEY': JSON.stringify(env.OPENAI_API_KEY ?? ''),
                 'process.env.OPENAI_MODEL': JSON.stringify(env.OPENAI_MODEL ?? ''),
                 'process.env.ADMIN_EMAIL': JSON.stringify(env.ADMIN_EMAIL ?? ''),
@@ -30,7 +38,14 @@ export default defineConfig(({ mode }) => {
             },
         },
         preload: {
-            plugins: [externalizeDepsPlugin()],
+            // BrowserWindow uses sandbox:true — only a small allowlist of modules
+            // (electron, events, timers, url) is available via require() at runtime.
+            // Bundle @sentry/electron into preload.js so its renderer entry can load.
+            plugins: [externalizeDepsPlugin({ exclude: ['@sentry/electron'] })],
+            define: {
+                'process.env.NODE_ENV': JSON.stringify(mode),
+                __APP_VERSION__: appVersion,
+            },
             build: {
                 outDir: 'dist/preload',
                 rollupOptions: {
@@ -42,6 +57,9 @@ export default defineConfig(({ mode }) => {
             plugins: [react()],
             root: '.',
             envDir,
+            define: {
+                __APP_VERSION__: appVersion,
+            },
             build: {
                 outDir: 'dist/renderer',
                 rollupOptions: {

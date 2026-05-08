@@ -20,7 +20,7 @@
         "user": "User",
         "expand": "Expand",
         "collapse": "Collapse",
-        "loading_app": "Loading Sekel..."
+        "loading_app": "Loading SEKEL..."
     },
     "nav": {
         "dashboard": "Dashboard",
@@ -292,7 +292,7 @@
         "first_name": "First Name",
         "last_name": "Last Name",
         "confirm_password": "Confirm Password",
-        "login_title": "Login to Sekel",
+        "login_title": "Login to SEKEL",
         "signup_title": "Create an account",
         "have_account": "Already have an account? Login",
         "no_account": "Don't have an account? Sign up",
@@ -308,7 +308,7 @@
         "send_reset_link": "Send Reset Link",
         "sending": "Sending...",
         "reset_email_sent_title": "Check your inbox",
-        "reset_email_sent_desc": "If an account exists for {{email}}, a password reset link is on its way. The link will open Sekel directly.",
+        "reset_email_sent_desc": "If an account exists for {{email}}, a password reset link is on its way. The link will open SEKEL directly.",
         "back_to_login": "Back to login",
         "reset_password_title": "Choose a new password",
         "reset_password_desc": "You're signing in via a password reset link. Set a new password below to finish.",
@@ -616,7 +616,7 @@
             "overwrite": "Overwrite",
             "merge": "Merge"
         },
-        "conflictWarning": "{{count}} deck(s) already exist in Sekel",
+        "conflictWarning": "{{count}} deck(s) already exist in SEKEL",
         "overwriteConfirm": "Overwriting will replace all cards and reviews in \"{{name}}\". This cannot be undone.",
         "confirmOverwrite": "Confirm Overwrite",
         "importButton": "Import {{count}} Deck(s)",
@@ -657,9 +657,20 @@
     },
     "feedback": {
         "title": "Feedback",
-        "section_description": "Help us improve Sekel by reporting issues or suggesting changes.",
+        "section_description": "Share feedback, request features, or report issues to help improve SEKEL.",
         "send_feedback": "Send Feedback",
-        "problem_area": "What area are you experiencing problems in?",
+        "type_label": "What kind of feedback do you have?",
+        "type_bug_label": "Bug",
+        "type_bug_desc": "Something isn't working right",
+        "type_feature_request_label": "Feature Request",
+        "type_feature_request_desc": "I'd like to suggest an improvement",
+        "type_question_label": "Question",
+        "type_question_desc": "I need help with something",
+        "type_other_label": "Other",
+        "type_other_desc": "General feedback",
+        "summary_label": "Summary",
+        "summary_placeholder": "One sentence describing your feedback",
+        "problem_area": "Which area does this relate to?",
         "area_study_sessions": "Study Sessions",
         "area_card_editor": "Card Editor",
         "area_deck_management": "Deck Management",
@@ -677,8 +688,8 @@
         "mac_chip_label": "What chip does your Mac use?",
         "mac_chip_intel": "Intel",
         "mac_chip_apple_silicon": "Apple Silicon",
-        "describe_problem": "Describe the problem",
-        "describe_placeholder": "Tell us what went wrong or what's not working as expected...",
+        "describe_problem": "Tell us more",
+        "describe_placeholder": "What's on your mind?",
         "screenshot_optional": "Screenshot (optional)",
         "upload_screenshot": "Upload Screenshot",
         "max_file_size": "PNG, JPG up to 5MB",
@@ -696,11 +707,11 @@
         "menu_label": "Export",
         "modal_title": "Export Deck",
         "format_label": "Export Format",
-        "format_spkg_desc": "All cards — Sekel native format",
+        "format_spkg_desc": "All cards — SEKEL native format",
         "format_apkg_desc": "Originally imported cards only",
-        "spkg_body": "All {{totalCards}} cards will be exported in Sekel format.",
+        "spkg_body": "All {{totalCards}} cards will be exported in SEKEL format.",
         "modal_body": "Only originally imported cards will be included in the .apkg export. {{ankiCards}} of {{totalCards}} cards will be exported.",
-        "modal_body_spkg_only": "Cards created in Sekel are not compatible with the original deck format.",
+        "modal_body_spkg_only": "Cards created in SEKEL are not compatible with the original deck format.",
         "modal_no_anki_cards": "This deck has no originally imported cards to export.",
         "include_media": "Include Media",
         "include_media_desc": "Include images and audio files in the export",
@@ -853,12 +864,12 @@
         "skip_confirm_keep": "Keep going",
         "slides": {
             "1": {
-                "eyebrow": "Welcome to Sekel",
+                "eyebrow": "Welcome to SEKEL",
                 "headline": "Not every card is worth your time.",
-                "body": "Sekel knows which ones are."
+                "body": "SEKEL knows which ones are."
             },
             "2": {
-                "eyebrow": "How Sekel thinks",
+                "eyebrow": "How SEKEL thinks",
                 "headline": "It learns your exam blueprint and your performance.",
                 "body": "High-yield first, weak areas reinforced, busy days rebalanced."
             },
@@ -879,7 +890,7 @@
             },
             "dashboard-plan-overview": {
                 "title": "Your plan",
-                "body": "Daily targets adjust as you go. Miss a day? Sekel rebalances so you stay on track."
+                "body": "Daily targets adjust as you go. Miss a day? SEKEL rebalances so you stay on track."
             },
             "dashboard-deck-health": {
                 "title": "Your deck health",
@@ -895,7 +906,7 @@
             },
             "documents-upload": {
                 "title": "Generate flashcards",
-                "body": "Drop a PDF, video, or notes. Sekel turns them into smart cards — high-yield first."
+                "body": "Drop a PDF, video, or notes. SEKEL turns them into smart cards — high-yield first."
             },
             "plan-targets": {
                 "title": "Plans",
@@ -931,7 +942,7 @@
             },
             "profile-info": {
                 "title": "Profile",
-                "body": "Name, avatar, exam, and target date — the basics Sekel uses to tune your plan."
+                "body": "Name, avatar, exam, and target date — the basics SEKEL uses to tune your plan."
             },
             "profile-preferences": {
                 "title": "Preferences",
@@ -939,7 +950,7 @@
             },
             "profile-study": {
                 "title": "Study",
-                "body": "Your exam, target date, and daily study targets — Sekel uses these to shape your plan."
+                "body": "Your exam, target date, and daily study targets — SEKEL uses these to shape your plan."
             },
             "profile-backup": {
                 "title": "Backup",
