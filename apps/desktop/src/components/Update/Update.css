@@ -1,6 +1,6 @@
-/* Update modal — responsive sizing comes from max-height + overflow on the
-   bullet list. Few bullets render compact; many bullets scroll without
-   overflowing the viewport. */
+/* Update modal — release notes are rendered as Markdown via react-markdown.
+   Keep the rendered structure compact and scrollable so a long changelog
+   doesn't push the Install/Later footer off-screen. */
 
 .update-modal-body {
     display: flex;
@@ -14,35 +14,80 @@
     font-size: 0.9375rem;
 }
 
-.update-notes-list {
-    margin: 0;
-    padding-left: 1.25rem;
+.update-notes-content {
     max-height: 50vh;
     overflow-y: auto;
     color: var(--text-primary);
     font-size: 0.9375rem;
-    line-height: 1.5;
+    line-height: 1.55;
+    padding-right: var(--space-sm);
 }
 
-.update-notes-list li {
+.update-notes-content > *:first-child { margin-top: 0; }
+.update-notes-content > *:last-child  { margin-bottom: 0; }
+
+.update-notes-content h2,
+.update-notes-content h3,
+.update-notes-content h4 {
+    font-family: var(--font-body);
+    font-weight: 600;
+    color: var(--fog);
+    margin: var(--space-md) 0 var(--space-xs);
+    line-height: 1.3;
+}
+
+.update-notes-content h2 { font-size: 1rem; }
+.update-notes-content h3 { font-size: 0.95rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; }
+.update-notes-content h4 { font-size: 0.9rem; }
+
+.update-notes-content p {
+    margin: 0 0 var(--space-sm);
+}
+
+.update-notes-content ul,
+.update-notes-content ol {
+    margin: 0 0 var(--space-md);
+    padding-left: 1.25rem;
+}
+
+.update-notes-content li {
     margin-bottom: var(--space-xs);
 }
 
-.update-notes-list li:last-child {
+.update-notes-content li:last-child {
     margin-bottom: 0;
 }
 
-.update-modal-fallback {
-    margin: 0;
-    color: var(--text-secondary);
-    font-size: 0.9375rem;
-}
-
-.update-modal-fallback a {
+.update-notes-content a {
     color: var(--primary);
     text-decoration: none;
 }
 
-.update-modal-fallback a:hover {
+.update-notes-content a:hover {
     text-decoration: underline;
+}
+
+.update-notes-content code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+    background: var(--bg-input);
+    padding: 1px 5px;
+    border-radius: 3px;
+}
+
+.update-notes-content strong {
+    color: var(--fog);
+    font-weight: 600;
+}
+
+.update-notes-content em {
+    font-style: italic;
+    color: var(--text-secondary);
+}
+
+.update-notes-content blockquote {
+    margin: 0 0 var(--space-md);
+    padding: 0 var(--space-md);
+    border-left: 3px solid var(--ink-muted);
+    color: var(--text-secondary);
 }

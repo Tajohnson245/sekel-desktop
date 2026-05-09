@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 > **Versioning note.** Entries `[1.0.0]` through `[1.3.0]` below reflect an earlier monorepo-wide versioning scheme (`v<X.Y.Z>` tags). The desktop app is now versioned independently under `desktop/v<X.Y.Z>` — see GitHub Releases for the auto-generated notes covering `desktop/v1.0.0` through `desktop/v1.0.6`. Going forward, every release branch must prepend a section here under the new version before triggering Bump Version.
 
+> **Authoring note.** The `## [X.Y.Z]` section becomes the **end-user release notes** — the desktop auto-update modal mirrors the matching section from this file to R2 and renders it as markdown. Write entries for the user, not for engineers: lead with the user-visible behaviour, skip ticket numbers and file paths, and save the engineering-jargon version for the GitHub Release page (which still uses GitHub's auto-generated PR list).
+
 ## [Unreleased]
 
 ### Added
@@ -17,6 +19,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 ### Removed
 
 ### Security
+
+## [1.0.9] - 2026-05-09
+
+### Changed
+- **Cleaner update notifications.** When a new version is ready, the "Update available" prompt now shows a properly formatted summary of what's new — with sections, lists, and clickable links — instead of a wall of PR titles. Links open in your default browser.
 
 ## [1.0.8] - 2026-05-09
 
