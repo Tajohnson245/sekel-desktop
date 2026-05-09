@@ -1,14 +1,8 @@
 import { useEffect, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { Modal, Button } from '../UI';
 import type { UpdateDownloadedPayload } from '../../types/electron';
 import './Update.css';
-
-function parseBullets(notes: string): string[] {
-    return notes
-        .split('\n')
-        .map((line) => line.trim().replace(/^[-*]\s+/, ''))
-        .filter((line) => line.length > 0);
-}
 
 export default function UpdateAvailableModal() {
     const [payload, setPayload] = useState<UpdateDownloadedPayload | null>(null);
@@ -20,8 +14,8 @@ export default function UpdateAvailableModal() {
 
     if (!payload) return null;
 
-    const bullets = payload.notes ? parseBullets(payload.notes) : [];
     const tag = payload.version.startsWith('v') ? payload.version : `v${payload.version}`;
+    const hasNotes = Boolean(payload.notes && payload.notes.trim().length > 0);
 
     const handleInstall = async () => {
         setInstalling(true);
@@ -53,17 +47,30 @@ export default function UpdateAvailableModal() {
         >
             <div className="update-modal-body">
                 <p className="update-modal-intro">
-                    {bullets.length > 0
-                        ? 'A new version of Sekel has been downloaded. Here is what changed:'
+                    {hasNotes
+                        ? 'A new version of Sekel has been downloaded. Here’s what changed:'
                         : 'A new version of Sekel has been downloaded.'}
                 </p>
 
-                {bullets.length > 0 && (
-                    <ul className="update-notes-list">
-                        {bullets.map((b, i) => (
-                            <li key={i}>{b}</li>
-                        ))}
-                    </ul>
+                {hasNotes && (
+                    <div className="update-notes-content">
+                        <ReactMarkdown
+                            components={{
+                                // Force every link to open in the OS browser.
+                                // setWindowOpenHandler in main.ts intercepts the
+                                // resulting window.open() and routes it via
+                                // shell.openExternal — keeps the renderer from
+                                // navigating away from the app.
+                                a: ({ href, children }) => (
+                                    <a href={href} target="_blank" rel="noopener noreferrer">
+                                        {children}
+                                    </a>
+                                ),
+                            }}
+                        >
+                            {payload.notes!}
+                        </ReactMarkdown>
+                    </div>
                 )}
             </div>
         </Modal>
