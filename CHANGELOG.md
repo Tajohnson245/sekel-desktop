@@ -13,13 +13,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 ### Added
 
 ### Changed
-- **Cleaner update notifications.** When a new version is ready, the "Update available" prompt now shows a properly formatted summary of what's new — with sections, lists, and clickable links — instead of a wall of PR titles. Links open in your default browser.
 
 ### Fixed
 
 ### Removed
 
 ### Security
+
+## [1.0.9] - 2026-05-09
+
+### Changed
+- **Cleaner update notifications.** When a new version is ready, the "Update available" prompt now shows a properly formatted summary of what's new — with sections, lists, and clickable links — instead of a wall of PR titles. Links open in your default browser.
 
 ## [1.0.8] - 2026-05-09
 
