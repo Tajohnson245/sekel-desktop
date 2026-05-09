@@ -16,6 +16,7 @@ import {
     CLINICAL_NEUROLOGY_SHELF_BLUEPRINT,
     EMERGENCY_MEDICINE_SHELF_BLUEPRINT,
     INTERNAL_MEDICINE_ADVANCED_SHELF_BLUEPRINT,
+    NAPLEX_BLUEPRINT,
 } from './blueprints';
 import { createLogger, consoleTransport } from '@sekel/observability';
 
@@ -152,6 +153,7 @@ function seedBlueprints(database: Database.Database): void {
         CLINICAL_NEUROLOGY_SHELF_BLUEPRINT,
         EMERGENCY_MEDICINE_SHELF_BLUEPRINT,
         INTERNAL_MEDICINE_ADVANCED_SHELF_BLUEPRINT,
+        NAPLEX_BLUEPRINT,
     ]) {
         // Check per exam_key so existing Step 1 installs still get Step 2 CK seeded
         const existing = selectExam.get(bp.exam_key) as { id: number } | undefined;
