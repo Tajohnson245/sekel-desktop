@@ -34,6 +34,9 @@
     --space-md: 12px;  --space-lg: 16px;
     --space-xl: 24px;  --space-2xl: 32px;  --space-3xl: 48px;
 
+    /* App chrome */
+    --header-height: 64px;
+
     /* Border radius */
     --r-sm: 6px;  --r-md: 12px;  --r-lg: 20px;  --r-xl: 28px;
 
@@ -259,7 +262,7 @@ select option:disabled {
     align-items: center;
     justify-content: space-between;
     padding: 0 1.5rem;
-    height: 64px;
+    height: var(--header-height);
     background: var(--secondary);
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
@@ -338,6 +341,14 @@ select option:disabled {
     background: none;
     -webkit-text-fill-color: unset;
     cursor: pointer;
+}
+
+.header-logo {
+    height: 36px;
+    width: auto;
+    display: block;
+    border-radius: var(--r-sm);
+    flex-shrink: 0;
 }
 
 .nav-link {
@@ -439,6 +450,7 @@ select option:disabled {
     .header-cta__label { display: none; }
     .header-right { gap: 0.75rem; }
     .header h1 { font-size: 1.1rem; }
+    .header-logo { height: 30px; }
     .header-left { gap: 0.75rem; }
 }
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Library, FileText, Plus, Inbox, Layers, BarChart3, Activity, CalendarDays } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import sekelLogo from '../../assets/sekel_logo_draft.png';
 import { useAuthStore } from '../stores/authStore';
 import { useProfileStore } from '../stores/profileStore';
 import { useDocsWorkStore } from '../stores/docsWorkStore';
@@ -93,7 +94,7 @@ function HeaderBar() {
     return (
         <header className="header">
             <div className="header-left">
-                <h1>SEKEL</h1>
+                <img src={sekelLogo} alt="Sekel" className="header-logo" />
                 <NavBar />
             </div>
             <div className="header-right">
