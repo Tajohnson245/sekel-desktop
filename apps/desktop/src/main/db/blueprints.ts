@@ -706,3 +706,104 @@ export const INTERNAL_MEDICINE_ADVANCED_SHELF_BLUEPRINT: BlueprintFile = {
         { system_key: 'endocrine-metabolic-disorders',     label: 'Endocrine and Metabolic Disorders',                        weight_min: 8,  weight_max: 12, topics: [] },
     ],
 };
+
+// ── NAPLEX (NABP) ─────────────────────────────────────────────────────────────
+// Source: NAPLEX Content Outline (May 2025), NABP.
+// https://nabp.pharmacy/wp-content/uploads/NAPLEX-Content-Outline.pdf
+//
+// Hierarchy mapping (Option B): the 3-level outline (domain / subdomain letter /
+// sub-subdomain number) is folded into the existing 2-level system → topic
+// schema by encoding the subdomain letter into topic_key (e.g. 'A.1', 'B.2').
+// Subdomain entries with no sub-subdomain children are stored with a single-
+// letter topic_key (e.g. 'D', 'E', 'F'). Domain weights are explicit single
+// percents (25/25/40/5/5), so weight_min == weight_max. Topic relative_weight
+// is equal-split within each domain — NABP does not publish per-subdomain
+// weights in the public outline.
+
+export const NAPLEX_BLUEPRINT: BlueprintFile = {
+    exam_key: 'naplex',
+    label: 'NAPLEX',
+    source_url: 'https://nabp.pharmacy/wp-content/uploads/NAPLEX-Content-Outline.pdf',
+    version: '2025-05',
+    systems: [
+        {
+            system_key: '1', label: 'Foundational Knowledge for Pharmacy Practice', weight_min: 25, weight_max: 25,
+            topics: [
+                { topic_key: 'A.1', label: 'Pharmacology',                                                                          physician_task: null, relative_weight: 0.0588 },
+                { topic_key: 'A.2', label: 'Pharmacokinetics, pharmacodynamics, or pharmacogenomics',                              physician_task: null, relative_weight: 0.0588 },
+                { topic_key: 'A.3', label: 'Pharmaceutics',                                                                         physician_task: null, relative_weight: 0.0588 },
+                { topic_key: 'B.1', label: 'Nonsterile preparations',                                                               physician_task: null, relative_weight: 0.0588 },
+                { topic_key: 'B.2', label: 'Sterile preparations',                                                                  physician_task: null, relative_weight: 0.0588 },
+                { topic_key: 'C.1', label: 'Patient parameters or laboratory measures',                                             physician_task: null, relative_weight: 0.0588 },
+                { topic_key: 'C.2', label: 'Quantities of drugs to be dispensed or administered',                                   physician_task: null, relative_weight: 0.0588 },
+                { topic_key: 'C.3', label: 'Rates of administration',                                                               physician_task: null, relative_weight: 0.0588 },
+                { topic_key: 'C.4', label: 'Dose conversions',                                                                      physician_task: null, relative_weight: 0.0588 },
+                { topic_key: 'C.5', label: 'Drug concentrations, ratio strengths, osmolarity, or osmolality',                       physician_task: null, relative_weight: 0.0588 },
+                { topic_key: 'C.6', label: 'Quantities of drugs or ingredients to be compounded',                                   physician_task: null, relative_weight: 0.0588 },
+                { topic_key: 'C.7', label: 'Nutritional needs and the content of nutrient sources',                                 physician_task: null, relative_weight: 0.0588 },
+                { topic_key: 'C.8', label: 'Biostatistical, epidemiological, or pharmacoeconomic measures',                         physician_task: null, relative_weight: 0.0588 },
+                { topic_key: 'C.9', label: 'Pharmacokinetic parameters',                                                            physician_task: null, relative_weight: 0.0588 },
+                { topic_key: 'D',   label: 'Drug development processes (eg, clinical trial phases, emergency use authorizations)', physician_task: null, relative_weight: 0.0588 },
+                { topic_key: 'E',   label: 'Research design principles and biostatistics (eg, blinding, randomization, biases, statistical tests and outcomes, ethics)', physician_task: null, relative_weight: 0.0588 },
+                { topic_key: 'F',   label: 'Retrieval, assessment, and interpretation of primary, secondary, and tertiary resources',                                    physician_task: null, relative_weight: 0.0592 },
+            ],
+        },
+        {
+            system_key: '2', label: 'Medication Use Process (Prescribing, Transcribing and Documenting, Dispensing, Administering, and Monitoring)', weight_min: 25, weight_max: 25,
+            topics: [
+                { topic_key: 'A.1', label: 'Drug names and therapeutic classes',                                                                                                       physician_task: null, relative_weight: 0.0833 },
+                { topic_key: 'A.2', label: 'Indications, usage, and dosing regimens',                                                                                                  physician_task: null, relative_weight: 0.0833 },
+                { topic_key: 'A.3', label: 'Available dosage forms',                                                                                                                   physician_task: null, relative_weight: 0.0833 },
+                { topic_key: 'A.4', label: 'Prescription regulations (eg, boxed warnings, risk evaluation and mitigation strategies)',                                                 physician_task: null, relative_weight: 0.0833 },
+                { topic_key: 'A.5', label: 'Safety and effectiveness (eg, laboratory parameters, vital signs)',                                                                        physician_task: null, relative_weight: 0.0833 },
+                { topic_key: 'B',   label: 'Therapeutic substitutions (eg, formulary restrictions, therapeutic alternatives, shortages, biosimilars)',                                 physician_task: null, relative_weight: 0.0833 },
+                { topic_key: 'C.1', label: 'Indications and scheduling',                                                                                                               physician_task: null, relative_weight: 0.0833 },
+                { topic_key: 'C.2', label: 'Contraindications and precautions',                                                                                                        physician_task: null, relative_weight: 0.0833 },
+                { topic_key: 'C.3', label: 'Storage and handling',                                                                                                                     physician_task: null, relative_weight: 0.0833 },
+                { topic_key: 'C.4', label: 'Administration (eg, techniques, preparation, routes)',                                                                                     physician_task: null, relative_weight: 0.0833 },
+                { topic_key: 'C.5', label: 'Adverse reactions',                                                                                                                        physician_task: null, relative_weight: 0.0833 },
+                { topic_key: 'D',   label: 'Medication handling, storage, stability, and disposal (eg, hazardous and nonhazardous drugs, controlled substances, parenteral medications, sharps handling, temperature control)', physician_task: null, relative_weight: 0.0837 },
+            ],
+        },
+        {
+            system_key: '3', label: 'Person-Centered Assessment and Treatment Planning', weight_min: 40, weight_max: 40,
+            topics: [
+                { topic_key: 'A',   label: 'Medication history, allergy history, and reconciliation',                                                                  physician_task: null, relative_weight: 0.0588 },
+                { topic_key: 'B',   label: 'Health histories, screenings, and assessments',                                                                            physician_task: null, relative_weight: 0.0588 },
+                { topic_key: 'C.1', label: 'Signs, symptoms, and findings of medical conditions, etiology of diseases, or pathophysiology',                            physician_task: null, relative_weight: 0.0588 },
+                { topic_key: 'C.2', label: 'Appropriateness of therapy (eg, medications, immunizations, non-drug therapy, dosing, contraindications, warnings, evidence-based decision making)', physician_task: null, relative_weight: 0.0588 },
+                { topic_key: 'C.3', label: 'Interactions (eg, drug-drug, drug-condition, drug-food, drug-allergy, drug-laboratory)',                                   physician_task: null, relative_weight: 0.0588 },
+                { topic_key: 'C.4', label: 'Errors and omissions (eg, dosing, duplication, additional therapy needed, unnecessary therapy)',                           physician_task: null, relative_weight: 0.0588 },
+                { topic_key: 'C.5', label: 'Adverse drug reactions',                                                                                                   physician_task: null, relative_weight: 0.0588 },
+                { topic_key: 'C.6', label: 'Toxicologic exposures and overdoses',                                                                                      physician_task: null, relative_weight: 0.0588 },
+                { topic_key: 'C.7', label: 'Adherence',                                                                                                                physician_task: null, relative_weight: 0.0588 },
+                { topic_key: 'D.1', label: 'Therapeutic goals, clinical endpoints, and follow-up',                                                                     physician_task: null, relative_weight: 0.0588 },
+                { topic_key: 'D.2', label: 'Safety',                                                                                                                   physician_task: null, relative_weight: 0.0588 },
+                { topic_key: 'D.3', label: 'Effectiveness',                                                                                                            physician_task: null, relative_weight: 0.0588 },
+                { topic_key: 'E.1', label: 'Lifestyle modifications and health maintenance',                                                                           physician_task: null, relative_weight: 0.0588 },
+                { topic_key: 'E.2', label: 'Medication use, storage, and disposal',                                                                                    physician_task: null, relative_weight: 0.0588 },
+                { topic_key: 'E.3', label: 'Disease state management',                                                                                                 physician_task: null, relative_weight: 0.0588 },
+                { topic_key: 'F',   label: 'Over-the-counter medications and dietary supplements',                                                                     physician_task: null, relative_weight: 0.0588 },
+                { topic_key: 'G',   label: 'Devices to administer medications and self-monitoring tests',                                                              physician_task: null, relative_weight: 0.0592 },
+            ],
+        },
+        {
+            system_key: '4', label: 'Professional Practice', weight_min: 5, weight_max: 5,
+            topics: [
+                { topic_key: 'A', label: 'Adverse drug event reporting and medication error reporting (eg, MedWatch, VAERS)',                                                                                  physician_task: null, relative_weight: 0.25 },
+                { topic_key: 'B', label: 'Public health initiatives and risk-prevention programs (eg, tobacco and nicotine cessation, antimicrobial stewardship, health screenings, opioid stewardship)',     physician_task: null, relative_weight: 0.25 },
+                { topic_key: 'C', label: 'Social determinants and drivers of health',                                                                                                                          physician_task: null, relative_weight: 0.25 },
+                { topic_key: 'D', label: 'Ethical considerations (eg, informed consent, ethical principles, professional conduct and responsibility, patient confidentiality)',                                physician_task: null, relative_weight: 0.25 },
+            ],
+        },
+        {
+            system_key: '5', label: 'Pharmacy Management and Leadership', weight_min: 5, weight_max: 5,
+            topics: [
+                { topic_key: 'A', label: 'Pharmacy operations (eg, operational planning, risk management, regulations and regulatory bodies, technology applications and informatics, error-prevention strategies, medication safety)', physician_task: null, relative_weight: 0.25 },
+                { topic_key: 'B', label: 'Inventory and supply management (eg, drug recalls, drug shortages)',                                                                                                physician_task: null, relative_weight: 0.25 },
+                { topic_key: 'C', label: 'Quality improvement activities (eg, medication use evaluation, root-cause analysis, continuous quality improvement)',                                               physician_task: null, relative_weight: 0.25 },
+                { topic_key: 'D', label: 'Mentorship and preceptorship (eg, providing and receiving feedback, delegation of work activities, preceptor roles)',                                               physician_task: null, relative_weight: 0.25 },
+            ],
+        },
+    ],
+};
