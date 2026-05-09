@@ -39,3 +39,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 | 2026-05-09 | Doc created. scripts/seed-blueprints-supabase.ts |
 | 2026-05-09 | apps/desktop/src/main/db/blueprints.ts,apps/desktop/src/main/db/index.ts,apps/desktop/supabase/blueprints/nabp-naplex-v2025-05.ts,scripts/seed-blueprints-supabase.ts |
 | 2026-05-09 | apps/desktop/src/main/db/blueprints.ts,apps/desktop/src/main/db/index.ts,apps/desktop/supabase/blueprints/nabp-naplex-v2025-05.ts |
+| 2026-05-09 | apps/desktop/supabase/blueprints/_seed.ts |
