@@ -37,3 +37,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 | Date | Description |
 |------|-------------|
 | 2026-05-09 | Doc created. apps/desktop/src/components/ExamOnboarding/ExamOnboardingModal.css,apps/desktop/src/index.css,apps/desktop/src/router/AppLayout.tsx,packages/components/src/ui/Modal.css |
+| 2026-05-09 | .claude/settings.json,apps/desktop/src/components/ExamOnboarding/ExamOnboardingModal.css,apps/desktop/src/index.css,apps/desktop/src/router/AppLayout.tsx,packages/components/src/ui/Modal.css |
