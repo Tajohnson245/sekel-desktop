@@ -57,6 +57,25 @@ jobs:
         working-directory: apps/desktop
         run: supabase db push --linked --yes
 
+      # Run after migrations so the seeder writes against the freshly-applied
+      # schema. Idempotent — every blueprint file uses upsert semantics, so
+      # re-running on each release is safe and self-healing if a previous run
+      # was missed.
+      - name: Setup Node for seeders
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies (root + workspaces)
+        run: npm ci
+
+      - name: Seed blueprints to prod Supabase
+        env:
+          VITE_SUPABASE_PROJECT_URL: ${{ secrets.VITE_SUPABASE_PROJECT_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npx tsx scripts/seed-blueprints-supabase.ts
+
       - name: Deploy feedback-discord edge function
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

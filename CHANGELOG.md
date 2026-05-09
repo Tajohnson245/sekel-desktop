@@ -18,6 +18,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ### Security
 
+## [1.0.8] - 2026-05-09
+
+### Added
+- **NAPLEX content blueprint** — NABP's North American Pharmacist Licensure Examination (May 2025 outline) seeded as a new exam. 5 domains with explicit weights (25/25/40/5/5), 54 leaf topics covering every sub-subdomain. The 3-level outline (`domain.subdomain_letter.sub_subdomain_number`) folds into the existing 2-level system→topic schema by encoding the subdomain letter into `topic_key` (e.g. `A.1`, `B.2`) — no migration required. Seeded into both Supabase and local SQLite; existing users pick it up on their next launch via the per-exam_key seed gate. (SEKEL-124)
+- **Auto-seed blueprints in release CI** — `release.yml`'s `deploy-server` job now runs `npx tsx scripts/seed-blueprints-supabase.ts` against prod after migrations succeed. Idempotent upsert; eliminates the dev/prod blueprint drift that had silently accumulated since SEKEL-106 (only the developer's local Supabase project ever got the seeds, prod stayed empty). Reuses existing `VITE_SUPABASE_PROJECT_URL` and `SUPABASE_SERVICE_ROLE_KEY` GitHub secrets — no new secrets required. (SEKEL-124)
+- **Sekel logo in app header** — replaced the `<h1>SEKEL</h1>` wordmark with the actual app icon at 36px (30px under 760px viewports). (SEKEL-123)
+
+### Changed
+- **Exam picker uses a grid layout** — switched from a vertical column to an auto-fill grid (`minmax(220px, 1fr)`) so the 13 exam options fit in 2–3 columns instead of a long scroll. Same component is used by the deck-selection step, which inherits the same improvement. (SEKEL-123)
+
+### Fixed
+- **Modals fit under the navbar at any zoom level** — `.modal-overlay` is now anchored at `top: var(--header-height)` with `overflow: hidden` and `box-sizing: border-box`; `.modal` uses `max-height: 100%` against the overlay's content box instead of a `100vh` calc. The previous calc could let the modal escape behind the navbar when the user zoomed in via Ctrl+. New `--header-height` CSS variable on `:root` is the single source of truth for both the header and the modal offset. (SEKEL-123)
+- **Blueprint seeder accepts the actual env-var name used in this repo** — `_seed.ts` falls back to `VITE_SUPABASE_PROJECT_URL` when `SUPABASE_URL` isn't set. Aligns the seeder with the convention used by every other Supabase consumer (electron-vite config, the desktop client, GitHub workflow secrets). (SEKEL-124)
+- **Restored `scripts/seed-blueprints-supabase.ts`** — runner script was deleted in the 2026-04-21 cleanup commit (which removed `apps/community/`, `apps/survey/`, and `.circleci/`), but every blueprint file's docstring and the `create_blueprint_tables` migration still referenced it. Restored verbatim from the original commit (`0ae6f2b`). (SEKEL-124)
+
 ## [1.0.7] - 2026-05-08
 
 ### Added

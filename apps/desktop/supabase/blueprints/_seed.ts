@@ -40,11 +40,11 @@ export interface BlueprintSeedData {
 // ── Supabase client ───────────────────────────────────────────────────────────
 
 function getClient(): SupabaseClient {
-    const url = process.env.SUPABASE_URL;
+    const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_PROJECT_URL;
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!url || !key) {
         throw new Error(
-            'Missing env vars. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY before running.'
+            'Missing env vars. Set SUPABASE_URL (or VITE_SUPABASE_PROJECT_URL) and SUPABASE_SERVICE_ROLE_KEY before running.'
         );
     }
     return createClient(url, key);
