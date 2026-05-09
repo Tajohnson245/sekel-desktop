@@ -228,28 +228,34 @@ jobs:
                 --endpoint-url "$ENDPOINT"
             done
 
-  # Runs once after every matrix combo has uploaded artifacts. Composes the
-  # release body from PR titles and commit subjects via the GitHub
-  # generate-notes API, then flips the draft flag to published. The desktop
-  # client's update modal fetches this body at update-downloaded time.
-  # (Wired so an AI summarizer can be swapped in later without touching
-  # the modal.)
+  # Two distinct audiences, two distinct outputs:
+  #   1. The GitHub Release page (engineers / maintainers): keeps the
+  #      auto-generated notes from PR titles via gh api generate-notes —
+  #      perfect for browsing what shipped at the commit/PR level.
+  #   2. The desktop auto-update modal (end users): reads a R2 mirror at
+  #      pub-...r2.dev/notes/v${version}.md. We populate that mirror with
+  #      the curated `## [X.Y.Z]` section from CHANGELOG.md, which is
+  #      hand-written for users on each release branch.
+  #
+  # If CHANGELOG extraction returns empty (release didn't update CHANGELOG),
+  # we fall back to the auto-generated notes so users still see *something*.
   #
   # NOTE: gh release edit does not support --generate-notes (only gh release
-  # create does), so we call the GitHub API directly and pass the result via
-  # --notes-file. See https://cli.github.com/manual/gh_release_edit.
-  #
-  # NOTE 2: this job has no actions/checkout step. `gh release edit` infers
-  # the target repo from the local git remote when --repo isn't passed, and
-  # crashes with `fatal: not a git repository` (exit 1) without a working
-  # tree. Pass -R "$GITHUB_REPOSITORY" explicitly so the CLI never reaches
-  # for git. Same fix is applied to gh api for symmetry. Diagnosed by
-  # checking the publish-notes log of run 25353689890 (desktop/v1.0.5).
+  # create does), so we call the GitHub API directly for the auto notes and
+  # pass the result via --notes-file.
   publish-notes:
     needs: release
     runs-on: ubuntu-latest
     steps:
-      - name: Publish release with auto-generated notes
+      # Need the working tree to read CHANGELOG.md. Check out the tagged
+      # commit (release-branch state at version bump) so the CHANGELOG entry
+      # written on the release branch is present — main may not have been
+      # merged yet at this point in the flow.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Publish release with auto-generated notes (GitHub Releases page)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
@@ -264,7 +270,7 @@ jobs:
           if [ ! -s /tmp/release_notes.md ]; then
             echo "Release $TAG" > /tmp/release_notes.md
           fi
-          echo "::group::Generated notes"
+          echo "::group::GitHub auto-generated notes"
           cat /tmp/release_notes.md
           echo "::endgroup::"
           gh release edit "$TAG" \
@@ -272,14 +278,37 @@ jobs:
             --draft=false \
             --notes-file /tmp/release_notes.md
 
-      # Mirror the notes to R2 so the desktop auto-update modal can read them.
-      # The repo is private, so anonymous calls to api.github.com 404 — the
-      # client previously hit GitHub directly and always saw the "Release
-      # notes are not yet available" fallback. R2 is publicly readable (it's
-      # already where the installers come from), so the modal now fetches
-      # https://pub-1dd00656fa304302a2db06169963ac20.r2.dev/notes/v${version}.md
+      - name: Extract user-facing notes from CHANGELOG.md
+        shell: bash
+        run: |
+          set -e
+          VERSION="${GITHUB_REF_NAME#desktop/v}"
+          # Match the version's section header (e.g. "## [1.0.8] - 2026-05-09")
+          # and print everything until the next "## [" header (or EOF).
+          awk -v v="$VERSION" '
+            $0 ~ ("^## \\[" v "\\]") { flag=1; next }
+            flag && /^## \[/ { exit }
+            flag { print }
+          ' CHANGELOG.md > /tmp/user_release_notes.md
+
+          # Trim leading/trailing blank lines.
+          sed -i -e '/./,$!d' -e :a -e '/^\n*$/{$d;N;ba' -e '}' /tmp/user_release_notes.md || true
+
+          if [ ! -s /tmp/user_release_notes.md ]; then
+            echo "WARN: No CHANGELOG section for v$VERSION; falling back to GitHub auto-notes"
+            cp /tmp/release_notes.md /tmp/user_release_notes.md
+          fi
+
+          echo "::group::User-facing notes (mirrored to R2)"
+          cat /tmp/user_release_notes.md
+          echo "::endgroup::"
+
+      # Mirror the user-facing notes to R2 so the desktop auto-update modal
+      # can read them. Repo is private, so anonymous github.com calls 404 —
+      # R2 is publicly readable (same bucket as installers), so the modal
+      # fetches https://pub-1dd00656fa304302a2db06169963ac20.r2.dev/notes/v${version}.md
       # without any auth.
-      - name: Mirror release notes to Cloudflare R2
+      - name: Mirror user-facing notes to Cloudflare R2
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -289,8 +318,8 @@ jobs:
           set -e
           TAG="v${GITHUB_REF_NAME#desktop/v}"
           ENDPOINT="https://10b526ce06de458a7e43834f97953694.r2.cloudflarestorage.com"
-          echo "Uploading /tmp/release_notes.md -> s3://sekel-releases/notes/$TAG.md"
-          aws s3 cp /tmp/release_notes.md "s3://sekel-releases/notes/$TAG.md" \
+          echo "Uploading /tmp/user_release_notes.md -> s3://sekel-releases/notes/$TAG.md"
+          aws s3 cp /tmp/user_release_notes.md "s3://sekel-releases/notes/$TAG.md" \
             --endpoint-url "$ENDPOINT" \
             --content-type "text/markdown; charset=utf-8" \
             --cache-control "public, max-age=300"

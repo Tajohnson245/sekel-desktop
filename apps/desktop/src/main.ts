@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/electron/main';
-import { app, autoUpdater, BrowserWindow, dialog, ipcMain, protocol } from 'electron';
+import { app, autoUpdater, BrowserWindow, dialog, ipcMain, protocol, shell } from 'electron';
 
 Sentry.init({
     dsn: 'https://cacb0014cc3c9ce493a71a738929f415@o4511351709171712.ingest.us.sentry.io/4511351710285824',
@@ -214,6 +214,17 @@ const createWindow = () => {
     mainWindowRef = mainWindow;
     mainWindow.once('ready-to-show', () => {
         mainWindow.show();
+    });
+
+    // Route any window.open() / target="_blank" link clicks to the user's
+    // default browser instead of letting Electron open a new BrowserWindow.
+    // Used by the auto-update modal's release-notes links (GitHub PRs etc.),
+    // and any future external links rendered into the UI.
+    mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+            shell.openExternal(url);
+        }
+        return { action: 'deny' };
     });
 
     // Save window state on close
