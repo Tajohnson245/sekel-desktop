@@ -318,6 +318,46 @@
     cursor: not-allowed;
 }
 
+.ai-card-field-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+}
+
+.ai-card-field-preview {
+    width: 100%;
+    min-height: 4.5rem;
+    padding: 0.5rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--fg);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    cursor: text;
+    overflow-wrap: anywhere;
+}
+
+.ai-card-field-preview:hover {
+    border-color: var(--teal, var(--border));
+}
+
+.ai-card-field-preview:focus-visible {
+    outline: 2px solid var(--teal);
+    outline-offset: -2px;
+}
+
+.ai-card-field-preview p {
+    margin: 0 0 0.25rem;
+}
+
+.ai-card-field-preview p:last-child {
+    margin-bottom: 0;
+}
+
 .ai-card-actions {
     display: flex;
     flex-direction: column;
