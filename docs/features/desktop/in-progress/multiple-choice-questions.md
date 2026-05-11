@@ -37,3 +37,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 | Date | Description |
 |------|-------------|
 | 2026-05-11 | Doc created. apps/desktop/src/App.tsx,apps/desktop/src/components/Card/CardViewer.css,apps/desktop/src/components/Profile/sections/PreferencesTab.tsx,apps/desktop/src/index.css,apps/desktop/src/locales/de/translation.json,apps/desktop/src/locales/en/translation.json,apps/desktop/src/locales/es/translation.json,apps/desktop/src/locales/fr/translation.json |
+| 2026-05-11 | apps/desktop/src/components/AIStudy/AICardGenerator.tsx,apps/desktop/src/ipc/ai.ts,apps/desktop/src/locales/de/translation.json,apps/desktop/src/locales/en/translation.json,apps/desktop/src/locales/es/translation.json,apps/desktop/src/locales/fr/translation.json,apps/desktop/src/locales/zh/translation.json,apps/desktop/src/types/electron.d.ts |
