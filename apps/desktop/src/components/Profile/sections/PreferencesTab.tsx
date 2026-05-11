@@ -124,6 +124,34 @@ export function PreferencesTab() {
                     </div>
                 </div>
 
+                {/* Visual (image-occlusion) card size */}
+                <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                            <label className="field-label">{t('profile.visual_card_size')}</label>
+                            <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0.2rem 0 0' }}>
+                                {t('profile.visual_card_size_desc')}
+                            </p>
+                        </div>
+                        <div style={{ minWidth: 180 }}>
+                            <Select
+                                value={profile?.visual_card_size ?? 'default'}
+                                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                                    if (user?.id) {
+                                        upsertProfile(user.id, { visual_card_size: e.target.value as UserProfile['visual_card_size'] });
+                                    }
+                                }}
+                                options={[
+                                    { value: 'compact', label: t('profile.visual_card_size_compact') },
+                                    { value: 'default', label: t('profile.visual_card_size_default') },
+                                    { value: 'large',   label: t('profile.visual_card_size_large') },
+                                    { value: 'full',    label: t('profile.visual_card_size_full') },
+                                ]}
+                            />
+                        </div>
+                    </div>
+                </div>
+
                 {/* Background Image */}
                 <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>

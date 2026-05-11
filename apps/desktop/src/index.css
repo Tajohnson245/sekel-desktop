@@ -37,6 +37,13 @@
     /* App chrome */
     --header-height: 64px;
 
+    /* Visual (image-occlusion) card width — overridden by .vcs-* classes
+       on <html>, set by VisualCardSizeClass from user profile preference.
+       Only widens .card-viewer when it contains a .occlusion-card; regular
+       flashcards are unaffected. Composes multiplicatively with Electron
+       renderer zoom (Ctrl+/-/0), which scales the entire UI. */
+    --visual-card-max-width: 600px;
+
     /* Border radius */
     --r-sm: 6px;  --r-md: 12px;  --r-lg: 20px;  --r-xl: 28px;
 
@@ -67,6 +74,14 @@
     --radius-lg:    var(--r-md);
     --card-gradient-end: #1a1f2e;
 }
+
+/* Visual-card-size class overrides — applied to <html> by
+   VisualCardSizeClass in App.tsx based on user profile.
+   See --visual-card-max-width above. */
+:root.vcs-compact { --visual-card-max-width: 480px; }
+:root.vcs-default { --visual-card-max-width: 600px; }
+:root.vcs-large   { --visual-card-max-width: 800px; }
+:root.vcs-full    { --visual-card-max-width: calc(100% - 2rem); }
 
 :root.light {
     --ink:       #FFFFFF;

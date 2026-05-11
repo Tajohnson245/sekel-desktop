@@ -337,6 +337,7 @@ export interface UserProfile {
     theme_preference: 'light' | 'dark' | 'system' | 'red' | 'purple' | 'pink' | 'turquoise';
     flip_animation: boolean;
     card_style: boolean;
+    visual_card_size: 'compact' | 'default' | 'large' | 'full';
     notifications_enabled: boolean;
     reminder_times: string[];
     background_url: string | null;
