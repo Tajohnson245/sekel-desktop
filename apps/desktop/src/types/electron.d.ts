@@ -139,7 +139,7 @@ export interface GenerationResult {
     };
 }
 
-export type CardFormat = 'basic' | 'cloze' | 'reversed' | 'true-false' | 'compare-contrast';
+export type CardFormat = 'basic' | 'cloze' | 'reversed' | 'true-false' | 'compare-contrast' | 'multiple-choice';
 
 export interface AIGenerationOptions {
     /** One or more card formats to generate. Total card count is split evenly across them. */
