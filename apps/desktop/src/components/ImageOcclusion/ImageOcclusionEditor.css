@@ -380,15 +380,6 @@
 
 /* ── Study view: occlusion card rendering ─────────────────────── */
 
-/* Widen the CardViewer wrapper when it holds a visual (occlusion) card so
-   the image gets more horizontal room. Value comes from --visual-card-max-width,
-   set on <html> by VisualCardSizeClass from the user's profile preference.
-   Regular flashcards (no .occlusion-card child) are untouched — their
-   600px max-width still applies, which is the readability sweet spot for text. */
-.card-viewer:has(.occlusion-card) {
-    max-width: var(--visual-card-max-width, 600px);
-}
-
 .occlusion-card {
     position: relative;
     display: inline-block;

@@ -37,16 +37,16 @@
     /* App chrome */
     --header-height: 64px;
 
-    /* Visual (image-occlusion) card sizing — overridden by .vcs-* classes
-       on <html>, set by VisualCardSizeClass from user profile preference.
-       Two dimensions intentionally:
-         --visual-card-max-width      widens the .card-viewer container
-         --visual-card-max-image-height clamps the rendered image
-       Both have to scale together — widening the container alone has no
-       visible effect because the image hits max-height first and the
-       inline-block .occlusion-card shrinks to fit its image. Composes
-       multiplicatively with Electron renderer zoom (Ctrl+/-/0). */
+    /* Visual card sizing — overridden by .vcs-* classes on <html>, set by
+       VisualCardSizeClass from the user profile preference. Three knobs
+       intentionally:
+         --visual-card-max-width        widens .card-viewer container
+         --visual-card-min-height       grows .flashcard-container/.flashcard-face
+                                        so short content cards look bigger too
+         --visual-card-max-image-height clamps the image inside .occlusion-card
+       Composes multiplicatively with Electron renderer zoom (Ctrl+/-/0). */
     --visual-card-max-width: 600px;
+    --visual-card-min-height: 350px;
     --visual-card-max-image-height: 250px;
 
     /* Border radius */
@@ -82,21 +82,25 @@
 
 /* Visual-card-size class overrides — applied to <html> by
    VisualCardSizeClass in App.tsx based on user profile.
-   See --visual-card-max-width / --visual-card-max-image-height above. */
+   See --visual-card-* above. */
 :root.vcs-compact {
     --visual-card-max-width:        480px;
+    --visual-card-min-height:       280px;
     --visual-card-max-image-height: 200px;
 }
 :root.vcs-default {
     --visual-card-max-width:        600px;
+    --visual-card-min-height:       350px;
     --visual-card-max-image-height: 250px;
 }
 :root.vcs-large {
     --visual-card-max-width:        800px;
+    --visual-card-min-height:       450px;
     --visual-card-max-image-height: 500px;
 }
 :root.vcs-full {
     --visual-card-max-width:        calc(100% - 2rem);
+    --visual-card-min-height:       550px;
     --visual-card-max-image-height: 70vh;
 }
 
