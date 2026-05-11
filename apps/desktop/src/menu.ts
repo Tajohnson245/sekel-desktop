@@ -92,8 +92,36 @@ const template: MenuItemConstructorOptions[] = [
                 ? [] as MenuItemConstructorOptions[]
                 : [{ role: 'toggleDevTools' }, { type: 'separator' }] as MenuItemConstructorOptions[]),
             { role: 'resetZoom' },
-            { role: 'zoomIn' },
+            // Override the default `CmdOrCtrl+Plus` (Shift+= on Windows) with
+            // `CmdOrCtrl+=` so the unshifted = key zooms in — that's what
+            // Chrome / Edge / Firefox use and what users instinctively press.
+            { role: 'zoomIn', accelerator: 'CmdOrCtrl+=' },
+            // Keep the shifted form working too (some users press Ctrl+Shift+=
+            // habitually). Hidden from the menu since the visible item already
+            // shows Ctrl+= as the primary shortcut.
+            {
+                label: 'Zoom In (alt)',
+                role: 'zoomIn',
+                accelerator: 'CmdOrCtrl+Plus',
+                visible: false,
+                acceleratorWorksWhenHidden: true,
+            },
+            // Numpad + on keyboards that have a numeric keypad.
+            {
+                label: 'Zoom In (numpad)',
+                role: 'zoomIn',
+                accelerator: 'CmdOrCtrl+numadd',
+                visible: false,
+                acceleratorWorksWhenHidden: true,
+            },
             { role: 'zoomOut' },
+            {
+                label: 'Zoom Out (numpad)',
+                role: 'zoomOut',
+                accelerator: 'CmdOrCtrl+numsub',
+                visible: false,
+                acceleratorWorksWhenHidden: true,
+            },
             { type: 'separator' },
             { role: 'togglefullscreen' }
         ]
