@@ -40,3 +40,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 | 2026-05-10 | Task completed |
 | 2026-05-10 | apps/desktop/src/components/Card/CardViewer.css,apps/desktop/src/index.css |
 | 2026-05-10 | apps/desktop/src/App.tsx,apps/desktop/src/components/Card/CardViewer.css,apps/desktop/src/components/ImageOcclusion/ImageOcclusionEditor.css,apps/desktop/src/index.css |
+| 2026-05-10 | apps/desktop/src/App.tsx |
