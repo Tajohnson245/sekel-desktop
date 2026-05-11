@@ -37,12 +37,17 @@
     /* App chrome */
     --header-height: 64px;
 
-    /* Visual (image-occlusion) card width — overridden by .vcs-* classes
+    /* Visual (image-occlusion) card sizing — overridden by .vcs-* classes
        on <html>, set by VisualCardSizeClass from user profile preference.
-       Only widens .card-viewer when it contains a .occlusion-card; regular
-       flashcards are unaffected. Composes multiplicatively with Electron
-       renderer zoom (Ctrl+/-/0), which scales the entire UI. */
+       Two dimensions intentionally:
+         --visual-card-max-width      widens the .card-viewer container
+         --visual-card-max-image-height clamps the rendered image
+       Both have to scale together — widening the container alone has no
+       visible effect because the image hits max-height first and the
+       inline-block .occlusion-card shrinks to fit its image. Composes
+       multiplicatively with Electron renderer zoom (Ctrl+/-/0). */
     --visual-card-max-width: 600px;
+    --visual-card-max-image-height: 250px;
 
     /* Border radius */
     --r-sm: 6px;  --r-md: 12px;  --r-lg: 20px;  --r-xl: 28px;
@@ -77,11 +82,23 @@
 
 /* Visual-card-size class overrides — applied to <html> by
    VisualCardSizeClass in App.tsx based on user profile.
-   See --visual-card-max-width above. */
-:root.vcs-compact { --visual-card-max-width: 480px; }
-:root.vcs-default { --visual-card-max-width: 600px; }
-:root.vcs-large   { --visual-card-max-width: 800px; }
-:root.vcs-full    { --visual-card-max-width: calc(100% - 2rem); }
+   See --visual-card-max-width / --visual-card-max-image-height above. */
+:root.vcs-compact {
+    --visual-card-max-width:        480px;
+    --visual-card-max-image-height: 200px;
+}
+:root.vcs-default {
+    --visual-card-max-width:        600px;
+    --visual-card-max-image-height: 250px;
+}
+:root.vcs-large {
+    --visual-card-max-width:        800px;
+    --visual-card-max-image-height: 500px;
+}
+:root.vcs-full {
+    --visual-card-max-width:        calc(100% - 2rem);
+    --visual-card-max-image-height: 70vh;
+}
 
 :root.light {
     --ink:       #FFFFFF;
