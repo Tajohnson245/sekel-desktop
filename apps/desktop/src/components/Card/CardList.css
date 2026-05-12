@@ -79,6 +79,24 @@
     display: none;
 }
 
+/* The global `* { padding: 0 }` reset zeroes the default ul indent, so bullets
+   render flush left against the card edge. Restore padding and add a left
+   margin so they sit clearly indented under "Similarities:" / "Differences:"
+   headers (compare-contrast format). */
+.card-front ul,
+.card-back ul {
+    margin: 0.5rem 0 0.5rem 1rem;
+    padding-left: 1.25rem;
+    list-style: disc;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.card-front li,
+.card-back li {
+    margin-bottom: 0.125rem;
+}
+
 .card-item-actions {
     display: flex;
     align-items: center;
