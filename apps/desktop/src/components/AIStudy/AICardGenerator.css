@@ -358,6 +358,23 @@
     margin-bottom: 0;
 }
 
+/* The global `* { padding: 0 }` reset zeroes out the default ul indent, which
+   makes list-style-position: outside markers render outside the parent box.
+   Restore enough padding to keep bullets inside the preview. */
+.ai-card-field-preview ul {
+    margin: 0.25rem 0 0.5rem;
+    padding-left: 1.25rem;
+    list-style: disc;
+}
+
+.ai-card-field-preview ul:last-child {
+    margin-bottom: 0;
+}
+
+.ai-card-field-preview li {
+    margin-bottom: 0.125rem;
+}
+
 .ai-card-actions {
     display: flex;
     flex-direction: column;
