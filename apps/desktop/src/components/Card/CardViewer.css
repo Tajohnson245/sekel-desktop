@@ -36,6 +36,25 @@
     border-radius: var(--radius);
 }
 
+/* Structured content (compare-contrast cards, custom HTML notes) opts out of
+   the default center alignment so headers and bullet lists read top-down.
+   The global `* { padding: 0 }` reset zeroes the default ul indent — restore
+   enough padding to keep bullets inside the card and indented under their
+   surrounding headers. */
+.flashcard-content:has(ul) {
+    text-align: left;
+}
+
+.flashcard-content ul {
+    margin: 0.5rem 0 0.75rem 1rem;
+    padding-left: 1.25rem;
+    list-style: disc;
+}
+
+.flashcard-content li {
+    margin-bottom: 0.25rem;
+}
+
 /* When card has both text and image, squeeze image further */
 .flashcard-content:has(p):has(img) img,
 .flashcard-content:has(div):has(img) img {

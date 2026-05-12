@@ -360,9 +360,11 @@
 
 /* The global `* { padding: 0 }` reset zeroes out the default ul indent, which
    makes list-style-position: outside markers render outside the parent box.
-   Restore enough padding to keep bullets inside the preview. */
+   Restore padding and add a left margin so bullets sit clearly indented
+   under the "Similarities:" / "Differences:" headers above them rather than
+   floating at the same x-position. */
 .ai-card-field-preview ul {
-    margin: 0.25rem 0 0.5rem;
+    margin: 0.25rem 0 0.5rem 1rem;
     padding-left: 1.25rem;
     list-style: disc;
 }
