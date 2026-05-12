@@ -14,6 +14,13 @@ Sentry.init({
 // without ever creating a BrowserWindow. Without this guard the app briefly
 // shows a window during install, which Squirrel then closes and re-launches
 // — the "double launch" flicker.
+// On --squirrel-uninstall, clean up our .spkg registry entries synchronously
+// before electron-squirrel-startup's spawnUpdate fires and we quit — otherwise
+// the keys leak after uninstall.
+import { registerSpkgFileAssociation, unregisterSpkgFileAssociation } from './main/fileAssociations';
+if (process.platform === 'win32' && process.argv[1] === '--squirrel-uninstall') {
+    try { unregisterSpkgFileAssociation(); } catch { /* best effort */ }
+}
 // Use require() so the module is hit synchronously before any other init.
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 if (require('electron-squirrel-startup')) {
@@ -256,6 +263,15 @@ app.whenReady().then(() => {
         }
     } else {
         app.setAsDefaultProtocolClient(DEEP_LINK_PROTOCOL);
+    }
+
+    // Register .spkg with Windows Explorer so exported packages show the Sekel
+    // icon instead of the generic blank-document icon. Idempotent + re-runs
+    // every launch, so it self-heals after Squirrel updates rotate execPath.
+    try {
+        registerSpkgFileAssociation({ execPath: process.execPath, isPackaged: app.isPackaged });
+    } catch (err) {
+        log.warn('Failed to register .spkg file association', { error: err instanceof Error ? err.message : String(err) });
     }
 
     // Renderer asks for the cold-start deep link once it mounts. Returning
