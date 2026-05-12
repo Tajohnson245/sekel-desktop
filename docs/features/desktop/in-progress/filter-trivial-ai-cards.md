@@ -38,3 +38,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 |------|-------------|
 | 2026-05-12 | Doc created. apps/desktop/src/ipc/ai.ts |
 | 2026-05-12 | apps/desktop/src/components/AIStudy/AICardGenerator.css |
+| 2026-05-12 | apps/desktop/src/components/AIStudy/AICardGenerator.css,apps/desktop/src/components/Card/CardViewer.css |
