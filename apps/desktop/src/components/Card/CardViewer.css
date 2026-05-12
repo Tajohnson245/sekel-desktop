@@ -55,6 +55,17 @@
     margin-bottom: 0.25rem;
 }
 
+/* Multiple-choice cards: gap between question and option A.
+   Option <p>s start with <strong>X.</strong> followed by option text, so
+   <strong> is the first child but not the only child. Match the first such
+   <p> that follows a non-option <p> (the question) and push it down.
+   Has the side-benefit of cleanly skipping section headers like
+   <p><strong>Similarities:</strong></p> where <strong> is the only child. */
+.flashcard-content p:not(:has(> strong:first-child:not(:only-child)))
+    + p:has(> strong:first-child:not(:only-child)) {
+    margin-top: 1rem;
+}
+
 /* When card has both text and image, squeeze image further */
 .flashcard-content:has(p):has(img) img,
 .flashcard-content:has(div):has(img) img {

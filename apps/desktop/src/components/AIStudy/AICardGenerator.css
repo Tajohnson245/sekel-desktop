@@ -377,6 +377,12 @@
     margin-bottom: 0.125rem;
 }
 
+/* MCQ: visual gap between question and option A — same selector as study view. */
+.ai-card-field-preview p:not(:has(> strong:first-child:not(:only-child)))
+    + p:has(> strong:first-child:not(:only-child)) {
+    margin-top: 0.75rem;
+}
+
 .ai-card-actions {
     display: flex;
     flex-direction: column;

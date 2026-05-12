@@ -97,6 +97,14 @@
     margin-bottom: 0.125rem;
 }
 
+/* MCQ: visual gap between question and option A — same selector as study view. */
+.card-front p:not(:has(> strong:first-child:not(:only-child)))
+    + p:has(> strong:first-child:not(:only-child)),
+.card-back p:not(:has(> strong:first-child:not(:only-child)))
+    + p:has(> strong:first-child:not(:only-child)) {
+    margin-top: 0.75rem;
+}
+
 .card-item-actions {
     display: flex;
     align-items: center;
