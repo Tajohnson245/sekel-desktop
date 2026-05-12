@@ -37,3 +37,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 | Date | Description |
 |------|-------------|
 | 2026-05-11 | Doc created. apps/desktop/src/main.ts,apps/desktop/src/main/fileAssociations.ts |
+| 2026-05-11 | apps/desktop/src/main.ts,apps/desktop/src/main/fileAssociations.ts |
