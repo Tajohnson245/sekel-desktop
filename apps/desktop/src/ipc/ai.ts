@@ -105,6 +105,17 @@ interface SessionStats {
     evaluatorReasons: string[];
 }
 
+// Shared exclusion block: keeps every generation path (legacy single-format,
+// chunked multi-format, regeneration) aligned on what NOT to turn into cards.
+// The chunker pre-filters meta sections and the evaluator gates them, but the
+// generator itself is the cheapest place to enforce subject-only output —
+// stop a trivial card before it costs an eval call.
+const META_EXCLUSIONS = `Do NOT generate cards about:
+- The exam, certification, or credential the document prepares for — its name, length, format, scoring, passing score, registration, fees, retake policy, history, or who administers it (e.g. "What does NAPLEX stand for?", "How long is the exam?", "Who administers the exam?").
+- The document itself — author, chapter titles, foreword, preface, acknowledgments, dedications, table of contents, "how to use this book", or general study-strategy advice.
+- Generic self-referential definitions of the field or profession (e.g. "What is pharmacy?", "What does a pharmacist do?") when they appear as introductory framing rather than testable competency content.
+Generate cards ONLY about the substantive subject matter a practitioner is expected to know and apply.`;
+
 // ─────────────────────────────────────────────────────────────────
 // Legacy prompt builder (used by the basic generate-cards handler)
 // ─────────────────────────────────────────────────────────────────
@@ -197,6 +208,15 @@ Split the following document into discrete concept chunks. Each chunk should:
 - Be between 100-400 words
 - Preserve enough context to generate cards without referencing other chunks
 
+SKIP these sections entirely — do not emit chunks for them:
+- Front matter: forewords, prefaces, acknowledgments, dedications, "about the author", copyright pages, publisher notes
+- Table of contents, chapter lists, index entries, glossary front matter
+- "How to use this book" or general study-strategy / test-taking advice
+- Information about the exam, certification, or credential itself — its length, format, scoring, registration, fees, retake policy, history, or administering body
+- Marketing copy and other non-instructional framing
+
+If a section mixes meta content with substantive subject matter, include only the substantive portion in the chunk.
+
 Return a JSON object with a "chunks" array only. No preamble, no explanation.
 
 { "chunks": [{ "id": 1, "text": "..." }, { "id": 2, "text": "..." }] }`,
@@ -273,6 +293,8 @@ Rules:
 - Do not generate cards about background history or general introductions
 - ${difficultyNote}
 
+${META_EXCLUSIONS}
+
 User instruction: ${userInstruction}
 ${revisionNote}
 Generate exactly ${n} Q&A flashcards from the content below.
@@ -295,6 +317,8 @@ Only generate a reversed card where the reverse direction is genuinely testable.
 If a reversed card would be ambiguous or have multiple valid answers, skip it and find a different fact from the content.
 
 - ${difficultyNote}
+
+${META_EXCLUSIONS}
 
 User instruction: ${userInstruction}
 ${revisionNote}
@@ -324,6 +348,8 @@ Reason: The blank requires genuine recall; surrounding context is rich but not r
 
 - ${difficultyNote}
 
+${META_EXCLUSIONS}
+
 User instruction: ${userInstruction}
 ${revisionNote}
 Generate exactly ${n} cloze flashcards from the content below.
@@ -345,6 +371,8 @@ Rules:
 - "back" begins with "True." or "False." followed by one short sentence explaining why
 - Each card tests exactly ONE fact
 - ${difficultyNote}
+
+${META_EXCLUSIONS}
 
 User instruction: ${userInstruction}
 ${revisionNote}
@@ -373,6 +401,8 @@ Rules:
 - 2-4 bullet points in each list. Each bullet short and concrete.
 - Use ONLY these tags: <p>, <strong>, <ul>, <li>. No attributes, no other tags.
 - ${difficultyNote}
+
+${META_EXCLUSIONS}
 
 User instruction: ${userInstruction}
 ${revisionNote}
@@ -406,6 +436,8 @@ Rules:
 - "back" is HTML containing only the correct letter and the correct option text, no explanation:
   <p><strong>{letter}. {correct option text}</strong></p>
 - ${difficultyNote}
+
+${META_EXCLUSIONS}
 
 User instruction: ${userInstruction}
 ${revisionNote}
@@ -510,12 +542,12 @@ async function evaluateCardsBatch(cards: GeneratedCard[], cardFormat: string): P
             ? `1. Atomicity: tests exactly one fact
 2. Testability: correct answer is unambiguous and clearly the best option
 3. Clarity: question and options are clearly worded
-4. Non-triviality: requires real knowledge to answer
+4. Non-triviality: tests real subject-matter knowledge — NOT trivia about the exam/credential itself (format, length, scoring, registration), the document (author, chapters, foreword, acknowledgments, study-strategy advice), or generic self-definitions of the field
 5. Distractor quality: the three wrong options are plausible, same-domain, and NOT trivially eliminable (no joke options, no obvious outliers, no near-duplicates of the correct answer or each other)`
             : `1. Atomicity: tests exactly one fact
 2. Testability: answer is unambiguous and concise
 3. Clarity: question/sentence is clearly worded
-4. Non-triviality: requires real knowledge to answer`;
+4. Non-triviality: tests real subject-matter knowledge — NOT trivia about the exam/credential itself (format, length, scoring, registration), the document (author, chapters, foreword, acknowledgments, study-strategy advice), or generic self-definitions of the field`;
 
         const schemaExample = isMC
             ? `{ "atomicity": 1, "testability": 1, "clarity": 1, "nontriviality": 1, "distractorQuality": 1, "total": 5, "verdict": "keep", "reason": "one short sentence" }`
@@ -685,7 +717,9 @@ export const setupAIHandlers = () => {
 
 Rules:
 ${formatRules}
-- Ensure all content is in ${language}.`,
+- Ensure all content is in ${language}.
+
+${META_EXCLUSIONS}`,
                         },
                         { role: 'user', content: text },
                     ],
