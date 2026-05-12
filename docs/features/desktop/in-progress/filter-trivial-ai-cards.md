@@ -44,3 +44,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 | 2026-05-12 | apps/desktop/src/components/AIStudy/AICardGenerator.css,apps/desktop/src/components/Card/CardList.css,apps/desktop/src/components/Card/CardViewer.css |
 | 2026-05-12 | Task completed |
 | 2026-05-12 | apps/desktop/src/components/AIStudy/AICardGenerator.css,apps/desktop/src/components/AIStudy/AICardGenerator.tsx,apps/desktop/src/components/Card/CardList.css,apps/desktop/src/components/Card/CardList.tsx,apps/desktop/src/components/Card/CardViewer.css,apps/desktop/src/components/Card/CardViewer.tsx,apps/desktop/src/components/Study/StudySession.tsx,apps/desktop/src/ipc/ai.ts |
+| 2026-05-12 | apps/desktop/src/components/Card/CardViewer.css |
