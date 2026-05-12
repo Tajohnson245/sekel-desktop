@@ -358,11 +358,11 @@
     margin-bottom: 0;
 }
 
-/* The global `* { padding: 0 }` reset zeroes out the default ul indent, which
-   makes list-style-position: outside markers render outside the parent box.
-   Restore padding and add a left margin so bullets sit clearly indented
-   under the "Similarities:" / "Differences:" headers above them rather than
-   floating at the same x-position. */
+/* ── Format-aware styling — see CardViewer.css for the design rationale.
+   data-card-format on .ai-card-field-preview drives format-specific rules;
+   shape-sniffing fallbacks catch legacy / imported content with null format. */
+
+/* Bullet indent — unconditional. */
 .ai-card-field-preview ul {
     margin: 0.25rem 0 0.5rem 1rem;
     padding-left: 1.25rem;
@@ -377,8 +377,11 @@
     margin-bottom: 0.125rem;
 }
 
-/* MCQ: visual gap between question and option A — same selector as study view. */
-.ai-card-field-preview p:not(:has(strong)) + p:has(strong):not(:has(+ ul)) {
+/* MCQ: visual gap between question and option A. */
+.ai-card-field-preview[data-card-format="multiple-choice"] p:not(:has(> strong))
+    + p:has(> strong),
+.ai-card-field-preview:not([data-card-format]) p:not(:has(strong))
+    + p:has(strong):not(:has(+ ul)) {
     margin-top: 0.75rem;
 }
 

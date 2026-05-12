@@ -79,10 +79,11 @@
     display: none;
 }
 
-/* The global `* { padding: 0 }` reset zeroes the default ul indent, so bullets
-   render flush left against the card edge. Restore padding and add a left
-   margin so they sit clearly indented under "Similarities:" / "Differences:"
-   headers (compare-contrast format). */
+/* ── Format-aware styling — see CardViewer.css for the design rationale.
+   data-card-format on .card-front / .card-back drives the primary rules;
+   shape-sniffing fallbacks catch legacy / imported content with null format. */
+
+/* Bullet indent — unconditional. */
 .card-front ul,
 .card-back ul {
     margin: 0.5rem 0 0.5rem 1rem;
@@ -97,9 +98,15 @@
     margin-bottom: 0.125rem;
 }
 
-/* MCQ: visual gap between question and option A — same selector as study view. */
-.card-front p:not(:has(strong)) + p:has(strong):not(:has(+ ul)),
-.card-back p:not(:has(strong)) + p:has(strong):not(:has(+ ul)) {
+/* MCQ: visual gap between question and option A. */
+.card-front[data-card-format="multiple-choice"] p:not(:has(> strong))
+    + p:has(> strong),
+.card-back[data-card-format="multiple-choice"] p:not(:has(> strong))
+    + p:has(> strong),
+.card-front:not([data-card-format]) p:not(:has(strong))
+    + p:has(strong):not(:has(+ ul)),
+.card-back:not([data-card-format]) p:not(:has(strong))
+    + p:has(strong):not(:has(+ ul)) {
     margin-top: 0.75rem;
 }
 

@@ -451,6 +451,7 @@ export function buildCardWithNote(row: CardWithNoteRow): CardWithNote {
         note_type_id: row.note_type_id as string,
         fields: j(row.note_fields),
         tags: j(row.note_tags),
+        format: (row.note_format as Note['format']) ?? null,
         anki_id: (row.anki_id as number | null) ?? null,
         anki_guid: (row.anki_guid as string | null) ?? null,
         anki_meta: (row.note_anki_meta as string | null) ?? null,
@@ -494,6 +495,7 @@ export const CARD_WITH_NOTE_SQL = `
         n.note_type_id,
         n.fields   AS note_fields,
         n.tags     AS note_tags,
+        n.format   AS note_format,
         n.anki_meta AS note_anki_meta,
         n.created_at AS note_created_at,
         n.updated_at AS note_updated_at,
@@ -793,9 +795,9 @@ export function createNote(note: NoteInsert): Note {
     const now = new Date().toISOString();
     const id = randomUUID();
     getDb().prepare(`
-        INSERT INTO notes (id, user_id, deck_id, note_type_id, fields, tags, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, note.user_id, note.deck_id, note.note_type_id, s(note.fields), s(note.tags), now, now);
+        INSERT INTO notes (id, user_id, deck_id, note_type_id, fields, tags, format, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, note.user_id, note.deck_id, note.note_type_id, s(note.fields), s(note.tags), note.format ?? null, now, now);
     return fetchNoteById(id)!;
 }
 

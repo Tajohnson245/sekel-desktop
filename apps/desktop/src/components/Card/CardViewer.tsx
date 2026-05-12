@@ -2,7 +2,7 @@ import { useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useProfileStore } from '../../stores/profileStore';
 import { sanitize } from '../../lib/sanitize';
-import type { OcclusionShape, IOMode } from '../../lib/types';
+import type { OcclusionShape, IOMode, CardFormat } from '../../lib/types';
 import './CardViewer.css';
 
 interface CardViewerProps {
@@ -11,6 +11,10 @@ interface CardViewerProps {
     isRevealed: boolean;
     onReveal: () => void;
     onUnreveal?: () => void;
+    /** Source format from the note. Drives format-specific CSS rules via
+     *  [data-card-format] on each face's content wrapper. Null/undefined for
+     *  imported Anki cards and other content with no known format. */
+    format?: CardFormat | null;
 }
 
 // ─── Content transforms ─────────────────────────────────────────
@@ -180,7 +184,7 @@ function stripFrontFromBack(backHtml: string, frontHtml: string): string {
 //   2. Static   — styled card, instant show/hide      (card_style ON, flip_animation OFF)
 //   3. Animated — styled card, 3D flip transition     (card_style ON, flip_animation ON)
 
-export default function CardViewer({ front, back, isRevealed, onReveal, onUnreveal }: CardViewerProps) {
+export default function CardViewer({ front, back, isRevealed, onReveal, onUnreveal, format }: CardViewerProps) {
     const { t } = useTranslation();
     const { profile } = useProfileStore();
     const cardStyleEnabled = profile?.card_style ?? true;
@@ -231,7 +235,7 @@ export default function CardViewer({ front, back, isRevealed, onReveal, onUnreve
             >
                 <div className="classic-front">
                     <div className="flashcard-face-inner">
-                        <div className="flashcard-content" dangerouslySetInnerHTML={{ __html: sanitize(renderedFront) }} />
+                        <div className="flashcard-content" data-card-format={format ?? undefined} dangerouslySetInnerHTML={{ __html: sanitize(renderedFront) }} />
                     </div>
                 </div>
 
@@ -239,7 +243,7 @@ export default function CardViewer({ front, back, isRevealed, onReveal, onUnreve
                 <div className={`classic-back${isRevealed ? '' : ' classic-back--hidden'}`}>
                     <div className="flashcard-label">{t('study.answer')}</div>
                     <div className="flashcard-face-inner">
-                        <div className="flashcard-content" dangerouslySetInnerHTML={{ __html: sanitize(answerOnly) }} />
+                        <div className="flashcard-content" data-card-format={format ?? undefined} dangerouslySetInnerHTML={{ __html: sanitize(answerOnly) }} />
                     </div>
                 </div>
             </div>
@@ -261,7 +265,7 @@ export default function CardViewer({ front, back, isRevealed, onReveal, onUnreve
                     {!isRevealed ? (
                         <div className="flashcard-face flashcard-face-front flashcard-face--static">
                             <div className="flashcard-face-inner" ref={frontInnerRef} onScroll={handleInnerScroll}>
-                                <div className="flashcard-content" dangerouslySetInnerHTML={{ __html: sanitize(renderedFront) }} />
+                                <div className="flashcard-content" data-card-format={format ?? undefined} dangerouslySetInnerHTML={{ __html: sanitize(renderedFront) }} />
                             </div>
                             <div className="tap-hint"><span>{t('study.tap_to_flip')}</span></div>
                         </div>
@@ -269,7 +273,7 @@ export default function CardViewer({ front, back, isRevealed, onReveal, onUnreve
                         <div className="flashcard-face flashcard-face-back flashcard-face--static">
                             <div className="flashcard-face-inner" ref={backInnerRef} onScroll={handleInnerScroll}>
                                 <div className="flashcard-label">{t('study.answer')}</div>
-                                <div className="flashcard-content" dangerouslySetInnerHTML={{ __html: sanitize(renderedBack) }} />
+                                <div className="flashcard-content" data-card-format={format ?? undefined} dangerouslySetInnerHTML={{ __html: sanitize(renderedBack) }} />
                             </div>
                             {onUnreveal && (
                                 <div className="tap-hint"><span>{t('study.tap_to_flip')}</span></div>
@@ -295,7 +299,7 @@ export default function CardViewer({ front, back, isRevealed, onReveal, onUnreve
                 <div className="flashcard-flipper">
                     <div className="flashcard-face flashcard-face-front">
                         <div className="flashcard-face-inner" ref={frontInnerRef} onScroll={handleInnerScroll}>
-                            <div className="flashcard-content" dangerouslySetInnerHTML={{ __html: sanitize(renderedFront) }} />
+                            <div className="flashcard-content" data-card-format={format ?? undefined} dangerouslySetInnerHTML={{ __html: sanitize(renderedFront) }} />
                         </div>
                         {!isRevealed && (
                             <div className="tap-hint"><span>{t('study.tap_to_flip')}</span></div>
@@ -305,7 +309,7 @@ export default function CardViewer({ front, back, isRevealed, onReveal, onUnreve
                     <div className="flashcard-face flashcard-face-back">
                         <div className="flashcard-face-inner" ref={backInnerRef} onScroll={handleInnerScroll}>
                             <div className="flashcard-label">{t('study.answer')}</div>
-                            <div className="flashcard-content" dangerouslySetInnerHTML={{ __html: sanitize(renderedBack) }} />
+                            <div className="flashcard-content" data-card-format={format ?? undefined} dangerouslySetInnerHTML={{ __html: sanitize(renderedBack) }} />
                         </div>
                         {isRevealed && onUnreveal && (
                             <div className="tap-hint"><span>{t('study.tap_to_flip')}</span></div>

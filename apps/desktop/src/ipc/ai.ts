@@ -83,6 +83,7 @@ interface GenerationOptions {
 interface GeneratedCard {
     front: string;
     back: string;
+    format?: CardFormat;
 }
 
 interface Chunk {
@@ -481,13 +482,15 @@ async function generateCardsForChunk(
     const raw = JSON.parse(response.choices[0].message.content || '{}');
     const items: GeneratedCard[] = raw.flashcards || raw.cards || [];
 
-    // Normalize cloze cards: { text } → { front: text, back: extracted word }
+    // Normalize cloze cards: { text } → { front: text, back: extracted word }.
+    // Stamp the source format on every card so the renderer can branch on
+    // [data-card-format] instead of fishing for HTML shape patterns.
     return items.map((card: GeneratedCard & { text?: string }) => {
         if (card.text) {
             const match = card.text.match(/\{\{c1::([^}]+)\}\}/);
-            return { front: card.text, back: match ? match[1] : '' };
+            return { front: card.text, back: match ? match[1] : '', format: cardFormat };
         }
-        return { front: card.front || '', back: card.back || '' };
+        return { front: card.front || '', back: card.back || '', format: cardFormat };
     });
 }
 
@@ -728,7 +731,11 @@ ${META_EXCLUSIONS}`,
             }));
             const content = response.choices[0].message.content;
             const parsed = JSON.parse(content || '{}');
-            return parsed.flashcards || parsed.cards || [];
+            const cards: GeneratedCard[] = parsed.flashcards || parsed.cards || [];
+            // Legacy single-format path: stamp the selected format (or 'basic'
+            // by default) on every card so the persistence layer can store it.
+            const legacyFormat: CardFormat = options?.cardFormats?.[0] ?? 'basic';
+            return cards.map((c) => ({ ...c, format: c.format ?? legacyFormat }));
         } catch (error) {
             console.error('Error generating cards:', error);
             throw error;
