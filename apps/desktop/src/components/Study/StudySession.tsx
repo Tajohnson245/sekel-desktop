@@ -396,6 +396,7 @@ export default function StudySession() {
                     isRevealed={isRevealed}
                     onReveal={handleReveal}
                     onUnreveal={handleUnreveal}
+                    format={currentCard?.note?.format ?? null}
                 />
             </div>
 

@@ -622,4 +622,10 @@ export const MIGRATIONS: string[] = [
              AND be.exam_key = plans.exam_key
        );
     `,
+    // Migration — AI card format tracking. Nullable: pre-existing rows and
+    // imported Anki notes keep `format` NULL. CHECK constraint omitted on the
+    // SQLite side; the IPC validation layer enforces the allowed set.
+    `
+    ALTER TABLE notes ADD COLUMN format TEXT;
+    `,
 ];

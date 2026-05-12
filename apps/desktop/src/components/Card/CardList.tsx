@@ -147,11 +147,11 @@ export default function CardList({ deckId, onAddCard, onGenerateAI, onEdit }: Ca
                                         </>
                                     ) : (
                                         <>
-                                            <div className="card-front">
+                                            <div className="card-front" data-card-format={card.note.format ?? undefined}>
                                                 <span className="card-label">{t('card.front')}</span>
                                                 <p dangerouslySetInnerHTML={{ __html: sanitize(renderSide(template?.front_template ?? '{{Front}}', card.note.fields, isAnki)) }} />
                                             </div>
-                                            <div className="card-back">
+                                            <div className="card-back" data-card-format={card.note.format ?? undefined}>
                                                 <span className="card-label">{t('card.back')}</span>
                                                 <p dangerouslySetInnerHTML={{ __html: sanitize(renderSide(template?.back_template ?? '{{Back}}', card.note.fields, isAnki, true)) }} />
                                             </div>

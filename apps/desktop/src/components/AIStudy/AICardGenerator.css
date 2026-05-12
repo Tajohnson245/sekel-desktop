@@ -358,6 +358,33 @@
     margin-bottom: 0;
 }
 
+/* ── Format-aware styling — see CardViewer.css for the design rationale.
+   data-card-format on .ai-card-field-preview drives format-specific rules;
+   shape-sniffing fallbacks catch legacy / imported content with null format. */
+
+/* Bullet indent — unconditional. */
+.ai-card-field-preview ul {
+    margin: 0.25rem 0 0.5rem 1rem;
+    padding-left: 1.25rem;
+    list-style: disc;
+}
+
+.ai-card-field-preview ul:last-child {
+    margin-bottom: 0;
+}
+
+.ai-card-field-preview li {
+    margin-bottom: 0.125rem;
+}
+
+/* MCQ: visual gap between question and option A. */
+.ai-card-field-preview[data-card-format="multiple-choice"] p:not(:has(> strong))
+    + p:has(> strong),
+.ai-card-field-preview:not([data-card-format]) p:not(:has(strong))
+    + p:has(strong):not(:has(+ ul)) {
+    margin-top: 0.75rem;
+}
+
 .ai-card-actions {
     display: flex;
     flex-direction: column;

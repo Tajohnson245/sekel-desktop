@@ -79,6 +79,37 @@
     display: none;
 }
 
+/* ── Format-aware styling — see CardViewer.css for the design rationale.
+   data-card-format on .card-front / .card-back drives the primary rules;
+   shape-sniffing fallbacks catch legacy / imported content with null format. */
+
+/* Bullet indent — unconditional. */
+.card-front ul,
+.card-back ul {
+    margin: 0.5rem 0 0.5rem 1rem;
+    padding-left: 1.25rem;
+    list-style: disc;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.card-front li,
+.card-back li {
+    margin-bottom: 0.125rem;
+}
+
+/* MCQ: visual gap between question and option A. */
+.card-front[data-card-format="multiple-choice"] p:not(:has(> strong))
+    + p:has(> strong),
+.card-back[data-card-format="multiple-choice"] p:not(:has(> strong))
+    + p:has(> strong),
+.card-front:not([data-card-format]) p:not(:has(strong))
+    + p:has(strong):not(:has(+ ul)),
+.card-back:not([data-card-format]) p:not(:has(strong))
+    + p:has(strong):not(:has(+ ul)) {
+    margin-top: 0.75rem;
+}
+
 .card-item-actions {
     display: flex;
     align-items: center;

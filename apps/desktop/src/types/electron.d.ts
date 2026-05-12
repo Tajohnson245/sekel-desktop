@@ -128,6 +128,9 @@ export interface DocumentOverview {
 export interface GeneratedCard {
     front: string;
     back: string;
+    /** Carries the source format so the persistence layer can store it on the
+     *  note, and renderers can apply format-specific styling. */
+    format?: CardFormat;
 }
 
 export interface GenerationResult {

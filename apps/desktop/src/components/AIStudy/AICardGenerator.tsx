@@ -190,6 +190,7 @@ export default function AICardGenerator({ extractedText, contextSummary, context
                     note_type_id: noteTypeId,
                     fields: { Front: frontContent, Back: backContent },
                     tags: ['ai-generated'],
+                    format: card.format ?? null,
                 },
                 templateCount: 1,
             });
@@ -218,6 +219,7 @@ export default function AICardGenerator({ extractedText, contextSummary, context
                         note_type_id: noteTypeId,
                         fields: { Front: frontContent, Back: backContent },
                         tags: ['ai-generated'],
+                        format: card.format ?? null,
                     },
                     templateCount: 1,
                 });
@@ -402,6 +404,7 @@ export default function AICardGenerator({ extractedText, contextSummary, context
                                                             <label className="ai-card-field-label">{t(labelKey)}</label>
                                                             <div
                                                                 className="ai-card-field-preview"
+                                                                data-card-format={card.format ?? undefined}
                                                                 role="textbox"
                                                                 tabIndex={0}
                                                                 onClick={() => setEditing({ index, side })}
