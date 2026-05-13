@@ -59,6 +59,18 @@ export type NoteTypeInsert = Omit<NoteType, 'id' | 'created_at' | 'updated_at' |
 export type NoteTypeUpdate = Partial<Omit<NoteType, 'id' | 'user_id' | 'created_at' | 'updated_at'>>;
 
 // ─────────────────────────────────────────────────────────────────
+// Card format — see packages/db/src/types.ts for the canonical definition.
+// Renderers branch on this attribute to apply format-specific styling.
+// ─────────────────────────────────────────────────────────────────
+export type CardFormat =
+    | 'basic'
+    | 'cloze'
+    | 'reversed'
+    | 'true-false'
+    | 'compare-contrast'
+    | 'multiple-choice';
+
+// ─────────────────────────────────────────────────────────────────
 // Note (source content)
 // ─────────────────────────────────────────────────────────────────
 export interface Note {
@@ -68,13 +80,14 @@ export interface Note {
     note_type_id: string;
     fields: Record<string, string>;
     tags: string[];
+    format: CardFormat | null;
     anki_id: number | null;
     anki_guid: string | null;
     created_at: string;
     updated_at: string;
 }
 
-export type NoteInsert = Omit<Note, 'id' | 'created_at' | 'updated_at' | 'anki_id' | 'anki_guid'> & { anki_id?: number | null; anki_guid?: string | null };
+export type NoteInsert = Omit<Note, 'id' | 'created_at' | 'updated_at' | 'anki_id' | 'anki_guid' | 'format'> & { anki_id?: number | null; anki_guid?: string | null; format?: CardFormat | null };
 export type NoteUpdate = Partial<Omit<Note, 'id' | 'user_id' | 'created_at' | 'updated_at'>>;
 
 // ─────────────────────────────────────────────────────────────────

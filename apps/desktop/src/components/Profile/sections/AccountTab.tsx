@@ -4,7 +4,7 @@ import { Lock, Trash2, Upload, Download, Compass } from 'lucide-react';
 import ImportAnkiButton from '../../Deck/ImportAnkiButton';
 import { useTranslation } from 'react-i18next';
 import { Modal, Button, Input, useToast } from '../../UI';
-import { deckKeys } from '../../../hooks/useDecks';
+import { deckKeys, useDecks } from '../../../hooks/useDecks';
 import { useQueryClient } from '@tanstack/react-query';
 import { FeedbackSection } from '../FeedbackSection';
 import { useOnboardingStore, ONBOARDING_LOCALSTORAGE_KEY } from '../../../stores/onboardingStore';
@@ -20,7 +20,20 @@ export function AccountTab() {
     const [isEditingPassword, setIsEditingPassword] = useState(false);
     const [passwordForm, setPasswordForm] = useState({ newPassword: '', confirmPassword: '' });
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-    const [exportingCollection, setExportingCollection] = useState(false);
+    const [exportingDeck, setExportingDeck] = useState(false);
+    const [selectedDeckId, setSelectedDeckId] = useState<string>('');
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+    const { data: decks = [] } = useDecks();
+
+    const openExportModal = () => {
+        setSelectedDeckId('');
+        setIsExportModalOpen(true);
+    };
+
+    const closeExportModal = () => {
+        if (exportingDeck) return;
+        setIsExportModalOpen(false);
+    };
 
     const handleChangePassword = async () => {
         if (passwordForm.newPassword !== passwordForm.confirmPassword) {
@@ -37,16 +50,19 @@ export function AccountTab() {
         }
     };
 
-    const handleExportCollection = async () => {
-        if (!user?.id) return;
-        setExportingCollection(true);
+    const handleExportDeck = async () => {
+        if (!user?.id || !selectedDeckId) return;
+        setExportingDeck(true);
         try {
-            const result = await window.electronAPI.db.exportSekel(user.id, null, true);
-            if (result) showToast(t('export.success'), 'success');
+            const result = await window.electronAPI.db.exportSekel(user.id, selectedDeckId, true);
+            if (result) {
+                showToast(t('export.success'), 'success');
+                setIsExportModalOpen(false);
+            }
         } catch {
             showToast(t('export.error'), 'error');
         } finally {
-            setExportingCollection(false);
+            setExportingDeck(false);
         }
     };
 
@@ -93,18 +109,20 @@ export function AccountTab() {
                     <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <div>
-                                <label className="field-label">{t('profile.export_collection')}</label>
+                                <label className="field-label">{t('profile.export_deck')}</label>
                                 <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0.2rem 0 0' }}>
-                                    {t('profile.export_collection_desc')}
+                                    {decks.length === 0
+                                        ? t('profile.export_deck_empty')
+                                        : t('profile.export_deck_desc')}
                                 </p>
                             </div>
                             <Button
                                 variant="secondary"
-                                onClick={handleExportCollection}
-                                disabled={exportingCollection}
+                                onClick={openExportModal}
+                                disabled={decks.length === 0}
                                 icon={<Download size={14} />}
                             >
-                                {exportingCollection ? t('common.loading') : t('profile.export_collection_btn')}
+                                {t('profile.export_deck_btn')}
                             </Button>
                         </div>
                     </div>
@@ -203,6 +221,70 @@ export function AccountTab() {
                     </div>
                 </div>
             </section>
+
+            <Modal
+                isOpen={isExportModalOpen}
+                onClose={closeExportModal}
+                title={t('profile.export_deck_modal_title')}
+                size="md"
+                footer={
+                    <>
+                        <Button variant="secondary" onClick={closeExportModal} disabled={exportingDeck}>
+                            {t('common.cancel')}
+                        </Button>
+                        <Button
+                            variant="primary"
+                            onClick={handleExportDeck}
+                            disabled={!selectedDeckId || exportingDeck}
+                            icon={<Download size={14} />}
+                        >
+                            {exportingDeck ? t('common.loading') : t('profile.export_deck_btn')}
+                        </Button>
+                    </>
+                }
+            >
+                <p className="text-muted" style={{ fontSize: '0.9rem', margin: '0 0 1rem' }}>
+                    {t('profile.export_deck_desc')}
+                </p>
+                <div
+                    role="radiogroup"
+                    aria-label={t('profile.export_deck_modal_title')}
+                    style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '0.4rem',
+                        maxHeight: '20rem',
+                        overflowY: 'auto',
+                    }}
+                >
+                    {decks.map((d) => {
+                        const selected = d.id === selectedDeckId;
+                        return (
+                            <button
+                                key={d.id}
+                                type="button"
+                                role="radio"
+                                aria-checked={selected}
+                                onClick={() => setSelectedDeckId(d.id)}
+                                disabled={exportingDeck}
+                                style={{
+                                    textAlign: 'left',
+                                    padding: '0.6rem 0.8rem',
+                                    borderRadius: '8px',
+                                    border: `2px solid ${selected ? 'var(--primary)' : 'var(--border)'}`,
+                                    background: selected ? 'var(--primary-bg, rgba(99,102,241,0.1))' : 'var(--card-bg)',
+                                    color: 'var(--text)',
+                                    cursor: exportingDeck ? 'not-allowed' : 'pointer',
+                                    fontWeight: selected ? 600 : 400,
+                                    fontSize: '0.9rem',
+                                }}
+                            >
+                                {d.name}
+                            </button>
+                        );
+                    })}
+                </div>
+            </Modal>
 
             <Modal
                 isOpen={isDeleteModalOpen}

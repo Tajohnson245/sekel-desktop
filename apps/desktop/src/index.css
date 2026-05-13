@@ -37,6 +37,18 @@
     /* App chrome */
     --header-height: 64px;
 
+    /* Visual card sizing — overridden by .vcs-* classes on <html>, set by
+       VisualCardSizeClass from the user profile preference. Three knobs
+       intentionally:
+         --visual-card-max-width        widens .card-viewer container
+         --visual-card-min-height       grows .flashcard-container/.flashcard-face
+                                        so short content cards look bigger too
+         --visual-card-max-image-height clamps the image inside .occlusion-card
+       Composes multiplicatively with Electron renderer zoom (Ctrl+/-/0). */
+    --visual-card-max-width: 600px;
+    --visual-card-min-height: 350px;
+    --visual-card-max-image-height: 250px;
+
     /* Border radius */
     --r-sm: 6px;  --r-md: 12px;  --r-lg: 20px;  --r-xl: 28px;
 
@@ -66,6 +78,30 @@
     --radius:       var(--r-sm);
     --radius-lg:    var(--r-md);
     --card-gradient-end: #1a1f2e;
+}
+
+/* Visual-card-size class overrides — applied to <html> by
+   VisualCardSizeClass in App.tsx based on user profile.
+   See --visual-card-* above. */
+:root.vcs-compact {
+    --visual-card-max-width:        480px;
+    --visual-card-min-height:       280px;
+    --visual-card-max-image-height: 200px;
+}
+:root.vcs-default {
+    --visual-card-max-width:        600px;
+    --visual-card-min-height:       350px;
+    --visual-card-max-image-height: 250px;
+}
+:root.vcs-large {
+    --visual-card-max-width:        800px;
+    --visual-card-min-height:       450px;
+    --visual-card-max-image-height: 500px;
+}
+:root.vcs-full {
+    --visual-card-max-width:        calc(100% - 2rem);
+    --visual-card-min-height:       550px;
+    --visual-card-max-image-height: 70vh;
 }
 
 :root.light {
@@ -1311,7 +1347,7 @@ h3 {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1rem;
-    padding: 1rem;
+    padding: 1rem 2rem;
 }
 
 .card-front,

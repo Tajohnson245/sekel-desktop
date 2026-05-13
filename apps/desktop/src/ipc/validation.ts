@@ -61,6 +61,7 @@ export function validate(
 // ── Shared constants ────────────────────────────────────────────────
 
 const CARD_STATES = ['new', 'learning', 'review', 'relearning'] as const;
+const CARD_FORMATS = ['basic', 'cloze', 'reversed', 'true-false', 'compare-contrast', 'multiple-choice'] as const;
 const RATINGS = ['again', 'hard', 'good', 'easy'] as const;
 const ALGORITHMS = ['fsrs', 'sm2'] as const;
 const MAX_NAME_LENGTH = 500;
@@ -123,6 +124,11 @@ export const createNoteRules: Rule[] = [
         field: 'tags',
         check: isStringArray,
         message: "field 'tags' must be an array of strings",
+    },
+    {
+        field: 'format',
+        check: (v) => v === undefined || v === null || isOneOf(v, CARD_FORMATS),
+        message: "field 'format' must be null or one of: basic, cloze, reversed, true-false, compare-contrast, multiple-choice",
     },
 ];
 

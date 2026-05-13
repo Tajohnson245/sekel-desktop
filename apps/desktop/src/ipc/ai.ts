@@ -71,7 +71,7 @@ const limit = pLimit(OPENAI_CONCURRENCY);
 // Local types
 // ─────────────────────────────────────────────────────────────────
 
-type CardFormat = 'basic' | 'cloze' | 'reversed' | 'true-false' | 'compare-contrast';
+type CardFormat = 'basic' | 'cloze' | 'reversed' | 'true-false' | 'compare-contrast' | 'multiple-choice';
 
 interface GenerationOptions {
     /** One or more card formats. Total card count is split evenly across them. */
@@ -83,6 +83,7 @@ interface GenerationOptions {
 interface GeneratedCard {
     front: string;
     back: string;
+    format?: CardFormat;
 }
 
 interface Chunk {
@@ -91,7 +92,7 @@ interface Chunk {
 }
 
 interface CardScore {
-    scores: { atomicity: number; testability: number; clarity: number; nontriviality: number };
+    scores: { atomicity: number; testability: number; clarity: number; nontriviality: number; distractorQuality?: number };
     total: number;
     verdict: 'keep' | 'revise' | 'reject';
     reason: string;
@@ -104,6 +105,17 @@ interface SessionStats {
     cardsRejected: number;
     evaluatorReasons: string[];
 }
+
+// Shared exclusion block: keeps every generation path (legacy single-format,
+// chunked multi-format, regeneration) aligned on what NOT to turn into cards.
+// The chunker pre-filters meta sections and the evaluator gates them, but the
+// generator itself is the cheapest place to enforce subject-only output —
+// stop a trivial card before it costs an eval call.
+const META_EXCLUSIONS = `Do NOT generate cards about:
+- The exam, certification, or credential the document prepares for — its name, length, format, scoring, passing score, registration, fees, retake policy, history, or who administers it (e.g. "What does NAPLEX stand for?", "How long is the exam?", "Who administers the exam?").
+- The document itself — author, chapter titles, foreword, preface, acknowledgments, dedications, table of contents, "how to use this book", or general study-strategy advice.
+- Generic self-referential definitions of the field or profession (e.g. "What is pharmacy?", "What does a pharmacist do?") when they appear as introductory framing rather than testable competency content.
+Generate cards ONLY about the substantive subject matter a practitioner is expected to know and apply.`;
 
 // ─────────────────────────────────────────────────────────────────
 // Legacy prompt builder (used by the basic generate-cards handler)
@@ -150,6 +162,16 @@ function buildFormatRules(options: GenerationOptions): string {
             '- 2-4 bullets per list. Each bullet short and concrete.',
             '- Output JSON format: { "flashcards": [{ "front": "...", "back": "<p>...</p>..." }] }',
         ].join('\n'),
+        'multiple-choice': [
+            '- Generate Multiple Choice cards with exactly 4 lettered options (A-D).',
+            '- "front" is HTML using ONLY <p> and <strong> tags. Embed each letter directly in the option text (do NOT use <ol>/<ul>/<li>). Structure: <p>Question</p><p><strong>A.</strong> ...</p><p><strong>B.</strong> ...</p><p><strong>C.</strong> ...</p><p><strong>D.</strong> ...</p>',
+            '- Exactly one option is correct. The other three must be PLAUSIBLE DISTRACTORS — same domain and same shape as the correct answer, topically adjacent, NOT trivially eliminable. No joke options, no obvious outliers, no near-duplicates of the correct answer.',
+            '- No "all of the above", no "none of the above", no negatively-phrased stems ("which is NOT...").',
+            '- RANDOMIZE which letter is correct across the batch — do not always place the answer at A or B.',
+            '- "back" is HTML containing only the correct letter and option text: <p><strong>B. ...</strong></p>',
+            '- Each option must be ≤ 10 words.',
+            '- Output JSON format: { "flashcards": [{ "front": "<p>Question?</p><p><strong>A.</strong> ...</p><p><strong>B.</strong> ...</p><p><strong>C.</strong> ...</p><p><strong>D.</strong> ...</p>", "back": "<p><strong>B. ...</strong></p>" }] }',
+        ].join('\n'),
     };
 
     const difficultyBlocks: Record<string, string> = {
@@ -186,6 +208,15 @@ Split the following document into discrete concept chunks. Each chunk should:
 - Represent one coherent topic or concept
 - Be between 100-400 words
 - Preserve enough context to generate cards without referencing other chunks
+
+SKIP these sections entirely — do not emit chunks for them:
+- Front matter: forewords, prefaces, acknowledgments, dedications, "about the author", copyright pages, publisher notes
+- Table of contents, chapter lists, index entries, glossary front matter
+- "How to use this book" or general study-strategy / test-taking advice
+- Information about the exam, certification, or credential itself — its length, format, scoring, registration, fees, retake policy, history, or administering body
+- Marketing copy and other non-instructional framing
+
+If a section mixes meta content with substantive subject matter, include only the substantive portion in the chunk.
 
 Return a JSON object with a "chunks" array only. No preamble, no explanation.
 
@@ -263,6 +294,8 @@ Rules:
 - Do not generate cards about background history or general introductions
 - ${difficultyNote}
 
+${META_EXCLUSIONS}
+
 User instruction: ${userInstruction}
 ${revisionNote}
 Generate exactly ${n} Q&A flashcards from the content below.
@@ -285,6 +318,8 @@ Only generate a reversed card where the reverse direction is genuinely testable.
 If a reversed card would be ambiguous or have multiple valid answers, skip it and find a different fact from the content.
 
 - ${difficultyNote}
+
+${META_EXCLUSIONS}
 
 User instruction: ${userInstruction}
 ${revisionNote}
@@ -314,6 +349,8 @@ Reason: The blank requires genuine recall; surrounding context is rich but not r
 
 - ${difficultyNote}
 
+${META_EXCLUSIONS}
+
 User instruction: ${userInstruction}
 ${revisionNote}
 Generate exactly ${n} cloze flashcards from the content below.
@@ -335,6 +372,8 @@ Rules:
 - "back" begins with "True." or "False." followed by one short sentence explaining why
 - Each card tests exactly ONE fact
 - ${difficultyNote}
+
+${META_EXCLUSIONS}
 
 User instruction: ${userInstruction}
 ${revisionNote}
@@ -364,6 +403,8 @@ Rules:
 - Use ONLY these tags: <p>, <strong>, <ul>, <li>. No attributes, no other tags.
 - ${difficultyNote}
 
+${META_EXCLUSIONS}
+
 User instruction: ${userInstruction}
 ${revisionNote}
 Generate exactly ${n} compare/contrast flashcards from the content below.
@@ -371,6 +412,41 @@ Generate exactly ${n} compare/contrast flashcards from the content below.
 Return JSON only. No preamble, no explanation.
 
 { "flashcards": [{ "type": "compare-contrast", "front": "Compare and contrast X vs Y", "back": "<p>...</p><p><strong>Similarities:</strong></p><ul><li>...</li></ul>..." }] }
+
+Content:
+${chunkText}`,
+
+        'multiple-choice': `You are a flashcard generation expert creating Multiple Choice cards for a medical student.
+
+Rules:
+- Each card tests exactly ONE specific fact from the content.
+- "front" is HTML with the question followed by exactly 4 lettered options. Embed the letter directly in each option line (do NOT rely on list markers). Use this exact structure:
+  <p>{question}</p>
+  <p><strong>A.</strong> {option text}</p>
+  <p><strong>B.</strong> {option text}</p>
+  <p><strong>C.</strong> {option text}</p>
+  <p><strong>D.</strong> {option text}</p>
+  Use ONLY these tags: <p>, <strong>. No attributes, no <ol>, no <ul>, no <li>.
+- Exactly one option is correct. The other three are PLAUSIBLE DISTRACTORS:
+  * Same domain and same shape as the correct answer (if the correct answer is an enzyme, all four are enzymes; if it's a year, all four are years in the same era; if it's a drug class, all four are drug classes).
+  * Topically adjacent — common confusions, sibling concepts, or neighboring categories from the source content.
+  * NOT trivially eliminable: no joke options, no obvious outliers, no synonyms of the correct answer, no near-duplicates of each other.
+  * Each option ≤ 10 words.
+- No "all of the above", no "none of the above", no negatively-phrased stems ("which is NOT...").
+- RANDOMIZE which letter (A/B/C/D) is correct across the batch — do not always place the answer at A or B. Across ${n} cards the correct letter should be roughly uniform.
+- "back" is HTML containing only the correct letter and the correct option text, no explanation:
+  <p><strong>{letter}. {correct option text}</strong></p>
+- ${difficultyNote}
+
+${META_EXCLUSIONS}
+
+User instruction: ${userInstruction}
+${revisionNote}
+Generate exactly ${n} multiple choice flashcards from the content below.
+
+Return JSON only. No preamble, no explanation.
+
+{ "flashcards": [{ "type": "multiple-choice", "front": "<p>Question?</p><p><strong>A.</strong> ...</p><p><strong>B.</strong> ...</p><p><strong>C.</strong> ...</p><p><strong>D.</strong> ...</p>", "back": "<p><strong>B. ...</strong></p>" }] }
 
 Content:
 ${chunkText}`,
@@ -406,13 +482,15 @@ async function generateCardsForChunk(
     const raw = JSON.parse(response.choices[0].message.content || '{}');
     const items: GeneratedCard[] = raw.flashcards || raw.cards || [];
 
-    // Normalize cloze cards: { text } → { front: text, back: extracted word }
+    // Normalize cloze cards: { text } → { front: text, back: extracted word }.
+    // Stamp the source format on every card so the renderer can branch on
+    // [data-card-format] instead of fishing for HTML shape patterns.
     return items.map((card: GeneratedCard & { text?: string }) => {
         if (card.text) {
             const match = card.text.match(/\{\{c1::([^}]+)\}\}/);
-            return { front: card.text, back: match ? match[1] : '' };
+            return { front: card.text, back: match ? match[1] : '', format: cardFormat };
         }
-        return { front: card.front || '', back: card.back || '' };
+        return { front: card.front || '', back: card.back || '', format: cardFormat };
     });
 }
 
@@ -427,10 +505,13 @@ function getCardBackForDisplay(card: GeneratedCard, cardFormat: string): string 
     return (card.front.match(/\{\{c1::([^}]+)\}\}/) || [])[1] || card.back;
 }
 
-function defaultScore(): CardScore {
+function defaultScore(cardFormat?: string): CardScore {
+    const isMC = cardFormat === 'multiple-choice';
     return {
-        scores: { atomicity: 3, testability: 3, clarity: 3, nontriviality: 3 },
-        total: 12,
+        scores: isMC
+            ? { atomicity: 3, testability: 3, clarity: 3, nontriviality: 3, distractorQuality: 3 }
+            : { atomicity: 3, testability: 3, clarity: 3, nontriviality: 3 },
+        total: isMC ? 15 : 12,
         verdict: 'keep',
         reason: '',
     };
@@ -448,11 +529,32 @@ async function evaluateCardsBatch(cards: GeneratedCard[], cardFormat: string): P
         batches.push(cards.slice(i, i + EVAL_BATCH_SIZE));
     }
 
+    const isMC = cardFormat === 'multiple-choice';
+    // Proportional thresholds: 4 criteria → max 12 (keep ≥ 10, revise 7-9, reject < 7);
+    // 5 criteria for MC → max 15 (keep ≥ 13, revise 9-12, reject < 9).
+    const keepThreshold = isMC ? 13 : 10;
+    const reviseThreshold = isMC ? 9 : 7;
+
     const batchResults = await Promise.all(batches.map(async (batch) => {
         const cardLines = batch.map((card, idx) => {
             const back = getCardBackForDisplay(card, cardFormat);
             return `${idx + 1}. Front: ${card.front}\n   Back: ${back}`;
         }).join('\n');
+
+        const criteriaList = isMC
+            ? `1. Atomicity: tests exactly one fact
+2. Testability: correct answer is unambiguous and clearly the best option
+3. Clarity: question and options are clearly worded
+4. Non-triviality: tests real subject-matter knowledge — NOT trivia about the exam/credential itself (format, length, scoring, registration), the document (author, chapters, foreword, acknowledgments, study-strategy advice), or generic self-definitions of the field
+5. Distractor quality: the three wrong options are plausible, same-domain, and NOT trivially eliminable (no joke options, no obvious outliers, no near-duplicates of the correct answer or each other)`
+            : `1. Atomicity: tests exactly one fact
+2. Testability: answer is unambiguous and concise
+3. Clarity: question/sentence is clearly worded
+4. Non-triviality: tests real subject-matter knowledge — NOT trivia about the exam/credential itself (format, length, scoring, registration), the document (author, chapters, foreword, acknowledgments, study-strategy advice), or generic self-definitions of the field`;
+
+        const schemaExample = isMC
+            ? `{ "atomicity": 1, "testability": 1, "clarity": 1, "nontriviality": 1, "distractorQuality": 1, "total": 5, "verdict": "keep", "reason": "one short sentence" }`
+            : `{ "atomicity": 1, "testability": 1, "clarity": 1, "nontriviality": 1, "total": 4, "verdict": "keep", "reason": "one short sentence" }`;
 
         const prompt = `You are a flashcard quality reviewer.
 
@@ -462,22 +564,19 @@ Score each flashcard on every criterion from 1 to 3:
 - 3 = excellent
 
 Criteria:
-1. Atomicity: tests exactly one fact
-2. Testability: answer is unambiguous and concise
-3. Clarity: question/sentence is clearly worded
-4. Non-triviality: requires real knowledge to answer
+${criteriaList}
 
 Card type: ${cardFormat}
 Cards (numbered):
 ${cardLines}
 
 Score each card. The "scores" array MUST have exactly ${batch.length} entries in the same order.
-Verdict guide: keep (total >= 10), revise (7-9), reject (< 7).
+Verdict guide: keep (total >= ${keepThreshold}), revise (${reviseThreshold}-${keepThreshold - 1}), reject (< ${reviseThreshold}).
 
 Return JSON only. No preamble.
 
 { "scores": [
-  { "atomicity": 1, "testability": 1, "clarity": 1, "nontriviality": 1, "total": 4, "verdict": "keep", "reason": "one short sentence" }
+  ${schemaExample}
 ]}`;
 
         try {
@@ -492,11 +591,11 @@ Return JSON only. No preamble.
             }));
 
             const parsed = JSON.parse(response.choices[0].message.content || '{}');
-            const rawScores: Array<Partial<CardScore> & { atomicity?: number; testability?: number; clarity?: number; nontriviality?: number }> = parsed.scores || [];
+            const rawScores: Array<Partial<CardScore> & { atomicity?: number; testability?: number; clarity?: number; nontriviality?: number; distractorQuality?: number }> = parsed.scores || [];
 
             return batch.map((_, idx) => {
                 const r = rawScores[idx];
-                if (!r) return defaultScore();
+                if (!r) return defaultScore(cardFormat);
 
                 // Some models return flat fields, some return a nested "scores" object.
                 const nested = r.scores ?? {
@@ -504,22 +603,24 @@ Return JSON only. No preamble.
                     testability: r.testability ?? 3,
                     clarity: r.clarity ?? 3,
                     nontriviality: r.nontriviality ?? 3,
+                    ...(isMC ? { distractorQuality: r.distractorQuality ?? 3 } : {}),
                 };
+                const baseSum = nested.atomicity + nested.testability + nested.clarity + nested.nontriviality;
                 const total = typeof r.total === 'number'
                     ? r.total
-                    : (nested.atomicity + nested.testability + nested.clarity + nested.nontriviality);
+                    : baseSum + (isMC ? (nested.distractorQuality ?? 3) : 0);
 
                 return {
                     scores: nested,
                     total,
-                    verdict: r.verdict || (total >= 10 ? 'keep' : total >= 7 ? 'revise' : 'reject'),
+                    verdict: r.verdict || (total >= keepThreshold ? 'keep' : total >= reviseThreshold ? 'revise' : 'reject'),
                     reason: r.reason || '',
                 };
             });
         } catch {
             // If the batched eval fails, treat the whole batch as "keep" — better
             // to ship slightly weaker cards than to lose them entirely.
-            return batch.map(() => defaultScore());
+            return batch.map(() => defaultScore(cardFormat));
         }
     }));
 
@@ -537,6 +638,11 @@ async function evaluateAndRefineCards(
 ): Promise<GeneratedCard[]> {
     if (cards.length === 0) return [];
 
+    const isMC = cardFormat === 'multiple-choice';
+    // Mirror the proportional thresholds used in evaluateCardsBatch.
+    const keepThreshold = isMC ? 13 : 10;
+    const reviseThreshold = isMC ? 9 : 7;
+
     const scores = await evaluateCardsBatch(cards, cardFormat);
     const kept: GeneratedCard[] = [];
     const reasonsForRegen: string[] = [];
@@ -544,20 +650,20 @@ async function evaluateAndRefineCards(
 
     for (let i = 0; i < cards.length; i++) {
         const score = scores[i];
-        if (score.total >= 10) {
+        if (score.total >= keepThreshold) {
             kept.push(cards[i]);
             stats.cardsKept++;
             continue;
         }
 
-        // Both "revise" (7-9) and "reject" (<7) get regenerated. Track stats
-        // separately, but pool the regeneration into one batched call.
+        // Both "revise" and "reject" get regenerated. Track stats separately,
+        // but pool the regeneration into one batched call.
         if (score.reason) {
             reasonsForRegen.push(score.reason);
             stats.evaluatorReasons.push(score.reason);
         }
         regenCount++;
-        if (score.total >= 7) stats.cardsRevised++;
+        if (score.total >= reviseThreshold) stats.cardsRevised++;
         else stats.cardsRejected++;
     }
 
@@ -577,7 +683,7 @@ async function evaluateAndRefineCards(
         if (regenerated.length > 0) {
             const reEvalScores = await evaluateCardsBatch(regenerated, cardFormat);
             for (let i = 0; i < regenerated.length; i++) {
-                if (reEvalScores[i].total >= 7) {
+                if (reEvalScores[i].total >= reviseThreshold) {
                     kept.push(regenerated[i]);
                 }
             }
@@ -614,7 +720,9 @@ export const setupAIHandlers = () => {
 
 Rules:
 ${formatRules}
-- Ensure all content is in ${language}.`,
+- Ensure all content is in ${language}.
+
+${META_EXCLUSIONS}`,
                         },
                         { role: 'user', content: text },
                     ],
@@ -623,7 +731,11 @@ ${formatRules}
             }));
             const content = response.choices[0].message.content;
             const parsed = JSON.parse(content || '{}');
-            return parsed.flashcards || parsed.cards || [];
+            const cards: GeneratedCard[] = parsed.flashcards || parsed.cards || [];
+            // Legacy single-format path: stamp the selected format (or 'basic'
+            // by default) on every card so the persistence layer can store it.
+            const legacyFormat: CardFormat = options?.cardFormats?.[0] ?? 'basic';
+            return cards.map((c) => ({ ...c, format: c.format ?? legacyFormat }));
         } catch (error) {
             console.error('Error generating cards:', error);
             throw error;

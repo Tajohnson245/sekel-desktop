@@ -6,6 +6,7 @@ export interface JoinedNote {
     id: string;
     fields: Note['fields'];
     tags: Note['tags'];
+    format: Note['format'];
     note_type: NoteType;
 }
 
@@ -16,7 +17,7 @@ export interface CardWithNote extends Card {
 async function fetchNotesForDeck(client: SupabaseClient, deckId: string): Promise<JoinedNote[]> {
     const { data, error } = await client
         .from('notes')
-        .select('id, fields, tags, note_type:note_types(*)') as unknown as { data: JoinedNote[] | null; error: Error | null };
+        .select('id, fields, tags, format, note_type:note_types(*)') as unknown as { data: JoinedNote[] | null; error: Error | null };
 
     if (error) throw error;
     return data ?? [];

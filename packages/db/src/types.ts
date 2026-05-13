@@ -61,6 +61,20 @@ export type NoteTypeInsert = Omit<NoteType, 'id' | 'created_at' | 'updated_at' |
 export type NoteTypeUpdate = Partial<Omit<NoteType, 'id' | 'user_id' | 'created_at' | 'updated_at'>>;
 
 // ─────────────────────────────────────────────────────────────────
+// Card format — drives format-specific renderer styling. Persisted on
+// the note (the generation source) rather than the card (a note+template
+// pair) because format is a property of the content, not the template.
+// Null for pre-AI rows and imported Anki notes.
+// ─────────────────────────────────────────────────────────────────
+export type CardFormat =
+    | 'basic'
+    | 'cloze'
+    | 'reversed'
+    | 'true-false'
+    | 'compare-contrast'
+    | 'multiple-choice';
+
+// ─────────────────────────────────────────────────────────────────
 // Note (source content)
 // ─────────────────────────────────────────────────────────────────
 export interface Note {
@@ -70,6 +84,7 @@ export interface Note {
     note_type_id: string;
     fields: Record<string, string>;
     tags: string[];
+    format: CardFormat | null;
     anki_id: number | null;
     anki_guid: string | null;
     anki_meta: string | null;
@@ -77,7 +92,7 @@ export interface Note {
     updated_at: string;
 }
 
-export type NoteInsert = Omit<Note, 'id' | 'created_at' | 'updated_at' | 'anki_id' | 'anki_guid' | 'anki_meta'> & { anki_id?: number | null; anki_guid?: string | null; anki_meta?: string | null };
+export type NoteInsert = Omit<Note, 'id' | 'created_at' | 'updated_at' | 'anki_id' | 'anki_guid' | 'anki_meta' | 'format'> & { anki_id?: number | null; anki_guid?: string | null; anki_meta?: string | null; format?: CardFormat | null };
 export type NoteUpdate = Partial<Omit<Note, 'id' | 'user_id' | 'created_at' | 'updated_at'>>;
 
 // ─────────────────────────────────────────────────────────────────
@@ -337,6 +352,7 @@ export interface UserProfile {
     theme_preference: 'light' | 'dark' | 'system' | 'red' | 'purple' | 'pink' | 'turquoise';
     flip_animation: boolean;
     card_style: boolean;
+    visual_card_size: 'compact' | 'default' | 'large' | 'full';
     notifications_enabled: boolean;
     reminder_times: string[];
     background_url: string | null;

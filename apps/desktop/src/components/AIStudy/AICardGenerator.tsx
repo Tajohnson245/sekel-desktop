@@ -9,6 +9,7 @@ import { useDecks } from '../../hooks/useDecks';
 import { DEFAULT_NOTE_TYPES } from '../../lib/types';
 import DeckEditor from '../Deck/DeckEditor';
 import { Button, Input, Select, ImageUpload, useToast } from '../UI';
+import { sanitize } from '../../lib/sanitize';
 import './AICardGenerator.css';
 
 interface AICardGeneratorProps {
@@ -45,6 +46,7 @@ export default function AICardGenerator({ extractedText, contextSummary, context
     const [hasGenerated, setHasGenerated] = useState(false);
     const [generationStats, setGenerationStats] = useState<{ generated: number; kept: number; filtered: number } | null>(null);
     const [progress, setProgress] = useState<AIProgress | null>(null);
+    const [editing, setEditing] = useState<{ index: number; side: 'front' | 'back' } | null>(null);
 
     // Generation options
     const [selectedFormats, setSelectedFormats] = useState<Set<AIGenerationOptions['cardFormats'][number]>>(new Set());
@@ -129,6 +131,13 @@ export default function AICardGenerator({ extractedText, contextSummary, context
             setCards(result);
             setGenerationStats(statsResult);
             setHasGenerated(true);
+
+            if (result.length > 0) {
+                window.electronAPI?.notify?.show?.(
+                    t('ai.notify_generate_done_title'),
+                    t('ai.notify_generate_done_body', { count: result.length }),
+                );
+            }
         } catch (_error) {
             showToast(t('errors.generate_cards'), 'error');
         } finally {
@@ -188,6 +197,7 @@ export default function AICardGenerator({ extractedText, contextSummary, context
                     note_type_id: noteTypeId,
                     fields: { Front: frontContent, Back: backContent },
                     tags: ['ai-generated'],
+                    format: card.format ?? null,
                 },
                 templateCount: 1,
             });
@@ -216,6 +226,7 @@ export default function AICardGenerator({ extractedText, contextSummary, context
                         note_type_id: noteTypeId,
                         fields: { Front: frontContent, Back: backContent },
                         tags: ['ai-generated'],
+                        format: card.format ?? null,
                     },
                     templateCount: 1,
                 });
@@ -294,6 +305,7 @@ export default function AICardGenerator({ extractedText, contextSummary, context
                             { value: 'reversed',         label: t('ai.format_reversed') },
                             { value: 'true-false',       label: t('ai.format_true_false') },
                             { value: 'compare-contrast', label: t('ai.format_compare_contrast') },
+                            { value: 'multiple-choice',  label: t('ai.format_multiple_choice') },
                         ] as const).map((opt) => {
                             const active = selectedFormats.has(opt.value);
                             return (
@@ -377,70 +389,85 @@ export default function AICardGenerator({ extractedText, contextSummary, context
                             {cards.map((card, index) => (
                                 <div key={index} className="ai-card-item">
                                     <div className="ai-card-content">
-                                        <div style={{ position: 'relative' }}>
-                                            <Input
-                                                label={t('modals.front')}
-                                                multiline
-                                                value={card.front}
-                                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleEditCard(index, 'front', e.target.value)}
-                                                rows={2}
-                                            />
-                                            <div style={{ position: 'absolute', right: 10, top: 32 }}>
-                                                <ImageUpload
-                                                    userId={userId}
-                                                    onUpload={(url: string) => handleImageUpdate(index, 'front', url)}
-                                                    currentImage={card.frontImage}
-                                                    onRemove={() => handleImageUpdate(index, 'front', null)}
-                                                    label={t('ai.add_image')}
-                                                />
-                                            </div>
-                                        </div>
-                                        <div style={{ position: 'relative', marginTop: '0.5rem' }}>
-                                            <Input
-                                                label={t('modals.back')}
-                                                multiline
-                                                value={card.back}
-                                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleEditCard(index, 'back', e.target.value)}
-                                                rows={2}
-                                            />
-                                            <div style={{ position: 'absolute', right: 10, top: 32 }}>
-                                                <ImageUpload
-                                                    userId={userId}
-                                                    onUpload={(url: string) => handleImageUpdate(index, 'back', url)}
-                                                    currentImage={card.backImage}
-                                                    onRemove={() => handleImageUpdate(index, 'back', null)}
-                                                    label={t('ai.add_image')}
-                                                />
-                                            </div>
-                                        </div>
+                                        {(['front', 'back'] as const).map((side) => {
+                                            const isEditing = editing?.index === index && editing?.side === side;
+                                            const value = side === 'front' ? card.front : card.back;
+                                            const labelKey = side === 'front' ? 'modals.front' : 'modals.back';
+                                            const currentImage = side === 'front' ? card.frontImage : card.backImage;
+                                            return (
+                                                <div key={side} className="ai-card-field" style={{ position: 'relative', marginTop: side === 'back' ? '0.5rem' : 0 }}>
+                                                    {isEditing ? (
+                                                        <Input
+                                                            label={t(labelKey)}
+                                                            multiline
+                                                            autoFocus
+                                                            value={value}
+                                                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleEditCard(index, side, e.target.value)}
+                                                            onBlur={() => setEditing(null)}
+                                                            rows={4}
+                                                        />
+                                                    ) : (
+                                                        <>
+                                                            <label className="ai-card-field-label">{t(labelKey)}</label>
+                                                            <div
+                                                                className="ai-card-field-preview"
+                                                                data-card-format={card.format ?? undefined}
+                                                                role="textbox"
+                                                                tabIndex={0}
+                                                                onClick={() => setEditing({ index, side })}
+                                                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setEditing({ index, side }); } }}
+                                                                dangerouslySetInnerHTML={{ __html: sanitize(value || '') }}
+                                                            />
+                                                        </>
+                                                    )}
+                                                    <div style={{ position: 'absolute', right: 10, top: 32 }}>
+                                                        <ImageUpload
+                                                            userId={userId}
+                                                            onUpload={(url: string) => handleImageUpdate(index, side, url)}
+                                                            currentImage={currentImage}
+                                                            onRemove={() => handleImageUpdate(index, side, null)}
+                                                            label={t('ai.add_image')}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                     <div className="ai-card-actions">
                                         <Button
-                                            variant="icon"
+                                            variant="primary"
+                                            size="sm"
                                             className={!selectedDeckId ? 'disabled-with-tooltip' : ''}
                                             onClick={() => handleAddCard(index)}
                                             disabled={!selectedDeckId || isAdding}
                                             title={!selectedDeckId ? t('modals.select_deck_tooltip') : t('modals.add_to_deck_tooltip')}
                                             isLoading={isAdding}
-                                            icon={!isAdding && <Plus size={16} />}
-                                        />
+                                            icon={!isAdding && <Plus size={14} />}
+                                        >
+                                            {t('ai.action_add')}
+                                        </Button>
                                         <Button
-                                            variant="icon"
+                                            variant="secondary"
+                                            size="sm"
                                             onClick={async () => {
                                                 await saveDraft.mutateAsync({ front: card.front, back: card.back, source: contextSummary ?? undefined });
                                                 setCards(prev => prev.filter((_, i) => i !== index));
                                             }}
                                             disabled={draftsFull || saveDraft.isPending}
                                             title={draftsFull ? t('ai.draft_full', { count: drafts.length, limit: DRAFT_LIMIT }) : t('ai.save_draft')}
-                                            icon={<Inbox size={16} />}
-                                        />
+                                            icon={<Inbox size={14} />}
+                                        >
+                                            {t('ai.action_draft')}
+                                        </Button>
                                         <Button
-                                            variant="icon"
-                                            className="text-danger"
+                                            variant="danger"
+                                            size="sm"
                                             onClick={() => handleRemoveCard(index)}
                                             title={t('modals.remove_tooltip')}
-                                            icon={<X size={16} />}
-                                        />
+                                            icon={<X size={14} />}
+                                        >
+                                            {t('ai.action_delete')}
+                                        </Button>
                                     </div>
                                 </div>
                             ))}
