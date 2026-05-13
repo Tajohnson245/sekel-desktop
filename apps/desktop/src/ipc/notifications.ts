@@ -146,6 +146,29 @@ export function setupNotificationHandlers() {
         }
     });
 
+    // Generic localized notification — called by the renderer at the end of
+    // long-running pipeline steps (upload parse, document analysis, AI card
+    // generation) so users in a different window get a system-level signal
+    // that the work finished. Skipped when our window is already focused —
+    // the in-app UI change already communicates completion in that case.
+    instrumentedHandle('notify:show', (_e, payload: { title: string; body: string }) => {
+        const win = BrowserWindow.getAllWindows()[0];
+        if (win?.isFocused()) return;
+
+        const notification = new Notification({
+            title: payload.title,
+            body: payload.body,
+            silent: false,
+        });
+        notification.on('click', () => {
+            if (win) {
+                win.show();
+                win.focus();
+            }
+        });
+        notification.show();
+    });
+
     // Check for yield-multiplier threshold crossing on session start
     instrumentedHandle('notify:threshold-shift', (_e, userId: string) => {
         try {

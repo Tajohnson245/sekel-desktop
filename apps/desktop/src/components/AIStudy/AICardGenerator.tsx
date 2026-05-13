@@ -131,6 +131,13 @@ export default function AICardGenerator({ extractedText, contextSummary, context
             setCards(result);
             setGenerationStats(statsResult);
             setHasGenerated(true);
+
+            if (result.length > 0) {
+                window.electronAPI?.notify?.show?.(
+                    t('ai.notify_generate_done_title'),
+                    t('ai.notify_generate_done_body', { count: result.length }),
+                );
+            }
         } catch (_error) {
             showToast(t('errors.generate_cards'), 'error');
         } finally {
