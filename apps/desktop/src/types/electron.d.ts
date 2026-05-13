@@ -274,6 +274,7 @@ interface ElectronNotify {
     configure: (config: { userId: string; enabled: boolean; reminderTimes: string[] }) => Promise<void>;
     streak: (userId: string) => Promise<number>;
     thresholdShift: (userId: string) => Promise<ThresholdShiftResult>;
+    show: (title: string, body: string) => Promise<void>;
 }
 
 export interface DeletedItem {

@@ -87,6 +87,7 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
         setFiles(prev => [...prev, ...newFiles]);
 
         // Process files
+        let successCount = 0;
         for (let i = 0; i < selectedFiles.length; i++) {
             const file = selectedFiles[i];
             const fileId = newFiles[i].id;
@@ -100,6 +101,7 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
                     content: result.content,
                     name: result.filename
                 } : f));
+                successCount++;
             } catch (_error) {
                 showToast(`${t('ai.error_parsing')}: ${file.name}`, 'error');
                 setFiles(prev => prev.map(f => f.id === fileId ? {
@@ -108,6 +110,16 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
                     error: t('ai.error_parsing')
                 } : f));
             }
+        }
+
+        // Desktop notification when the batch finishes — useful if the user
+        // tabbed away during a long parse. notify.show is a no-op when our
+        // window is focused, so this won't double up on the in-app state.
+        if (successCount > 0) {
+            window.electronAPI?.notify?.show?.(
+                t('ai.notify_upload_done_title'),
+                t('ai.notify_upload_done_body'),
+            );
         }
     };
 
@@ -137,6 +149,11 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
                 content: result.content,
                 name: result.filename || f.name
             } : f));
+
+            window.electronAPI?.notify?.show?.(
+                t('ai.notify_upload_done_title'),
+                t('ai.notify_upload_done_body'),
+            );
         } catch (error: unknown) {
             const errorCode = (error as { errorCode?: string })?.errorCode;
             const i18nKey = errorCode ? `errors.youtube_${errorCode}` : '';
@@ -178,6 +195,11 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
             setEstimatedCardCount(overview.estimatedCardCount);
             setContextChunks(overview.chunks ?? []);
             setStep('review');
+
+            window.electronAPI?.notify?.show?.(
+                t('ai.notify_analyze_done_title'),
+                t('ai.notify_analyze_done_body'),
+            );
         } catch (_error) {
             showToast(t('ai.error_summary'), 'error');
         } finally {

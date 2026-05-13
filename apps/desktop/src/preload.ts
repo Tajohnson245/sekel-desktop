@@ -57,6 +57,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
             ipcRenderer.invoke('notify:configure', config),
         streak: (userId: string) => ipcRenderer.invoke('notify:streak', userId),
         thresholdShift: (userId: string) => ipcRenderer.invoke('notify:threshold-shift', userId),
+        show: (title: string, body: string) => ipcRenderer.invoke('notify:show', { title, body }),
     },
 
     db: {

@@ -146,6 +146,28 @@ export function setupNotificationHandlers() {
         }
     });
 
+    // Generic localized notification — called by the renderer at the end of
+    // long-running pipeline steps (upload parse, document analysis, AI card
+    // generation) so users get a system-level signal that the work finished.
+    // Fires unconditionally; users who don't want them can mute Sekel in OS
+    // notification settings. (Earlier version skipped when the window was
+    // focused, which suppressed notifications during normal testing.)
+    instrumentedHandle('notify:show', (_e, payload: { title: string; body: string }) => {
+        const win = BrowserWindow.getAllWindows()[0];
+        const notification = new Notification({
+            title: payload.title,
+            body: payload.body,
+            silent: false,
+        });
+        notification.on('click', () => {
+            if (win) {
+                win.show();
+                win.focus();
+            }
+        });
+        notification.show();
+    });
+
     // Check for yield-multiplier threshold crossing on session start
     instrumentedHandle('notify:threshold-shift', (_e, userId: string) => {
         try {

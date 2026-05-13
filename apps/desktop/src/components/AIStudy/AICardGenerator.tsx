@@ -131,6 +131,13 @@ export default function AICardGenerator({ extractedText, contextSummary, context
             setCards(result);
             setGenerationStats(statsResult);
             setHasGenerated(true);
+
+            if (result.length > 0) {
+                window.electronAPI?.notify?.show?.(
+                    t('ai.notify_generate_done_title'),
+                    t('ai.notify_generate_done_body', { count: result.length }),
+                );
+            }
         } catch (_error) {
             showToast(t('errors.generate_cards'), 'error');
         } finally {
@@ -428,31 +435,39 @@ export default function AICardGenerator({ extractedText, contextSummary, context
                                     </div>
                                     <div className="ai-card-actions">
                                         <Button
-                                            variant="icon"
+                                            variant="primary"
+                                            size="sm"
                                             className={!selectedDeckId ? 'disabled-with-tooltip' : ''}
                                             onClick={() => handleAddCard(index)}
                                             disabled={!selectedDeckId || isAdding}
                                             title={!selectedDeckId ? t('modals.select_deck_tooltip') : t('modals.add_to_deck_tooltip')}
                                             isLoading={isAdding}
-                                            icon={!isAdding && <Plus size={16} />}
-                                        />
+                                            icon={!isAdding && <Plus size={14} />}
+                                        >
+                                            {t('ai.action_add')}
+                                        </Button>
                                         <Button
-                                            variant="icon"
+                                            variant="secondary"
+                                            size="sm"
                                             onClick={async () => {
                                                 await saveDraft.mutateAsync({ front: card.front, back: card.back, source: contextSummary ?? undefined });
                                                 setCards(prev => prev.filter((_, i) => i !== index));
                                             }}
                                             disabled={draftsFull || saveDraft.isPending}
                                             title={draftsFull ? t('ai.draft_full', { count: drafts.length, limit: DRAFT_LIMIT }) : t('ai.save_draft')}
-                                            icon={<Inbox size={16} />}
-                                        />
+                                            icon={<Inbox size={14} />}
+                                        >
+                                            {t('ai.action_draft')}
+                                        </Button>
                                         <Button
-                                            variant="icon"
-                                            className="text-danger"
+                                            variant="danger"
+                                            size="sm"
                                             onClick={() => handleRemoveCard(index)}
                                             title={t('modals.remove_tooltip')}
-                                            icon={<X size={16} />}
-                                        />
+                                            icon={<X size={14} />}
+                                        >
+                                            {t('ai.action_delete')}
+                                        </Button>
                                     </div>
                                 </div>
                             ))}
