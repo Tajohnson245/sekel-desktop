@@ -390,6 +390,15 @@
     flex-direction: column;
     gap: 0.5rem;
     justify-content: center;
+    flex-shrink: 0;
+}
+
+/* Stacked labeled buttons in the right column read as a unified action panel;
+   forcing equal width keeps the three CTAs visually aligned regardless of
+   label length across locales. */
+.ai-card-actions .btn {
+    min-width: 110px;
+    justify-content: flex-start;
 }
 
 .added-badge {
