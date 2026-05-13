@@ -148,13 +148,12 @@ export function setupNotificationHandlers() {
 
     // Generic localized notification — called by the renderer at the end of
     // long-running pipeline steps (upload parse, document analysis, AI card
-    // generation) so users in a different window get a system-level signal
-    // that the work finished. Skipped when our window is already focused —
-    // the in-app UI change already communicates completion in that case.
+    // generation) so users get a system-level signal that the work finished.
+    // Fires unconditionally; users who don't want them can mute Sekel in OS
+    // notification settings. (Earlier version skipped when the window was
+    // focused, which suppressed notifications during normal testing.)
     instrumentedHandle('notify:show', (_e, payload: { title: string; body: string }) => {
         const win = BrowserWindow.getAllWindows()[0];
-        if (win?.isFocused()) return;
-
         const notification = new Notification({
             title: payload.title,
             body: payload.body,
