@@ -1,0 +1,61 @@
+name: Republish Release Notes
+
+# One-shot tool to re-extract a release's user-facing notes from CHANGELOG.md
+# and upload them to R2 at notes/v<version>.md.
+#
+# Use when the release's release.yml already ran and shipped, but the
+# CHANGELOG.md section ended up with the wrong content (typo, wrong header,
+# missing entries). Edit CHANGELOG.md on dev or main, then run this workflow
+# against the corrected ref to refresh the auto-update modal's notes for users.
+#
+# Mirrors the awk + aws s3 cp logic from release.yml's publish-notes job.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to republish (e.g. 1.1.0 — no leading v)'
+        required: true
+        type: string
+
+jobs:
+  republish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract user-facing notes from CHANGELOG.md
+        shell: bash
+        run: |
+          set -e
+          VERSION="${{ inputs.version }}"
+          awk -v v="$VERSION" '
+            $0 ~ ("^## \\[" v "\\]") { flag=1; next }
+            flag && /^## \[/ { exit }
+            flag { print }
+          ' CHANGELOG.md > /tmp/notes.md
+          # Trim leading/trailing blank lines.
+          sed -i -e '/./,$!d' -e :a -e '/^\n*$/{$d;N;ba' -e '}' /tmp/notes.md || true
+          if [ ! -s /tmp/notes.md ]; then
+            echo "ERROR: No CHANGELOG.md section found for v$VERSION"
+            exit 1
+          fi
+          echo "::group::Extracted notes (will be mirrored to R2)"
+          cat /tmp/notes.md
+          echo "::endgroup::"
+
+      - name: Mirror notes to Cloudflare R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+        shell: bash
+        run: |
+          set -e
+          VERSION="${{ inputs.version }}"
+          ENDPOINT="https://10b526ce06de458a7e43834f97953694.r2.cloudflarestorage.com"
+          aws s3 cp /tmp/notes.md "s3://sekel-releases/notes/v$VERSION.md" \
+            --endpoint-url "$ENDPOINT" \
+            --content-type "text/markdown; charset=utf-8" \
+            --cache-control "public, max-age=300"
+          echo "Uploaded notes/v$VERSION.md to R2."
