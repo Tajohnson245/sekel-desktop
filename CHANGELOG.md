@@ -10,15 +10,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 >
 > **Format guideline (read me, this matters).** Until every user has installed v1.0.9 or later, the auto-update modal in their installed version uses the old `parseBullets()` renderer — it splits on newlines and treats each non-empty line as a `<li>` without parsing markdown. Anything fancier than a flat list shows `###` and `**` markers literally to those users. Write each release as a **flat bullet list with a bold lead-in**, no Keep-a-Changelog `### Added/Changed/Fixed` subheadings, no nested lists. Example: `- **Cleaner update notifications.** When a new version is ready…`. Old modals show `**Cleaner update notifications.** When a new version is ready…` (stray asterisks but readable); new modals render the bold properly. See `docs/features/desktop/in-progress/update-notes-format.md` for the full background.
 
-## [1.0.10] - 2026-05-12
+## [1.1.0] - 2026-05-12
 
 ### Added
 - **Desktop notifications at each step of AI card generation.** Get a system notification when your upload finishes parsing, when document analysis completes, and when card generation is done — so you don't have to babysit the window. Click the notification to jump back to Sekel.
 - **Clearer action buttons on generated cards.** The Add / Draft / Delete actions after card generation are now labeled buttons with a visual hierarchy (filled teal for Add, outlined for Draft, filled rose for Delete) instead of three tiny icons. Much harder to miss.
-- **Resizable cards** Cards can now be resized between the following sizes (Compact, Default, Large, Full-Width) allowing for you to see content clearly while Visual Card setting is toggled.
+- **Resizable cards.** Cards can now be resized between the following sizes (Compact, Default, Large, Full-Width) allowing for you to see content clearly while Visual Card setting is toggled.
 
 ### Changed
-**AI generation skips exam-administration trivia.** When you upload a comprehensive study guide or PDF book, Sekel no longer wastes cards on questions like "How long is the NAPLEX?" or "What does NAPLEX stand for?" — it focuses on the actual subject content you're studying.
+- **AI generation skips exam-administration trivia.** When you upload a comprehensive study guide or PDF book, Sekel no longer wastes cards on questions like "How long is the NAPLEX?" or "What does NAPLEX stand for?" — it focuses on the actual subject content you're studying.
 
 
 ## [1.0.9] - 2026-05-09
