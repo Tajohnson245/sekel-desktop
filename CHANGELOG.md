@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 ### Added
 - **Desktop notifications at each step of AI card generation.** Get a system notification when your upload finishes parsing, when document analysis completes, and when card generation is done — so you don't have to babysit the window. Click the notification to jump back to Sekel.
 - **Clearer action buttons on generated cards.** The Add / Draft / Delete actions after card generation are now labeled buttons with a visual hierarchy (filled teal for Add, outlined for Draft, filled rose for Delete) instead of three tiny icons. Much harder to miss.
+- **Resizable cards** Cards can now be resized between the following sizes (Compact, Default, Large, Full-Width) allowing for you to see content clearly while Visual Card setting is toggled.
 
 ### Changed
 **AI generation skips exam-administration trivia.** When you upload a comprehensive study guide or PDF book, Sekel no longer wastes cards on questions like "How long is the NAPLEX?" or "What does NAPLEX stand for?" — it focuses on the actual subject content you're studying.
