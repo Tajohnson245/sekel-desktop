@@ -435,7 +435,7 @@ export default function AICardGenerator({ extractedText, contextSummary, context
                                             disabled={!selectedDeckId || isAdding}
                                             title={!selectedDeckId ? t('modals.select_deck_tooltip') : t('modals.add_to_deck_tooltip')}
                                             isLoading={isAdding}
-                                            icon={!isAdding && <Plus size={16} />}
+                                            icon={!isAdding && <Plus size={14} />}
                                         >
                                             {t('ai.action_add')}
                                         </Button>
@@ -448,7 +448,7 @@ export default function AICardGenerator({ extractedText, contextSummary, context
                                             }}
                                             disabled={draftsFull || saveDraft.isPending}
                                             title={draftsFull ? t('ai.draft_full', { count: drafts.length, limit: DRAFT_LIMIT }) : t('ai.save_draft')}
-                                            icon={<Inbox size={16} />}
+                                            icon={<Inbox size={14} />}
                                         >
                                             {t('ai.action_draft')}
                                         </Button>
@@ -457,7 +457,7 @@ export default function AICardGenerator({ extractedText, contextSummary, context
                                             size="sm"
                                             onClick={() => handleRemoveCard(index)}
                                             title={t('modals.remove_tooltip')}
-                                            icon={<X size={16} />}
+                                            icon={<X size={14} />}
                                         >
                                             {t('ai.action_delete')}
                                         </Button>
