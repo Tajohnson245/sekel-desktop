@@ -1,12 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Loader, FileText, CheckCircle, AlertCircle, RefreshCw, ArrowRight, Trash2 } from 'lucide-react';
+import { Loader, FileText, CheckCircle, AlertCircle, RefreshCw, ArrowRight, Trash2, BookOpen } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import DocumentUpload from './DocumentUpload';
 import AICardGenerator from './AICardGenerator';
-import { Button, MetaChip, YouTubeIcon, useToast, ErrorBoundary } from '../UI';
+import { Button, YouTubeIcon, useToast, ErrorBoundary } from '../UI';
 import { useDocsWorkStore } from '../../stores/docsWorkStore';
 import { parseFile, parseYoutube } from '../../lib/documentParser';
+import type { DocumentSection, DocumentChunk } from '../../types/electron';
 import './DocumentsPage.css';
 
 interface DocumentsPageProps {
@@ -16,29 +17,51 @@ interface DocumentsPageProps {
 type ParsingStatus = 'idle' | 'parsing' | 'success' | 'error';
 
 interface ParsedFile {
-    id: string; // Unique identifier for React keys
+    id: string;
     name: string;
     status: ParsingStatus;
     content?: string;
     error?: string;
     type: 'file' | 'youtube';
-    originalFile?: File; // Only for files
-    url?: string;        // Only for YouTube
-    thumbnail?: string;  // Only for YouTube
+    originalFile?: File;
+    url?: string;
+    thumbnail?: string;
 }
 
-interface SectionItemProps {
-    index: number;
-    label: string;
+interface ChapterCardProps {
+    chapter: DocumentSection;
+    estimatedCards: number;
+    isGenerated: boolean;
+    onGenerate: () => void;
 }
 
-function SectionItem({ index, label }: SectionItemProps) {
+function ChapterCard({ chapter, estimatedCards, isGenerated, onGenerate }: ChapterCardProps) {
+    const { t } = useTranslation();
     return (
-        <div className="section-item">
-            <span className="section-item__number">{index + 1}</span>
-            <span className="section-item__dot" />
-            <span className="section-item__label">{label}</span>
-        </div>
+        <button
+            type="button"
+            className={`chapter-card ${isGenerated ? 'is-generated' : ''}`}
+            onClick={onGenerate}
+            data-testid={`chapter-card-${chapter.id}`}
+        >
+            <div className="chapter-card__header">
+                <span className="chapter-card__icon" aria-hidden="true"><BookOpen size={18} /></span>
+                {isGenerated && (
+                    <span className="chapter-card__status" aria-label={t('ai.chapter_generated_aria')}>
+                        <CheckCircle size={16} />
+                    </span>
+                )}
+            </div>
+            <h4 className="chapter-card__title">{chapter.title}</h4>
+            <div className="chapter-card__meta">
+                <span>{t('ai.chapter_word_count', { words: chapter.wordCount.toLocaleString() })}</span>
+                <span>{t('ai.chapter_capacity', { n: estimatedCards })}</span>
+            </div>
+            <span className="chapter-card__action">
+                {isGenerated ? t('ai.chapter_regenerate') : t('ai.chapter_generate')}
+                <ArrowRight size={14} />
+            </span>
+        </button>
     );
 }
 
@@ -50,43 +73,35 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
     const setHasUnfinishedWork = useDocsWorkStore((s) => s.setHasUnfinishedWork);
     const [files, setFiles] = useState<ParsedFile[]>([]);
     const [summaryText, setSummaryText] = useState<string>('');
-    const [summaryTopics, setSummaryTopics] = useState<string[]>([]);
-    const [estimatedCardCount, setEstimatedCardCount] = useState<number>(5);
     const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
     const [step, setStep] = useState<'upload' | 'review' | 'generate'>('upload');
-    const [fullContextContent, setFullContextContent] = useState<string>('');
-    const [contextChunks, setContextChunks] = useState<Array<{ id: number; text: string }>>([]);
+    const [contextChunks, setContextChunks] = useState<DocumentChunk[]>([]);
+    const [sections, setSections] = useState<DocumentSection[]>([]);
+    const [activeChapterId, setActiveChapterId] = useState<number | null>(null);
+    const [generatedChapterIds, setGeneratedChapterIds] = useState<Set<number>>(new Set());
     const [generatedCardCount, setGeneratedCardCount] = useState(0);
 
-    // Notify parent about unfinished work status
     useEffect(() => {
-        // Unfinished work is:
-        // 1. Files uploaded but not generated (step 'upload', 'review')
-        // 2. Cards generated but not added/discarded (step 'generate' AND card count > 0)
-
         let hasUnfinished = false;
         if (step === 'upload' && files.length > 0) hasUnfinished = true;
         if (step === 'review') hasUnfinished = true;
         if (step === 'generate' && generatedCardCount > 0) hasUnfinished = true;
-
         setHasUnfinishedWork(hasUnfinished);
     }, [files.length, step, generatedCardCount, setHasUnfinishedWork]);
 
     const isProcessing = files.some(f => f.status === 'parsing');
 
-    // Process selected files via backend parser
     const handleFilesSelected = async (selectedFiles: File[]) => {
         const newFiles: ParsedFile[] = selectedFiles.map(f => ({
-            id: Math.random().toString(36).substr(2, 9),
+            id: Math.random().toString(36).slice(2, 11),
             name: f.name,
             status: 'parsing',
             type: 'file',
-            originalFile: f
+            originalFile: f,
         }));
 
         setFiles(prev => [...prev, ...newFiles]);
 
-        // Process files
         let successCount = 0;
         for (let i = 0; i < selectedFiles.length; i++) {
             const file = selectedFiles[i];
@@ -99,22 +114,28 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
                     ...f,
                     status: 'success',
                     content: result.content,
-                    name: result.filename
+                    name: result.filename,
                 } : f));
                 successCount++;
-            } catch (_error) {
-                showToast(`${t('ai.error_parsing')}: ${file.name}`, 'error');
+            } catch (error: unknown) {
+                const errCode = (error as { errorCode?: string })?.errorCode;
+                let message: string;
+                if (errCode === 'pdf_page_limit') {
+                    const numPages = (error as { numPages?: number })?.numPages ?? 0;
+                    const maxPages = (error as { maxPages?: number })?.maxPages ?? 500;
+                    message = t('ai.error_pdf_too_large', { numPages, maxPages });
+                } else {
+                    message = t('ai.error_parsing');
+                }
+                showToast(`${message}: ${file.name}`, 'error');
                 setFiles(prev => prev.map(f => f.id === fileId ? {
                     ...f,
                     status: 'error',
-                    error: t('ai.error_parsing')
+                    error: message,
                 } : f));
             }
         }
 
-        // Desktop notification when the batch finishes — useful if the user
-        // tabbed away during a long parse. notify.show is a no-op when our
-        // window is focused, so this won't double up on the in-app state.
         if (successCount > 0) {
             window.electronAPI?.notify?.show?.(
                 t('ai.notify_upload_done_title'),
@@ -124,30 +145,29 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
     };
 
     const handleUrlSelected = async (url: string) => {
-        // Extract video ID for thumbnail
         const videoIdMatch = url.match(new RegExp('(?:youtube\\.com/(?:[^/]+/.+/|(?:v|e(?:mbed)?)/|.*[?&]v=)|youtu\\.be/)([^"&?/\\s]{11})'));
         const videoId = videoIdMatch ? videoIdMatch[1] : null;
         const thumbnail = videoId ? `https://img.youtube.com/vi/${videoId}/0.jpg` : undefined;
 
         const newFile: ParsedFile = {
-            id: Math.random().toString(36).substr(2, 9),
-            name: url, // Temporary name until parsed
+            id: Math.random().toString(36).slice(2, 11),
+            name: url,
             status: 'parsing',
             type: 'youtube',
             url: url,
-            thumbnail: thumbnail
+            thumbnail: thumbnail,
         };
 
         setFiles(prev => [...prev, newFile]);
 
         try {
-            const result = await parseYoutube(url, i18n.language); // Backend fetches title and transcript
+            const result = await parseYoutube(url, i18n.language);
 
             setFiles(prev => prev.map(f => f.id === newFile.id ? {
                 ...f,
                 status: 'success',
                 content: result.content,
-                name: result.filename || f.name
+                name: result.filename || f.name,
             } : f));
 
             window.electronAPI?.notify?.show?.(
@@ -162,7 +182,7 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
             setFiles(prev => prev.map(f => f.id === newFile.id ? {
                 ...f,
                 status: 'error',
-                error: message
+                error: message,
             } : f));
         }
     };
@@ -171,7 +191,6 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
         setFiles(prev => prev.filter((_, i) => i !== index));
     };
 
-    // Request AI summary for all successfully parsed documents
     const generateContextSummary = async () => {
         const completedFiles = files.filter(f => f.status === 'success');
         if (completedFiles.length === 0) return;
@@ -183,17 +202,12 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
                 return acc;
             }, {} as Record<string, string>);
 
-            const combinedContent = Object.entries(documentsObj)
-                .map(([name, content]) => `--- Document: ${name} ---\n${content}`)
-                .join('\n\n');
-            setFullContextContent(combinedContent);
-
             const overview = await window.electronAPI.generateSummary(documentsObj, i18n.language);
 
             setSummaryText(overview.summary);
-            setSummaryTopics(overview.topics);
-            setEstimatedCardCount(overview.estimatedCardCount);
             setContextChunks(overview.chunks ?? []);
+            setSections(overview.sections ?? []);
+            setGeneratedChapterIds(new Set());
             setStep('review');
 
             window.electronAPI?.notify?.show?.(
@@ -207,30 +221,82 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
         }
     };
 
-    const handleConfirmSummary = () => {
-        setStep('generate');
-    };
-
     const handleRestart = () => {
         setFiles([]);
         setSummaryText('');
-        setSummaryTopics([]);
-        setEstimatedCardCount(5);
         setStep('upload');
-        setFullContextContent('');
         setContextChunks([]);
+        setSections([]);
+        setActiveChapterId(null);
+        setGeneratedChapterIds(new Set());
+        setGeneratedCardCount(0);
     };
 
-    if (step === 'generate') {
+    // Chapters shown in the grid: strictly kind === 'chapter' when at least one
+    // is detected, otherwise fall back to all sections (covers unstructured
+    // docs, where chunkDocumentWithSections emits a single "Document content"
+    // section).
+    const chapterSections = useMemo(() => {
+        const chapters = sections.filter((s) => s.kind === 'chapter');
+        return chapters.length > 0 ? chapters : sections;
+    }, [sections]);
+
+    const filteredOutSections = useMemo(() => {
+        if (chapterSections.length === sections.length) return [] as DocumentSection[];
+        const includedIds = new Set(chapterSections.map((s) => s.id));
+        return sections.filter((s) => !includedIds.has(s.id));
+    }, [sections, chapterSections]);
+
+    const activeChapter = useMemo(
+        () => (activeChapterId == null ? null : chapterSections.find((s) => s.id === activeChapterId) ?? null),
+        [activeChapterId, chapterSections],
+    );
+
+    const activeChapterChunks = useMemo<DocumentChunk[]>(() => {
+        if (!activeChapter) return [];
+        const allowed = new Set(activeChapter.chunkIds);
+        return contextChunks.filter((c) => allowed.has(c.id));
+    }, [activeChapter, contextChunks]);
+
+    const activeChapterText = useMemo(
+        () => activeChapterChunks.map((c) => c.text).join('\n\n'),
+        [activeChapterChunks],
+    );
+
+    const activeChapterEstimatedCards = useMemo(
+        () => Math.min(activeChapterChunks.length * 2, 500),
+        [activeChapterChunks.length],
+    );
+
+    const handleChapterGenerate = (chapterId: number) => {
+        setActiveChapterId(chapterId);
+        setGeneratedCardCount(0);
+        setStep('generate');
+    };
+
+    const handleChapterComplete = () => {
+        if (activeChapterId != null) {
+            setGeneratedChapterIds((prev) => {
+                const next = new Set(prev);
+                next.add(activeChapterId);
+                return next;
+            });
+        }
+        setActiveChapterId(null);
+        setGeneratedCardCount(0);
+        setStep('review');
+    };
+
+    if (step === 'generate' && activeChapter) {
         return (
-            <ErrorBoundary variant="inline" onReset={handleRestart}>
+            <ErrorBoundary variant="inline" onReset={handleChapterComplete}>
                 <AICardGenerator
-                    extractedText={fullContextContent}
+                    extractedText={activeChapterText}
                     contextSummary={summaryText}
-                    contextChunks={contextChunks}
-                    estimatedCardCount={estimatedCardCount}
+                    contextChunks={activeChapterChunks}
+                    estimatedCardCount={activeChapterEstimatedCards}
                     userId={userId}
-                    onComplete={handleRestart}
+                    onComplete={handleChapterComplete}
                     initialDeckId={initialDeckId}
                     onCardCountChange={setGeneratedCardCount}
                 />
@@ -240,7 +306,6 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
 
     const completedCount = files.filter(f => f.status === 'success').length;
 
-    // Determine context for UI labels
     const hasVideos = files.some(f => f.type === 'youtube');
     const hasDocs = files.some(f => f.type === 'file');
 
@@ -257,9 +322,7 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
         <div className="documents-page">
             <div className="documents-header">
                 <h2>{t('ai.title')}</h2>
-                <p className="text-muted">
-                    {t('ai.subtitle')}
-                </p>
+                <p className="text-muted">{t('ai.subtitle')}</p>
             </div>
 
             {step === 'upload' && (
@@ -328,35 +391,43 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
             )}
 
             {step === 'review' && (
-                <div className="review-split-container">
-                    <aside className="review-sidebar">
-                        <p className="review-sidebar__heading">{t('ai.sections_label')}</p>
-                        <div className="review-sidebar__list">
-                            {summaryTopics.map((topic, i) => (
-                                <SectionItem
-                                    key={i}
-                                    index={i}
-                                    label={topic}
+                <div className="chapter-grid-container">
+                    <div className="chapter-grid-overview">
+                        <p className="chapter-grid-overview__label">{t('ai.overview_label')}</p>
+                        <p className="chapter-grid-overview__text">{summaryText}</p>
+                    </div>
+
+                    {chapterSections.length === 0 ? (
+                        <div className="chapter-grid-empty">{t('ai.no_chapters_found')}</div>
+                    ) : (
+                        <div className="chapter-grid">
+                            {chapterSections.map((chapter) => (
+                                <ChapterCard
+                                    key={chapter.id}
+                                    chapter={chapter}
+                                    estimatedCards={Math.min(chapter.chunkIds.length * 2, 500)}
+                                    isGenerated={generatedChapterIds.has(chapter.id)}
+                                    onGenerate={() => handleChapterGenerate(chapter.id)}
                                 />
                             ))}
                         </div>
-                    </aside>
+                    )}
 
-                    <div className="review-main">
-                        <div className="review-meta-row">
-                            <MetaChip label={t('ai.chip_sections')} value={summaryTopics.length} />
-                            <MetaChip label={t('ai.chip_cards')} value={`~${estimatedCardCount}`} />
+                    {filteredOutSections.length > 0 && (
+                        <div className="chapter-grid-filtered">
+                            <span className="chapter-grid-filtered__label">{t('ai.filtered_out_label')}</span>
+                            <span className="chapter-grid-filtered__list">
+                                {filteredOutSections.map((s) => s.title).join(' · ')}
+                            </span>
+                            <span className="chapter-grid-filtered__count">
+                                {t('ai.filtered_out_count', { count: filteredOutSections.length })}
+                            </span>
                         </div>
-                        <p className="review-summary-label">{t('ai.review_title')}</p>
-                        <div className="review-summary-readonly">{summaryText}</div>
-                    </div>
+                    )}
 
-                    <div className="review-footer">
+                    <div className="chapter-grid-footer">
                         <Button variant="secondary" onClick={handleRestart} icon={<RefreshCw size={16} />}>
                             {t('ai.reupload')}
-                        </Button>
-                        <Button variant="primary" onClick={handleConfirmSummary} icon={<ArrowRight size={16} />}>
-                            {t('ai.confirm_generate')}
                         </Button>
                     </div>
                 </div>

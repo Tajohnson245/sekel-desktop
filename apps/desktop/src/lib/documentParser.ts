@@ -5,7 +5,7 @@
  * for parsing.
  */
 
-export async function parseFile(file: File, language?: string): Promise<{ filename: string, content: string }> {
+export async function parseFile(file: File, language?: string): Promise<{ filename: string; content: string }> {
     try {
         // Read file as ArrayBuffer to pass through Electron IPC
         const buffer = await file.arrayBuffer();
@@ -17,12 +17,23 @@ export async function parseFile(file: File, language?: string): Promise<{ filena
             language: language
         });
     } catch (error) {
+        // Decode the PDF page-limit error encoded by the backend IPC layer.
+        // Format: [PDF_PAGE_LIMIT:numPages:maxPages] message
+        const msg = error instanceof Error ? error.message : String(error);
+        const pdfMatch = msg.match(/\[PDF_PAGE_LIMIT:(\d+):(\d+)\]\s*(.*)/);
+        if (pdfMatch) {
+            const parsed = new Error(pdfMatch[3]);
+            (parsed as Error & { errorCode: string; numPages: number; maxPages: number }).errorCode = 'pdf_page_limit';
+            (parsed as Error & { errorCode: string; numPages: number; maxPages: number }).numPages = Number(pdfMatch[1]);
+            (parsed as Error & { errorCode: string; numPages: number; maxPages: number }).maxPages = Number(pdfMatch[2]);
+            throw parsed;
+        }
         console.error(`Failed to parse file ${file.name}:`, error);
         throw error;
     }
 }
 
-export async function parseYoutube(url: string, language?: string): Promise<{ filename: string, content: string }> {
+export async function parseYoutube(url: string, language?: string): Promise<{ filename: string; content: string }> {
     try {
         return await window.electronAPI.parseDocument({
             name: "YouTube Video", // Backend will likely update this with actual title
