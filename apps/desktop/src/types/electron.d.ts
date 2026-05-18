@@ -117,12 +117,32 @@ export interface DocumentChunk {
     text: string;
 }
 
+export type DocumentSectionKind =
+    | 'chapter'
+    | 'frontmatter'
+    | 'references'
+    | 'appendix'
+    | 'content';
+
+export interface DocumentSection {
+    id: number;
+    title: string;
+    kind: DocumentSectionKind;
+    /** IDs of the chunks (in DocumentOverview.chunks) belonging to this section. */
+    chunkIds: number[];
+    wordCount: number;
+    /** Auto-derived classifier output. Drives the section picker's default selection. */
+    isContent: boolean;
+}
+
 export interface DocumentOverview {
     summary: string;
     topics: string[];
     estimatedCardCount: number;
     /** Pre-computed concept chunks. Used by the card generator to skip its own chunking step. */
     chunks: DocumentChunk[];
+    /** Chunks grouped into user-facing sections with content-type classification. */
+    sections: DocumentSection[];
 }
 
 export interface GeneratedCard {
@@ -567,7 +587,7 @@ interface ElectronAPI {
     generateCards: (text: string, count?: number, language?: string, options?: AIGenerationOptions) => Promise<GeneratedCard[]>;
     generateCardsFromContext: (summary: string, content: string, count: number, language?: string, options?: AIGenerationOptions, chunks?: DocumentChunk[]) => Promise<GenerationResult>;
     onAIProgress: (cb: (progress: AIProgress) => void) => () => void;
-    parseDocument: (file: { name: string, buffer?: ArrayBuffer, url?: string, type: string, language?: string }) => Promise<{ filename: string, content: string }>;
+    parseDocument: (file: { name: string, buffer?: ArrayBuffer, url?: string, type: string, language?: string }) => Promise<{ filename: string; content: string }>;
     generateSummary: (documents: Record<string, string>, language?: string) => Promise<DocumentOverview>;
     getSupabaseConfig: () => Promise<{ url: string; anonKey: string }>;
     notify: ElectronNotify;
