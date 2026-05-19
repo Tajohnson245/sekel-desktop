@@ -7,7 +7,7 @@
 **Target Version:** `desktop/vX.X.X` | TBD
 **Branch:** `SEKEL-133-beehiiv`
 **Created:** 2026-05-18
-**Last Updated:** 2026-05-18
+**Last Updated:** 2026-05-19
 **Shipped:** —
 
 ---
@@ -37,3 +37,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 | Date | Description |
 |------|-------------|
 | 2026-05-18 | Doc created. apps/desktop/supabase/functions/signup/ |
+| 2026-05-19 | apps/desktop/supabase/functions/signup/ |
