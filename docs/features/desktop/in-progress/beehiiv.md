@@ -50,3 +50,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 | 2026-05-20 | .github/workflows/release.yml,apps/desktop/supabase/functions/feedback-email/ |
 | 2026-05-20 | .github/workflows/release.yml,apps/desktop/supabase/functions/feedback-email/ |
 | 2026-05-20 | .github/workflows/release.yml,apps/desktop/supabase/functions/feedback-email/ |
+| 2026-05-20 | .github/workflows/release.yml,apps/desktop/supabase/functions/feedback-email/ |
