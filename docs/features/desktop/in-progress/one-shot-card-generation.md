@@ -130,3 +130,4 @@ Inside generateCardsFromContext:
 |------|-------------|
 | 2026-05-26 | Plan doc created. Branch SEKEL-134-one-shot-card-generation cut from dev. |
 | 2026-05-26 | .github/workflows/release.yml,apps/desktop/supabase/functions/feedback-email/index.ts |
+| 2026-05-26 | apps/desktop/src/components/AIStudy/AICardGenerator.css,apps/desktop/src/components/AIStudy/AICardGenerator.tsx,apps/desktop/src/components/AIStudy/DocumentsPage.css,apps/desktop/src/components/AIStudy/DocumentsPage.tsx,apps/desktop/src/ipc/ai.ts,apps/desktop/src/ipc/document_parsing.ts,apps/desktop/src/locales/de/translation.json,apps/desktop/src/locales/en/translation.json |
