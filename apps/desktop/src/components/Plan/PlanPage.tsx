@@ -1024,32 +1024,11 @@ function CreatePlanPanel({
 
     async function handleCommit() {
         if (!suggestion) return;
-        // Rebuild the weekly projection for the user's chosen rate (not the system recommendation)
-        // so the active plan's schedule table reflects what they actually committed to.
-        const preview = buildWeeklyPreview(effectiveRate, suggestion.unseenTotal, suggestion.availableDays, 16);
-        // Coverage must reflect the user's *chosen* rate, not the original suggestion.
-        // computePlan derives projectedCoverageCount from recommendedNewPerDay; if the
-        // slider was moved off the suggestion, persisting the suggestion's coverage would
-        // be wrong (the live preview already shows the chosen-rate value). Recompute it
-        // here so the committed snapshot — and "Cards in plan" / coverage % — are accurate.
-        const projectedCoverageCount = Math.min(suggestion.unseenTotal, effectiveRate * suggestion.availableDays);
-        const projectedCoverage = suggestion.unseenTotal > 0
-            ? projectedCoverageCount / suggestion.unseenTotal
-            : 1;
-        const correctedSnapshot = {
-            ...suggestion,
-            projectedCoverageCount,
-            projectedCoverage,
-            weeklyProjection: preview.weeks.map(r => ({
-                week:                   r.week,
-                newCardsPerDay:         r.newCardsPerDay,
-                estimatedReviewsPerDay: r.reviews,
-                estimatedTotalMinutes:  r.mins,
-            })),
-            projectedPeakDailyMinutes: preview.peakMinutes,
-        };
+        // createPlan recomputes the snapshot authoritatively for the committed rate
+        // (coverage, per-system breakdown, weekly projection), so we hand it the
+        // suggestion purely for its deck scope plus the chosen rate.
         createPlan.mutate(
-            { examKey, cardsPerDay: effectiveRate, name: name.trim() || defaultPlanName(), snapshot: correctedSnapshot },
+            { examKey, cardsPerDay: effectiveRate, name: name.trim() || defaultPlanName(), snapshot: suggestion },
             { onSuccess: () => onDone() },
         );
     }

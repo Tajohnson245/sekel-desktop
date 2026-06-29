@@ -177,7 +177,7 @@ function rowToPlan(row: PlanRow): Plan {
 const EXAM_DATE_SENTINEL = '9999-12-31';
 const PEAK_WEEK = 8;
 
-export function computePlan(userId: string, examKey: string, deckIds?: string[]): PlanResult | null {
+export function computePlan(userId: string, examKey: string, deckIds?: string[], cardsPerDay?: number): PlanResult | null {
     const deckFilter = deckIds && deckIds.length > 0 ? deckIds : null;
     const db = getDb();
 
@@ -290,8 +290,14 @@ export function computePlan(userId: string, examKey: string, deckIds?: string[])
     }
     recommendedNewPerDay = Math.min(recommendedNewPerDay, maxNeeded, 100);
 
+    // When a committed rate is supplied (plan creation), coverage / system breakdown /
+    // weekly projection are all computed for THAT rate; recommendedNewPerDay stays the
+    // suggestion. Without it (suggestion preview) effectiveRate === recommendedNewPerDay,
+    // so this is a no-op for the live suggestion path.
+    const effectiveRate = cardsPerDay != null && cardsPerDay > 0 ? cardsPerDay : recommendedNewPerDay;
+
     // 6. Projected coverage — sort by yield priority, take first projectedCoverageCount
-    const projectedCoverageCount = Math.min(unseenTotal, recommendedNewPerDay * availableDays);
+    const projectedCoverageCount = Math.min(unseenTotal, effectiveRate * availableDays);
     const sorted = [...withLevels].sort((a, b) => LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level]);
     const inPlanIds = new Set(sorted.slice(0, projectedCoverageCount).map(c => c.card_id));
     const projectedCoverage = unseenTotal > 0 ? projectedCoverageCount / unseenTotal : 1;
@@ -303,20 +309,20 @@ export function computePlan(userId: string, examKey: string, deckIds?: string[])
     const weeklyProjection: WeeklyProjection[] = [];
     let projectedPeakDailyMinutes = 0;
 
-    const daysToExhaust = Math.min(Math.ceil(unseenTotal / recommendedNewPerDay), availableDays);
+    const daysToExhaust = Math.min(Math.ceil(unseenTotal / effectiveRate), availableDays);
     const exhaustWeek   = Math.ceil(daysToExhaust / 7);
     const lastWeekDays  = daysToExhaust % 7 || 7;
 
     for (let w = 1; w <= totalWeeks; w++) {
         const newCardsPerDay =
-            w < exhaustWeek   ? recommendedNewPerDay :
-            w === exhaustWeek ? Math.round(recommendedNewPerDay * lastWeekDays / 7) :
+            w < exhaustWeek   ? effectiveRate :
+            w === exhaustWeek ? Math.round(effectiveRate * lastWeekDays / 7) :
             0;
 
         let weeklyReviews = 0;
         for (let c = 1; c <= Math.min(w, exhaustWeek); c++) {
             const fraction = c === exhaustWeek ? lastWeekDays / 7 : 1;
-            weeklyReviews += recommendedNewPerDay * weekMultiplier(w - c + 1) * fraction;
+            weeklyReviews += effectiveRate * weekMultiplier(w - c + 1) * fraction;
         }
         const estimatedReviewsPerDay = Math.round(weeklyReviews / 7);
         const estimatedTotalMinutes  = Math.round(newCardsPerDay * 0.75 + estimatedReviewsPerDay * 0.33);
@@ -396,20 +402,28 @@ export function createPlan(
     const id  = randomUUID();
     const now = new Date().toISOString();
 
+    // Recompute the snapshot for the committed rate so coverage, the per-system
+    // breakdown, and the weekly projection reflect cards_per_day — not the original
+    // suggestion. computePlan keeps recommendedNewPerDay as the suggestion. Only the
+    // client snapshot's deck scope is consumed; fall back to it if a fresh compute
+    // isn't available (e.g. exam date cleared between preview and commit).
+    const committedSnapshot =
+        computePlan(userId, examKey, snapshot.deckFilter ?? undefined, cardsPerDay) ?? snapshot;
+
     db.prepare(`
         UPDATE plans SET status = 'archived', updated_at = ?
         WHERE user_id = ? AND exam_key = ? AND status = 'active'
     `).run(now, userId, examKey);
 
-    const deckFilterJson = snapshot.deckFilter ? JSON.stringify(snapshot.deckFilter) : null;
+    const deckFilterJson = committedSnapshot.deckFilter ? JSON.stringify(committedSnapshot.deckFilter) : null;
 
     db.prepare(`
         INSERT INTO plans
             (id, user_id, exam_key, name, cards_per_day, suggested_per_day,
              snapshot, deck_filter, status, activated_at, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)
-    `).run(id, userId, examKey, name, cardsPerDay, snapshot.recommendedNewPerDay,
-           JSON.stringify(snapshot), deckFilterJson, now, now, now);
+    `).run(id, userId, examKey, name, cardsPerDay, committedSnapshot.recommendedNewPerDay,
+           JSON.stringify(committedSnapshot), deckFilterJson, now, now, now);
 
     // Mirror committed rate into user_profiles so session card cap is immediate
     db.prepare(`
@@ -423,8 +437,8 @@ export function createPlan(
 
     return {
         id, userId, examKey, name, cardsPerDay,
-        suggestedPerDay: snapshot.recommendedNewPerDay,
-        snapshot, deckFilter: snapshot.deckFilter,
+        suggestedPerDay: committedSnapshot.recommendedNewPerDay,
+        snapshot: committedSnapshot, deckFilter: committedSnapshot.deckFilter,
         status: 'active',
         activatedAt: now, createdAt: now, updatedAt: now,
     };
