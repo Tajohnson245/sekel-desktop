@@ -23,74 +23,8 @@ import {
     type PlanActivityCounts,
 } from '../../hooks/usePlan';
 import type { SystemCoverageRow } from '../../lib/queries';
+import { buildWeeklyProjection } from '../../lib/planMath';
 import './PlanPage.css';
-
-// ── Cohort math (mirrored from planService for live creation-panel preview) ───
-
-const WEEKLY_MULTIPLIERS = [0.5, 0.9, 1.2];
-const STEADY_STATE       = 1.5;
-
-function weekMultiplier(week: number): number {
-    if (week <= 0) return 0;
-    const idx = week - 1;
-    return idx < WEEKLY_MULTIPLIERS.length ? WEEKLY_MULTIPLIERS[idx] : STEADY_STATE;
-}
-
-
-// ── Exhaustion-aware weekly preview ──────────────────────────────────────────
-//
-// Models what actually happens when the card supply runs out:
-//   - new cards drop to 0 once all unseenTotal cards are introduced
-//   - reviews come only from cohorts that were actually introduced
-//
-// For week w:
-//   newPerDay = rate (w < exhaustWeek), prorated (w == exhaustWeek), 0 after
-//   reviews   = sum over cohorts 1..min(w, exhaustWeek) of
-//               rate × weekMultiplier(age) × cohortFraction / 7
-
-interface WeekRow {
-    week: number;
-    newCardsPerDay: number;
-    reviews: number;
-    mins: number;
-}
-
-function buildWeeklyPreview(
-    rate: number,
-    unseenTotal: number,
-    availableDays: number,
-    maxWeeks: number,
-): { weeks: WeekRow[]; peakMinutes: number; daysToExhaust: number } {
-    if (rate <= 0 || unseenTotal <= 0) return { weeks: [], peakMinutes: 0, daysToExhaust: 0 };
-
-    const daysToExhaust = Math.min(Math.ceil(unseenTotal / rate), availableDays);
-    const exhaustWeek   = Math.ceil(daysToExhaust / 7);
-    const lastWeekDays  = daysToExhaust % 7 || 7;
-    const totalWeeks    = Math.min(Math.ceil(availableDays / 7), maxWeeks);
-
-    let peakMinutes = 0;
-    const weeks: WeekRow[] = [];
-
-    for (let w = 1; w <= totalWeeks; w++) {
-        const newCardsPerDay =
-            w < exhaustWeek   ? rate :
-            w === exhaustWeek ? Math.round(rate * lastWeekDays / 7) :
-            0;
-
-        let weeklyReviews = 0;
-        for (let c = 1; c <= Math.min(w, exhaustWeek); c++) {
-            const fraction = c === exhaustWeek ? lastWeekDays / 7 : 1;
-            weeklyReviews += rate * weekMultiplier(w - c + 1) * fraction;
-        }
-        const reviews = Math.round(weeklyReviews / 7);
-        const mins    = Math.round(newCardsPerDay * 0.75 + reviews * 0.33);
-
-        if (mins > peakMinutes) peakMinutes = mins;
-        weeks.push({ week: w, newCardsPerDay, reviews, mins });
-    }
-
-    return { weeks, peakMinutes, daysToExhaust };
-}
 
 // ── Plan narrative ────────────────────────────────────────────────────────────
 //
@@ -131,8 +65,8 @@ function buildPlanNarrative(
     let timeNote: string;
     if (daysToExhaust < availableDays && reviewOnlyDays > 7) {
         // Review load after exhaustion is much lower than during intro phase
-        const reviewRows = buildWeeklyPreview(rate, unseenTotal, availableDays, Math.ceil(availableDays / 7));
-        const steadyMins = reviewRows.weeks.slice(-1)[0]?.mins ?? 0;
+        const reviewRows = buildWeeklyProjection(rate, unseenTotal, availableDays, Math.ceil(availableDays / 7));
+        const steadyMins = reviewRows.weeks.slice(-1)[0]?.estimatedTotalMinutes ?? 0;
         timeNote = `Your busiest days are during the intro phase, peaking around ${peakStr}/day, then settling to roughly ${fmtMinutes(steadyMins)}/day once reviews mature into longer intervals.`;
     } else {
         timeNote = `Study time builds gradually as your review pile grows, peaking around ${peakStr}/day.`;
@@ -1004,7 +938,7 @@ function CreatePlanPanel({
         const { unseenTotal, availableDays } = suggestion;
         const projectedCount = Math.min(unseenTotal, effectiveRate * availableDays);
         const coveragePct    = unseenTotal > 0 ? Math.round((projectedCount / unseenTotal) * 100) : 100;
-        const preview        = buildWeeklyPreview(effectiveRate, unseenTotal, availableDays, 8);
+        const preview        = buildWeeklyProjection(effectiveRate, unseenTotal, availableDays, 8);
         return {
             projectedCount,
             coveragePct,
@@ -1116,8 +1050,8 @@ function CreatePlanPanel({
                 {liveStats && (() => {
                     const lastWeek       = liveStats.weeklyPreview[liveStats.weeklyPreview.length - 1];
                     const firstWeek      = liveStats.weeklyPreview[0];
-                    const reviewsWeek1   = firstWeek?.reviews ?? 0;
-                    const reviewsLastWk  = lastWeek?.reviews ?? 0;
+                    const reviewsWeek1   = firstWeek?.estimatedReviewsPerDay ?? 0;
+                    const reviewsLastWk  = lastWeek?.estimatedReviewsPerDay ?? 0;
                     const lastWeekNum    = lastWeek?.week ?? 1;
                     const cardsMissed    = liveStats.unseenTotal - liveStats.projectedCount;
                     const fullyCovered   = liveStats.coveragePct >= 100;
@@ -1200,8 +1134,8 @@ function CreatePlanPanel({
                                         <tr key={row.week} className={row.newCardsPerDay === 0 ? 'plan-table-row--review-only' : ''}>
                                             <td>{t('plan.week_n', { n: row.week })}</td>
                                             <td>{row.newCardsPerDay}</td>
-                                            <td>{row.reviews}</td>
-                                            <td>{fmtMinutes(row.mins)}</td>
+                                            <td>{row.estimatedReviewsPerDay}</td>
+                                            <td>{fmtMinutes(row.estimatedTotalMinutes)}</td>
                                         </tr>
                                     ))}
                                 </tbody>

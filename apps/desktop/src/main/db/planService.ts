@@ -12,6 +12,7 @@
 import { randomUUID } from 'crypto';
 import { getDb } from './index';
 import { getSystemPerformanceNeeds } from './service';
+import { dailyMinutes, buildWeeklyProjection } from '../../lib/planMath';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -95,36 +96,9 @@ export interface ActivePlanResult {
     currentDailyNewLimit: number;
 }
 
-// ── Cohort review-load approximation ─────────────────────────────────────────
-//
-// reviews_per_new_card_by_week:
-//   week 1:  0.5  (cards just introduced, few due yet)
-//   week 2:  0.9
-//   week 3:  1.2
-//   week 4+: 1.5  (steady state — each new card generates ~1.5 reviews/week)
-//
-// dailyMinutes(n, week) = (n × 0.75) + ((n × cumulativeReviews(week) / 7) × 0.33)
-//   where 0.75 min ≈ 45 s per new card, 0.33 min ≈ 20 s per review
-
-const WEEKLY_MULTIPLIERS: readonly number[] = [0.5, 0.9, 1.2];
-const STEADY_STATE_MULTIPLIER = 1.5;
-
-function weekMultiplier(week: number): number {
-    if (week <= 0) return 0;
-    const idx = week - 1;
-    return idx < WEEKLY_MULTIPLIERS.length ? WEEKLY_MULTIPLIERS[idx] : STEADY_STATE_MULTIPLIER;
-}
-
-function cumulativeReviews(week: number): number {
-    let sum = 0;
-    for (let w = 1; w <= week; w++) sum += weekMultiplier(w);
-    return sum;
-}
-
-function dailyMinutes(newPerDay: number, week: number): number {
-    const dailyReviews = (newPerDay * cumulativeReviews(week)) / 7;
-    return newPerDay * 0.75 + dailyReviews * 0.33;
-}
+// ── Cohort review-load math lives in lib/planMath (shared with the renderer's
+//    live creation preview so the two cannot drift). dailyMinutes / weekMultiplier
+//    / buildWeeklyProjection are imported above.
 
 // ── Yield level helpers ───────────────────────────────────────────────────────
 
@@ -302,36 +276,10 @@ export function computePlan(userId: string, examKey: string, deckIds?: string[],
     const inPlanIds = new Set(sorted.slice(0, projectedCoverageCount).map(c => c.card_id));
     const projectedCoverage = unseenTotal > 0 ? projectedCoverageCount / unseenTotal : 1;
 
-    // 7. Weekly projection array — exhaustion-aware
-    // New cards drop to 0 once all unseenTotal are introduced; reviews come
-    // only from cohorts that were actually introduced.
-    const totalWeeks = Math.min(Math.ceil(availableDays / 7), 16);
-    const weeklyProjection: WeeklyProjection[] = [];
-    let projectedPeakDailyMinutes = 0;
-
-    const daysToExhaust = Math.min(Math.ceil(unseenTotal / effectiveRate), availableDays);
-    const exhaustWeek   = Math.ceil(daysToExhaust / 7);
-    const lastWeekDays  = daysToExhaust % 7 || 7;
-
-    for (let w = 1; w <= totalWeeks; w++) {
-        const newCardsPerDay =
-            w < exhaustWeek   ? effectiveRate :
-            w === exhaustWeek ? Math.round(effectiveRate * lastWeekDays / 7) :
-            0;
-
-        let weeklyReviews = 0;
-        for (let c = 1; c <= Math.min(w, exhaustWeek); c++) {
-            const fraction = c === exhaustWeek ? lastWeekDays / 7 : 1;
-            weeklyReviews += effectiveRate * weekMultiplier(w - c + 1) * fraction;
-        }
-        const estimatedReviewsPerDay = Math.round(weeklyReviews / 7);
-        const estimatedTotalMinutes  = Math.round(newCardsPerDay * 0.75 + estimatedReviewsPerDay * 0.33);
-
-        if (estimatedTotalMinutes > projectedPeakDailyMinutes) {
-            projectedPeakDailyMinutes = estimatedTotalMinutes;
-        }
-        weeklyProjection.push({ week: w, newCardsPerDay, estimatedReviewsPerDay, estimatedTotalMinutes });
-    }
+    // 7. Weekly projection — exhaustion-aware (shared cohort math, lib/planMath).
+    //    Capped at 16 weeks to match the snapshot the UI renders.
+    const { weeks: weeklyProjection, peakMinutes: projectedPeakDailyMinutes } =
+        buildWeeklyProjection(effectiveRate, unseenTotal, availableDays, 16);
 
     // 8. System coverage — join with performance needs
     type SysRow = { system_key: string; label: string; weight_min: number | null; weight_max: number | null };
