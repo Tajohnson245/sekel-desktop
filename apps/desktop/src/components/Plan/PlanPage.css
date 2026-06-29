@@ -852,8 +852,9 @@
 .plan-progress-fill--complete { background: #22c55e; } /* green  100%    */
 
 .plan-progress-stats {
-  display: flex;
-  gap:     var(--space-xl);
+  display:   flex;
+  flex-wrap: wrap;
+  gap:       var(--space-xl);
 }
 
 .plan-progress-stat {

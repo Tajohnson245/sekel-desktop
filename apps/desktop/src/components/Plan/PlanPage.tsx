@@ -416,38 +416,47 @@ function ActivePlanDetail({ plan, examLabel }: { plan: Plan; examLabel: string }
                 </div>
 
                 {/* ── Live progress ─────────────────────────────────────────── */}
-                {progress != null && (
+                {progress != null && (() => {
+                    // Anchor progress to the plan's *selected* card set (the yield-covered
+                    // cards committed at creation), not the full deck scope. studiedSincePlanStart
+                    // is scope-wide and — because per-deck caps let a user exceed the global plan
+                    // rate — can run past the selected set, so clamp it. The three counts reconcile:
+                    // introduced + remaining === cards in plan.
+                    const inPlan          = snapshot.projectedCoverageCount;
+                    const introducedInPlan = Math.min(progress.studiedSincePlanStart, inPlan);
+                    const remainingInPlan  = Math.max(0, inPlan - introducedInPlan);
+                    const pct = inPlan > 0
+                        ? Math.min(100, Math.round((introducedInPlan / inPlan) * 100))
+                        : 0;
+                    const colorClass = pct >= 100 ? 'plan-progress-fill--complete'
+                        : pct >= 66  ? 'plan-progress-fill--good'
+                        : pct >= 33  ? 'plan-progress-fill--mid'
+                        :              'plan-progress-fill--early';
+                    return (
                     <div className="plan-progress-section">
                         <div className="plan-progress-header">
                             <span className="plan-progress-title">{t('plan.progress_title')}</span>
                             <span className="plan-progress-fraction">
-                                {progress.studiedSincePlanStart.toLocaleString()} / {snapshot.unseenTotal.toLocaleString()}
+                                {introducedInPlan.toLocaleString()} / {inPlan.toLocaleString()}
                             </span>
                         </div>
                         <div className="plan-progress-track">
-                            {(() => {
-                                const pct = snapshot.unseenTotal > 0
-                                    ? Math.min(100, Math.round((progress.studiedSincePlanStart / snapshot.unseenTotal) * 100))
-                                    : 0;
-                                const colorClass = pct >= 100 ? 'plan-progress-fill--complete'
-                                    : pct >= 66  ? 'plan-progress-fill--good'
-                                    : pct >= 33  ? 'plan-progress-fill--mid'
-                                    :              'plan-progress-fill--early';
-                                return (
-                                    <div
-                                        className={`plan-progress-track-fill ${colorClass}`}
-                                        style={{ width: `${pct}%` }}
-                                    />
-                                );
-                            })()}
+                            <div
+                                className={`plan-progress-track-fill ${colorClass}`}
+                                style={{ width: `${pct}%` }}
+                            />
                         </div>
                         <div className="plan-progress-stats">
                             <div className="plan-progress-stat">
-                                <span className="plan-progress-stat-value">{progress.studiedSincePlanStart.toLocaleString()}</span>
+                                <span className="plan-progress-stat-value">{inPlan.toLocaleString()}</span>
+                                <span className="plan-progress-stat-label">{t('plan.progress_in_plan')}</span>
+                            </div>
+                            <div className="plan-progress-stat">
+                                <span className="plan-progress-stat-value">{introducedInPlan.toLocaleString()}</span>
                                 <span className="plan-progress-stat-label">{t('plan.progress_introduced')}</span>
                             </div>
                             <div className="plan-progress-stat">
-                                <span className="plan-progress-stat-value">{progress.currentUnseen.toLocaleString()}</span>
+                                <span className="plan-progress-stat-value">{remainingInPlan.toLocaleString()}</span>
                                 <span className="plan-progress-stat-label">{t('plan.progress_remaining')}</span>
                             </div>
                             <div className="plan-progress-stat">
@@ -459,7 +468,8 @@ function ActivePlanDetail({ plan, examLabel }: { plan: Plan; examLabel: string }
                             </div>
                         </div>
                     </div>
-                )}
+                    );
+                })()}
 
                 <OverrideControl currentNewPerDay={plan.cardsPerDay} />
             </section>
@@ -1017,8 +1027,19 @@ function CreatePlanPanel({
         // Rebuild the weekly projection for the user's chosen rate (not the system recommendation)
         // so the active plan's schedule table reflects what they actually committed to.
         const preview = buildWeeklyPreview(effectiveRate, suggestion.unseenTotal, suggestion.availableDays, 16);
+        // Coverage must reflect the user's *chosen* rate, not the original suggestion.
+        // computePlan derives projectedCoverageCount from recommendedNewPerDay; if the
+        // slider was moved off the suggestion, persisting the suggestion's coverage would
+        // be wrong (the live preview already shows the chosen-rate value). Recompute it
+        // here so the committed snapshot — and "Cards in plan" / coverage % — are accurate.
+        const projectedCoverageCount = Math.min(suggestion.unseenTotal, effectiveRate * suggestion.availableDays);
+        const projectedCoverage = suggestion.unseenTotal > 0
+            ? projectedCoverageCount / suggestion.unseenTotal
+            : 1;
         const correctedSnapshot = {
             ...suggestion,
+            projectedCoverageCount,
+            projectedCoverage,
             weeklyProjection: preview.weeks.map(r => ({
                 week:                   r.week,
                 newCardsPerDay:         r.newCardsPerDay,
