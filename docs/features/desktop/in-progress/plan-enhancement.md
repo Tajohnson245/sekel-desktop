@@ -38,3 +38,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 |------|-------------|
 | 2026-06-29 | Doc created. apps/desktop/src/components/AIStudy/AICardGenerator.css,apps/desktop/src/components/AIStudy/AICardGenerator.tsx,apps/desktop/src/components/AIStudy/DocumentsPage.css,apps/desktop/src/components/AIStudy/DocumentsPage.tsx,apps/desktop/src/ipc/ai.ts,apps/desktop/src/ipc/document_parsing.ts,apps/desktop/src/locales/de/translation.json,apps/desktop/src/locales/en/translation.json |
 | 2026-06-29 | apps/desktop/src/components/Plan/PlanPage.tsx,apps/desktop/src/main/db/planService.ts |
+| 2026-06-29 | Task completed |
