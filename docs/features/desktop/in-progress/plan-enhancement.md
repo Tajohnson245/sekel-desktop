@@ -41,3 +41,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 | 2026-06-29 | Task completed |
 | 2026-06-29 | apps/desktop/src/components/Plan/PlanPage.tsx,apps/desktop/src/hooks/useDecks.ts,apps/desktop/src/hooks/usePlan.ts,apps/desktop/src/router/AppLayout.tsx,apps/desktop/src/stores/planStore.ts |
 | 2026-06-29 | apps/desktop/src/components/Plan/PlanPage.css,apps/desktop/src/components/Plan/PlanPage.tsx |
+| 2026-06-29 | apps/desktop/src/components/Plan/PlanPage.tsx,apps/desktop/src/lib/planMath.ts,apps/desktop/src/main/db/planService.ts |
