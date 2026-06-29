@@ -159,12 +159,6 @@ function fmtDate(iso: string): string {
     return new Date(iso).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function performanceColor(need: number): string {
-    if (need >= 0.6) return 'perf-high';
-    if (need >= 0.3) return 'perf-medium';
-    return 'perf-low';
-}
-
 function defaultPlanName(): string {
     return `Plan · ${new Date().toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' })}`;
 }
