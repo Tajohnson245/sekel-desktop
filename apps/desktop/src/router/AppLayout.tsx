@@ -9,7 +9,6 @@ import { useDocsWorkStore } from '../stores/docsWorkStore';
 import { useDrafts } from '../hooks/useDrafts';
 import { useExamProfile } from '../hooks/useExamProfile';
 import { useActivePlan, usePlanRebalance, useClearPlanOverride } from '../hooks/usePlan';
-import { usePlanStore } from '../stores/planStore';
 import { UserProfile } from '../components/UserProfile';
 import DocumentsPage from '../components/AIStudy/DocumentsPage';
 import { DeckEditorProvider } from '../contexts/DeckEditorContext';
@@ -122,18 +121,19 @@ function RebalanceBanner() {
     const { data: examProfile } = useExamProfile();
     const examKey = examProfile?.exam_key ?? null;
 
-    // useActivePlan seeds planStore on every app mount (no examKey = any active plan)
+    // Active plan for the primary exam (no examKey = the user's current active plan)
     const { data: activePlanResult } = useActivePlan();
     const { data: delta }            = usePlanRebalance(examKey);
     const clearOverride              = useClearPlanOverride();
-    const overrideExpiresAt          = usePlanStore(s => s.overrideExpiresAt);
 
     const [dismissed, setDismissed] = useState(false);
 
-    // On mount: clear a stale one-session override if it has passed midnight
+    // One-time DB cleanup: if an override's expiry has passed, clear it so the
+    // mirrored daily_new_limit doesn't linger. The derived cap (useEffectivePlan)
+    // already ignores expired overrides; this just keeps the persisted value tidy.
     useEffect(() => {
         if (!userId) return;
-        const expires = activePlanResult?.overrideExpiresAt ?? overrideExpiresAt;
+        const expires = activePlanResult?.overrideExpiresAt;
         if (expires && new Date(expires) < new Date()) {
             clearOverride.mutate();
         }

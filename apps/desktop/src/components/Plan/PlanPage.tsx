@@ -16,12 +16,12 @@ import {
     useClearPlanOverride,
     useDeckUnseenCounts,
     usePlanProgress,
+    useEffectivePlan,
     type Plan,
     type DeckUnseenCount,
     type PlanProgress,
     type PlanActivityCounts,
 } from '../../hooks/usePlan';
-import { usePlanStore } from '../../stores/planStore';
 import type { SystemCoverageRow } from '../../lib/queries';
 import './PlanPage.css';
 
@@ -177,7 +177,7 @@ function OverrideControl({ currentNewPerDay }: { currentNewPerDay: number }) {
     const [value, setValue] = useState(String(currentNewPerDay));
     const setOverride       = useSetPlanOverride();
     const clearOverride     = useClearPlanOverride();
-    const hasOverride       = usePlanStore(s => s.hasOverride);
+    const hasOverride       = useEffectivePlan().hasOverride;
 
     function handleConfirm() {
         const n = parseInt(value, 10);
