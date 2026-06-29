@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from 'react';
-import { Sparkles, X, Plus, CheckCircle, Inbox } from 'lucide-react';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { Sparkles, X, Plus, CheckCircle, Inbox, ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useGenerateCards, type GeneratedCard, type AIGenerationOptions } from '../../hooks/useAI';
 import type { AIProgress } from '../../types/electron';
@@ -12,6 +12,17 @@ import { Button, Input, Select, ImageUpload, useToast } from '../UI';
 import { sanitize } from '../../lib/sanitize';
 import './AICardGenerator.css';
 
+// All card formats supported by the generation pipeline. Exported so the
+// one-shot pipeline in DocumentsPage can pass the full mix as a default.
+export const ALL_CARD_FORMATS: AIGenerationOptions['cardFormats'] = [
+    'basic',
+    'cloze',
+    'reversed',
+    'true-false',
+    'compare-contrast',
+    'multiple-choice',
+];
+
 interface AICardGeneratorProps {
     extractedText: string;
     userId: string;
@@ -22,9 +33,15 @@ interface AICardGeneratorProps {
     contextChunks?: Array<{ id: number; text: string }>;
     estimatedCardCount?: number;
     onCardCountChange?: (count: number) => void;
+    /** When true, generation fires automatically on first mount. */
+    autoStart?: boolean;
+    /** Formats to preselect (used with autoStart). Defaults to all 6 when autoStart=true. */
+    defaultFormats?: AIGenerationOptions['cardFormats'];
+    /** Initial card count from the upload-page preflight settings. Overrides the estimate-derived default. */
+    initialCardCount?: number;
 }
 
-export default function AICardGenerator({ extractedText, contextSummary, contextChunks, estimatedCardCount, userId, onComplete, initialDeckId, onCardCountChange }: AICardGeneratorProps) {
+export default function AICardGenerator({ extractedText, contextSummary, contextChunks, estimatedCardCount, userId, onComplete, initialDeckId, onCardCountChange, autoStart = false, defaultFormats, initialCardCount }: AICardGeneratorProps) {
     const { t, i18n } = useTranslation();
     const { showToast } = useToast();
     // Data hooks
@@ -39,7 +56,10 @@ export default function AICardGenerator({ extractedText, contextSummary, context
     // State management
     const [cards, setCards] = useState<(GeneratedCard & { frontImage?: string; backImage?: string })[]>([]);
     const [selectedDeckId, setSelectedDeckId] = useState<string>(initialDeckId || '');
-    const [cardCount, setCardCount] = useState(estimatedCardCount ?? 5);
+    // initialCardCount comes from the upload-page preflight settings when
+    // present. Otherwise fall back to the estimate, capped at 100 so a
+    // first-run user doesn't fire a 500-card batch by accident.
+    const [cardCount, setCardCount] = useState(initialCardCount ?? Math.min(estimatedCardCount ?? 20, 100));
     const [successMessage, setSuccessMessage] = useState<string>('');
     const [showDeckEditor, setShowDeckEditor] = useState(false);
     const [isGen, setIsGen] = useState(false);
@@ -48,10 +68,22 @@ export default function AICardGenerator({ extractedText, contextSummary, context
     const [progress, setProgress] = useState<AIProgress | null>(null);
     const [editing, setEditing] = useState<{ index: number; side: 'front' | 'back' } | null>(null);
 
-    // Generation options
-    const [selectedFormats, setSelectedFormats] = useState<Set<AIGenerationOptions['cardFormats'][number]>>(new Set());
+    // Generation options. When autoStart is on, preselect formats so the
+    // auto-trigger has a valid set to generate from (canGenerate requires
+    // selectedFormats.size > 0).
+    const initialFormats = useMemo<Set<AIGenerationOptions['cardFormats'][number]>>(() => {
+        if (defaultFormats && defaultFormats.length > 0) return new Set(defaultFormats);
+        if (autoStart) return new Set(ALL_CARD_FORMATS);
+        return new Set();
+    }, [autoStart, defaultFormats]);
+    const [selectedFormats, setSelectedFormats] = useState<Set<AIGenerationOptions['cardFormats'][number]>>(initialFormats);
     const [difficulty, setDifficulty] = useState<AIGenerationOptions['difficulty']>('detailed');
     const [customInstructions, setCustomInstructions] = useState('');
+
+    // Collapsible settings panel — collapsed by default when autoStart is on
+    // (the one-shot flow: user just dropped a file, they don't want to see a
+    // settings sidebar; show cards first, settings on demand).
+    const [settingsExpanded, setSettingsExpanded] = useState(!autoStart);
 
     const toggleFormat = (fmt: AIGenerationOptions['cardFormats'][number]) => {
         setSelectedFormats((prev) => {
@@ -77,6 +109,17 @@ export default function AICardGenerator({ extractedText, contextSummary, context
         if (typeof window.electronAPI?.onAIProgress !== 'function') return;
         const off = window.electronAPI.onAIProgress((p) => setProgress(p));
         return off;
+    }, []);
+
+    // Auto-fire generation on first mount when the one-shot pipeline mounts
+    // us with autoStart. Guarded so re-renders never re-fire. Intentionally
+    // empty deps — first-render values are exactly what we want to capture.
+    const hasAutoStarted = useRef(false);
+    useEffect(() => {
+        if (!autoStart || hasAutoStarted.current) return;
+        if (!extractedText || selectedFormats.size === 0) return;
+        hasAutoStarted.current = true;
+        void handleGenerate();
     }, []);
 
     const isGenerating = generateCards.isPending || isGen;
@@ -243,6 +286,27 @@ export default function AICardGenerator({ extractedText, contextSummary, context
     };
 
 
+    // One-shot autostart loading view: shown only on the FIRST generation
+    // pass kicked off by autoStart, before any cards exist. Subsequent
+    // regenerations from the settings panel keep the cards in view while
+    // the new batch is generated.
+    if (autoStart && isGenerating && cards.length === 0 && !hasGenerated) {
+        return (
+            <div className="ai-generator">
+                <div className="ai-auto-generating">
+                    <div className="ai-auto-generating__icon" aria-hidden="true">
+                        <Sparkles size={28} />
+                    </div>
+                    <h2 className="ai-auto-generating__title">{t('ai.auto_generating_title')}</h2>
+                    <p className="ai-auto-generating__subtitle text-muted">
+                        {t('ai.auto_generating_subtitle')}
+                    </p>
+                    <GenerationProgressBar progress={progress} />
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="ai-generator">
             {/* Success Message */}
@@ -253,94 +317,116 @@ export default function AICardGenerator({ extractedText, contextSummary, context
                 </div>
             )}
 
-            {/* Settings Bar */}
-            <div className="ai-generator-settings">
-                <Select
-                    label={t('ai.target_deck')}
-                    value={selectedDeckId}
-                    onChange={(e) => {
-                        if (e.target.value === 'new') {
-                            setShowDeckEditor(true);
-                        } else {
-                            setSelectedDeckId(e.target.value);
-                        }
-                    }}
-                    options={deckOptions}
-                    placeholder={t('ai.select_deck')}
-                />
-
-                <Input
-                    type="number"
-                    label={t('ai.cards_to_generate')}
-                    min={1}
-                    max={Math.max(estimatedCardCount ?? 20, 20)}
-                    value={cardCount}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCardCount(Number(e.target.value))}
-                />
-
-                <Button
-                    variant="primary"
-                    onClick={handleGenerate}
-                    disabled={!canGenerate}
-                    isLoading={isGenerating}
-                    icon={!isGenerating && <Sparkles size={16} />}
-                    style={{ marginTop: 'auto' }}
+            {/* Generation settings — collapsible. Header is always visible so
+                users can expand to tweak formats / difficulty / count and
+                regenerate. Collapsed-by-default after autoStart so the cards
+                are the primary visual on the one-shot landing. */}
+            <div className={`ai-settings-section${settingsExpanded ? ' is-expanded' : ' is-collapsed'}`}>
+                <button
+                    type="button"
+                    className="ai-settings-toggle"
+                    onClick={() => setSettingsExpanded((v) => !v)}
+                    aria-expanded={settingsExpanded}
+                    aria-controls="ai-settings-panel"
                 >
-                    {t('ai.generate_button')}
-                </Button>
+                    <span className="ai-settings-toggle__label">
+                        {settingsExpanded ? t('ai.hide_settings') : t('ai.show_settings')}
+                    </span>
+                    {settingsExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </button>
 
-                {isGenerating && (
-                    <GenerationProgressBar progress={progress} />
-                )}
-            </div>
+                {settingsExpanded && (
+                    <div id="ai-settings-panel" className="ai-settings-panel">
+                        <div className="ai-generator-settings">
+                            <Select
+                                label={t('ai.target_deck')}
+                                value={selectedDeckId}
+                                onChange={(e) => {
+                                    if (e.target.value === 'new') {
+                                        setShowDeckEditor(true);
+                                    } else {
+                                        setSelectedDeckId(e.target.value);
+                                    }
+                                }}
+                                options={deckOptions}
+                                placeholder={t('ai.select_deck')}
+                            />
 
-            {/* Generation Options */}
-            <div className="ai-generation-options">
-                <div className="ai-format-picker">
-                    <label className="ai-format-picker__label">{t('ai.card_format')}</label>
-                    <div className="ai-format-picker__pills" role="group" aria-label={t('ai.card_format')}>
-                        {([
-                            { value: 'basic',            label: t('ai.format_basic') },
-                            { value: 'cloze',            label: t('ai.format_cloze') },
-                            { value: 'reversed',         label: t('ai.format_reversed') },
-                            { value: 'true-false',       label: t('ai.format_true_false') },
-                            { value: 'compare-contrast', label: t('ai.format_compare_contrast') },
-                            { value: 'multiple-choice',  label: t('ai.format_multiple_choice') },
-                        ] as const).map((opt) => {
-                            const active = selectedFormats.has(opt.value);
-                            return (
-                                <button
-                                    key={opt.value}
-                                    type="button"
-                                    className={`ai-format-pill${active ? ' ai-format-pill--active' : ''}`}
-                                    onClick={() => toggleFormat(opt.value)}
-                                    aria-pressed={active}
-                                >
-                                    {opt.label}
-                                </button>
-                            );
-                        })}
+                            <Input
+                                type="number"
+                                label={t('ai.cards_to_generate')}
+                                min={1}
+                                max={500}
+                                value={cardCount}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCardCount(Number(e.target.value))}
+                            />
+
+                            <Button
+                                variant="primary"
+                                onClick={handleGenerate}
+                                disabled={!canGenerate}
+                                isLoading={isGenerating}
+                                icon={!isGenerating && <Sparkles size={16} />}
+                                style={{ marginTop: 'auto' }}
+                            >
+                                {hasGenerated ? t('ai.regenerate_button') : t('ai.generate_button')}
+                            </Button>
+
+                            {isGenerating && (
+                                <GenerationProgressBar progress={progress} />
+                            )}
+                        </div>
+
+                        {/* Generation Options */}
+                        <div className="ai-generation-options">
+                            <div className="ai-format-picker">
+                                <label className="ai-format-picker__label">{t('ai.card_format')}</label>
+                                <div className="ai-format-picker__pills" role="group" aria-label={t('ai.card_format')}>
+                                    {([
+                                        { value: 'basic',            label: t('ai.format_basic') },
+                                        { value: 'cloze',            label: t('ai.format_cloze') },
+                                        { value: 'reversed',         label: t('ai.format_reversed') },
+                                        { value: 'true-false',       label: t('ai.format_true_false') },
+                                        { value: 'compare-contrast', label: t('ai.format_compare_contrast') },
+                                        { value: 'multiple-choice',  label: t('ai.format_multiple_choice') },
+                                    ] as const).map((opt) => {
+                                        const active = selectedFormats.has(opt.value);
+                                        return (
+                                            <button
+                                                key={opt.value}
+                                                type="button"
+                                                className={`ai-format-pill${active ? ' ai-format-pill--active' : ''}`}
+                                                onClick={() => toggleFormat(opt.value)}
+                                                aria-pressed={active}
+                                            >
+                                                {opt.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            <Select
+                                label={t('ai.difficulty')}
+                                value={difficulty}
+                                onChange={(e) => setDifficulty(e.target.value as AIGenerationOptions['difficulty'])}
+                                options={[
+                                    { label: t('ai.difficulty_essential'), value: 'essential' },
+                                    { label: t('ai.difficulty_detailed'), value: 'detailed' },
+                                ]}
+                            />
+
+                            <Input
+                                label={t('ai.custom_instructions')}
+                                multiline
+                                value={customInstructions}
+                                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCustomInstructions(e.target.value)}
+                                placeholder={t('ai.custom_instructions_placeholder')}
+                                rows={2}
+                            />
+                        </div>
                     </div>
-                </div>
-
-                <Select
-                    label={t('ai.difficulty')}
-                    value={difficulty}
-                    onChange={(e) => setDifficulty(e.target.value as AIGenerationOptions['difficulty'])}
-                    options={[
-                        { label: t('ai.difficulty_essential'), value: 'essential' },
-                        { label: t('ai.difficulty_detailed'), value: 'detailed' },
-                    ]}
-                />
-
-                <Input
-                    label={t('ai.custom_instructions')}
-                    multiline
-                    value={customInstructions}
-                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setCustomInstructions(e.target.value)}
-                    placeholder={t('ai.custom_instructions_placeholder')}
-                    rows={2}
-                />
+                )}
             </div>
 
             {/* Empty State after processing */}

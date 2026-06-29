@@ -378,7 +378,21 @@
         "difficulty_essential": "仅核心要点",
         "difficulty_detailed": "详细",
         "custom_instructions": "自定义指令",
-        "custom_instructions_placeholder": "例如，仅关注关键定义…"
+        "custom_instructions_placeholder": "例如，仅关注关键定义…",
+        "pipeline_parsed": "已解析 {{count}} 个文件",
+        "pipeline_analyzing": "正在分析文档结构…",
+        "pipeline_generating": "正在生成卡片",
+        "pipeline_skipped_failed": "已跳过 {{count}} 个解析失败的文件。",
+        "cancel_pipeline": "取消并重新开始",
+        "regenerate_button": "重新生成卡片",
+        "show_settings": "显示生成设置",
+        "hide_settings": "隐藏生成设置",
+        "auto_generating_title": "正在生成您的卡片",
+        "auto_generating_subtitle": "正在读取文档、起草卡片并优化每一张。通常需要 30–90 秒。",
+        "preflight_count_hint": "最多 500 张。卡片将按你下面所选的格式进行分配。",
+        "preflight_formats_hint": "至少选择一种。混合格式有助于更丰富的学习体验。",
+        "preflight_need_files": "请先至少上传一个文档再生成卡片。",
+        "preflight_need_formats": "请至少选择一种卡片格式。"
     },
     "fsrs": {
         "title": "FSRS 设置",

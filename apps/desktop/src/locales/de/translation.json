@@ -378,7 +378,21 @@
         "difficulty_essential": "Nur Wesentliches",
         "difficulty_detailed": "Detailliert",
         "custom_instructions": "Eigene Anweisungen",
-        "custom_instructions_placeholder": "Z.B., Nur auf Schlüsselbegriffe konzentrieren…"
+        "custom_instructions_placeholder": "Z.B., Nur auf Schlüsselbegriffe konzentrieren…",
+        "pipeline_parsed": "{{count}} Datei(en) verarbeitet",
+        "pipeline_analyzing": "Dokumentstruktur wird analysiert…",
+        "pipeline_generating": "Karten werden generiert",
+        "pipeline_skipped_failed": "{{count}} Datei(en) übersprungen, die nicht verarbeitet werden konnten.",
+        "cancel_pipeline": "Abbrechen und neu starten",
+        "regenerate_button": "Karten neu generieren",
+        "show_settings": "Generierungseinstellungen anzeigen",
+        "hide_settings": "Generierungseinstellungen ausblenden",
+        "auto_generating_title": "Deine Karten werden generiert",
+        "auto_generating_subtitle": "Das Dokument wird gelesen, Karten werden entworfen und verfeinert. Das dauert in der Regel 30–90 Sekunden.",
+        "preflight_count_hint": "Bis zu 500. Die Karten werden auf die unten gewählten Formate aufgeteilt.",
+        "preflight_formats_hint": "Wähle mindestens eines. Eine Mischung von Formaten sorgt für abwechslungsreicheres Lernen.",
+        "preflight_need_files": "Lade mindestens ein Dokument hoch, bevor du generierst.",
+        "preflight_need_formats": "Wähle mindestens ein Kartenformat."
     },
     "fsrs": {
         "title": "FSRS Einstellungen",

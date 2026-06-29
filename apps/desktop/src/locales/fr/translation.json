@@ -378,7 +378,21 @@
         "difficulty_essential": "Essentiel uniquement",
         "difficulty_detailed": "Détaillé",
         "custom_instructions": "Instructions personnalisées",
-        "custom_instructions_placeholder": "Ex., Se concentrer uniquement sur les définitions clés…"
+        "custom_instructions_placeholder": "Ex., Se concentrer uniquement sur les définitions clés…",
+        "pipeline_parsed": "{{count}} fichier(s) analysé(s)",
+        "pipeline_analyzing": "Analyse de la structure du document…",
+        "pipeline_generating": "Génération des cartes",
+        "pipeline_skipped_failed": "{{count}} fichier(s) ignoré(s) car l'analyse a échoué.",
+        "cancel_pipeline": "Annuler et recommencer",
+        "regenerate_button": "Régénérer les cartes",
+        "show_settings": "Afficher les paramètres de génération",
+        "hide_settings": "Masquer les paramètres de génération",
+        "auto_generating_title": "Génération de vos cartes",
+        "auto_generating_subtitle": "Lecture du document, rédaction et affinement de chaque carte. Cela prend généralement 30 à 90 secondes.",
+        "preflight_count_hint": "Jusqu'à 500. Les cartes sont réparties entre les formats sélectionnés ci-dessous.",
+        "preflight_formats_hint": "Sélectionnez-en un ou plusieurs. Mélanger les formats enrichit l'étude.",
+        "preflight_need_files": "Téléversez au moins un document avant de générer.",
+        "preflight_need_formats": "Sélectionnez au moins un format de carte."
     },
     "fsrs": {
         "title": "Paramètres FSRS",
