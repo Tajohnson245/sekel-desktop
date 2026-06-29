@@ -505,7 +505,21 @@
         "difficulty_essential": "Essential Only",
         "difficulty_detailed": "Detailed",
         "custom_instructions": "Custom Instructions",
-        "custom_instructions_placeholder": "e.g., Focus only on key definitions…"
+        "custom_instructions_placeholder": "e.g., Focus only on key definitions…",
+        "pipeline_parsed": "Parsed {{count}} file(s)",
+        "pipeline_analyzing": "Analyzing document structure…",
+        "pipeline_generating": "Generating cards",
+        "pipeline_skipped_failed": "Skipped {{count}} file(s) that failed to parse.",
+        "cancel_pipeline": "Cancel and start over",
+        "regenerate_button": "Regenerate Cards",
+        "show_settings": "Show generation settings",
+        "hide_settings": "Hide generation settings",
+        "auto_generating_title": "Generating your cards",
+        "auto_generating_subtitle": "Reading your document, drafting cards, and refining each one. This usually takes 30–90 seconds.",
+        "preflight_count_hint": "Up to 500. Cards are split across the formats you pick below.",
+        "preflight_formats_hint": "Pick one or more. Mixing formats gives a richer study experience.",
+        "preflight_need_files": "Upload at least one document before generating.",
+        "preflight_need_formats": "Pick at least one card format."
     },
     "modals": {
         "create": "Create",

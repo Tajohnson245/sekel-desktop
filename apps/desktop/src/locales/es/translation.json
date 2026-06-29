@@ -419,7 +419,21 @@
         "difficulty_essential": "Solo Esencial",
         "difficulty_detailed": "Detallado",
         "custom_instructions": "Instrucciones Personalizadas",
-        "custom_instructions_placeholder": "Ej., Enfocarse solo en definiciones clave…"
+        "custom_instructions_placeholder": "Ej., Enfocarse solo en definiciones clave…",
+        "pipeline_parsed": "{{count}} archivo(s) procesado(s)",
+        "pipeline_analyzing": "Analizando la estructura del documento…",
+        "pipeline_generating": "Generando tarjetas",
+        "pipeline_skipped_failed": "Se omitieron {{count}} archivo(s) que no se pudieron procesar.",
+        "cancel_pipeline": "Cancelar y empezar de nuevo",
+        "regenerate_button": "Regenerar tarjetas",
+        "show_settings": "Mostrar opciones de generación",
+        "hide_settings": "Ocultar opciones de generación",
+        "auto_generating_title": "Generando tus tarjetas",
+        "auto_generating_subtitle": "Leyendo el documento, redactando tarjetas y refinando cada una. Suele tardar entre 30 y 90 segundos.",
+        "preflight_count_hint": "Hasta 500. Las tarjetas se reparten entre los formatos que elijas abajo.",
+        "preflight_formats_hint": "Elige uno o más. Mezclar formatos enriquece el estudio.",
+        "preflight_need_files": "Sube al menos un documento antes de generar.",
+        "preflight_need_formats": "Elige al menos un formato de tarjeta."
     },
     "modals": {
         "create": "Crear",

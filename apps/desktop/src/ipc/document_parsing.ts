@@ -521,12 +521,14 @@ Return JSON only. No preamble.
 
     // Estimated card capacity based on content-section chunks only (drops
     // frontmatter/references/appendix from the count so the slider's max
-    // reflects what's actually generating cards).
+    // reflects what's actually generating cards). Multiplier of 4 reflects
+    // that each chunk genuinely supports multiple cards (definition,
+    // mechanism, application, contrast), not the prior conservative 2.
     const contentChunkCount = sections
         .filter((s) => s.isContent)
         .reduce((sum, s) => sum + s.chunkIds.length, 0);
     const effectiveChunkCount = contentChunkCount > 0 ? contentChunkCount : allChunks.length;
-    const estimatedCardCount = Math.min(effectiveChunkCount * 2, 500);
+    const estimatedCardCount = Math.min(effectiveChunkCount * 4, 500);
 
     return { summary, topics, estimatedCardCount, chunks: allChunks, sections };
 }
