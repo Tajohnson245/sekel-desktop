@@ -16,81 +16,15 @@ import {
     useClearPlanOverride,
     useDeckUnseenCounts,
     usePlanProgress,
+    useEffectivePlan,
     type Plan,
     type DeckUnseenCount,
     type PlanProgress,
     type PlanActivityCounts,
 } from '../../hooks/usePlan';
-import { usePlanStore } from '../../stores/planStore';
 import type { SystemCoverageRow } from '../../lib/queries';
+import { buildWeeklyProjection } from '../../lib/planMath';
 import './PlanPage.css';
-
-// ── Cohort math (mirrored from planService for live creation-panel preview) ───
-
-const WEEKLY_MULTIPLIERS = [0.5, 0.9, 1.2];
-const STEADY_STATE       = 1.5;
-
-function weekMultiplier(week: number): number {
-    if (week <= 0) return 0;
-    const idx = week - 1;
-    return idx < WEEKLY_MULTIPLIERS.length ? WEEKLY_MULTIPLIERS[idx] : STEADY_STATE;
-}
-
-
-// ── Exhaustion-aware weekly preview ──────────────────────────────────────────
-//
-// Models what actually happens when the card supply runs out:
-//   - new cards drop to 0 once all unseenTotal cards are introduced
-//   - reviews come only from cohorts that were actually introduced
-//
-// For week w:
-//   newPerDay = rate (w < exhaustWeek), prorated (w == exhaustWeek), 0 after
-//   reviews   = sum over cohorts 1..min(w, exhaustWeek) of
-//               rate × weekMultiplier(age) × cohortFraction / 7
-
-interface WeekRow {
-    week: number;
-    newCardsPerDay: number;
-    reviews: number;
-    mins: number;
-}
-
-function buildWeeklyPreview(
-    rate: number,
-    unseenTotal: number,
-    availableDays: number,
-    maxWeeks: number,
-): { weeks: WeekRow[]; peakMinutes: number; daysToExhaust: number } {
-    if (rate <= 0 || unseenTotal <= 0) return { weeks: [], peakMinutes: 0, daysToExhaust: 0 };
-
-    const daysToExhaust = Math.min(Math.ceil(unseenTotal / rate), availableDays);
-    const exhaustWeek   = Math.ceil(daysToExhaust / 7);
-    const lastWeekDays  = daysToExhaust % 7 || 7;
-    const totalWeeks    = Math.min(Math.ceil(availableDays / 7), maxWeeks);
-
-    let peakMinutes = 0;
-    const weeks: WeekRow[] = [];
-
-    for (let w = 1; w <= totalWeeks; w++) {
-        const newCardsPerDay =
-            w < exhaustWeek   ? rate :
-            w === exhaustWeek ? Math.round(rate * lastWeekDays / 7) :
-            0;
-
-        let weeklyReviews = 0;
-        for (let c = 1; c <= Math.min(w, exhaustWeek); c++) {
-            const fraction = c === exhaustWeek ? lastWeekDays / 7 : 1;
-            weeklyReviews += rate * weekMultiplier(w - c + 1) * fraction;
-        }
-        const reviews = Math.round(weeklyReviews / 7);
-        const mins    = Math.round(newCardsPerDay * 0.75 + reviews * 0.33);
-
-        if (mins > peakMinutes) peakMinutes = mins;
-        weeks.push({ week: w, newCardsPerDay, reviews, mins });
-    }
-
-    return { weeks, peakMinutes, daysToExhaust };
-}
 
 // ── Plan narrative ────────────────────────────────────────────────────────────
 //
@@ -131,8 +65,8 @@ function buildPlanNarrative(
     let timeNote: string;
     if (daysToExhaust < availableDays && reviewOnlyDays > 7) {
         // Review load after exhaustion is much lower than during intro phase
-        const reviewRows = buildWeeklyPreview(rate, unseenTotal, availableDays, Math.ceil(availableDays / 7));
-        const steadyMins = reviewRows.weeks.slice(-1)[0]?.mins ?? 0;
+        const reviewRows = buildWeeklyProjection(rate, unseenTotal, availableDays, Math.ceil(availableDays / 7));
+        const steadyMins = reviewRows.weeks.slice(-1)[0]?.estimatedTotalMinutes ?? 0;
         timeNote = `Your busiest days are during the intro phase, peaking around ${peakStr}/day, then settling to roughly ${fmtMinutes(steadyMins)}/day once reviews mature into longer intervals.`;
     } else {
         timeNote = `Study time builds gradually as your review pile grows, peaking around ${peakStr}/day.`;
@@ -159,12 +93,6 @@ function fmtDate(iso: string): string {
     return new Date(iso).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function performanceColor(need: number): string {
-    if (need >= 0.6) return 'perf-high';
-    if (need >= 0.3) return 'perf-medium';
-    return 'perf-low';
-}
-
 function defaultPlanName(): string {
     return `Plan · ${new Date().toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' })}`;
 }
@@ -177,7 +105,7 @@ function OverrideControl({ currentNewPerDay }: { currentNewPerDay: number }) {
     const [value, setValue] = useState(String(currentNewPerDay));
     const setOverride       = useSetPlanOverride();
     const clearOverride     = useClearPlanOverride();
-    const hasOverride       = usePlanStore(s => s.hasOverride);
+    const hasOverride       = useEffectivePlan().hasOverride;
 
     function handleConfirm() {
         const n = parseInt(value, 10);
@@ -416,38 +344,47 @@ function ActivePlanDetail({ plan, examLabel }: { plan: Plan; examLabel: string }
                 </div>
 
                 {/* ── Live progress ─────────────────────────────────────────── */}
-                {progress != null && (
+                {progress != null && (() => {
+                    // Anchor progress to the plan's *selected* card set (the yield-covered
+                    // cards committed at creation), not the full deck scope. studiedSincePlanStart
+                    // is scope-wide and — because per-deck caps let a user exceed the global plan
+                    // rate — can run past the selected set, so clamp it. The three counts reconcile:
+                    // introduced + remaining === cards in plan.
+                    const inPlan          = snapshot.projectedCoverageCount;
+                    const introducedInPlan = Math.min(progress.studiedSincePlanStart, inPlan);
+                    const remainingInPlan  = Math.max(0, inPlan - introducedInPlan);
+                    const pct = inPlan > 0
+                        ? Math.min(100, Math.round((introducedInPlan / inPlan) * 100))
+                        : 0;
+                    const colorClass = pct >= 100 ? 'plan-progress-fill--complete'
+                        : pct >= 66  ? 'plan-progress-fill--good'
+                        : pct >= 33  ? 'plan-progress-fill--mid'
+                        :              'plan-progress-fill--early';
+                    return (
                     <div className="plan-progress-section">
                         <div className="plan-progress-header">
                             <span className="plan-progress-title">{t('plan.progress_title')}</span>
                             <span className="plan-progress-fraction">
-                                {progress.studiedSincePlanStart.toLocaleString()} / {snapshot.unseenTotal.toLocaleString()}
+                                {introducedInPlan.toLocaleString()} / {inPlan.toLocaleString()}
                             </span>
                         </div>
                         <div className="plan-progress-track">
-                            {(() => {
-                                const pct = snapshot.unseenTotal > 0
-                                    ? Math.min(100, Math.round((progress.studiedSincePlanStart / snapshot.unseenTotal) * 100))
-                                    : 0;
-                                const colorClass = pct >= 100 ? 'plan-progress-fill--complete'
-                                    : pct >= 66  ? 'plan-progress-fill--good'
-                                    : pct >= 33  ? 'plan-progress-fill--mid'
-                                    :              'plan-progress-fill--early';
-                                return (
-                                    <div
-                                        className={`plan-progress-track-fill ${colorClass}`}
-                                        style={{ width: `${pct}%` }}
-                                    />
-                                );
-                            })()}
+                            <div
+                                className={`plan-progress-track-fill ${colorClass}`}
+                                style={{ width: `${pct}%` }}
+                            />
                         </div>
                         <div className="plan-progress-stats">
                             <div className="plan-progress-stat">
-                                <span className="plan-progress-stat-value">{progress.studiedSincePlanStart.toLocaleString()}</span>
+                                <span className="plan-progress-stat-value">{inPlan.toLocaleString()}</span>
+                                <span className="plan-progress-stat-label">{t('plan.progress_in_plan')}</span>
+                            </div>
+                            <div className="plan-progress-stat">
+                                <span className="plan-progress-stat-value">{introducedInPlan.toLocaleString()}</span>
                                 <span className="plan-progress-stat-label">{t('plan.progress_introduced')}</span>
                             </div>
                             <div className="plan-progress-stat">
-                                <span className="plan-progress-stat-value">{progress.currentUnseen.toLocaleString()}</span>
+                                <span className="plan-progress-stat-value">{remainingInPlan.toLocaleString()}</span>
                                 <span className="plan-progress-stat-label">{t('plan.progress_remaining')}</span>
                             </div>
                             <div className="plan-progress-stat">
@@ -459,7 +396,8 @@ function ActivePlanDetail({ plan, examLabel }: { plan: Plan; examLabel: string }
                             </div>
                         </div>
                     </div>
-                )}
+                    );
+                })()}
 
                 <OverrideControl currentNewPerDay={plan.cardsPerDay} />
             </section>
@@ -1000,7 +938,7 @@ function CreatePlanPanel({
         const { unseenTotal, availableDays } = suggestion;
         const projectedCount = Math.min(unseenTotal, effectiveRate * availableDays);
         const coveragePct    = unseenTotal > 0 ? Math.round((projectedCount / unseenTotal) * 100) : 100;
-        const preview        = buildWeeklyPreview(effectiveRate, unseenTotal, availableDays, 8);
+        const preview        = buildWeeklyProjection(effectiveRate, unseenTotal, availableDays, 8);
         return {
             projectedCount,
             coveragePct,
@@ -1014,21 +952,11 @@ function CreatePlanPanel({
 
     async function handleCommit() {
         if (!suggestion) return;
-        // Rebuild the weekly projection for the user's chosen rate (not the system recommendation)
-        // so the active plan's schedule table reflects what they actually committed to.
-        const preview = buildWeeklyPreview(effectiveRate, suggestion.unseenTotal, suggestion.availableDays, 16);
-        const correctedSnapshot = {
-            ...suggestion,
-            weeklyProjection: preview.weeks.map(r => ({
-                week:                   r.week,
-                newCardsPerDay:         r.newCardsPerDay,
-                estimatedReviewsPerDay: r.reviews,
-                estimatedTotalMinutes:  r.mins,
-            })),
-            projectedPeakDailyMinutes: preview.peakMinutes,
-        };
+        // createPlan recomputes the snapshot authoritatively for the committed rate
+        // (coverage, per-system breakdown, weekly projection), so we hand it the
+        // suggestion purely for its deck scope plus the chosen rate.
         createPlan.mutate(
-            { examKey, cardsPerDay: effectiveRate, name: name.trim() || defaultPlanName(), snapshot: correctedSnapshot },
+            { examKey, cardsPerDay: effectiveRate, name: name.trim() || defaultPlanName(), snapshot: suggestion },
             { onSuccess: () => onDone() },
         );
     }
@@ -1122,8 +1050,8 @@ function CreatePlanPanel({
                 {liveStats && (() => {
                     const lastWeek       = liveStats.weeklyPreview[liveStats.weeklyPreview.length - 1];
                     const firstWeek      = liveStats.weeklyPreview[0];
-                    const reviewsWeek1   = firstWeek?.reviews ?? 0;
-                    const reviewsLastWk  = lastWeek?.reviews ?? 0;
+                    const reviewsWeek1   = firstWeek?.estimatedReviewsPerDay ?? 0;
+                    const reviewsLastWk  = lastWeek?.estimatedReviewsPerDay ?? 0;
                     const lastWeekNum    = lastWeek?.week ?? 1;
                     const cardsMissed    = liveStats.unseenTotal - liveStats.projectedCount;
                     const fullyCovered   = liveStats.coveragePct >= 100;
@@ -1206,8 +1134,8 @@ function CreatePlanPanel({
                                         <tr key={row.week} className={row.newCardsPerDay === 0 ? 'plan-table-row--review-only' : ''}>
                                             <td>{t('plan.week_n', { n: row.week })}</td>
                                             <td>{row.newCardsPerDay}</td>
-                                            <td>{row.reviews}</td>
-                                            <td>{fmtMinutes(row.mins)}</td>
+                                            <td>{row.estimatedReviewsPerDay}</td>
+                                            <td>{fmtMinutes(row.estimatedTotalMinutes)}</td>
                                         </tr>
                                     ))}
                                 </tbody>

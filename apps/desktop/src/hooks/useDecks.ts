@@ -23,7 +23,7 @@ import {
 import type { Deck, DeckInsert, DeckUpdate, Card } from '../lib/types';
 import { useAuthStore } from '../stores/authStore';
 import { useProfileStore } from '../stores/profileStore';
-import { usePlanStore } from '../stores/planStore';
+import { useEffectivePlan } from './usePlan';
 
 // ─────────────────────────────────────────────────────────────────
 // Query Keys
@@ -63,8 +63,11 @@ export function useDeck(id: string | null) {
 export function useDeckStats(deckId: string | null) {
     const userId = useAuthStore((s) => s.user?.id);
     const profile = useProfileStore((s) => s.profile);
+    const planNewPerDay = useEffectivePlan().effectiveNewPerDay;
     const limitsEnabled = profile?.daily_limits_enabled ?? true;
-    const newLimit = limitsEnabled ? (profile?.daily_new_limit ?? 20) : undefined;
+    // An active plan's rate caps new cards (same precedence as useDueCards), so the
+    // deck-list badge matches what the study session will actually serve.
+    const newLimit = planNewPerDay ?? (limitsEnabled ? (profile?.daily_new_limit ?? 20) : undefined);
     const reviewLimit = limitsEnabled ? (profile?.daily_review_limit ?? 200) : undefined;
     return useQuery<DeckStats>({
         queryKey: [...deckKeys.stats(deckId ?? ''), newLimit, reviewLimit],
@@ -76,7 +79,7 @@ export function useDeckStats(deckId: string | null) {
 export function useDueCards(deckId: string | null) {
     const userId = useAuthStore((s) => s.user?.id);
     const profile = useProfileStore((s) => s.profile);
-    const planNewPerDay = usePlanStore((s) => s.effectiveNewPerDay);
+    const planNewPerDay = useEffectivePlan().effectiveNewPerDay;
     const limitsEnabled = profile?.daily_limits_enabled ?? true;
     // Plan limit takes precedence over Supabase profile when a plan is active
     const newLimit = planNewPerDay ?? (limitsEnabled ? (profile?.daily_new_limit ?? 20) : undefined);
@@ -91,7 +94,7 @@ export function useDueCards(deckId: string | null) {
 export function useDueCardsFocused(deckId: string | null, systemKeys: string[], examKey: string | undefined) {
     const userId = useAuthStore((s) => s.user?.id);
     const profile = useProfileStore((s) => s.profile);
-    const planNewPerDay = usePlanStore((s) => s.effectiveNewPerDay);
+    const planNewPerDay = useEffectivePlan().effectiveNewPerDay;
     const limitsEnabled = profile?.daily_limits_enabled ?? true;
     const newLimit = planNewPerDay ?? (limitsEnabled ? (profile?.daily_new_limit ?? 20) : undefined);
     const reviewLimit = limitsEnabled ? (profile?.daily_review_limit ?? 200) : undefined;
