@@ -3,6 +3,7 @@ import { Plus, Trash2, X, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useDecks, useBulkDeleteDecks } from '../../hooks/useDecks';
 import { useDeckDueCounts, deckDueTotal } from '../../hooks/useDeckDueCounts';
+import { useDeckClassificationCounts } from '../../hooks/useDeckClassificationCounts';
 import { useAppNavigation } from '../../hooks/useAppNavigation';
 import { useDeckEditor } from '../../contexts/DeckEditorContext';
 import { Button, Loader, Modal, useToast } from '../UI';
@@ -51,6 +52,7 @@ export default function DeckList() {
     const { openDeckEditor } = useDeckEditor();
     const { data: decks = [], isLoading, error } = useDecks();
     const { byDeck, totalDue, totalCards } = useDeckDueCounts();
+    const { byDeck: classifiedByDeck, hasExam } = useDeckClassificationCounts();
     const bulkDelete = useBulkDeleteDecks();
     const { t } = useTranslation();
     const { showToast } = useToast();
@@ -173,10 +175,21 @@ export default function DeckList() {
         return <div className="deck-list"><div className="error">{t('decks.error')}</div></div>;
     }
 
+    // Classified cards for a subtree (self + descendants), matching how the
+    // count triad aggregates parent rows.
+    const subtreeClassified = (deckId: string): number => {
+        let acc = classifiedByDeck.get(deckId)?.classified ?? 0;
+        (aggregate.childrenOf.get(deckId) ?? []).forEach((c) => { acc += subtreeClassified(c.id); });
+        return acc;
+    };
+
     const renderRow = (node: DeckNode, depth: number): React.ReactNode[] => {
         const { deck, children } = node;
         const stats = depth === 0 ? aggregate.sum(deck.id) : (byDeck.get(deck.id) ?? { deckId: deck.id, ...EMPTY_STATS });
         const due = deckDueTotal(stats);
+        const classified = !hasExam
+            ? null
+            : (depth === 0 ? subtreeClassified(deck.id) : (classifiedByDeck.get(deck.id)?.classified ?? 0));
         const hasChildren = children.length > 0;
         const isExpanded = expanded.has(deck.id);
         const selected = selectedDeckIds.has(deck.id);
@@ -214,6 +227,9 @@ export default function DeckList() {
                 <div className="deck-col num"><CountCell value={stats.newCount} tone="new" /></div>
                 <div className="deck-col num"><CountCell value={stats.learningCount} tone="learning" /></div>
                 <div className="deck-col num"><CountCell value={stats.reviewCount} tone="due" /></div>
+                <div className={`deck-col num mono ${classified == null || classified === 0 ? 'deck-muted' : ''}`}>
+                    {classified == null ? '—' : classified}
+                </div>
                 <div className="deck-col num mono deck-muted">—</div>
                 <div className="deck-col"><YieldMix high={stats.newCount} med={stats.reviewCount} /></div>
                 <div className="deck-col mono deck-muted">—</div>
@@ -321,6 +337,7 @@ export default function DeckList() {
                             <div className="ink-col-label num">{t('decks.col_new', { defaultValue: 'New' })}</div>
                             <div className="ink-col-label num">{t('decks.col_learning', { defaultValue: 'Learning' })}</div>
                             <div className="ink-col-label num">{t('decks.col_due', { defaultValue: 'Due' })}</div>
+                            <div className="ink-col-label num">{t('decks.col_classified', { defaultValue: 'Classified' })}</div>
                             <div className="ink-col-label num">{t('decks.col_retention', { defaultValue: 'Retention' })}</div>
                             <div className="ink-col-label">{t('decks.col_yield', { defaultValue: 'Yield mix' })}</div>
                             <div className="ink-col-label">{t('decks.col_last', { defaultValue: 'Last studied' })}</div>

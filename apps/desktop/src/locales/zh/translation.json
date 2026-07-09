@@ -112,7 +112,8 @@
         "col_last": "Last studied",
         "footer_status": "{{due}} due across {{decks}} decks · est. {{min}} min at current pace",
         "select_deck": "Select deck",
-        "import_success": "Import complete"
+        "import_success": "Import complete",
+        "col_classified": "Classified"
     },
     "study": {
         "session_complete": "学习完成！",
