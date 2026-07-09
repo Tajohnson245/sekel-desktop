@@ -344,6 +344,8 @@
         "all_translated": "Alle Komponenten wurden übersetzt."
     },
     "ai": {
+        "regenerate_with_ai": "Mit KI neu generieren",
+        "regenerate_success": "Karte neu generiert – prüfen und speichern",
         "title": "KI-Lernassistent",
         "subtitle": "Laden Sie Dokumente (PDF, DOCX, PPTX, Bilder) oder YouTube-Videos hoch, um einen Lernplan und Karteikarten zu erstellen.",
         "upload_header": "Dokumente Hochladen",
@@ -586,6 +588,7 @@
         "fill_from_cloze": "Aus Lückentext übernehmen"
     },
     "errors": {
+        "regenerate_card": "Karte konnte nicht neu generiert werden",
         "invalid_youtube_url": "Bitte gib eine gültige YouTube-URL ein",
         "upload_image": "Bild konnte nicht hochgeladen werden",
         "upload_image_retry": "Bild konnte nicht hochgeladen werden. Bitte versuche es erneut.",

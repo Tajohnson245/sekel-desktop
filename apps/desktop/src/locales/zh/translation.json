@@ -344,6 +344,8 @@
         "all_translated": "所有组件已翻译。"
     },
     "ai": {
+        "regenerate_with_ai": "用 AI 重新生成",
+        "regenerate_success": "卡片已重新生成 — 请检查并保存",
         "title": "AI 学习助手",
         "subtitle": "上传文档（PDF、DOCX、PPTX、图片）或 YouTube 视频以生成学习计划和抽认卡。",
         "upload_header": "上传文档",
@@ -586,6 +588,7 @@
         "fill_from_cloze": "从完形填空填充"
     },
     "errors": {
+        "regenerate_card": "重新生成卡片失败",
         "invalid_youtube_url": "请输入有效的 YouTube 网址",
         "upload_image": "图片上传失败",
         "upload_image_retry": "图片上传失败，请重试。",

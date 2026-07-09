@@ -344,6 +344,8 @@
         "all_translated": "Tous les composants ont été traduits."
     },
     "ai": {
+        "regenerate_with_ai": "Régénérer avec l'IA",
+        "regenerate_success": "Carte régénérée — vérifiez et enregistrez",
         "title": "Assistant d'Étude IA",
         "subtitle": "Téléchargez des documents (PDF, DOCX, PPTX, Images) ou des vidéos YouTube pour générer un plan d'étude et des cartes mémoire.",
         "upload_header": "Télécharger des Documents",
@@ -586,6 +588,7 @@
         "fill_from_cloze": "Remplir depuis le texte à trous"
     },
     "errors": {
+        "regenerate_card": "Échec de la régénération de la carte",
         "invalid_youtube_url": "Veuillez entrer une URL YouTube valide",
         "upload_image": "Échec du téléchargement de l'image",
         "upload_image_retry": "Échec du téléchargement de l'image. Veuillez réessayer.",

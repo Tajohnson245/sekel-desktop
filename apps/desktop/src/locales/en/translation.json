@@ -473,6 +473,8 @@
         "all_translated": "All components have been translated."
     },
     "ai": {
+        "regenerate_with_ai": "Regenerate with AI",
+        "regenerate_success": "Card regenerated — review and save",
         "title": "AI Study Assistant",
         "subtitle": "Upload documents (PDF, DOCX, PPTX, XLSX, CSV, TXT, MD) or YouTube videos to generate a study plan and flashcards.",
         "upload_header": "Upload Documents",
@@ -718,6 +720,7 @@
         "fill_from_cloze": "Fill from cloze"
     },
     "errors": {
+        "regenerate_card": "Failed to regenerate card",
         "invalid_youtube_url": "Please enter a valid YouTube URL",
         "youtube_invalid_url": "Invalid YouTube URL. Please check the link and try again.",
         "youtube_invalid_domain": "Only youtube.com and youtu.be links are supported.",

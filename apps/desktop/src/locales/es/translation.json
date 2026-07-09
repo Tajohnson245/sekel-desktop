@@ -387,6 +387,8 @@
         "all_translated": "Todos los componentes han sido traducidos."
     },
     "ai": {
+        "regenerate_with_ai": "Regenerar con IA",
+        "regenerate_success": "Tarjeta regenerada: revísala y guárdala",
         "title": "Asistente de Estudio IA",
         "subtitle": "Sube documentos (PDF, DOCX, PPTX, Imágenes) o videos de YouTube para generar un plan de estudio y tarjetas.",
         "upload_header": "Subir Documentos",
@@ -586,6 +588,7 @@
         "fill_from_cloze": "Rellenar desde cloze"
     },
     "errors": {
+        "regenerate_card": "No se pudo regenerar la tarjeta",
         "invalid_youtube_url": "Por favor ingresa una URL de YouTube válida",
         "upload_image": "Error al subir la imagen",
         "upload_image_retry": "Error al subir la imagen. Inténtalo de nuevo.",

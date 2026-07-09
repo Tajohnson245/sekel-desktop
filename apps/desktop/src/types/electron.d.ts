@@ -171,6 +171,18 @@ export interface AIGenerationOptions {
     customInstructions?: string;
 }
 
+export interface RegenerateCardPayload {
+    /** Current front content of the card being edited (may contain HTML / cloze markup). */
+    front: string;
+    /** Current back content of the card being edited (may contain HTML). */
+    back: string;
+    /** The card's format, so the regenerated card keeps the same shape. Defaults to 'basic'. */
+    format?: CardFormat;
+    difficulty?: 'essential' | 'detailed';
+    language?: string;
+    customInstructions?: string;
+}
+
 export interface AIProgress {
     phase: 'chunking' | 'generating' | 'refining' | 'done';
     current: number;
@@ -588,6 +600,8 @@ interface ElectronAPI {
     deepLink: DeepLinkAPI;
     generateCards: (text: string, count?: number, language?: string, options?: AIGenerationOptions) => Promise<GeneratedCard[]>;
     generateCardsFromContext: (summary: string, content: string, count: number, language?: string, options?: AIGenerationOptions, chunks?: DocumentChunk[]) => Promise<GenerationResult>;
+    /** Regenerate a single existing card from its own front/back + format. Returns one fresh card. */
+    regenerateCard: (payload: RegenerateCardPayload) => Promise<GeneratedCard>;
     onAIProgress: (cb: (progress: AIProgress) => void) => () => void;
     parseDocument: (file: { name: string, buffer?: ArrayBuffer, url?: string, type: string, language?: string }) => Promise<{ filename: string; content: string }>;
     generateSummary: (documents: Record<string, string>, language?: string) => Promise<DocumentOverview>;
