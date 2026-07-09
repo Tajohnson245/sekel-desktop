@@ -147,6 +147,16 @@ export function visibleStepIdsFor(ctx: TourContext): string[] {
     return TOUR_STEPS.filter((s) => !s.precondition || s.precondition(ctx)).map((s) => s.id);
 }
 
+/**
+ * Steps that make up each feature-unlock mini-tour, in order. The auto-trigger
+ * (FeatureUnlockTours) filters these against the current preconditions so only
+ * renderable steps are shown (e.g. plan-system-coverage needs classified cards).
+ */
+export const FEATURE_TOUR_STEP_IDS: Record<'intelligence' | 'plan', string[]> = {
+    intelligence: ['dashboard-intelligence'],
+    plan: ['plan-targets', 'plan-activity', 'plan-weekly-workload', 'plan-system-coverage'],
+};
+
 export function findStep(id: string): TourStep | undefined {
     return TOUR_STEPS.find((s) => s.id === id);
 }

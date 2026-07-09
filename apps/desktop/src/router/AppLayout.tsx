@@ -11,6 +11,7 @@ import DocumentsPage from '../components/AIStudy/DocumentsPage';
 import { DeckEditorProvider } from '../contexts/DeckEditorContext';
 import UpdateAvailableModal from '../components/Update/UpdateAvailableModal';
 import { OnboardingTour } from '../components/Onboarding/OnboardingTour';
+import { FeatureUnlockTours } from '../components/Onboarding/FeatureUnlockTours';
 import { useVisibleTourStepIds } from '../components/Onboarding/useVisibleTourStepIds';
 import { useOnboardingStore, ONBOARDING_LOCALSTORAGE_KEY } from '../stores/onboardingStore';
 import { useGlobalKeyboard } from '../hooks/useGlobalKeyboard';
@@ -215,6 +216,7 @@ export default function AppLayout() {
                 </div>
 
                 <OnboardingTour />
+                <FeatureUnlockTours />
                 <UpdateAvailableModal />
             </div>
         </DeckEditorProvider>
