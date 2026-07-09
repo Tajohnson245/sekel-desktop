@@ -18,6 +18,26 @@ function syncSentryUser(user: User | null) {
     }
 }
 
+/**
+ * Mirror the Supabase session into the main process so it can perform
+ * RLS-scoped cloud-backup writes as the user (incl. a final snapshot at quit).
+ * Fires on sign-in, token refresh, and sign-out. Best-effort — never throws
+ * into the auth flow.
+ */
+function syncCloudBackupSession(session: Session | null) {
+    const api = window.electronAPI?.cloudBackup;
+    if (!api) return;
+    const promise = session?.user
+        ? api.setSession({
+              userId: session.user.id,
+              accessToken: session.access_token,
+              refreshToken: session.refresh_token,
+              expiresAt: session.expires_at,
+          })
+        : api.clearSession();
+    void Promise.resolve(promise).catch(() => { /* best effort */ });
+}
+
 interface AuthState {
     user: User | null;
     session: Session | null;
@@ -59,10 +79,12 @@ export const useAuthStore = create<AuthState>((set) => ({
             const { data: { session } } = await getSession(supabase);
             set({ session, user: session?.user ?? null });
             syncSentryUser(session?.user ?? null);
+            syncCloudBackupSession(session);
 
             onAuthStateChange(supabase, (_event, session) => {
                 set({ session, user: session?.user ?? null, isLoading: false });
                 syncSentryUser(session?.user ?? null);
+                syncCloudBackupSession(session);
             });
         } catch (err: unknown) {
             set({ error: err instanceof Error ? err.message : String(err) });

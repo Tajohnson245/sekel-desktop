@@ -190,6 +190,10 @@ export default function StudySession() {
                 difficulty_after: updates.difficulty ?? 0,
                 scheduled_days: updates.scheduled_days ?? 0,
             });
+
+            // Cheap, fire-and-forget: lets the main process count reviews and
+            // fire a cloud snapshot once the 25-review threshold is crossed.
+            void window.electronAPI?.cloudBackup?.requestCheck()?.catch(() => { /* best effort */ });
         }
 
         if (isLastCard && sessionId) {

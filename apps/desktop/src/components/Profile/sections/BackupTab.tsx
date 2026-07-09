@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Database, Download, HardDrive, Trash2, Upload } from 'lucide-react';
+import { Cloud, CloudUpload, Database, Download, HardDrive, Trash2, Upload } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button, Modal, useToast } from '../../UI';
-import type { BackupInfo } from '../../../types/electron.d';
+import type { BackupInfo, CloudSnapshotInfo } from '../../../types/electron.d';
 
 function formatBytes(bytes: number): string {
     if (bytes < 1024) return `${bytes} B`;
@@ -33,6 +33,14 @@ export function BackupTab() {
     const [restoring, setRestoring] = useState(false);
     const [integrityResult, setIntegrityResult] = useState<string | null>(null);
     const [checkingIntegrity, setCheckingIntegrity] = useState(false);
+
+    // Cloud backups (Supabase). Coexists with the local backups above.
+    const [cloudSnapshots, setCloudSnapshots] = useState<CloudSnapshotInfo[]>([]);
+    const [cloudLoading, setCloudLoading] = useState(true);
+    const [cloudError, setCloudError] = useState<string | null>(null);
+    const [cloudBackingUp, setCloudBackingUp] = useState(false);
+    const [cloudRestoreTarget, setCloudRestoreTarget] = useState<CloudSnapshotInfo | null>(null);
+    const [cloudRestoring, setCloudRestoring] = useState(false);
 
     const loadBackupData = useCallback(async () => {
         try {
@@ -101,6 +109,60 @@ export function BackupTab() {
     const handleDelete = async (filename: string) => {
         await window.electronAPI.backup.delete(filename);
         await loadBackupData();
+    };
+
+    const loadCloudSnapshots = useCallback(async () => {
+        setCloudLoading(true);
+        setCloudError(null);
+        try {
+            const list = await window.electronAPI.cloudBackup.list();
+            setCloudSnapshots(list);
+        } catch (err) {
+            setCloudError(err instanceof Error ? err.message : String(err));
+        } finally {
+            setCloudLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        loadCloudSnapshots();
+    }, [loadCloudSnapshots]);
+
+    const handleCloudBackupNow = async () => {
+        setCloudBackingUp(true);
+        try {
+            const ok = await window.electronAPI.cloudBackup.snapshotNow();
+            if (ok) {
+                showToast(t('backup.cloud_backup_success'), 'success');
+                await loadCloudSnapshots();
+            } else {
+                showToast(t('backup.cloud_backup_error'), 'error');
+            }
+        } catch {
+            showToast(t('backup.cloud_backup_error'), 'error');
+        } finally {
+            setCloudBackingUp(false);
+        }
+    };
+
+    const handleCloudRestore = async () => {
+        if (!cloudRestoreTarget) return;
+        setCloudRestoring(true);
+        try {
+            const result = await window.electronAPI.cloudBackup.restore(cloudRestoreTarget.id);
+            if (result.success) {
+                showToast(t('backup.cloud_restore_success'), 'success');
+                setCloudRestoreTarget(null);
+                // Relaunch so all in-memory state matches the restored database.
+                setTimeout(() => { void window.electronAPI.cloudBackup.restart(); }, 1200);
+            } else {
+                showToast(result.error || t('backup.cloud_restore_error'), 'error');
+                setCloudRestoring(false);
+            }
+        } catch {
+            showToast(t('backup.cloud_restore_error'), 'error');
+            setCloudRestoring(false);
+        }
     };
 
     const handleCheckIntegrity = async () => {
@@ -198,6 +260,78 @@ export function BackupTab() {
                 </div>
             </section>
 
+            {/* Cloud Backups (Supabase) */}
+            <section className="profile-section">
+                <div className="section-header">
+                    <h3>
+                        <Cloud size={18} style={{ display: 'inline', marginRight: '8px', verticalAlign: 'middle' }} />
+                        {t('backup.cloud_title')}
+                    </h3>
+                </div>
+                <p className="text-muted" style={{ fontSize: '0.85rem', marginBottom: '1rem' }}>
+                    {t('backup.cloud_description')}
+                </p>
+
+                <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                    <Button
+                        variant="primary"
+                        onClick={handleCloudBackupNow}
+                        disabled={cloudBackingUp}
+                        icon={<CloudUpload size={14} />}
+                    >
+                        {cloudBackingUp ? t('backup.cloud_backing_up') : t('backup.cloud_backup_now')}
+                    </Button>
+                </div>
+
+                <div style={{ marginTop: '0.5rem' }}>
+                    <label className="field-label">{t('backup.cloud_available')}</label>
+
+                    {cloudLoading ? (
+                        <p className="text-muted" style={{ fontSize: '0.85rem' }}>{t('common.loading')}</p>
+                    ) : cloudError ? (
+                        <p className="text-muted" style={{ fontSize: '0.85rem', fontStyle: 'italic' }}>
+                            {t('backup.cloud_unavailable')}
+                        </p>
+                    ) : cloudSnapshots.length === 0 ? (
+                        <p className="text-muted" style={{ fontSize: '0.85rem', fontStyle: 'italic' }}>
+                            {t('backup.cloud_no_backups')}
+                        </p>
+                    ) : (
+                        <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid var(--border)', borderRadius: '8px' }}>
+                            {cloudSnapshots.map((snap) => (
+                                <div
+                                    key={snap.id}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        padding: '0.6rem 0.8rem',
+                                        borderBottom: '1px solid var(--border)',
+                                    }}
+                                >
+                                    <div>
+                                        <div style={{ fontSize: '0.9rem' }}>{formatTimestamp(snap.createdAt)}</div>
+                                        <div className="text-muted" style={{ fontSize: '0.75rem' }}>
+                                            {formatBytes(snap.sizeBytes)}
+                                            {snap.reviewCount != null && ` · ${t('backup.cloud_review_count', { n: snap.reviewCount })}`}
+                                            {` · ${t(`backup.cloud_generation_${snap.generation}`)}`}
+                                        </div>
+                                    </div>
+                                    <Button
+                                        variant="secondary"
+                                        onClick={() => setCloudRestoreTarget(snap)}
+                                        icon={<Download size={12} />}
+                                        style={{ fontSize: '0.8rem', padding: '0.25rem 0.5rem' }}
+                                    >
+                                        {t('backup.restore')}
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </section>
+
             {/* Database Integrity Check */}
             <section className="profile-section">
                 <div className="section-header">
@@ -256,6 +390,35 @@ export function BackupTab() {
                     )}
                     <p style={{ marginTop: '0.75rem', fontWeight: 500, color: 'var(--danger)' }}>
                         {t('backup.restore_danger')}
+                    </p>
+                </div>
+            </Modal>
+
+            {/* Cloud Restore Confirmation Modal */}
+            <Modal
+                isOpen={cloudRestoreTarget !== null}
+                onClose={() => { if (!cloudRestoring) setCloudRestoreTarget(null); }}
+                title={t('backup.cloud_restore_confirm_title')}
+                footer={
+                    <>
+                        <Button variant="secondary" onClick={() => setCloudRestoreTarget(null)} disabled={cloudRestoring}>
+                            {t('common.cancel')}
+                        </Button>
+                        <Button variant="danger" onClick={handleCloudRestore} disabled={cloudRestoring}>
+                            {cloudRestoring ? t('backup.restoring') : t('backup.cloud_restore_confirm')}
+                        </Button>
+                    </>
+                }
+            >
+                <div className="text-muted">
+                    <p>{t('backup.cloud_restore_warning')}</p>
+                    {cloudRestoreTarget && (
+                        <p style={{ marginTop: '0.5rem', fontWeight: 500 }}>
+                            {t('backup.restore_date', { date: formatTimestamp(cloudRestoreTarget.createdAt) })}
+                        </p>
+                    )}
+                    <p style={{ marginTop: '0.75rem', fontWeight: 500, color: 'var(--danger)' }}>
+                        {t('backup.cloud_restore_danger')}
                     </p>
                 </div>
             </Modal>

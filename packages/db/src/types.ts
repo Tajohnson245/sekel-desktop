@@ -390,3 +390,26 @@ export interface Feedback {
 }
 
 export type FeedbackInsert = Omit<Feedback, 'id' | 'ticket_number' | 'created_at'>;
+
+// ─────────────────────────────────────────────────────────────────
+// Cloud Backup Snapshot
+// Metadata pointer to a full SQLite copy in the private `sekel-backups`
+// bucket. Bytes live in Storage at {user_id}/{id}.sqlite; this row is the
+// queryable index for the restore UI and the generational pruning job.
+// ─────────────────────────────────────────────────────────────────
+export type BackupGeneration = 'daily' | 'weekly' | 'monthly';
+
+export interface BackupSnapshot {
+    id: string;
+    user_id: string;
+    created_at: string;
+    generation: BackupGeneration;
+    size_bytes: number;
+    storage_path: string;
+    review_count_at_snapshot: number | null;
+    app_version: string | null;
+}
+
+export type BackupSnapshotInsert = Omit<BackupSnapshot, 'id' | 'created_at' | 'generation'> & {
+    generation?: BackupGeneration;
+};
