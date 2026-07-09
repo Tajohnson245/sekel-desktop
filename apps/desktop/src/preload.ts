@@ -166,6 +166,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
         },
     },
 
+    cloudBackup: {
+        // Push/clear the Supabase session so main can write snapshots as the user.
+        setSession:   (session: { userId: string; accessToken: string; refreshToken: string; expiresAt?: number } | null) =>
+                          ipcRenderer.invoke('cloudBackup:setSession', session),
+        clearSession: () => ipcRenderer.invoke('cloudBackup:clearSession'),
+        // Cheap per-review ping — increments the counter, snapshots at threshold.
+        requestCheck: (reviewDelta?: number) => ipcRenderer.invoke('cloudBackup:requestCheck', reviewDelta),
+        snapshotNow:  () => ipcRenderer.invoke('cloudBackup:snapshotNow') as Promise<boolean>,
+        // Restore UI.
+        list:         () => ipcRenderer.invoke('cloudBackup:list') as Promise<Array<{ id: string; createdAt: string; generation: 'daily' | 'weekly' | 'monthly'; sizeBytes: number; reviewCount: number | null; appVersion: string | null }>>,
+        restore:      (snapshotId: string) => ipcRenderer.invoke('cloudBackup:restore', snapshotId) as Promise<{ success: boolean; error?: string; safetyBackup?: string }>,
+        restart:      () => ipcRenderer.invoke('cloudBackup:restart'),
+    },
+
     obs: {
         getMetrics: () => ipcRenderer.invoke('obs:getMetrics'),
         isAdmin:    (email: string) => ipcRenderer.invoke('obs:isAdmin', email),

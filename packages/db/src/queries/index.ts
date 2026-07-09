@@ -7,3 +7,4 @@ export * from './reviews';
 export * from './card_drafts';
 export * from './user_profiles';
 export * from './feedback';
+export * from './backup_snapshots';

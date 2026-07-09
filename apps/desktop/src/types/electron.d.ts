@@ -362,6 +362,43 @@ interface ElectronBackup {
     onOpenRestore:  (cb: () => void) => () => void;
 }
 
+/** Supabase session the renderer pushes to main for RLS-scoped cloud writes. */
+export interface CloudBackupSessionInput {
+    userId: string;
+    accessToken: string;
+    refreshToken: string;
+    expiresAt?: number;
+}
+
+export interface CloudSnapshotInfo {
+    id: string;
+    createdAt: string;
+    generation: 'daily' | 'weekly' | 'monthly';
+    sizeBytes: number;
+    reviewCount: number | null;
+    appVersion: string | null;
+}
+
+export interface CloudRestoreResult {
+    success: boolean;
+    error?: string;
+    /** Local safety backup filename created before overwriting, if any. */
+    safetyBackup?: string;
+}
+
+interface ElectronCloudBackup {
+    setSession:   (session: CloudBackupSessionInput | null) => Promise<void>;
+    clearSession: () => Promise<void>;
+    /** Cheap per-review ping; snapshots automatically at the 25-review threshold. */
+    requestCheck: (reviewDelta?: number) => Promise<void>;
+    /** Manual "back up now" — bypasses the hourly cap. Resolves true on success. */
+    snapshotNow:  () => Promise<boolean>;
+    list:         () => Promise<CloudSnapshotInfo[]>;
+    restore:      (snapshotId: string) => Promise<CloudRestoreResult>;
+    /** Relaunch the app (used right after a cloud restore). */
+    restart:      () => Promise<void>;
+}
+
 export interface YieldScoreRow {
     cardId: string;
     yieldScore: number | null;
@@ -613,6 +650,7 @@ interface ElectronAPI {
     admin: ElectronAdmin;
     yield: ElectronYield;
     backup: ElectronBackup;
+    cloudBackup: ElectronCloudBackup;
     exam: ElectronExam;
     plan: ElectronPlan;
     update: ElectronUpdate;
