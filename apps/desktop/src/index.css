@@ -502,6 +502,12 @@ select option:disabled {
     gap: 2px;
 }
 
+.sidebar-nav-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
 .nav-item {
     display: flex;
     align-items: center;
@@ -518,15 +524,6 @@ select option:disabled {
     text-align: left;
     cursor: pointer;
     transition: background-color 150ms ease, color 150ms ease;
-}
-
-.nav-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--slate);
-    flex-shrink: 0;
-    transition: background-color 150ms ease;
 }
 
 .nav-item__label {
@@ -546,10 +543,6 @@ select option:disabled {
     background: var(--nav-active);
     color: var(--paper);
     font-weight: 600;
-}
-
-.nav-item.is-active .nav-dot {
-    background: var(--teal);
 }
 
 .nav-count-pill {

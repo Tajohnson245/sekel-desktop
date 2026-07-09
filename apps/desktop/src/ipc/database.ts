@@ -77,6 +77,12 @@ export function setupDatabaseHandlers(): void {
     instrumentedHandle('db:fetchDueCardsFocused', (_e, deckId: string, systemKeys: string[], examKey: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) =>
         dbService.fetchDueCardsFocused(deckId, systemKeys, examKey, userId, dailyNewLimit, dailyReviewLimit));
 
+    instrumentedHandle('db:fetchDueCardsCrossDeck', (_e, userId: string, deckIds: string[] | null, dailyNewLimit?: number, dailyReviewLimit?: number, examKey?: string) =>
+        dbService.fetchDueCardsCrossDeck(userId, deckIds, dailyNewLimit, dailyReviewLimit, examKey));
+
+    instrumentedHandle('db:fetchDueCardsFocusedCrossDeck', (_e, userId: string, deckIds: string[] | null, systemKeys: string[], examKey: string, dailyNewLimit?: number, dailyReviewLimit?: number) =>
+        dbService.fetchDueCardsFocusedCrossDeck(userId, deckIds, systemKeys, examKey, dailyNewLimit, dailyReviewLimit));
+
     instrumentedHandle('db:fetchAllCardsForStudy', (_e, deckId: string, limit?: number) =>
         dbService.fetchAllCardsForStudy(deckId, limit));
 
@@ -137,6 +143,9 @@ export function setupDatabaseHandlers(): void {
     // ── Deck Sessions ──────────────────────────────────────────────────────────
     instrumentedHandle('db:createDeckSession', (_e, userId: string, deckId: string) =>
         dbService.createDeckSession(userId, deckId));
+
+    instrumentedHandle('db:createStudySession', (_e, userId: string, kind: 'deck' | 'review_all' | 'focused', representativeDeckId: string, scope: 'all' | 'plan' | null, systemKeys: string[] | null) =>
+        dbService.createStudySession(userId, kind, representativeDeckId, scope, systemKeys));
 
     instrumentedHandle('db:completeDeckSession', (_e, sessionId: string) =>
         dbService.completeDeckSession(sessionId));

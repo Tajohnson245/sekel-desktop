@@ -25,6 +25,7 @@
     },
     "nav": {
         "dashboard": "Dashboard",
+        "study": "Lernen",
         "decks": "Stapel",
         "cards": "Karten",
         "generate": "Karten Generieren",
@@ -34,7 +35,9 @@
         "statistics": "Statistiken",
         "plan": "Plan",
         "collapse_sidebar": "Collapse sidebar",
-        "open_sidebar": "Open sidebar"
+        "open_sidebar": "Open sidebar",
+        "group_create": "Erstellen",
+        "group_more": "Mehr"
     },
     "dashboard": {
         "welcome": "Willkommen zurück, {{name}}!",
@@ -211,7 +214,9 @@
         "exit_title": "Exit session?",
         "exit_body": "Your progress is kept.",
         "keep_studying": "Keep studying",
-        "exit": "Exit"
+        "exit": "Exit",
+        "review_all_title": "Alles wiederholen",
+        "focused_title": "Fokussierte Sitzung"
     },
     "auth": {
         "login": "Anmelden",
@@ -907,5 +912,23 @@
     "plan": {
         "rebalance_accepted": "Plan updated",
         "timeline_extended": "Timeline extended"
+    },
+    "studyHub": {
+        "subtitle": "Lerne deckübergreifend – alles Fällige oder nur deine schwachen Systeme.",
+        "days_until": "Tage bis",
+        "scope_label": "Deck-Umfang",
+        "scope_plan": "Plan-Decks",
+        "scope_all": "Alle Decks",
+        "total_due": "fällige Karten",
+        "split_new": "neu",
+        "split_learning": "lernend",
+        "split_review": "wiederholen",
+        "est_time": "~{{min}} Min.",
+        "est_label": "geschätzt",
+        "review_all_desc": "Alle fälligen Karten deiner Decks, gemischt.",
+        "begin_review_all": "Alles wiederholen ({{count}}) →",
+        "focused_desc": "Fällige Karten in den Blueprint-Systemen, in denen du am schwächsten bist.",
+        "classify_to_unlock": "Klassifiziere deine Karten, um fokussierte Sitzungen für schwache Systeme freizuschalten.",
+        "begin_focused": "Fokussiert starten ({{count}}) →"
     }
 }

@@ -124,20 +124,40 @@ export type CardUpdate = Partial<Omit<Card, 'id' | 'user_id' | 'note_id' | 'temp
 // ─────────────────────────────────────────────────────────────────
 export type SessionStatus = 'in_progress' | 'completed';
 
+// How a session was launched. 'deck' = single-deck study (the default and the
+// value backfilled onto every pre-SEKEL-137 row); 'review_all'/'focused' are
+// cross-deck sessions started from the study hub.
+export type StudySessionKind = 'deck' | 'review_all' | 'focused';
+
 // ─────────────────────────────────────────────────────────────────
 // Deck Session (for post-session analytics)
 // ─────────────────────────────────────────────────────────────────
 export interface DeckSession {
     id: string;
     user_id: string;
+    // For cross-deck sessions this is a representative deck; per-review deck
+    // attribution lives on reviews.deck_id.
     deck_id: string;
     status: SessionStatus;
+    kind: StudySessionKind;
+    // Deck scope for cross-deck sessions: 'all' | 'plan'. NULL for single-deck.
+    scope: 'all' | 'plan' | null;
+    // JSON-encoded weak-system key array for focused sessions; NULL otherwise.
+    system_keys: string | null;
     started_at: string;
     completed_at: string | null;
     created_at: string;
 }
 
-export type DeckSessionInsert = Omit<DeckSession, 'id' | 'created_at' | 'completed_at'> & { completed_at?: string | null };
+export type DeckSessionInsert =
+    Omit<DeckSession, 'id' | 'created_at' | 'completed_at' | 'kind' | 'scope' | 'system_keys'> & {
+        completed_at?: string | null;
+        // Cross-deck session metadata (SEKEL-137). All three carry DB defaults
+        // (kind → 'deck', scope/system_keys → NULL), so they are optional on insert.
+        kind?: StudySessionKind;
+        scope?: 'all' | 'plan' | null;
+        system_keys?: string | null;
+    };
 
 // ─────────────────────────────────────────────────────────────────
 // Review (history log)

@@ -25,6 +25,7 @@
     },
     "nav": {
         "dashboard": "Dashboard",
+        "study": "Study",
         "decks": "Decks",
         "cards": "Cards",
         "generate": "Generate Flashcards",
@@ -34,7 +35,9 @@
         "statistics": "Statistics",
         "plan": "Plan",
         "collapse_sidebar": "Collapse sidebar",
-        "open_sidebar": "Open sidebar"
+        "open_sidebar": "Open sidebar",
+        "group_create": "Create",
+        "group_more": "More"
     },
     "plan": {
         "title": "Study Plans",
@@ -324,7 +327,9 @@
         "exit_title": "Exit session?",
         "exit_body": "Your progress is kept.",
         "keep_studying": "Keep studying",
-        "exit": "Exit"
+        "exit": "Exit",
+        "review_all_title": "Review All",
+        "focused_title": "Focused Session"
     },
     "auth": {
         "login": "Login",
@@ -1076,5 +1081,23 @@
         "upgrade": "Upgrade",
         "dedicated_caption": "AI features + cloud backup active",
         "free_caption": "Local FSRS + .apkg import"
+    },
+    "studyHub": {
+        "subtitle": "Review across your decks — everything due, or just your weak systems.",
+        "days_until": "days until",
+        "scope_label": "Deck scope",
+        "scope_plan": "Plan decks",
+        "scope_all": "All decks",
+        "total_due": "cards due",
+        "split_new": "new",
+        "split_learning": "learning",
+        "split_review": "review",
+        "est_time": "~{{min}} min",
+        "est_label": "estimated",
+        "review_all_desc": "Every due card across your decks, interleaved.",
+        "begin_review_all": "Begin Review All ({{count}}) →",
+        "focused_desc": "Due cards in the blueprint systems you are weakest in.",
+        "classify_to_unlock": "Classify your cards to unlock focused weak-system sessions.",
+        "begin_focused": "Begin Focused ({{count}}) →"
     }
 }

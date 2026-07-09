@@ -4,6 +4,9 @@ import type { Card, CardInsert, Note, NoteType } from '../types';
 // The joined note shape returned by the select query (only the columns we fetch)
 export interface JoinedNote {
     id: string;
+    // Owning deck — every card carries its own real deck via its note, which is
+    // what cross-deck study sessions (SEKEL-137) attribute each review to.
+    deck_id: string;
     fields: Note['fields'];
     tags: Note['tags'];
     format: Note['format'];
@@ -17,7 +20,7 @@ export interface CardWithNote extends Card {
 async function fetchNotesForDeck(client: SupabaseClient, deckId: string): Promise<JoinedNote[]> {
     const { data, error } = await client
         .from('notes')
-        .select('id, fields, tags, format, note_type:note_types(*)') as unknown as { data: JoinedNote[] | null; error: Error | null };
+        .select('id, deck_id, fields, tags, format, note_type:note_types(*)') as unknown as { data: JoinedNote[] | null; error: Error | null };
 
     if (error) throw error;
     return data ?? [];

@@ -221,6 +221,8 @@ export interface IntelligenceSummary {
     systemBreakdown: SystemAccuracyRow[];
     prioritizedCardCount: number;
     deprioritizedCardCount: number;
+    /** Due weak-system cards across ALL decks — what a cross-deck focused session serves. */
+    focusedDueCountAllDecks: number;
     totalDueCount: number;
     suggestedDeckId: string | null;
     hasClassifications: boolean;
@@ -248,6 +250,8 @@ interface ElectronDB {
     // Cards
     fetchDueCards:         (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => Promise<CardWithNote[]>;
     fetchDueCardsFocused:  (deckId: string, systemKeys: string[], examKey: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => Promise<CardWithNote[]>;
+    fetchDueCardsCrossDeck: (userId: string, deckIds: string[] | null, dailyNewLimit?: number, dailyReviewLimit?: number, examKey?: string) => Promise<CardWithNote[]>;
+    fetchDueCardsFocusedCrossDeck: (userId: string, deckIds: string[] | null, systemKeys: string[], examKey: string, dailyNewLimit?: number, dailyReviewLimit?: number) => Promise<CardWithNote[]>;
     fetchAllCardsForStudy: (deckId: string, limit?: number) => Promise<CardWithNote[]>;
     fetchAllCardsForDeck:  (deckId: string) => Promise<CardWithNote[]>;
     updateCardAfterReview: (cardId: string, updates: Partial<Card>) => Promise<Card>;
@@ -268,6 +272,7 @@ interface ElectronDB {
     fetchUserReviewHistory: (userId: string, days?: number) => Promise<ReviewDayCount[]>;
     // Sessions
     createDeckSession:     (userId: string, deckId: string) => Promise<DeckSession>;
+    createStudySession:    (userId: string, kind: 'deck' | 'review_all' | 'focused', representativeDeckId: string, scope: 'all' | 'plan' | null, systemKeys: string[] | null) => Promise<DeckSession>;
     completeDeckSession:   (sessionId: string) => Promise<DeckSession>;
     abandonOpenSessions:          (userId: string) => Promise<void>;
     fetchBulkClassifiedCardCount: (deckIds: string[]) => Promise<number>;

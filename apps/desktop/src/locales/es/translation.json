@@ -25,6 +25,7 @@
     },
     "nav": {
         "dashboard": "Tablero",
+        "study": "Estudiar",
         "decks": "Mazos",
         "cards": "Tarjetas",
         "generate": "Generar Tarjetas",
@@ -34,7 +35,9 @@
         "statistics": "Estadísticas",
         "plan": "Plan",
         "collapse_sidebar": "Collapse sidebar",
-        "open_sidebar": "Open sidebar"
+        "open_sidebar": "Open sidebar",
+        "group_create": "Crear",
+        "group_more": "Más"
     },
     "dashboard": {
         "welcome": "¡Bienvenido de nuevo, {{name}}!",
@@ -254,7 +257,9 @@
         "exit_title": "Exit session?",
         "exit_body": "Your progress is kept.",
         "keep_studying": "Keep studying",
-        "exit": "Exit"
+        "exit": "Exit",
+        "review_all_title": "Repasar todo",
+        "focused_title": "Sesión enfocada"
     },
     "auth": {
         "login": "Iniciar Sesión",
@@ -907,5 +912,23 @@
     "plan": {
         "rebalance_accepted": "Plan updated",
         "timeline_extended": "Timeline extended"
+    },
+    "studyHub": {
+        "subtitle": "Repasa entre tus mazos: todo lo pendiente o solo tus sistemas débiles.",
+        "days_until": "días hasta",
+        "scope_label": "Alcance de mazos",
+        "scope_plan": "Mazos del plan",
+        "scope_all": "Todos los mazos",
+        "total_due": "tarjetas pendientes",
+        "split_new": "nuevas",
+        "split_learning": "aprendiendo",
+        "split_review": "repaso",
+        "est_time": "~{{min}} min",
+        "est_label": "estimado",
+        "review_all_desc": "Todas las tarjetas pendientes de tus mazos, intercaladas.",
+        "begin_review_all": "Repasar todo ({{count}}) →",
+        "focused_desc": "Tarjetas pendientes de los sistemas del temario en los que eres más débil.",
+        "classify_to_unlock": "Clasifica tus tarjetas para desbloquear sesiones enfocadas en sistemas débiles.",
+        "begin_focused": "Sesión enfocada ({{count}}) →"
     }
 }
