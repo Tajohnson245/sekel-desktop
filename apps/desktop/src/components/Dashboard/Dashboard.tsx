@@ -6,9 +6,10 @@ import { useProfileStore } from '../../stores/profileStore';
 import { useSekelIntelligence } from '../../hooks/useSekelIntelligence';
 import { useExamProfile } from '../../hooks/useExamProfile';
 import { useActivePlan, usePlanProgress } from '../../hooks/usePlan';
-import { useGlobalDashboardStats, useReviewHistory } from '../../hooks/useSessions';
+import { useReviewHistory } from '../../hooks/useSessions';
 import { useTodaySummary, useCardCountsByMaturity } from '../../hooks/useStatistics';
 import { useDecks, useDeckStats, useDeckClassificationCount } from '../../hooks/useDecks';
+import { useDeckDueCounts } from '../../hooks/useDeckDueCounts';
 import { isExamDateSet } from '../../lib/queries';
 import { useAppNavigation } from '../../hooks/useAppNavigation';
 import type { Deck } from '../../lib/types';
@@ -51,9 +52,11 @@ interface StatCardProps {
     emptyPrompt?: string;
     onEmptyClick?: () => void;
     highlight?: 'warn' | 'success';
+    /** Count-triad accent for the big number (spec §2.3), e.g. var(--teal). */
+    valueColor?: string;
 }
 
-function StatCard({ label, value, unit, sub, emptyPrompt, onEmptyClick, highlight }: StatCardProps) {
+function StatCard({ label, value, unit, sub, emptyPrompt, onEmptyClick, highlight, valueColor }: StatCardProps) {
     if (value === null && emptyPrompt) {
         return (
             <div className="db-stat-card db-stat-card--empty">
@@ -64,11 +67,13 @@ function StatCard({ label, value, unit, sub, emptyPrompt, onEmptyClick, highligh
             </div>
         );
     }
+    // Zero values render SLATE (spec §2.3); otherwise the card's own accent.
+    const color = value === 0 || value === null ? 'var(--slate)' : (valueColor ?? 'var(--paper)');
     return (
         <div className={`db-stat-card${highlight ? ` db-stat-card--${highlight}` : ''}`}>
             <span className="db-stat-card__label">{label}</span>
             <div className="db-stat-card__value-row">
-                <span className="db-stat-card__value">{value ?? '—'}</span>
+                <span className="db-stat-card__value" style={{ color }}>{value ?? '—'}</span>
                 {unit && <span className="db-stat-card__unit">{unit}</span>}
             </div>
             {sub && <span className="db-stat-card__sub">{sub}</span>}
@@ -170,7 +175,9 @@ export default function Dashboard() {
     const { data: rawActivePlan, isLoading: planLoad }    = useActivePlan(examProfile?.exam_key);
     const activePlanResult                                = examProfile === null ? null : rawActivePlan;
     const { data: planProgress }                          = usePlanProgress(activePlanResult?.plan);
-    const { dueCount }                                    = useGlobalDashboardStats(userId);
+    // Reconciled due total — same source as the sidebar pills and the Decks
+    // summary (spec §10: numbers reconcile across screens).
+    const { totalDue: dueCount }                          = useDeckDueCounts();
     const { data: todaySummary }                          = useTodaySummary(userId);
     const { data: decks = [] }                            = useDecks();
     const { data: reviewHistory = [] }                    = useReviewHistory(userId);
@@ -206,53 +213,89 @@ export default function Dashboard() {
 
     const showReadiness = hasExamDate && !!intelligence?.hasClassifications && readinessSystems.length > 0;
 
-    // Exam countdown sub-label
-    const countdownSub = hasExamDate
-        ? (hasActivePlan
-            ? (onPace ? `On pace · ${examProfile!.exam_label}` : `Behind plan · ${examProfile!.exam_label}`)
-            : examProfile!.exam_label)
+    const today = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+    const projectedCoverage = activePlanResult
+        ? Math.round(activePlanResult.plan.snapshot.projectedCoverage * 100)
         : null;
+    const newToday = todaySummary?.newCount ?? null;
 
     return (
         <div className="dashboard">
 
-            {/* ── Zone 1: Hero Row ──────────────────────────────────────────── */}
+            {/* ── Header (spec §7.1) ────────────────────────────────────────── */}
+            <div className="dash-header">
+                <div>
+                    <h1 className="page-title">Today's Plan</h1>
+                    <p className="dash-header__meta">
+                        {today}
+                        {hasActivePlan && <span className="dash-header__rebalanced"> · rebalanced this morning</span>}
+                    </p>
+                </div>
+                <button className="btn btn-primary dash-generate" onClick={() => navigate('/documents')}>
+                    ✦ Generate Cards with AI
+                </button>
+            </div>
+
+            {/* ── Exam hero (teal feature panel, spec §7.1) ─────────────────── */}
+            {hasExamDate ? (
+                <div className="panel feature-panel exam-hero">
+                    <div className="exam-hero__main">
+                        <span className="exam-hero__blueprint">{examProfile!.exam_label}</span>
+                        <div className="exam-hero__countdown">
+                            {daysUntilExam} <span className="exam-hero__countdown-unit">days until exam</span>
+                        </div>
+                        <div className="exam-hero__pace">
+                            {onPace ? 'On pace' : 'Behind plan'}
+                            {projectedCoverage !== null && ` · projected ${projectedCoverage}% blueprint coverage by exam day`}
+                        </div>
+                    </div>
+                    {projectedCoverage !== null && (
+                        <div className="exam-hero__mastery">
+                            <span className="exam-hero__mastery-num">{projectedCoverage}%</span>
+                            <span className="exam-hero__mastery-label">projected coverage</span>
+                        </div>
+                    )}
+                </div>
+            ) : (
+                <button className="panel exam-hero exam-hero--empty" onClick={() => goToProfile('study')}>
+                    Set your exam date to track pace to exam day →
+                </button>
+            )}
+
+            {/* ── Count-triad stat row (spec §7.1) ──────────────────────────── */}
             <div className="db-hero" data-tour-id="dashboard-hero-row">
                 <StatCard
-                    label="Cards Due Today"
+                    label="Due today"
                     value={dueCount}
+                    valueColor="var(--teal)"
                     sub={completedToday > 0 ? `${completedToday} completed today` : 'None completed yet'}
                 />
                 <StatCard
-                    label="Today's Activity"
-                    value={todaySummary && todaySummary.totalReviews > 0 ? todaySummary.totalReviews : null}
-                    unit={todaySummary && todaySummary.totalReviews === 1 ? 'card' : 'cards'}
-                    sub={todaySummary && todaySummary.totalReviews > 0
-                        ? [
-                            todayRetention !== null ? `${todayRetention}% retention` : null,
-                            todaySummary.totalTimeMs > 0 ? `${Math.round(todaySummary.totalTimeMs / 60000)}m study` : null,
-                            todaySummary.newCount > 0 ? `${todaySummary.newCount} new` : null,
-                        ].filter(Boolean).join(' · ')
-                        : null}
-                    emptyPrompt="No reviews yet today"
+                    label="New cards"
+                    value={newToday}
+                    valueColor="var(--violet)"
+                    unit={newToday === 1 ? 'card' : 'cards'}
+                    sub={newToday && newToday > 0 ? 'introduced today' : null}
+                    emptyPrompt={newToday === null ? 'No new cards yet' : undefined}
                     onEmptyClick={() => goToDecks()}
                 />
                 <StatCard
-                    label="Study Streak"
-                    value={streak > 0 ? streak : null}
-                    unit={streak !== 1 ? 'days' : 'day'}
-                    sub={streak > 0 ? 'consecutive' : null}
-                    emptyPrompt={streak === 0 ? 'Start your streak today' : undefined}
+                    label="Retention"
+                    value={todayRetention}
+                    valueColor="var(--amber)"
+                    unit={todayRetention !== null ? '%' : undefined}
+                    sub={streak > 0 ? `${streak}-day streak` : 'today'}
+                    emptyPrompt={todayRetention === null ? 'No reviews yet today' : undefined}
                     onEmptyClick={() => goToDecks()}
                 />
                 <StatCard
-                    label="Exam Countdown"
-                    value={daysUntilExam !== null ? daysUntilExam : null}
-                    unit="days"
-                    sub={countdownSub}
-                    emptyPrompt="Set your exam date"
-                    onEmptyClick={() => goToProfile('study')}
-                    highlight={hasActivePlan && !onPace ? 'warn' : undefined}
+                    label="Avg load"
+                    value={hasActivePlan ? planTarget : (completedToday > 0 ? completedToday : null)}
+                    valueColor="var(--mist)"
+                    unit="cards/day"
+                    sub={hasActivePlan ? `${studiedToday} done today` : null}
+                    emptyPrompt={!hasActivePlan && completedToday === 0 ? 'Build a plan for daily targets' : undefined}
+                    onEmptyClick={() => navigate('/plan')}
                 />
             </div>
 

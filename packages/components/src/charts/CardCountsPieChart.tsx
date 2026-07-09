@@ -19,11 +19,14 @@ interface CardCountsPieChartProps {
     data: CardCountsData;
 }
 
+// §11 count-maturity semantics: New = VIOLET, Learning = AMBER, Mature = TEAL
+// (user's mastery metric). Young sits between learning and mastery, so it reads
+// as a muted teal (teal mixed toward slate) to signal "approaching mastery".
 const COLORS = {
-    new:      '#3b82f6', // blue
-    learning: '#f59e0b', // amber
-    young:    '#22c55e', // green
-    mature:   '#8b5cf6', // violet
+    new:      'var(--violet)',
+    learning: 'var(--amber)',
+    young:    'color-mix(in srgb, var(--teal) 45%, var(--slate))',
+    mature:   'var(--teal)',
 };
 
 export function CardCountsPieChart({ data }: CardCountsPieChartProps) {
@@ -58,7 +61,7 @@ export function CardCountsPieChart({ data }: CardCountsPieChartProps) {
                             dataKey="value"
                         >
                             {chartData.map((entry, i) => (
-                                <Cell key={i} fill={entry.color} stroke="var(--ink)" strokeWidth={2} />
+                                <Cell key={i} fill={entry.color} stroke="var(--panel)" strokeWidth={2} />
                             ))}
                         </Pie>
                         <Tooltip
@@ -66,7 +69,9 @@ export function CardCountsPieChart({ data }: CardCountsPieChartProps) {
                                 `${value} (${total > 0 ? Math.round((value / total) * 100) : 0}%)`,
                                 name,
                             ]}
-                            contentStyle={{ backgroundColor: 'var(--fog)', color: 'var(--ink)', border: '1px solid var(--border)' }}
+                            contentStyle={{ backgroundColor: 'var(--panel-2)', border: '1px solid var(--stroke)', boxShadow: 'var(--shadow-md)' }}
+                            labelStyle={{ color: 'var(--mist)' }}
+                            itemStyle={{ color: 'var(--paper)' }}
                         />
                     </PieChart>
                 </ResponsiveContainer>

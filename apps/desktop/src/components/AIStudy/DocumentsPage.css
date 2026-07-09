@@ -225,7 +225,7 @@
 }
 
 .pipeline-stepper__step.is-done .pipeline-stepper__marker {
-    color: var(--success, #2e7d32);
+    color: var(--success, var(--teal));
 }
 
 .pipeline-stepper__step.is-active .pipeline-stepper__marker {
@@ -263,5 +263,5 @@
     padding: 0.75rem;
     background: var(--bg);
     border-radius: var(--r-sm, 6px);
-    border-left: 3px solid var(--warning, #f59e0b);
+    border-left: 3px solid var(--warning, var(--amber));
 }

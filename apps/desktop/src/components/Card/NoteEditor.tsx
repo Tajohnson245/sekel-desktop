@@ -187,8 +187,8 @@ export default function NoteEditor({ deckId, userId, noteTypeId, onClose, editin
         }
 
         const renderPreviewShape = (shape: OcclusionShape, isActive: boolean) => {
-            const fill = isActive ? '#3b82f6' : 'rgba(59,130,246,0.25)';
-            const stroke = isActive ? '#2563eb' : 'rgba(59,130,246,0.5)';
+            const fill = isActive ? 'var(--teal-tint)' : 'var(--violet)';
+            const stroke = isActive ? 'var(--teal)' : 'var(--violet)';
             const strokeWidth = isActive ? 0.6 : 0.4;
             switch (shape.type) {
                 case 'rect':

@@ -76,7 +76,7 @@ export function PreferencesTab() {
                                         className="theme-swatch-color"
                                         style={{ background: opt.color }}
                                     >
-                                        {opt.value === 'system' && <Monitor size={14} style={{ color: '#888' }} />}
+                                        {opt.value === 'system' && <Monitor size={14} style={{ color: 'var(--slate)' }} />}
                                     </span>
                                     <span className="theme-swatch-label">
                                         {t(`profile.theme_${opt.value}`)}

@@ -77,7 +77,7 @@ export default function PreSessionBriefing({ intelligence, planDeckIds, onDismis
                     {/* Weakest system */}
                     {weakestSystem && (
                         <div className="presession-insight-card">
-                            <Target size={18} style={{ color: 'var(--warning, #f59e0b)' }} />
+                            <Target size={18} style={{ color: 'var(--amber)' }} />
                             <div>
                                 <div className="presession-insight-card__value">
                                     {weakestSystem.label}{' '}
@@ -95,7 +95,7 @@ export default function PreSessionBriefing({ intelligence, planDeckIds, onDismis
                     {/* Blueprint weight */}
                     {weakestSystem && (
                         <div className="presession-insight-card">
-                            <Layers size={18} style={{ color: 'var(--text-muted, #8892a4)' }} />
+                            <Layers size={18} style={{ color: 'var(--mist)' }} />
                             <div>
                                 <div className="presession-insight-card__value">
                                     {weightLabel(weakestSystem.blueprintWeightMin, weakestSystem.blueprintWeightMax)}

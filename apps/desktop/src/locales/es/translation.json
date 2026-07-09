@@ -20,7 +20,8 @@
         "expand": "Expandir",
         "collapse": "Contraer",
         "remove": "Eliminar",
-        "loading_app": "Cargando SEKEL..."
+        "loading_app": "Cargando SEKEL...",
+        "search": "Search"
     },
     "nav": {
         "dashboard": "Tablero",
@@ -31,7 +32,9 @@
         "new_deck": "Nuevo Mazo",
         "image_occlusion": "Tarjetas Visuales",
         "statistics": "Estadísticas",
-        "plan": "Plan"
+        "plan": "Plan",
+        "collapse_sidebar": "Collapse sidebar",
+        "open_sidebar": "Open sidebar"
     },
     "dashboard": {
         "welcome": "¡Bienvenido de nuevo, {{name}}!",
@@ -97,7 +100,19 @@
         "mode_flashcard": "Fichas",
         "delete": "Eliminar",
         "loading": "Cargando mazos...",
-        "error": "Error al cargar mazos"
+        "error": "Error al cargar mazos",
+        "summary": "{{decks}} decks · {{cards}} cards · {{due}} due today",
+        "browse": "Browse",
+        "col_deck": "Deck",
+        "col_new": "New",
+        "col_learning": "Learning",
+        "col_due": "Due",
+        "col_retention": "Retention",
+        "col_yield": "Yield mix",
+        "col_last": "Last studied",
+        "footer_status": "{{due}} due across {{decks}} decks · est. {{min}} min at current pace",
+        "select_deck": "Select deck",
+        "import_success": "Import complete"
     },
     "card": {
         "front": "Anverso",
@@ -108,7 +123,9 @@
         "delete_confirm_message": "Esta acción no se puede deshacer. La tarjeta se eliminará permanentemente de tu mazo.",
         "edit_card": "Editar tarjeta",
         "delete_card": "Eliminar tarjeta",
-        "image_badge": "Imagen"
+        "image_badge": "Imagen",
+        "search_placeholder": "Search cards in this deck",
+        "no_matches": "No cards match your search"
     },
     "drafts": {
         "title": "Borradores",
@@ -213,7 +230,30 @@
             "final_sprint": "Sprint final",
             "next_shift": "Próximo cambio en ~{{days}} días",
             "max_urgency": "Urgencia máxima"
-        }
+        },
+        "review_session_of": "Review session · {{current}} of {{total}} due",
+        "fsrs_optimal": "FSRS · optimal",
+        "high_yield": "HIGH YIELD",
+        "blueprint": "Blueprint",
+        "hint_reveal": "Press",
+        "hint_reveal_tail": "to reveal answer",
+        "footer": {
+            "reviewed": "reviewed",
+            "again": "again",
+            "avg_time": "avg",
+            "retention": "retention"
+        },
+        "sc_reveal": "reveal",
+        "sc_rate": "rate",
+        "sc_undo": "undo",
+        "sc_exit": "exit",
+        "undo_unavailable": "Can't undo — the list changed",
+        "undo_done": "Undid last rating",
+        "edit_soon": "In-session card editing is coming soon",
+        "exit_title": "Exit session?",
+        "exit_body": "Your progress is kept.",
+        "keep_studying": "Keep studying",
+        "exit": "Exit"
     },
     "auth": {
         "login": "Iniciar Sesión",
@@ -335,7 +375,9 @@
         "help_and_tour": "Ayuda y recorrido",
         "replay_tour": "Repetir el recorrido de la app",
         "replay_tour_desc": "Vuelve a ver las diapositivas de bienvenida y el recorrido por las funciones.",
-        "replay_tour_btn": "Repetir recorrido"
+        "replay_tour_btn": "Repetir recorrido",
+        "signed_in_as": "Signed in as",
+        "up_to_date": "up to date"
     },
     "verification": {
         "complete": "Verificación Completa",
@@ -563,7 +605,8 @@
         "youtube_rate_limited": "Límite de solicitudes alcanzado, intenta más tarde",
         "youtube_transcript_not_available": "Transcripción no disponible",
         "youtube_language_not_available": "Idioma no disponible",
-        "youtube_network_error": "Error de red"
+        "youtube_network_error": "Error de red",
+        "generic": "Something went wrong"
     },
     "stats": {
         "title": "Estadísticas",
@@ -830,5 +873,14 @@
                 "body": "Contraseña, importación/exportación de datos, comentarios y el botón para repetir el recorrido están aquí."
             }
         }
+    },
+    "tier": {
+        "upgrade": "Upgrade",
+        "dedicated_caption": "AI features + cloud backup active",
+        "free_caption": "Local FSRS + .apkg import"
+    },
+    "plan": {
+        "rebalance_accepted": "Plan updated",
+        "timeline_extended": "Timeline extended"
     }
 }

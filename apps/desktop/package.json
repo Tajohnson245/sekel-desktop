@@ -85,6 +85,9 @@
     "vitest": "^4.1.0"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.2.8",
+    "@fontsource/lora": "^5.2.8",
+    "@fontsource/roboto-mono": "^5.2.9",
     "@sekel/components": "*1.1.0",
     "@sekel/db": "*1.1.0",
     "@sekel/observability": "*1.1.0",

@@ -230,6 +230,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
                           ipcRenderer.invoke('plan:setOverride', userId, newPerDayOverride),
         clearOverride: (userId: string) =>
                           ipcRenderer.invoke('plan:clearOverride', userId),
+        updateRate:   (userId: string, examKey: string, newRate: number) =>
+                          ipcRenderer.invoke('plan:updateRate', userId, examKey, newRate),
         fetchPlansReferencingDecks: (userId: string, deckIds: string[]) =>
                           ipcRenderer.invoke('plan:fetchPlansReferencingDecks', userId, deckIds),
     },

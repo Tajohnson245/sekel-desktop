@@ -223,8 +223,8 @@ export function BackupTab() {
                         padding: '0.6rem 0.8rem',
                         borderRadius: '6px',
                         fontSize: '0.85rem',
-                        background: integrityResult === 'ok' ? 'var(--success-bg, rgba(34,197,94,0.1))' : 'var(--danger-bg, rgba(239,68,68,0.1))',
-                        color: integrityResult === 'ok' ? 'var(--success, #22c55e)' : 'var(--danger, #ef4444)',
+                        background: integrityResult === 'ok' ? 'var(--teal-soft)' : 'var(--rose-soft)',
+                        color: integrityResult === 'ok' ? 'var(--teal)' : 'var(--rose)',
                     }}>
                         {integrityResult === 'ok' ? t('backup.integrity_ok') : t('backup.integrity_error', { detail: integrityResult })}
                     </div>

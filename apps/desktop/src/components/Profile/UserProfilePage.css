@@ -219,7 +219,7 @@
 }
 
 .required-mark {
-    color: var(--danger, #ef4444);
+    color: var(--rose);
     margin-left: 2px;
 }
 
@@ -252,15 +252,15 @@
 }
 
 .danger-zone {
-    border: 1px solid var(--danger, #ef4444);
+    border: 1px solid var(--rose);
 }
 
 .text-danger {
-    color: var(--danger, #ef4444);
+    color: var(--rose);
 }
 
 .btn-danger {
-    background: var(--danger, #ef4444);
+    background: var(--rose);
     color: white;
     border: none;
     padding: 0.5rem 1rem;
@@ -271,7 +271,7 @@
 }
 
 .btn-danger:hover {
-    background: #dc2626;
+    background: var(--rose-soft);
 }
 
 .password-change-form {
@@ -483,4 +483,56 @@
 .theme-swatch--active .theme-swatch-label {
     color: var(--primary);
     font-weight: 600;
+}
+/* ── Ink v2 Settings layout (spec §7.4): titlebar + sticky sub-nav ──── */
+.settings-titlebar {
+    margin-bottom: 20px;
+}
+
+.settings-uptodate {
+    color: var(--teal);
+}
+
+.settings-body {
+    display: flex;
+    align-items: flex-start;
+    gap: 28px;
+}
+
+/* Turn the shared horizontal TabList into a sticky 200px vertical sub-nav */
+.settings-body .tabs-list {
+    flex-direction: column;
+    align-items: stretch;
+    width: 200px;
+    flex-shrink: 0;
+    gap: 2px;
+    border-bottom: none;
+    position: sticky;
+    top: 0;
+}
+
+.settings-body .tab-button {
+    justify-content: flex-start;
+    width: 100%;
+    text-align: left;
+    padding: 10px 12px;
+    border-radius: var(--r-nav);
+    border-bottom: none;
+    color: var(--mist);
+}
+
+.settings-body .tab-button:hover {
+    background: color-mix(in srgb, var(--nav-active) 55%, transparent);
+    color: var(--fog);
+}
+
+.settings-body .tab-button[aria-selected="true"] {
+    background: var(--nav-active);
+    color: var(--teal);
+    font-weight: 600;
+}
+
+.settings-body .tab-panel {
+    flex: 1 1 auto;
+    min-width: 0;
 }

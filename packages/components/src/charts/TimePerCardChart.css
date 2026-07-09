@@ -49,6 +49,6 @@
 .card-time {
   font-family: var(--font-mono);
   font-size:   12px;
-  color:       var(--warning, #f59e0b);
+  color:       var(--amber);
   flex-shrink: 0;
 }

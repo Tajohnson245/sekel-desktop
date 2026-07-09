@@ -7,16 +7,15 @@
 
 .modal-overlay {
   position:        fixed;
-  top:             var(--header-height, 0px);
-  right:           0;
-  bottom:          0;
-  left:            0;
-  z-index:         1000;
+  inset:           0;
+  /* Above the sidebar (1110) and reopen tab (1120). No header offset — the v2
+     shell has no top bar. */
+  z-index:         1200;
   display:         flex;
   align-items:     center;
   justify-content: center;
   background-color: rgba(0, 0, 0, 0.60);
-  padding:         var(--space-lg);
+  padding:         var(--space-xl);
   backdrop-filter: blur(2px);
   box-sizing:      border-box;
   overflow:        hidden;

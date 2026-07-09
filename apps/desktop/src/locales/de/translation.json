@@ -20,7 +20,8 @@
         "expand": "Erweitern",
         "collapse": "Einklappen",
         "remove": "Entfernen",
-        "loading_app": "SEKEL wird geladen..."
+        "loading_app": "SEKEL wird geladen...",
+        "search": "Search"
     },
     "nav": {
         "dashboard": "Dashboard",
@@ -31,7 +32,9 @@
         "new_deck": "Neuer Stapel",
         "image_occlusion": "Visuelle Karten",
         "statistics": "Statistiken",
-        "plan": "Plan"
+        "plan": "Plan",
+        "collapse_sidebar": "Collapse sidebar",
+        "open_sidebar": "Open sidebar"
     },
     "dashboard": {
         "welcome": "Willkommen zurück, {{name}}!",
@@ -97,7 +100,19 @@
         "mode_flashcard": "Karteikarten",
         "delete": "Löschen",
         "loading": "Lade Stapel...",
-        "error": "Fehler beim Laden der Stapel"
+        "error": "Fehler beim Laden der Stapel",
+        "summary": "{{decks}} decks · {{cards}} cards · {{due}} due today",
+        "browse": "Browse",
+        "col_deck": "Deck",
+        "col_new": "New",
+        "col_learning": "Learning",
+        "col_due": "Due",
+        "col_retention": "Retention",
+        "col_yield": "Yield mix",
+        "col_last": "Last studied",
+        "footer_status": "{{due}} due across {{decks}} decks · est. {{min}} min at current pace",
+        "select_deck": "Select deck",
+        "import_success": "Import complete"
     },
     "study": {
         "session_complete": "Sitzung Abgeschlossen!",
@@ -172,7 +187,30 @@
             "final_sprint": "Endspurt",
             "next_shift": "Nächste Stufe in ~{{days}} Tagen",
             "max_urgency": "Maximale Dringlichkeit"
-        }
+        },
+        "review_session_of": "Review session · {{current}} of {{total}} due",
+        "fsrs_optimal": "FSRS · optimal",
+        "high_yield": "HIGH YIELD",
+        "blueprint": "Blueprint",
+        "hint_reveal": "Press",
+        "hint_reveal_tail": "to reveal answer",
+        "footer": {
+            "reviewed": "reviewed",
+            "again": "again",
+            "avg_time": "avg",
+            "retention": "retention"
+        },
+        "sc_reveal": "reveal",
+        "sc_rate": "rate",
+        "sc_undo": "undo",
+        "sc_exit": "exit",
+        "undo_unavailable": "Can't undo — the list changed",
+        "undo_done": "Undid last rating",
+        "edit_soon": "In-session card editing is coming soon",
+        "exit_title": "Exit session?",
+        "exit_body": "Your progress is kept.",
+        "keep_studying": "Keep studying",
+        "exit": "Exit"
     },
     "auth": {
         "login": "Anmelden",
@@ -294,7 +332,9 @@
         "help_and_tour": "Hilfe & Rundgang",
         "replay_tour": "App-Rundgang wiederholen",
         "replay_tour_desc": "Sieh dir die Willkommensfolien und den Rundgang durch die Funktionen erneut an.",
-        "replay_tour_btn": "Rundgang wiederholen"
+        "replay_tour_btn": "Rundgang wiederholen",
+        "signed_in_as": "Signed in as",
+        "up_to_date": "up to date"
     },
     "verification": {
         "complete": "Verifizierung Abgeschlossen",
@@ -417,7 +457,9 @@
         "delete_confirm_message": "Diese Aktion kann nicht rückgängig gemacht werden. Die Karte wird dauerhaft aus deinem Stapel entfernt.",
         "edit_card": "Karte bearbeiten",
         "delete_card": "Karte löschen",
-        "image_badge": "Bild"
+        "image_badge": "Bild",
+        "search_placeholder": "Search cards in this deck",
+        "no_matches": "No cards match your search"
     },
     "drafts": {
         "title": "Entwürfe",
@@ -563,7 +605,8 @@
         "youtube_rate_limited": "Anfragelimit erreicht, bitte versuchen Sie es später erneut",
         "youtube_transcript_not_available": "Transkript nicht verfügbar",
         "youtube_language_not_available": "Sprache nicht verfügbar",
-        "youtube_network_error": "Netzwerkfehler"
+        "youtube_network_error": "Netzwerkfehler",
+        "generic": "Something went wrong"
     },
     "stats": {
         "title": "Statistiken",
@@ -830,5 +873,14 @@
                 "body": "Passwort, Daten-Import/Export, Feedback und der Button zum Wiederholen des Rundgangs leben hier."
             }
         }
+    },
+    "tier": {
+        "upgrade": "Upgrade",
+        "dedicated_caption": "AI features + cloud backup active",
+        "free_caption": "Local FSRS + .apkg import"
+    },
+    "plan": {
+        "rebalance_accepted": "Plan updated",
+        "timeline_extended": "Timeline extended"
     }
 }

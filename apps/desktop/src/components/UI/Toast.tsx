@@ -24,9 +24,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     const showToast = useCallback((message: string, variant: ToastVariant = 'success') => {
         const id = nextId++;
         setToasts(prev => [...prev, { id, message, variant }]);
+        // Auto-dismiss ~2.2s (spec §6).
         setTimeout(() => {
             setToasts(prev => prev.filter(t => t.id !== id));
-        }, 4000);
+        }, 2200);
     }, []);
 
     const dismiss = useCallback((id: number) => {

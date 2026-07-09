@@ -226,3 +226,26 @@ input:focus+.slider-medium {
 input:checked+.slider-medium:before {
     transform: translateX(20px);
 }
+
+/* ── Deck rename (pencil) button — styling was lost when DeckCard.css was
+   retired; restored here as a small ghost icon button (Ink v2). ─────── */
+.deck-card-rename-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid var(--stroke);
+    border-radius: var(--r-sm);
+    background: var(--panel);
+    color: var(--mist);
+    cursor: pointer;
+    transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+
+.deck-card-rename-btn:hover {
+    background: var(--panel-2);
+    border-color: var(--slate);
+    color: var(--teal);
+}

@@ -34,7 +34,7 @@
 .ai-format-pill {
     padding: 0.4rem 0.875rem;
     border-radius: 999px;
-    border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+    border: 1px solid var(--border, var(--stroke));
     background: transparent;
     color: var(--text-secondary, var(--mist));
     font-family: var(--font-body, 'Outfit', sans-serif);
@@ -50,7 +50,7 @@
 }
 
 .ai-format-pill--active {
-    background: var(--teal-soft, rgba(20, 184, 166, 0.15));
+    background: var(--teal-soft);
     border-color: var(--teal, var(--primary));
     color: var(--teal, var(--primary));
 }
@@ -73,14 +73,14 @@
 .ai-progress__label {
     font-family: var(--font-body, 'Outfit', sans-serif);
     font-size: 0.78rem;
-    color: var(--mist, #9ba0a8);
+    color: var(--mist);
     letter-spacing: 0.01em;
 }
 
 .ai-progress__track {
     height: 4px;
     border-radius: 2px;
-    background: var(--border, rgba(255, 255, 255, 0.08));
+    background: var(--border, var(--stroke));
     overflow: hidden;
 }
 
@@ -107,7 +107,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1rem;
-    background: rgba(34, 197, 94, 0.15);
+    background: var(--teal-soft);
     border: 1px solid var(--success);
     border-radius: var(--radius);
     color: var(--success);
@@ -282,7 +282,7 @@
 
 .ai-card-item.added {
     opacity: 0.6;
-    background: rgba(34, 197, 94, 0.05);
+    background: var(--teal-soft);
 }
 
 .ai-card-content {
@@ -419,7 +419,7 @@
 }
 
 .btn-add-card:hover:not(:disabled) {
-    background: rgba(59, 130, 246, 0.2) !important;
+    background: var(--teal-soft) !important;
     color: var(--primary) !important;
     transform: scale(1.1);
 }
@@ -456,7 +456,7 @@
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: var(--teal-soft, rgba(20, 184, 166, 0.15));
+    background: var(--teal-soft);
     color: var(--teal, var(--primary));
     display: inline-flex;
     align-items: center;

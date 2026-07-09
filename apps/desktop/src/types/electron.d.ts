@@ -555,6 +555,8 @@ interface ElectronPlan {
     getProgress:   (userId: string, activatedAt: string, deckFilter: string[] | null) => Promise<PlanProgress | null>;
     setOverride:   (userId: string, newPerDayOverride: number) => Promise<void>;
     clearOverride: (userId: string) => Promise<void>;
+    /** Commit a new committed daily-new rate to the active plan (rebalance "accept"). */
+    updateRate:    (userId: string, examKey: string, newRate: number) => Promise<void>;
     fetchPlansReferencingDecks: (userId: string, deckIds: string[]) => Promise<{ id: string; name: string }[]>;
 }
 
