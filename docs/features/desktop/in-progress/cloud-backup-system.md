@@ -113,3 +113,4 @@ Applied + verified on **dev** (`nrmfdiaaybilseqqvzam`):
 - Pruning loads all snapshot rows into memory (fine at ~12/user; revisit at scale).
 - No real-time multi-device sync/conflict resolution (out of scope, per spec).
 | 2026-07-09 | apps/desktop/src/components/Profile/sections/BackupTab.tsx,apps/desktop/src/components/Study/StudySession.tsx,apps/desktop/src/locales/de/translation.json,apps/desktop/src/locales/en/translation.json,apps/desktop/src/locales/es/translation.json,apps/desktop/src/locales/fr/translation.json,apps/desktop/src/locales/zh/translation.json,apps/desktop/src/main.ts |
+| 2026-07-09 | apps/desktop/src/components/Profile/sections/BackupTab.tsx,apps/desktop/src/components/Study/StudySession.tsx,apps/desktop/src/locales/de/translation.json,apps/desktop/src/locales/en/translation.json,apps/desktop/src/locales/es/translation.json,apps/desktop/src/locales/fr/translation.json,apps/desktop/src/locales/zh/translation.json,apps/desktop/src/main.ts |
