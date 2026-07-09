@@ -15,6 +15,9 @@ interface OnboardingState {
     visibleStepIds: string[];
     skipConfirmOpen: boolean;
     start: (visibleStepIds: string[]) => void;
+    /** Start a targeted feature tour directly in the tour phase (no welcome
+     *  slides) — used when a feature like Plan Mode or Intelligence unlocks. */
+    startFeatureTour: (stepIds: string[]) => void;
     nextSlide: () => void;
     prevSlide: () => void;
     startTour: () => void;
@@ -40,6 +43,11 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
     start: (visibleStepIds) => {
         if (visibleStepIds.length === 0) return;
         set({ phase: 'slides', slideIndex: 0, stepIndex: 0, skipConfirmOpen: false, visibleStepIds });
+    },
+
+    startFeatureTour: (stepIds) => {
+        if (stepIds.length === 0) return;
+        set({ phase: 'tour', slideIndex: 0, stepIndex: 0, skipConfirmOpen: false, visibleStepIds: stepIds });
     },
 
     nextSlide: () => {

@@ -15,6 +15,10 @@ interface CardViewerProps {
      *  [data-card-format] on each face's content wrapper. Null/undefined for
      *  imported Anki cards and other content with no known format. */
     format?: CardFormat | null;
+    /** Ink v2 study card (spec §7.2): force the stacked question → ANSWER →
+     *  answer layout with zero layout shift and no flip animation, regardless
+     *  of the user's card_style / flip_animation preferences. */
+    stacked?: boolean;
 }
 
 // ─── Content transforms ─────────────────────────────────────────
@@ -119,9 +123,9 @@ function renderOcclusionOverlay(html: string): string {
         // HARA: all shapes masked on front, all revealed on back — 1 card total
         for (const shape of shapes) {
             if (isReveal) {
-                svgContent += renderShapeSVG(shape, 'rgba(34,197,94,0.15)', '#22c55e', 0.8);
+                svgContent += renderShapeSVG(shape, 'color-mix(in srgb, var(--teal) 18%, transparent)', 'var(--teal)', 0.8);
             } else {
-                svgContent += renderShapeSVG(shape, '#3b82f6');
+                svgContent += renderShapeSVG(shape, 'var(--violet)');
             }
         }
     } else if (ioMode === 'hide-all-guess-one') {
@@ -133,9 +137,9 @@ function renderOcclusionOverlay(html: string): string {
         for (let u = 0; u < cardUnits.length; u++) {
             for (const shape of cardUnits[u]) {
                 if (isReveal && activeShapeIds.has(shape.id)) {
-                    svgContent += renderShapeSVG(shape, 'rgba(34,197,94,0.15)', '#22c55e', 0.8);
+                    svgContent += renderShapeSVG(shape, 'color-mix(in srgb, var(--teal) 18%, transparent)', 'var(--teal)', 0.8);
                 } else {
-                    svgContent += renderShapeSVG(shape, '#3b82f6');
+                    svgContent += renderShapeSVG(shape, 'var(--violet)');
                 }
             }
         }
@@ -149,9 +153,9 @@ function renderOcclusionOverlay(html: string): string {
             for (const shape of cardUnits[u]) {
                 if (activeShapeIds.has(shape.id)) {
                     if (isReveal) {
-                        svgContent += renderShapeSVG(shape, 'rgba(34,197,94,0.15)', '#22c55e', 0.8);
+                        svgContent += renderShapeSVG(shape, 'color-mix(in srgb, var(--teal) 18%, transparent)', 'var(--teal)', 0.8);
                     } else {
-                        svgContent += renderShapeSVG(shape, '#3b82f6');
+                        svgContent += renderShapeSVG(shape, 'var(--violet)');
                     }
                 }
             }
@@ -184,10 +188,11 @@ function stripFrontFromBack(backHtml: string, frontHtml: string): string {
 //   2. Static   — styled card, instant show/hide      (card_style ON, flip_animation OFF)
 //   3. Animated — styled card, 3D flip transition     (card_style ON, flip_animation ON)
 
-export default function CardViewer({ front, back, isRevealed, onReveal, onUnreveal, format }: CardViewerProps) {
+export default function CardViewer({ front, back, isRevealed, onReveal, onUnreveal, format, stacked = false }: CardViewerProps) {
     const { t } = useTranslation();
     const { profile } = useProfileStore();
-    const cardStyleEnabled = profile?.card_style ?? true;
+    // Stacked mode (v2 study card) always wins over the card-box preference.
+    const cardStyleEnabled = stacked ? false : (profile?.card_style ?? true);
     const animationEnabled = profile?.flip_animation ?? true;
 
     const renderedFront = renderOcclusionOverlay(renderClozeFront(front));

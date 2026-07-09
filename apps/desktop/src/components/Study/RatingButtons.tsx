@@ -1,44 +1,48 @@
 import { formatInterval } from '../../lib/fsrs';
 import { useTranslation } from 'react-i18next';
-import { Button } from '../UI';
 import type { Rating, CardUpdate } from '../../lib/types';
 import './RatingButtons.css';
 
 interface RatingButtonsProps {
-    options: Record<Rating, CardUpdate>;
+    options: Record<Rating, CardUpdate> | null;
     onRate: (rating: Rating) => void;
     isLoading: boolean;
+    /** Pre-reveal: buttons stay visible (zero layout shift) but are disabled. */
+    disabled?: boolean;
 }
 
-export default function RatingButtons({ options, onRate, isLoading }: RatingButtonsProps) {
-    const { t } = useTranslation();
+// Again 1 · Hard 2 · Good 3 · Easy 4 (spec §7.2 / §8). Colors set in CSS by
+// [data-rating]: ROSE / AMBER / TEAL / VIOLET.
+const RATINGS: { rating: Rating; key: string }[] = [
+    { rating: 'again', key: '1' },
+    { rating: 'hard', key: '2' },
+    { rating: 'good', key: '3' },
+    { rating: 'easy', key: '4' },
+];
 
-    const ratings: { rating: Rating; label: string }[] = [
-        { rating: 'again', label: t('study.rating.again') },
-        { rating: 'hard',  label: t('study.rating.hard')  },
-        { rating: 'good',  label: t('study.rating.good')  },
-        { rating: 'easy',  label: t('study.rating.easy')  },
-    ];
+export default function RatingButtons({ options, onRate, isLoading, disabled = false }: RatingButtonsProps) {
+    const { t } = useTranslation();
 
     return (
         <div className="rating-buttons" data-testid="rating-buttons">
-            {ratings.map(({ rating, label }) => {
-                const update = options[rating];
-                const interval = formatInterval(update.scheduled_days ?? 0);
-
+            {RATINGS.map(({ rating, key }) => {
+                const update = options?.[rating];
+                const interval = update ? formatInterval(update.scheduled_days ?? 0) : '';
                 return (
-                    <Button
+                    <button
                         key={rating}
                         className="rating-btn"
                         data-rating={rating}
                         onClick={() => onRate(rating)}
-                        disabled={isLoading}
+                        disabled={disabled || isLoading || !options}
                         data-testid={`rate-${rating}`}
-                        variant="ghost"
                     >
-                        <span className="rating-label">{label}</span>
+                        <span className="rating-btn__head">
+                            <span className="kbd rating-btn__key">{key}</span>
+                            <span className="rating-label">{t(`study.rating.${rating}`)}</span>
+                        </span>
                         <span className="rating-interval">{interval}</span>
-                    </Button>
+                    </button>
                 );
             })}
         </div>

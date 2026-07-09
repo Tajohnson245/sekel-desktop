@@ -20,7 +20,8 @@
         "expand": "展开",
         "collapse": "收起",
         "remove": "移除",
-        "loading_app": "SEKEL 加载中..."
+        "loading_app": "SEKEL 加载中...",
+        "search": "Search"
     },
     "nav": {
         "dashboard": "仪表板",
@@ -31,7 +32,9 @@
         "new_deck": "新建牌组",
         "image_occlusion": "视觉卡片",
         "statistics": "统计",
-        "plan": "计划"
+        "plan": "计划",
+        "collapse_sidebar": "Collapse sidebar",
+        "open_sidebar": "Open sidebar"
     },
     "dashboard": {
         "welcome": "欢迎回来，{{name}}！",
@@ -97,7 +100,20 @@
         "mode_flashcard": "抽认卡",
         "delete": "删除",
         "loading": "加载牌组中...",
-        "error": "加载牌组失败"
+        "error": "加载牌组失败",
+        "summary": "{{decks}} decks · {{cards}} cards · {{due}} due today",
+        "browse": "Browse",
+        "col_deck": "Deck",
+        "col_new": "New",
+        "col_learning": "Learning",
+        "col_due": "Due",
+        "col_retention": "Retention",
+        "col_yield": "Yield mix",
+        "col_last": "Last studied",
+        "footer_status": "{{due}} due across {{decks}} decks · est. {{min}} min at current pace",
+        "select_deck": "Select deck",
+        "import_success": "Import complete",
+        "col_classified": "Classified"
     },
     "study": {
         "session_complete": "学习完成！",
@@ -133,7 +149,7 @@
             "axis_rating": "评分",
             "lapse_rate": "遗忘率",
             "lapse_count": "{{count}} 次遗忘",
-            "lapse_rate_percent": "{{rate}}\u0025 遗忘率",
+            "lapse_rate_percent": "{{rate}}% 遗忘率",
             "most_forgotten": "最常遗忘的卡片",
             "no_forgotten": "没有遗忘的卡片",
             "no_data": "本次会话无数据",
@@ -172,7 +188,30 @@
             "final_sprint": "冲刺模式",
             "next_shift": "~{{days}}天后进入下一阶段",
             "max_urgency": "最高紧迫度"
-        }
+        },
+        "review_session_of": "Review session · {{current}} of {{total}} due",
+        "fsrs_optimal": "FSRS · optimal",
+        "high_yield": "HIGH YIELD",
+        "blueprint": "Blueprint",
+        "hint_reveal": "Press",
+        "hint_reveal_tail": "to reveal answer",
+        "footer": {
+            "reviewed": "reviewed",
+            "again": "again",
+            "avg_time": "avg",
+            "retention": "retention"
+        },
+        "sc_reveal": "reveal",
+        "sc_rate": "rate",
+        "sc_undo": "undo",
+        "sc_exit": "exit",
+        "undo_unavailable": "Can't undo — the list changed",
+        "undo_done": "Undid last rating",
+        "edit_soon": "In-session card editing is coming soon",
+        "exit_title": "Exit session?",
+        "exit_body": "Your progress is kept.",
+        "keep_studying": "Keep studying",
+        "exit": "Exit"
     },
     "auth": {
         "login": "登录",
@@ -294,13 +333,19 @@
         "help_and_tour": "帮助与导览",
         "replay_tour": "重新播放应用导览",
         "replay_tour_desc": "再次浏览欢迎幻灯片和功能导览。",
-        "replay_tour_btn": "重新播放导览"
+        "replay_tour_btn": "重新播放导览",
+        "signed_in_as": "Signed in as",
+        "up_to_date": "up to date",
+        "minimal_study_view": "Minimal study view",
+        "minimal_study_view_desc": "Hide the session stats, shortcut hints, and the timer/status chips during study for a distraction-free view."
     },
     "verification": {
         "complete": "验证完成",
         "all_translated": "所有组件已翻译。"
     },
     "ai": {
+        "regenerate_with_ai": "用 AI 重新生成",
+        "regenerate_success": "卡片已重新生成 — 请检查并保存",
         "title": "AI 学习助手",
         "subtitle": "上传文档（PDF、DOCX、PPTX、图片）或 YouTube 视频以生成学习计划和抽认卡。",
         "upload_header": "上传文档",
@@ -417,7 +462,9 @@
         "delete_confirm_message": "此操作无法撤销。卡片将被永久从牌组中移除。",
         "edit_card": "编辑卡片",
         "delete_card": "删除卡片",
-        "image_badge": "图片"
+        "image_badge": "图片",
+        "search_placeholder": "Search cards in this deck",
+        "no_matches": "No cards match your search"
     },
     "drafts": {
         "title": "草稿",
@@ -541,6 +588,7 @@
         "fill_from_cloze": "从完形填空填充"
     },
     "errors": {
+        "regenerate_card": "重新生成卡片失败",
         "invalid_youtube_url": "请输入有效的 YouTube 网址",
         "upload_image": "图片上传失败",
         "upload_image_retry": "图片上传失败，请重试。",
@@ -563,7 +611,8 @@
         "youtube_rate_limited": "请求次数已达上限，请稍后再试",
         "youtube_transcript_not_available": "字幕不可用",
         "youtube_language_not_available": "语言不可用",
-        "youtube_network_error": "网络错误"
+        "youtube_network_error": "网络错误",
+        "generic": "Something went wrong"
     },
     "stats": {
         "title": "统计",
@@ -830,5 +879,14 @@
                 "body": "密码、数据导入/导出、反馈和重新播放导览按钮都在这里。"
             }
         }
+    },
+    "tier": {
+        "upgrade": "Upgrade",
+        "dedicated_caption": "AI features + cloud backup active",
+        "free_caption": "Local FSRS + .apkg import"
+    },
+    "plan": {
+        "rebalance_accepted": "Plan updated",
+        "timeline_extended": "Timeline extended"
     }
 }

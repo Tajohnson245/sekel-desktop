@@ -9,6 +9,7 @@
        space between the header and the rating zone. */
     height: 100%;
     min-height: 0;
+    position: relative;
 }
 
 .study-header {
@@ -34,11 +35,11 @@
 }
 
 .study-timer--warning {
-    color: var(--warning, #f59e0b);
+    color: var(--amber);
 }
 
 .study-timer--danger {
-    color: var(--danger, #ef4444);
+    color: var(--rose);
     animation: timer-pulse 1s ease-in-out infinite;
 }
 
@@ -69,16 +70,61 @@
 .study-content {
     flex: 1 1 0;
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: safe center;
-    padding-top: 0.5rem;
-    gap: 1rem;
-    position: relative;
-    overflow-y: auto;
-    overflow-x: hidden;
+    flex-direction: column;      /* main axis is now vertical */
+    align-items: center;         /* horizontal centering */
+    justify-content: center;     /* vertical centering (main axis) */
+    /* No outer scrollbar — the card sizes to fit and long content scrolls
+       inside the card face itself. */
+    overflow: hidden;
     min-height: 0;
+    padding: 8px 0;
+}
+
+/* Auto vertical margins keep the card centered at any size and collapse to 0
+   (top-aligned + scrollable) if a card is ever taller than the viewport. */
+.study-card-col {
+    margin: auto 0;
+}
+
+.study-card-col {
+    width: 100%;
+    max-width: 880px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.study-meta-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 22px;
+}
+
+.study-card-surface {
     cursor: pointer;
+    border-radius: var(--r-card);
+}
+
+/* Study vignette uses the full ~880px reading column (spec §7.2) */
+.study-card-surface .card-viewer,
+.study-card-surface .card-viewer--classic {
+    max-width: 100%;
+}
+
+.study-card-surface:focus-visible {
+    outline: 2px solid var(--teal);
+    outline-offset: 4px;
+}
+
+.study-reveal-hint {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--mist);
 }
 
 .study-content:focus-visible {
@@ -110,20 +156,155 @@
     margin-bottom: 2rem;
 }
 
-/* Rating buttons zone — pinned to the bottom, outside the scrollable area */
+/* Rating zone — always visible, occupies identical space pre/post reveal */
 .rating-zone {
     display: flex;
     justify-content: center;
     align-items: center;
     flex-shrink: 0;
-    min-height: 80px;
-    transition: opacity 0.2s ease;
-    padding: 1rem 0;
+    min-height: 96px;
+    padding: 12px 0;
 }
 
-.rating-zone[style*="hidden"] {
-    opacity: 0;
-    pointer-events: none;
+/* Top bar (spec §7.2) */
+.study-topbar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding-bottom: 14px;
+}
+
+.study-back {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: var(--r-sm);
+    background: var(--panel);
+    border: 1px solid var(--stroke);
+    color: var(--fog);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: border-color 150ms ease, color 150ms ease;
+}
+
+.study-back:hover {
+    border-color: var(--slate);
+    color: var(--paper);
+}
+
+.study-breadcrumb {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.study-deck-name {
+    font-family: var(--font-display);
+    font-size: 18px;
+    color: var(--paper);
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.study-session-line {
+    font-family: var(--font-body);
+    font-size: 12px;
+    color: var(--mist);
+}
+
+.study-topbar__right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+/* 4px teal progress bar under the top bar */
+.study-progress {
+    height: 4px;
+    border-radius: var(--r-full);
+    background: color-mix(in srgb, var(--slate) 22%, transparent);
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.study-progress > span {
+    display: block;
+    height: 100%;
+    background: var(--teal);
+    border-radius: var(--r-full);
+    transition: width 180ms ease;
+}
+
+/* Session footer + shortcut hints (quiet mist/mono) */
+.study-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-shrink: 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--stroke);
+}
+
+.study-stats,
+.study-shortcuts {
+    display: flex;
+    gap: 18px;
+    font-size: 12px;
+    color: var(--mist);
+    flex-wrap: wrap;
+}
+
+.study-stats em {
+    font-style: normal;
+    font-family: var(--font-mono);
+    color: var(--fog);
+    margin-right: 2px;
+}
+
+/* Exit confirm (spec §9 — Esc with confirm mid-card) */
+.study-exit-confirm {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: color-mix(in srgb, var(--ink) 72%, transparent);
+    z-index: 50;
+}
+
+.study-exit-confirm__panel {
+    background: var(--panel);
+    border: 1px solid var(--stroke);
+    border-radius: var(--r-panel);
+    box-shadow: var(--shadow-card);
+    padding: 24px;
+    max-width: 360px;
+    text-align: center;
+}
+
+.study-exit-confirm__title {
+    font-family: var(--font-display);
+    font-size: 20px;
+    color: var(--paper);
+}
+
+.study-exit-confirm__body {
+    margin-top: 6px;
+    color: var(--mist);
+    font-size: 13px;
+}
+
+.study-exit-confirm__actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 20px;
 }
 
 /* Session Analytics */
@@ -146,20 +327,24 @@
 }
 
 .analytics-chart {
-    padding: 1.5rem;
-    border-radius: var(--r-md);
-    background: var(--ink-soft);
-    border: 1px solid var(--ink-muted);
+    padding: 20px 22px;
+    border-radius: var(--r-panel);
+    background: var(--panel);
+    border: 1px solid var(--stroke);
 }
 
 .analytics-chart h4 {
     margin: 0 0 0.5rem 0;
-    font-size: 1.125rem;
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--paper);
 }
 
 .analytics-chart .chart-desc {
     margin: 0 0 1.25rem 0;
     font-size: 0.875rem;
+    color: var(--mist);
 }
 
 .analytics-loading {

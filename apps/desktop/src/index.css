@@ -1,41 +1,60 @@
 :root {
-    /* ── Stylescape Design Tokens ─────────────────────────────────── */
-    --font-display: 'DM Serif Display', Georgia, serif;
-    --font-body:    'Outfit', system-ui, sans-serif;
-    --font-mono:    'DM Mono', 'Courier New', monospace;
+    /* ── Ink v2 Design Tokens (DESIGN-SPEC.md — canonical) ────────────
+       Dark "Ink" is the one canonical system. Light + color-wave themes
+       below are legacy overrides kept working, not part of v2. */
 
-    /* Dark surfaces (default) */
-    --ink:       #0F1117;
-    --ink-soft:  #1C2030;
-    --ink-muted: #2E3348;
-    --slate:     #4A5270;
-    --mist:      #8B93A8;
-    --fog:       #BEC5D4;
+    /* Faces (spec §3.1): Display=Lora, Body=Inter, Mono=Roboto Mono.
+       Bundled offline via @fontsource (imported in renderer.tsx); brand
+       faces kept as CSS fallbacks. */
+    --font-display: 'Lora', Georgia, serif;
+    --font-body:    'Inter', Calibri, system-ui, sans-serif;
+    --font-mono:    'Roboto Mono', 'Courier New', monospace;
 
-    /* Light surfaces */
-    --cloud: #E8ECF4;
-    --paper: #F4F6FB;
-    --white: #FFFFFF;
+    /* Brand palette — canonical hex, do not drift (spec §2.1) */
+    --ink:    #0F1117;  /* app background, text-on-teal */
+    --slate:  #4A5270;  /* disabled, zero-states, tertiary text */
+    --mist:   #8B93A8;  /* secondary text, descriptions */
+    --fog:    #C3C9D6;  /* emphasized secondary text, ghost labels */
+    --cloud:  #E6E9F0;  /* rare high-emphasis neutral */
+    --paper:  #F7F8FA;  /* primary text, toggle knobs */
+    --white:  #FFFFFF;
+    --teal:   #2BBFA4;  /* actions + AI + due — contractual (spec §2.3) */
+    --amber:  #E8A33D;  /* learning, retention, streaks, high-yield */
+    --rose:   #E05C5C;  /* "Again" rating, destructive */
+    --violet: #8C7BE8;  /* new cards, FSRS identity, cohort median */
 
-    /* Accents */
-    --teal:        #2BBFA4;
-    --teal-soft:   rgba(43, 191, 164, 0.08);
-    --teal-border: rgba(43, 191, 164, 0.22);
-    --teal-glow:   0 4px 20px rgba(43, 191, 164, 0.20);
-    --amber:       #F0A500;
-    --amber-soft:  rgba(240, 165, 0, 0.10);
-    --rose:        #E05C6A;
-    --rose-soft:   rgba(224, 92, 106, 0.10);
-    --violet:      #7C6EF5;
-    --violet-soft: rgba(124, 110, 245, 0.10);
+    /* Derived surfaces (spec §2.2) */
+    --side:       #0D1019;  /* sidebar (one step darker than ink) */
+    --panel:      #151A26;  /* cards, panels, table rows */
+    --panel-2:    #1B2130;  /* nested: pills, inputs, subdeck rows, kbd */
+    --stroke:     #232838;  /* all 1px borders + row dividers */
+    --nav-active: #161C2A;  /* active nav / sub-nav bg */
+    --panel-3:    #12161F;  /* expanded subdeck rows (spec §7.3) */
+    --ink-soft:   var(--panel);   /* legacy alias → PANEL */
+    --ink-muted:  var(--panel-2); /* legacy alias → PANEL-2 */
 
-    /* Spacing */
+    /* Accent tints via color-mix so they track the active theme's accent.
+       Chips/badges: 14–18% bg + full-strength text (spec §2.3). */
+    --teal-tint:    color-mix(in srgb, var(--teal) 16%, transparent);
+    --teal-soft:    color-mix(in srgb, var(--teal) 10%, transparent);
+    --teal-border:  color-mix(in srgb, var(--teal) 45%, transparent);
+    --teal-glow:    0 4px 20px rgba(43, 191, 164, 0.20);
+    --amber-tint:   color-mix(in srgb, var(--amber) 16%, transparent);
+    --amber-soft:   color-mix(in srgb, var(--amber) 10%, transparent);
+    --rose-tint:    color-mix(in srgb, var(--rose) 16%, transparent);
+    --rose-soft:    color-mix(in srgb, var(--rose) 10%, transparent);
+    --rose-border:  color-mix(in srgb, var(--rose) 40%, transparent);
+    --violet-tint:  color-mix(in srgb, var(--violet) 16%, transparent);
+    --violet-soft:  color-mix(in srgb, var(--violet) 10%, transparent);
+
+    /* Spacing (base unit 4px, spec §4) */
     --space-xs: 4px;   --space-sm: 8px;
     --space-md: 12px;  --space-lg: 16px;
     --space-xl: 24px;  --space-2xl: 32px;  --space-3xl: 48px;
 
     /* App chrome */
     --header-height: 64px;
+    --sidebar-width: 260px;
 
     /* Visual card sizing — overridden by .vcs-* classes on <html>, set by
        VisualCardSizeClass from the user profile preference. Three knobs
@@ -49,35 +68,51 @@
     --visual-card-min-height: 350px;
     --visual-card-max-image-height: 250px;
 
-    /* Border radius */
-    --r-sm: 6px;  --r-md: 12px;  --r-lg: 20px;  --r-xl: 28px;
+    /* Border radius (spec §4) */
+    --r-chip:  6px;   /* micro chips */
+    --r-sm:    8px;   /* small controls, buttons, row-level buttons */
+    --r-nav:   10px;  /* nav items, inputs, primary buttons */
+    --r-row:   12px;  /* table rows, tier card */
+    --r-panel: 14px;  /* panels */
+    --r-card:  16px;  /* study card */
+    --r-full:  999px; /* filter chips, pills */
+    /* legacy radius aliases */
+    --r-md: 12px;  --r-lg: 14px;  --r-xl: 16px;
 
-    /* Shadows */
-    --shadow-sm: 0 1px 3px rgba(15,17,23,0.08), 0 1px 2px rgba(15,17,23,0.04);
-    --shadow-md: 0 4px 16px rgba(15,17,23,0.10), 0 1px 4px rgba(15,17,23,0.06);
-    --shadow-lg: 0 12px 40px rgba(15,17,23,0.14), 0 4px 12px rgba(15,17,23,0.08);
+    /* Shadows — borders over shadows; only the study card + toasts (spec §4) */
+    --shadow-card: 0 12px 40px rgba(0, 0, 0, 0.4);
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.20);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.28);
+    --shadow-lg: 0 12px 40px rgba(0,0,0,0.40);
 
-    /* ── Backward-compat aliases ──────────────────────────────────── */
+    /* ── Backward-compat aliases (retuned onto v2 tokens) ─────────── */
     --bg:           var(--ink);
-    --bg-elevated:  var(--ink-soft);
-    --bg-card:      var(--ink-soft);
-    --bg-input:     var(--ink-muted);
+    --bg-elevated:  var(--panel);
+    --bg-card:      var(--panel);
+    --bg-input:     var(--panel-2);
     --fg:           var(--fog);
-    --text-primary: var(--fog);
+    --text-primary: var(--paper);
     --text-secondary: var(--mist);
     --text-muted:   var(--slate);
     --primary:      var(--teal);
-    --primary-hover: #24a98f;
-    --primary-light: var(--teal-soft);
-    --secondary:    var(--ink-muted);
-    --border:       var(--ink-muted);
+    --primary-hover: #3fd0b5;              /* teal, brightness +8% (spec §6) */
+    --primary-light: var(--teal-tint);
+    --secondary:    var(--panel);
+    --border:       var(--stroke);
     --muted:        var(--slate);
-    --success:      #22c55e;
+    --accent:       var(--teal);
+    --success:      var(--teal);            /* no green in v2; positive = teal */
     --warning:      var(--amber);
     --danger:       var(--rose);
     --radius:       var(--r-sm);
-    --radius-lg:    var(--r-md);
-    --card-gradient-end: #1a1f2e;
+    --radius-lg:    var(--r-row);
+    --card-gradient-end: var(--panel);
+    /* Older components reference these — point them at v2 tokens so their
+       stale indigo/blue fallbacks never fire. */
+    --bg-secondary: var(--panel-2);
+    --card-bg:      var(--panel);
+    --primary-bg:   var(--teal-tint);
+    --foreground:   var(--paper);
 }
 
 /* Visual-card-size class overrides — applied to <html> by
@@ -206,6 +241,22 @@
     --card-gradient-end: #132225;
 }
 
+/* v2 surface tokens follow each legacy theme's ink surfaces so light +
+   color-wave themes stay coherent. Canonical dark Ink sets exact hex in
+   :root above and is intentionally excluded here. */
+:root.light,
+:root.red,
+:root.purple,
+:root.pink,
+:root.turquoise {
+    --side:       var(--ink);
+    --panel:      var(--ink-soft);
+    --panel-2:    var(--ink-muted);
+    --panel-3:    var(--ink-soft);
+    --stroke:     var(--ink-muted);
+    --nav-active: var(--ink-soft);
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -240,10 +291,11 @@ select option:disabled {
     color: var(--text-muted);
 }
 
-/* ── Custom scrollbar ───────────────────────────────────────────── */
+/* ── Custom scrollbar (spec §5.2: PANEL-2 thumb, 5px radius) ─────── */
 
 ::-webkit-scrollbar {
-    width: 8px;
+    width: 10px;
+    height: 10px;
 }
 
 ::-webkit-scrollbar-track {
@@ -251,12 +303,41 @@ select option:disabled {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--ink-muted);
-    border-radius: 4px;
+    background: var(--panel-2);
+    border-radius: 5px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
     background: var(--slate);
+    background-clip: padding-box;
+}
+
+/* ── Focus + motion (spec §8) ───────────────────────────────────────
+   :focus-visible is a 2px teal outline at 2px offset, app-wide, never
+   removed. prefers-reduced-motion disables non-essential animation. */
+:focus-visible {
+    outline: 2px solid var(--teal);
+    outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* Chrome recedes: no text selection on the app frame; card content opts
+   back in (spec §5.2). */
+.app-shell .sidebar,
+.app-shell .app-topbar {
+    user-select: none;
 }
 
 /* ─────────────────────────────────────────────────────────────────
@@ -265,8 +346,432 @@ select option:disabled {
 
 .app-shell {
     display: flex;
+    flex-direction: row;
+    height: 100vh;
+    background: var(--ink);
+    color: var(--fog);
+}
+
+.app-main {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
     flex-direction: column;
     height: 100vh;
+    overflow: hidden;
+    position: relative;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   Sidebar rail (spec §5.1) — 260px, SIDE background
+   ───────────────────────────────────────────────────────────────── */
+
+.sidebar {
+    width: var(--sidebar-width);
+    flex-shrink: 0;
+    height: 100vh;
+    background: var(--side);
+    border-right: 1px solid var(--stroke);
+    display: flex;
+    flex-direction: column;
+    padding: 32px 20px 28px;
+    overflow-y: auto;
+    z-index: 1110;
+}
+
+.sidebar-brand-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 28px;
+}
+
+.sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    min-width: 0;
+}
+
+.sidebar-logo-img {
+    height: 34px;
+    width: auto;
+    display: block;
+    border-radius: var(--r-sm);
+}
+
+.sidebar-collapse-btn {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    border: 1px solid var(--stroke);
+    border-radius: var(--r-sm);
+    background: transparent;
+    color: var(--mist);
+    cursor: pointer;
+    transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+
+.sidebar-collapse-btn:hover {
+    background: var(--panel-2);
+    border-color: var(--slate);
+    color: var(--fog);
+}
+
+/* Collapsed rail — slides shut; a floating button reopens it */
+.sidebar {
+    transition: width 160ms ease, padding 160ms ease;
+}
+
+.sidebar.is-collapsed {
+    width: 0;
+    padding-left: 0;
+    padding-right: 0;
+    border-right: none;
+    overflow: hidden;
+}
+
+/* Reopen affordance — a slim pull-tab hovering at the middle of the left edge */
+.sidebar-reopen {
+    position: absolute;
+    top: 50%;
+    left: 6px;
+    transform: translateY(-50%);
+    z-index: 1120;
+    display: grid;
+    place-items: center;
+    width: 18px;
+    height: 52px;
+    padding: 0;
+    border: 1px solid var(--stroke);
+    border-radius: var(--r-full);
+    background: var(--panel);
+    color: var(--mist);
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+    transition: transform 150ms ease, background-color 150ms ease, color 150ms ease,
+        border-color 150ms ease, width 150ms ease;
+}
+
+.sidebar-reopen svg {
+    width: 13px;
+    height: 13px;
+}
+
+.sidebar-reopen:hover {
+    width: 22px;
+    background: var(--panel-2);
+    border-color: var(--slate);
+    color: var(--teal);
+    transform: translateY(-50%) translateX(3px);
+}
+
+.sidebar-logo {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--r-nav);
+    background: var(--teal);
+    color: var(--ink);
+    display: grid;
+    place-items: center;
+    font-family: var(--font-display);
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.sidebar-wordmark {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 400;
+    letter-spacing: 0.13em;
+    color: var(--paper);
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 12px 14px;
+    border: none;
+    border-radius: var(--r-nav);
+    background: transparent;
+    color: var(--mist);
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 150ms ease, color 150ms ease;
+}
+
+.nav-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--slate);
+    flex-shrink: 0;
+    transition: background-color 150ms ease;
+}
+
+.nav-item__label {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nav-item:hover {
+    background: color-mix(in srgb, var(--nav-active) 55%, transparent);
+    color: var(--fog);
+}
+
+.nav-item.is-active {
+    background: var(--nav-active);
+    color: var(--paper);
+    font-weight: 600;
+}
+
+.nav-item.is-active .nav-dot {
+    background: var(--teal);
+}
+
+.nav-count-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 18px;
+    padding: 0 6px;
+    border-radius: var(--r-full);
+    background: var(--panel-2);
+    color: var(--fog);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1;
+}
+
+.sidebar-section-label {
+    font-family: var(--font-body);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--slate);
+    margin: 24px 6px 8px;
+}
+
+.sidebar-deck-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.sidebar-deck-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 10px;
+    border: none;
+    border-radius: var(--r-sm);
+    background: transparent;
+    color: var(--fog);
+    font-family: var(--font-body);
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 150ms ease;
+}
+
+.sidebar-deck-row:hover {
+    background: color-mix(in srgb, var(--nav-active) 55%, transparent);
+}
+
+.sidebar-deck-row.in-session {
+    background: var(--teal-tint);
+}
+
+.sidebar-deck-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.deck-due-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 20px;
+    padding: 0 8px;
+    border-radius: var(--r-full);
+    background: var(--panel-2);
+    color: var(--fog);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.deck-due-pill.is-solid {
+    background: var(--teal);
+    color: var(--ink);
+}
+
+.deck-due-pill.is-zero {
+    color: var(--slate);
+}
+
+.sidebar-spacer {
+    flex: 1 1 auto;
+    min-height: 16px;
+}
+
+.tier-card {
+    background: var(--panel);
+    border: 1px solid var(--stroke);
+    border-radius: var(--r-row);
+    padding: 14px;
+}
+
+.tier-card__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.tier-chip {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--font-body);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 3px 8px;
+    border-radius: var(--r-sm);
+}
+
+.tier-chip.chip-teal {
+    background: var(--teal-tint);
+    color: var(--teal);
+}
+
+.tier-chip.chip-slate {
+    background: color-mix(in srgb, var(--slate) 22%, transparent);
+    color: var(--fog);
+}
+
+.tier-upgrade {
+    background: none;
+    border: none;
+    color: var(--teal);
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+}
+
+.tier-upgrade:hover {
+    text-decoration: underline;
+}
+
+.tier-card__caption {
+    margin-top: 8px;
+    color: var(--mist);
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.sidebar-user {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--stroke);
+}
+
+.sidebar-user__id {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1 1 auto;
+    min-width: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+.sidebar-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--panel-2);
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    color: var(--mist);
+    flex-shrink: 0;
+}
+
+.sidebar-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.sidebar-user__email {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    color: var(--mist);
+}
+
+.sidebar-icon-btn {
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border: none;
+    border-radius: var(--r-sm);
+    background: transparent;
+    color: var(--mist);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background-color 150ms ease, color 150ms ease;
+}
+
+.sidebar-icon-btn:hover {
+    background: var(--panel-2);
+    color: var(--fog);
+}
+
+.sidebar-icon-btn--danger:hover {
+    color: var(--rose);
 }
 
 /* When a custom background image is set */
@@ -275,18 +780,9 @@ select option:disabled {
     image-rendering: high-quality;
 }
 
-.app-shell.has-background .header {
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(12px);
-}
-
 .app-shell.has-background .main-content {
     background: rgba(0, 0, 0, 0.55);
     backdrop-filter: blur(4px);
-}
-
-.light .app-shell.has-background .header {
-    background: rgba(255, 255, 255, 0.8);
 }
 
 .light .app-shell.has-background .main-content {
@@ -491,8 +987,9 @@ select option:disabled {
 }
 
 .main-content {
-    flex: 1;
-    padding: 1.5rem;
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 44px 48px;
     overflow-y: auto;
     background: var(--bg);
 }
@@ -537,12 +1034,13 @@ select option:disabled {
     justify-content: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
-    border: none;
-    border-radius: var(--radius);
-    font-size: 0.875rem;
-    font-weight: 500;
+    border: 1px solid transparent;
+    border-radius: var(--r-nav);
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.15s;
+    transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease, filter 150ms ease;
 }
 
 .btn:disabled {
@@ -550,44 +1048,59 @@ select option:disabled {
     cursor: not-allowed;
 }
 
+/* Primary — teal fill, INK text (spec §6) */
 .btn-primary {
-    background: var(--primary);
-    color: white;
+    background: var(--teal);
+    color: var(--ink);
+    border-color: var(--teal);
 }
 
 .btn-primary:hover:not(:disabled) {
-    background: var(--primary-hover);
+    filter: brightness(1.08);
 }
 
+/* Ghost — PANEL fill, 1px STROKE, FOG label (spec §6) */
+.btn-ghost,
 .btn-secondary {
-    background: var(--secondary);
-    color: var(--fg);
-    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--fog);
+    border: 1px solid var(--stroke);
 }
 
+.btn-ghost:hover:not(:disabled),
 .btn-secondary:hover:not(:disabled) {
-    background: var(--border);
+    background: var(--panel-2);
+    border-color: var(--slate);
+    color: var(--paper);
 }
 
+/* Danger — transparent, ROSE outline, never a solid red button (spec §2.3) */
 .btn-danger {
-    background: var(--danger);
-    color: #ffffff !important;
+    background: transparent;
+    color: var(--rose);
+    border: 1px solid var(--rose-border);
     font-weight: 600;
 }
 
 .btn-danger:hover:not(:disabled) {
-    background: #dc2626;
+    background: var(--rose-soft);
 }
 
 .btn-danger:disabled {
     opacity: 0.5;
-    background: var(--danger);
     cursor: not-allowed;
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 12px;
+    border-radius: var(--r-sm);
 }
 
 .btn-large {
     padding: 0.75rem 1.5rem;
-    font-size: 1rem;
+    font-size: 15px;
+    border-radius: var(--r-nav);
 }
 
 .btn-icon {
@@ -975,15 +1488,27 @@ h3 {
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 100;
+    /* Above the sidebar (1110) and reopen tab (1120) so modals are never
+       clipped by the app chrome. */
+    z-index: 1200;
+    padding: var(--space-xl);
+    box-sizing: border-box;
+    backdrop-filter: blur(2px);
 }
 
 .modal {
-    background: var(--bg-elevated);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
+    background: var(--panel);
+    border: 1px solid var(--stroke);
+    border-radius: var(--r-panel);
+    box-shadow: var(--shadow-lg);
     width: 100%;
+    /* Sensible default cap for modals with no explicit size class; the
+       .max-w-* classes below override it. Never taller than the viewport. */
+    max-width: 520px;
+    max-height: 85vh;
+    overflow-y: auto;
     padding: 1.5rem;
+    box-sizing: border-box;
 }
 
 .max-w-md {
@@ -1066,145 +1591,13 @@ h3 {
     font-size: 0.875rem;
 }
 
-/* ─────────────────────────────────────────────────────────────────
-   Study Session
-   ───────────────────────────────────────────────────────────────── */
+/* Study Session styles live in components/Study/StudySession.css (v2 layout).
+   The old duplicate block was removed — its .study-session / .study-content
+   rules were overriding the component CSS and top-aligning the card. */
 
-.study-session {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
-}
-
-.study-header {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-}
-
-.study-header h2 {
-    flex: 1;
-    margin-bottom: 0;
-}
-
-.progress-text {
-    font-size: 0.875rem;
-    color: var(--muted);
-}
-
-.study-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
-
-.study-complete {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-}
-
-.complete-icon {
-    color: var(--success);
-    margin-bottom: 1rem;
-}
-
-.complete-actions {
-    display: flex;
-    gap: 1rem;
-    margin-top: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-/* ─────────────────────────────────────────────────────────────────
-   Rating Buttons
-   ───────────────────────────────────────────────────────────────── */
-
-.rating-buttons {
-    display: flex;
-    gap: var(--space-md);
-    margin-top: var(--space-lg);
-}
-
-.rating-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--space-xs);
-    padding: var(--space-md) var(--space-xl);
-    border: 1px solid transparent;
-    border-radius: var(--r-sm);
-    cursor: pointer;
-    font-family: var(--font-body);
-    font-weight: 500;
-    transition: all 0.15s;
-    min-width: 80px;
-}
-
-.rating-btn[data-rating="again"] {
-    background: var(--rose-soft);
-    border-color: var(--rose);
-    color: var(--rose);
-}
-.rating-btn[data-rating="again"]:hover:not(:disabled) {
-    background: var(--rose);
-    color: #fff;
-}
-
-.rating-btn[data-rating="hard"] {
-    background: var(--amber-soft);
-    border-color: var(--amber);
-    color: var(--amber);
-}
-.rating-btn[data-rating="hard"]:hover:not(:disabled) {
-    background: var(--amber);
-    color: var(--ink);
-}
-
-.rating-btn[data-rating="good"] {
-    background: var(--teal-soft);
-    border-color: var(--teal);
-    color: var(--teal);
-}
-.rating-btn[data-rating="good"]:hover:not(:disabled) {
-    background: var(--teal);
-    color: var(--ink);
-}
-
-.rating-btn[data-rating="easy"] {
-    background: var(--violet-soft);
-    border-color: var(--violet);
-    color: var(--violet);
-}
-.rating-btn[data-rating="easy"]:hover:not(:disabled) {
-    background: var(--violet);
-    color: #fff;
-}
-
-.rating-btn:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-}
-
-.rating-label {
-    font-family: var(--font-body);
-    font-weight: 600;
-}
-
-.rating-interval {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    opacity: 0.8;
-}
-
-.rating-btn:hover .rating-interval {
-    opacity: 1;
-}
+/* Rating buttons live in components/Study/RatingButtons.css (v2 grid layout).
+   The old duplicate block was removed — it was overriding the grid and
+   left-aligning the choices. */
 
 /* ─────────────────────────────────────────────────────────────────
    Utilities

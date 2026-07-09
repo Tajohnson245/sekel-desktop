@@ -45,9 +45,9 @@
 }
 
 .drafts-capacity.full {
-    background: rgba(239, 68, 68, 0.1);
-    color: var(--danger, #ef4444);
-    border-color: var(--danger, #ef4444);
+    background: var(--rose-soft);
+    color: var(--danger, var(--rose));
+    border-color: var(--danger, var(--rose));
 }
 
 .drafts-page-description {
@@ -206,7 +206,7 @@
 .draft-card-deck-select:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    box-shadow: 0 0 0 2px var(--teal-tint);
 }
 
 .draft-card-btns {

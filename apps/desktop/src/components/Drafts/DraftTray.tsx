@@ -57,7 +57,7 @@ export default function DraftTray({ userId }: DraftTrayProps) {
             <>
                 {cleanText}
                 {hasImage && (
-                    <span className="draft-image-badge" style={{ fontSize: '0.85em', marginLeft: '6px', color: '#888', fontStyle: 'italic' }}>
+                    <span className="draft-image-badge" style={{ fontSize: '0.85em', marginLeft: '6px', color: 'var(--slate)', fontStyle: 'italic' }}>
                         {t('card.one_image_added')}
                     </span>
                 )}

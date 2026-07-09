@@ -3,7 +3,7 @@
 .tabs-list {
     display: flex;
     gap: 0;
-    border-bottom: 1px solid var(--border, #e5e7eb);
+    border-bottom: 1px solid var(--stroke);
     margin-bottom: 1.5rem;
 }
 
@@ -11,7 +11,7 @@
     padding: 0.625rem 1.25rem;
     border: none;
     background: transparent;
-    color: var(--text-secondary, #6b7280);
+    color: var(--mist);
     font-family: inherit;
     font-size: 0.9rem;
     font-weight: 500;
@@ -23,16 +23,16 @@
 }
 
 .tab-button:hover {
-    color: var(--text-primary, #1f2937);
+    color: var(--fog);
 }
 
 .tab-button[aria-selected="true"] {
-    color: var(--primary, #3b82f6);
-    border-bottom-color: var(--primary, #3b82f6);
+    color: var(--teal);
+    border-bottom-color: var(--teal);
 }
 
 .tab-button:focus-visible {
-    outline: 2px solid var(--primary, #3b82f6);
+    outline: 2px solid var(--teal);
     outline-offset: -2px;
     border-radius: 2px;
 }

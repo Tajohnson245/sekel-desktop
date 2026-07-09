@@ -38,6 +38,16 @@ export const UserProfilePage: React.FC = () => {
 
     return (
         <div className="user-profile-page">
+            {/* Settings header + identity line (spec §7.4) */}
+            <div className="settings-titlebar">
+                <h1 className="page-title">{t('profile.settings')}</h1>
+                <p className="page-subtitle">
+                    {t('profile.signed_in_as', { defaultValue: 'Signed in as' })} {user.email}
+                    {' · '}v{__APP_VERSION__}
+                    {' · '}<span className="settings-uptodate">{t('profile.up_to_date', { defaultValue: 'up to date' })}</span>
+                </p>
+            </div>
+
             {/* Header Section */}
             <div className="profile-header-section">
                 <div className="profile-avatar-large-wrapper">
@@ -83,21 +93,23 @@ export const UserProfilePage: React.FC = () => {
                 </div>
             </div>
 
-            <Tabs key={initialTab} defaultTab={initialTab}>
-                <TabList>
-                    <Tab id="profile">{t('profile.tab_profile')}</Tab>
-                    <Tab id="preferences">{t('profile.tab_preferences')}</Tab>
-                    <Tab id="study">{t('profile.tab_study')}</Tab>
-                    <Tab id="backup">{t('profile.tab_backup')}</Tab>
-                    <Tab id="account">{t('profile.tab_account')}</Tab>
-                </TabList>
+            <div className="settings-body">
+                <Tabs key={initialTab} defaultTab={initialTab}>
+                    <TabList>
+                        <Tab id="profile">{t('profile.tab_profile')}</Tab>
+                        <Tab id="preferences">{t('profile.tab_preferences')}</Tab>
+                        <Tab id="study">{t('profile.tab_study')}</Tab>
+                        <Tab id="backup">{t('profile.tab_backup')}</Tab>
+                        <Tab id="account">{t('profile.tab_account')}</Tab>
+                    </TabList>
 
-                <TabPanel id="profile"><ProfileTab /></TabPanel>
-                <TabPanel id="preferences"><PreferencesTab /></TabPanel>
-                <TabPanel id="study"><StudyTab /></TabPanel>
-                <TabPanel id="backup"><BackupTab /></TabPanel>
-                <TabPanel id="account"><AccountTab /></TabPanel>
-            </Tabs>
+                    <TabPanel id="profile"><ProfileTab /></TabPanel>
+                    <TabPanel id="preferences"><PreferencesTab /></TabPanel>
+                    <TabPanel id="study"><StudyTab /></TabPanel>
+                    <TabPanel id="backup"><BackupTab /></TabPanel>
+                    <TabPanel id="account"><AccountTab /></TabPanel>
+                </Tabs>
+            </div>
         </div>
     );
 };

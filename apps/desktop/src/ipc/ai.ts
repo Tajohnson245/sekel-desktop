@@ -992,4 +992,71 @@ ${META_EXCLUSIONS}`,
             throw error;
         }
     });
+
+    // Single-card regeneration — a lightweight path through the pipeline for the
+    // card editor's "Regenerate with AI" button. The card being edited already
+    // carries everything the batch pipeline works hard to derive: its own
+    // front/back define the topic, and its format fixes the shape. So there's no
+    // document to chunk, no count to distribute, and no batch to backfill. We run
+    // just Stage 3 (generate one card from the existing content) + Stage 5 (one
+    // refine pass) and skip the batch-only evaluation/backfill machinery.
+    instrumentedHandle('regenerate-card', async (_event, payload: {
+        front: string;
+        back: string;
+        format?: CardFormat;
+        difficulty?: 'essential' | 'detailed';
+        language?: string;
+        customInstructions?: string;
+    }): Promise<GeneratedCard> => {
+        try {
+            getOpenAI(); // fail early if API key is missing
+
+            const format: CardFormat = payload.format ?? 'basic';
+            const difficulty: 'essential' | 'detailed' = payload.difficulty ?? 'detailed';
+            const language = payload.language || 'English';
+
+            // The existing card IS the source material: its front/back define the
+            // concept to re-test. Strip HTML tags and unwrap cloze markers so the
+            // model reasons about the concept rather than the markup — the `format`
+            // argument tells it what shape to emit.
+            const toPlainText = (html: string) => html
+                .replace(/\{\{c\d+::([^}]+)\}\}/g, '$1')
+                .replace(/<[^>]*>/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+
+            const sourceText = `Existing flashcard being regenerated:\nFront: ${toPlainText(payload.front)}\nBack: ${toPlainText(payload.back)}`;
+
+            const instructionParts = [
+                'Regenerate this single flashcard. Test the SAME underlying concept as the existing card above, but write a freshly-worded question and answer — do not copy the original phrasing.',
+            ];
+            if (payload.customInstructions?.trim()) {
+                instructionParts.push(payload.customInstructions.trim());
+            }
+            const instruction = instructionParts.join(' ');
+
+            // Stage 3 — generate exactly one card from the existing content.
+            const generated = await generateCardsForChunk(
+                { id: 1, text: sourceText },
+                1,
+                format,
+                difficulty,
+                instruction,
+                language,
+            );
+
+            if (generated.length === 0) {
+                throw new Error('Regeneration returned no card');
+            }
+
+            // Stage 5 — a single refine pass to sharpen. Failure-tolerant: on any
+            // error refineCardsBatch returns the original, so the user still gets
+            // a regenerated card back.
+            const [refined] = await refineCardsBatch([generated[0]], format);
+            return refined ?? generated[0];
+        } catch (error) {
+            console.error('Error regenerating card:', error);
+            throw error;
+        }
+    });
 };

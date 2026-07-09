@@ -27,13 +27,13 @@ export function getTierKey(examProfile: UserExamProfile | null | undefined): str
 }
 
 const MODE_DESCRIPTIONS: Record<string, { headline: string; body: string; color: string }> = {
-    standard:     { headline: 'Standard Mode', color: 'var(--success, #22c55e)', body: 'Cards are scheduled at normal intervals. Study at a comfortable, consistent pace.' },
-    active:       { headline: 'Active Mode · 1.2×', color: 'var(--warning, #f59e0b)', body: 'Scheduling intervals are tightened slightly as your exam draws closer. Stay consistent.' },
-    focused:      { headline: 'Focused Mode · 1.5×', color: 'var(--warning, #f59e0b)', body: 'Elevated urgency. Cards are reviewed more frequently to solidify your knowledge in the final stretch.' },
-    intensive:    { headline: 'Intensive Mode · 2.0×', color: 'var(--danger, #ef4444)', body: 'Your exam is under a month away. Cards are scheduled for rapid reinforcement — prioritize weak areas.' },
-    final_sprint: { headline: 'Final Sprint · 2.5×', color: 'var(--danger, #ef4444)', body: 'Maximum urgency. Your exam is days away — every card counts. Stay focused.' },
-    mixed:        { headline: 'Standard Mode', color: 'var(--success, #22c55e)', body: 'Fixed to standard scheduling regardless of your exam date.' },
-    triage:       { headline: 'Final Sprint · 2.5×', color: 'var(--danger, #ef4444)', body: 'Fixed to maximum urgency. Every review session is high-stakes.' },
+    standard:     { headline: 'Standard Mode', color: 'var(--success, var(--teal))', body: 'Cards are scheduled at normal intervals. Study at a comfortable, consistent pace.' },
+    active:       { headline: 'Active Mode · 1.2×', color: 'var(--warning, var(--amber))', body: 'Scheduling intervals are tightened slightly as your exam draws closer. Stay consistent.' },
+    focused:      { headline: 'Focused Mode · 1.5×', color: 'var(--warning, var(--amber))', body: 'Elevated urgency. Cards are reviewed more frequently to solidify your knowledge in the final stretch.' },
+    intensive:    { headline: 'Intensive Mode · 2.0×', color: 'var(--danger, var(--rose))', body: 'Your exam is under a month away. Cards are scheduled for rapid reinforcement — prioritize weak areas.' },
+    final_sprint: { headline: 'Final Sprint · 2.5×', color: 'var(--danger, var(--rose))', body: 'Maximum urgency. Your exam is days away — every card counts. Stay focused.' },
+    mixed:        { headline: 'Standard Mode', color: 'var(--success, var(--teal))', body: 'Fixed to standard scheduling regardless of your exam date.' },
+    triage:       { headline: 'Final Sprint · 2.5×', color: 'var(--danger, var(--rose))', body: 'Fixed to maximum urgency. Every review session is high-stakes.' },
 };
 
 export default function SessionModeBriefing({ deckName, dueCount, examProfile, onDismiss, onBegin }: Props) {

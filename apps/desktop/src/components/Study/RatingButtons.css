@@ -1,86 +1,70 @@
-/* Rating Buttons — Stylescape ROSE/AMBER/TEAL/VIOLET system */
+/* Rating buttons (spec §7.2) — always visible, outlined, accent-tinted.
+   Again ROSE · Hard AMBER · Good TEAL · Easy VIOLET. Disabled pre-reveal
+   with zero layout shift. */
 
 .rating-buttons {
-    display: flex;
-    gap: var(--space-md);
-    margin-top: var(--space-lg);
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    width: 100%;
+    max-width: 720px;
 }
 
 .rating-btn {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--space-xs);
-    padding: var(--space-md) var(--space-xl);
-    border: 1px solid transparent;
-    border-radius: var(--r-sm);
+    justify-content: center;
+    gap: 6px;
+    padding: 14px 10px;
+    border-radius: var(--r-nav);
+    background: transparent;
+    border: 1px solid var(--stroke);
+    color: var(--fog);
     cursor: pointer;
-    font-family: var(--font-body);
-    font-weight: 500;
-    transition: background-color 0.15s, color 0.15s, border-color 0.15s;
-    min-width: 80px;
+    transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
 }
 
-/* Again — Rose */
-.rating-btn[data-rating="again"] {
-    background: var(--rose-soft);
-    border-color: var(--rose);
-    color: var(--rose);
-}
-.rating-btn[data-rating="again"]:hover:not(:disabled) {
-    background: var(--rose);
-    color: #fff;
+.rating-btn__head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-/* Hard — Amber */
-.rating-btn[data-rating="hard"] {
-    background: var(--amber-soft);
-    border-color: var(--amber);
-    color: var(--amber);
-}
-.rating-btn[data-rating="hard"]:hover:not(:disabled) {
-    background: var(--amber);
-    color: var(--ink);
-}
-
-/* Good — Teal */
-.rating-btn[data-rating="good"] {
-    background: var(--teal-soft);
-    border-color: var(--teal);
-    color: var(--teal);
-}
-.rating-btn[data-rating="good"]:hover:not(:disabled) {
-    background: var(--teal);
-    color: var(--ink);
-}
-
-/* Easy — Violet */
-.rating-btn[data-rating="easy"] {
-    background: var(--violet-soft);
-    border-color: var(--violet);
-    color: var(--violet);
-}
-.rating-btn[data-rating="easy"]:hover:not(:disabled) {
-    background: var(--violet);
-    color: #fff;
-}
-
-.rating-btn:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
+.rating-btn__key {
+    min-width: 18px;
+    padding: 1px 5px;
 }
 
 .rating-label {
     font-family: var(--font-body);
+    font-size: 15px;
     font-weight: 600;
 }
 
 .rating-interval {
     font-family: var(--font-mono);
     font-size: 11px;
-    opacity: 0.8;
+    color: var(--mist);
 }
 
-.rating-btn:hover .rating-interval {
-    opacity: 1;
+.rating-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
 }
+
+/* Accent identity per rating — tinted border + label, tinted fill on hover */
+.rating-btn[data-rating='again'] { border-color: var(--rose-border); color: var(--rose); }
+.rating-btn[data-rating='hard']  { border-color: color-mix(in srgb, var(--amber) 40%, transparent); color: var(--amber); }
+.rating-btn[data-rating='good']  { border-color: var(--teal-border); color: var(--teal); }
+.rating-btn[data-rating='easy']  { border-color: color-mix(in srgb, var(--violet) 40%, transparent); color: var(--violet); }
+
+.rating-btn[data-rating='again']:not(:disabled):hover { background: var(--rose-soft); }
+.rating-btn[data-rating='hard']:not(:disabled):hover  { background: var(--amber-soft); }
+.rating-btn[data-rating='good']:not(:disabled):hover  { background: var(--teal-soft); }
+.rating-btn[data-rating='easy']:not(:disabled):hover  { background: var(--violet-soft); }
+
+.rating-btn[data-rating='again'] .rating-btn__key { color: var(--rose); }
+.rating-btn[data-rating='hard'] .rating-btn__key  { color: var(--amber); }
+.rating-btn[data-rating='good'] .rating-btn__key  { color: var(--teal); }
+.rating-btn[data-rating='easy'] .rating-btn__key  { color: var(--violet); }

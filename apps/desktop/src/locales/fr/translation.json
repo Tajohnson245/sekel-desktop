@@ -20,7 +20,8 @@
         "expand": "Développer",
         "collapse": "Réduire",
         "remove": "Supprimer",
-        "loading_app": "Chargement de SEKEL..."
+        "loading_app": "Chargement de SEKEL...",
+        "search": "Search"
     },
     "nav": {
         "dashboard": "Tableau de bord",
@@ -31,7 +32,9 @@
         "new_deck": "Nouveau Paquet",
         "image_occlusion": "Cartes Visuelles",
         "statistics": "Statistiques",
-        "plan": "Plan"
+        "plan": "Plan",
+        "collapse_sidebar": "Collapse sidebar",
+        "open_sidebar": "Open sidebar"
     },
     "dashboard": {
         "welcome": "Bon retour, {{name}} !",
@@ -97,7 +100,20 @@
         "mode_flashcard": "Cartes mémoire",
         "delete": "Supprimer",
         "loading": "Chargement des paquets...",
-        "error": "Erreur lors du chargement des paquets"
+        "error": "Erreur lors du chargement des paquets",
+        "summary": "{{decks}} decks · {{cards}} cards · {{due}} due today",
+        "browse": "Browse",
+        "col_deck": "Deck",
+        "col_new": "New",
+        "col_learning": "Learning",
+        "col_due": "Due",
+        "col_retention": "Retention",
+        "col_yield": "Yield mix",
+        "col_last": "Last studied",
+        "footer_status": "{{due}} due across {{decks}} decks · est. {{min}} min at current pace",
+        "select_deck": "Select deck",
+        "import_success": "Import complete",
+        "col_classified": "Classified"
     },
     "study": {
         "session_complete": "Session Terminée !",
@@ -172,7 +188,30 @@
             "final_sprint": "Sprint final",
             "next_shift": "Prochain changement dans ~{{days}} jours",
             "max_urgency": "Urgence maximale"
-        }
+        },
+        "review_session_of": "Review session · {{current}} of {{total}} due",
+        "fsrs_optimal": "FSRS · optimal",
+        "high_yield": "HIGH YIELD",
+        "blueprint": "Blueprint",
+        "hint_reveal": "Press",
+        "hint_reveal_tail": "to reveal answer",
+        "footer": {
+            "reviewed": "reviewed",
+            "again": "again",
+            "avg_time": "avg",
+            "retention": "retention"
+        },
+        "sc_reveal": "reveal",
+        "sc_rate": "rate",
+        "sc_undo": "undo",
+        "sc_exit": "exit",
+        "undo_unavailable": "Can't undo — the list changed",
+        "undo_done": "Undid last rating",
+        "edit_soon": "In-session card editing is coming soon",
+        "exit_title": "Exit session?",
+        "exit_body": "Your progress is kept.",
+        "keep_studying": "Keep studying",
+        "exit": "Exit"
     },
     "auth": {
         "login": "Connexion",
@@ -294,13 +333,19 @@
         "help_and_tour": "Aide et visite",
         "replay_tour": "Rejouer la visite de l'application",
         "replay_tour_desc": "Reparcourez les diapos de bienvenue et la visite des fonctionnalités.",
-        "replay_tour_btn": "Rejouer la visite"
+        "replay_tour_btn": "Rejouer la visite",
+        "signed_in_as": "Signed in as",
+        "up_to_date": "up to date",
+        "minimal_study_view": "Minimal study view",
+        "minimal_study_view_desc": "Hide the session stats, shortcut hints, and the timer/status chips during study for a distraction-free view."
     },
     "verification": {
         "complete": "Vérification Complète",
         "all_translated": "Tous les composants ont été traduits."
     },
     "ai": {
+        "regenerate_with_ai": "Régénérer avec l'IA",
+        "regenerate_success": "Carte régénérée — vérifiez et enregistrez",
         "title": "Assistant d'Étude IA",
         "subtitle": "Téléchargez des documents (PDF, DOCX, PPTX, Images) ou des vidéos YouTube pour générer un plan d'étude et des cartes mémoire.",
         "upload_header": "Télécharger des Documents",
@@ -417,7 +462,9 @@
         "delete_confirm_message": "Cette action est irréversible. La carte sera définitivement supprimée de votre paquet.",
         "edit_card": "Modifier la carte",
         "delete_card": "Supprimer la carte",
-        "image_badge": "Image"
+        "image_badge": "Image",
+        "search_placeholder": "Search cards in this deck",
+        "no_matches": "No cards match your search"
     },
     "drafts": {
         "title": "Brouillons",
@@ -541,6 +588,7 @@
         "fill_from_cloze": "Remplir depuis le texte à trous"
     },
     "errors": {
+        "regenerate_card": "Échec de la régénération de la carte",
         "invalid_youtube_url": "Veuillez entrer une URL YouTube valide",
         "upload_image": "Échec du téléchargement de l'image",
         "upload_image_retry": "Échec du téléchargement de l'image. Veuillez réessayer.",
@@ -563,7 +611,8 @@
         "youtube_rate_limited": "Limite de requêtes atteinte, réessayez plus tard",
         "youtube_transcript_not_available": "Transcription non disponible",
         "youtube_language_not_available": "Langue non disponible",
-        "youtube_network_error": "Erreur réseau"
+        "youtube_network_error": "Erreur réseau",
+        "generic": "Something went wrong"
     },
     "stats": {
         "title": "Statistiques",
@@ -830,5 +879,14 @@
                 "body": "Mot de passe, import/export de données, retours et bouton Rejouer la visite vivent ici."
             }
         }
+    },
+    "tier": {
+        "upgrade": "Upgrade",
+        "dedicated_caption": "AI features + cloud backup active",
+        "free_caption": "Local FSRS + .apkg import"
+    },
+    "plan": {
+        "rebalance_accepted": "Plan updated",
+        "timeline_extended": "Timeline extended"
     }
 }

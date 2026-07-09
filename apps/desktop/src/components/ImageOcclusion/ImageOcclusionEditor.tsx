@@ -583,7 +583,7 @@ export default function ImageOcclusionEditor() {
                                                 ...(polygonPreviewPoint ? [polygonPreviewPoint] : []),
                                             ].map(p => `${p.x},${p.y}`).join(' ')}
                                             fill="none"
-                                            stroke="var(--primary)"
+                                            stroke="var(--violet)"
                                             strokeWidth="0.5"
                                             strokeDasharray="2 1"
                                         />
@@ -593,8 +593,8 @@ export default function ImageOcclusionEditor() {
                                                 cx={p.x}
                                                 cy={p.y}
                                                 r="1"
-                                                fill={i === 0 ? '#22c55e' : 'var(--primary)'}
-                                                stroke="white"
+                                                fill={i === 0 ? 'var(--teal)' : 'var(--violet)'}
+                                                stroke="var(--paper)"
                                                 strokeWidth="0.3"
                                             />
                                         ))}

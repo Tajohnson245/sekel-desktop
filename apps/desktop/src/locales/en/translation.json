@@ -20,7 +20,8 @@
         "user": "User",
         "expand": "Expand",
         "collapse": "Collapse",
-        "loading_app": "Loading SEKEL..."
+        "loading_app": "Loading SEKEL...",
+        "search": "Search"
     },
     "nav": {
         "dashboard": "Dashboard",
@@ -31,7 +32,9 @@
         "new_deck": "New Deck",
         "image_occlusion": "Visual Cards",
         "statistics": "Statistics",
-        "plan": "Plan"
+        "plan": "Plan",
+        "collapse_sidebar": "Collapse sidebar",
+        "open_sidebar": "Open sidebar"
     },
     "plan": {
         "title": "Study Plans",
@@ -131,7 +134,9 @@
         "scope_n_decks": "{{n}} deck(s)",
         "scope_no_decks_warning": "Select at least one deck to generate a plan.",
         "scope_deleted_deck": "Deleted deck",
-        "degraded_banner": "{{count}} deck(s) in this plan's scope have been deleted. The plan may serve fewer cards than originally projected."
+        "degraded_banner": "{{count}} deck(s) in this plan's scope have been deleted. The plan may serve fewer cards than originally projected.",
+        "rebalance_accepted": "Plan updated",
+        "timeline_extended": "Timeline extended"
     },
     "dashboard": {
         "welcome": "Welcome back, {{name}}!",
@@ -206,7 +211,20 @@
         "mode_flashcard": "Flashcards",
         "delete": "Delete",
         "loading": "Loading decks...",
-        "error": "Error loading decks"
+        "error": "Error loading decks",
+        "summary": "{{decks}} decks · {{cards}} cards · {{due}} due today",
+        "browse": "Browse",
+        "col_deck": "Deck",
+        "col_new": "New",
+        "col_learning": "Learning",
+        "col_due": "Due",
+        "col_retention": "Retention",
+        "col_yield": "Yield mix",
+        "col_last": "Last studied",
+        "footer_status": "{{due}} due across {{decks}} decks · est. {{min}} min at current pace",
+        "select_deck": "Select deck",
+        "import_success": "Import complete",
+        "col_classified": "Classified"
     },
     "study": {
         "session_complete": "Session Complete!",
@@ -283,7 +301,30 @@
             "final_sprint": "Final Sprint",
             "next_shift": "Next shift in ~{{days}} days",
             "max_urgency": "Max urgency"
-        }
+        },
+        "review_session_of": "Review session · {{current}} of {{total}} due",
+        "fsrs_optimal": "FSRS · optimal",
+        "high_yield": "HIGH YIELD",
+        "blueprint": "Blueprint",
+        "hint_reveal": "Press",
+        "hint_reveal_tail": "to reveal answer",
+        "footer": {
+            "reviewed": "reviewed",
+            "again": "again",
+            "avg_time": "avg",
+            "retention": "retention"
+        },
+        "sc_reveal": "reveal",
+        "sc_rate": "rate",
+        "sc_undo": "undo",
+        "sc_exit": "exit",
+        "undo_unavailable": "Can't undo — the list changed",
+        "undo_done": "Undid last rating",
+        "edit_soon": "In-session card editing is coming soon",
+        "exit_title": "Exit session?",
+        "exit_body": "Your progress is kept.",
+        "keep_studying": "Keep studying",
+        "exit": "Exit"
     },
     "auth": {
         "login": "Login",
@@ -421,13 +462,19 @@
         "help_and_tour": "Help & tour",
         "replay_tour": "Replay app tour",
         "replay_tour_desc": "Walk through the welcome slides and feature tour again.",
-        "replay_tour_btn": "Replay tour"
+        "replay_tour_btn": "Replay tour",
+        "signed_in_as": "Signed in as",
+        "up_to_date": "up to date",
+        "minimal_study_view": "Minimal study view",
+        "minimal_study_view_desc": "Hide the session stats, shortcut hints, and the timer/status chips during study for a distraction-free view."
     },
     "verification": {
         "complete": "Verification Complete",
         "all_translated": "All components have been translated."
     },
     "ai": {
+        "regenerate_with_ai": "Regenerate with AI",
+        "regenerate_success": "Card regenerated — review and save",
         "title": "AI Study Assistant",
         "subtitle": "Upload documents (PDF, DOCX, PPTX, XLSX, CSV, TXT, MD) or YouTube videos to generate a study plan and flashcards.",
         "upload_header": "Upload Documents",
@@ -574,7 +621,9 @@
         "delete_warn_classifications": "Exam yield classifications and scores",
         "edit_card": "Edit card",
         "delete_card": "Delete card",
-        "image_badge": "Image"
+        "image_badge": "Image",
+        "search_placeholder": "Search cards in this deck",
+        "no_matches": "No cards match your search"
     },
     "drafts": {
         "title": "Drafts",
@@ -671,6 +720,7 @@
         "fill_from_cloze": "Fill from cloze"
     },
     "errors": {
+        "regenerate_card": "Failed to regenerate card",
         "invalid_youtube_url": "Please enter a valid YouTube URL",
         "youtube_invalid_url": "Invalid YouTube URL. Please check the link and try again.",
         "youtube_invalid_domain": "Only youtube.com and youtu.be links are supported.",
@@ -693,7 +743,8 @@
         "delete_cards": "Failed to delete cards",
         "session_create": "Failed to create study session",
         "save_fsrs": "Failed to save FSRS settings",
-        "login_required": "Please log in to view profile."
+        "login_required": "Please log in to view profile.",
+        "generic": "Something went wrong"
     },
     "feedback": {
         "title": "Feedback",
@@ -1001,5 +1052,10 @@
                 "body": "Password, data import/export, feedback, and the Replay tour button live here."
             }
         }
+    },
+    "tier": {
+        "upgrade": "Upgrade",
+        "dedicated_caption": "AI features + cloud backup active",
+        "free_caption": "Local FSRS + .apkg import"
     }
 }

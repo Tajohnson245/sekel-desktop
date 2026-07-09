@@ -7,17 +7,16 @@
 
 .today-summary {
   background-color: var(--ink-soft);
-  border:           1px solid var(--ink-muted);
-  border-radius:    var(--r-md);
+  border: 1px solid var(--stroke);
+  border-radius: var(--r-panel);
   padding:          var(--space-xl);
-  box-shadow:       var(--shadow-sm);
 }
 
 .today-summary h4 {
-  font-family: var(--font-body);
-  font-size:   16px;
-  font-weight: 600;
-  color:       var(--fog);
+  font-family: var(--font-display);
+  font-size:   17px;
+  font-weight: 700;
+  color:       var(--paper);
   margin:      0 0 var(--space-lg) 0;
 }
 

@@ -10,6 +10,7 @@ import {
     rebalancePlan,
     setPlanOverride,
     clearPlanOverride,
+    updatePlanRate,
     getDeckUnseenCounts,
     getPlanProgress,
     type PlanResult,
@@ -265,6 +266,24 @@ export function useClearPlanOverride() {
             // Override cleared in the DB; re-read the active plan so the derived cap
             // returns to the committed rate, and refetch decks for the study queue.
             qc.invalidateQueries({ queryKey: ['plan', 'active', userId ?? ''] });
+            qc.invalidateQueries({ queryKey: ['decks'] });
+        },
+    });
+}
+
+// ── Commit a rebalanced rate (rebalance "Got it" / accept) ────────────────────
+
+export function useUpdatePlanRate() {
+    const userId = useAuthStore(s => s.user?.id);
+    const qc     = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ examKey, newRate }: { examKey: string; newRate: number }) =>
+            updatePlanRate(userId!, examKey, newRate),
+        onSuccess: () => {
+            // Re-read active plan (derived cap), re-run rebalance detection (now
+            // committed == recommended → no delta), and refresh the study queue.
+            qc.invalidateQueries({ queryKey: ['plan'] });
             qc.invalidateQueries({ queryKey: ['decks'] });
         },
     });

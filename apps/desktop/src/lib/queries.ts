@@ -124,3 +124,4 @@ export const reactivatePlan    = (userId: string, planId: string) => planApi().r
 export const rebalancePlan     = (userId: string, examKey: string) => planApi().rebalance(userId, examKey);
 export const setPlanOverride   = (userId: string, newPerDayOverride: number) => planApi().setOverride(userId, newPerDayOverride);
 export const clearPlanOverride = (userId: string) => planApi().clearOverride(userId);
+export const updatePlanRate    = (userId: string, examKey: string, newRate: number) => planApi().updateRate(userId, examKey, newRate);

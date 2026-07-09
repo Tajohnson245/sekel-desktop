@@ -5,7 +5,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
+    z-index: 1200;
+    padding: var(--space-xl);
+    box-sizing: border-box;
     backdrop-filter: blur(2px);
 }
 
@@ -16,6 +18,9 @@
     padding: 1.5rem;
     width: 100%;
     max-width: 420px;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -37,7 +42,7 @@
     background: none;
     border: none;
     cursor: pointer;
-    color: var(--text-muted, #8892a4);
+    color: var(--text-muted, var(--mist));
     padding: 0.15rem;
     display: flex;
     align-items: center;
@@ -46,32 +51,32 @@
 }
 
 .session-briefing__close:hover {
-    color: var(--text, #e2e8f0);
+    color: var(--text, var(--paper));
 }
 
 .session-briefing__body {
     font-size: 0.875rem;
-    color: var(--text, #e2e8f0);
+    color: var(--text, var(--paper));
     margin: 0;
     line-height: 1.5;
 }
 
 .session-briefing__shift {
     font-size: 0.8rem;
-    color: var(--text-muted, #8892a4);
+    color: var(--text-muted, var(--mist));
     margin: 0;
 }
 
 .session-briefing__deck-info {
     font-size: 0.875rem;
-    color: var(--text-muted, #8892a4);
+    color: var(--text-muted, var(--mist));
     background: var(--secondary, var(--ink-muted));
     border-radius: var(--r-sm);
     padding: 0.65rem 0.875rem;
 }
 
 .session-briefing__deck-info strong {
-    color: var(--text, #e2e8f0);
+    color: var(--text, var(--paper));
 }
 
 .session-briefing__dismiss-label {
@@ -79,7 +84,7 @@
     align-items: center;
     gap: 0.5rem;
     font-size: 0.8rem;
-    color: var(--text-muted, #8892a4);
+    color: var(--text-muted, var(--mist));
     cursor: pointer;
     user-select: none;
 }
@@ -99,7 +104,7 @@
     background: none;
     border: 1px solid var(--border, var(--ink-muted));
     border-radius: var(--r-sm);
-    color: var(--text-muted, #8892a4);
+    color: var(--text-muted, var(--mist));
     padding: 0.5rem 1rem;
     font-size: 0.875rem;
     cursor: pointer;
@@ -107,14 +112,14 @@
 }
 
 .session-briefing__cancel:hover {
-    border-color: var(--text-muted, #8892a4);
+    border-color: var(--text-muted, var(--mist));
 }
 
 .session-briefing__begin {
     background: var(--primary, var(--teal));
     border: none;
     border-radius: var(--r-sm);
-    color: #0a0e1a;
+    color: var(--ink);
     font-weight: 700;
     padding: 0.5rem 1.25rem;
     font-size: 0.875rem;

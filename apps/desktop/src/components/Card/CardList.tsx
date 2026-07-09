@@ -24,6 +24,15 @@ export default function CardList({ deckId, onAddCard, onGenerateAI, onEdit }: Ca
     const { data: cards = [], isLoading, error } = useCardsByDeck(deckId);
     const deleteNote = useDeleteNote();
     const [pendingDeleteNoteId, setPendingDeleteNoteId] = useState<string | null>(null);
+    const [query, setQuery] = useState('');
+
+    // Search across the note's field values (question, answer, extras).
+    const stripHtml = (s: string) => s.replace(/<[^>]*>/g, ' ');
+    const visible: CardWithNote[] = query.trim()
+        ? cards.filter((c) =>
+              stripHtml(Object.values(c.note.fields).join(' ')).toLowerCase().includes(query.trim().toLowerCase()),
+          )
+        : cards;
 
     const handleDeleteConfirm = async () => {
         if (!pendingDeleteNoteId) return;
@@ -110,8 +119,27 @@ export default function CardList({ deckId, onAddCard, onGenerateAI, onEdit }: Ca
                     </div>
                 </div>
             ) : (
+                <>
+                    <div className="card-search-bar">
+                        <div className="search-field">
+                            <span className="search-icon" aria-hidden="true">⌕</span>
+                            <input
+                                value={query}
+                                onChange={(e) => setQuery(e.target.value)}
+                                placeholder={t('card.search_placeholder', { defaultValue: 'Search cards in this deck' })}
+                                aria-label={t('card.search_placeholder', { defaultValue: 'Search cards in this deck' })}
+                                data-testid="card-search"
+                            />
+                        </div>
+                        <span className="card-search-count">{visible.length} / {cards.length}</span>
+                    </div>
+                    {visible.length === 0 ? (
+                        <div className="empty-v2">
+                            <p className="empty-v2__line">{t('card.no_matches', { defaultValue: 'No cards match your search' })}</p>
+                        </div>
+                    ) : (
                 <div className="cards-grid" data-testid="cards-grid">
-                    {cards.map((card: CardWithNote) => {
+                    {visible.map((card: CardWithNote) => {
                         const isOcclusion = !!card.note.fields.Image && !!(card.note.fields.Rectangles || card.note.fields.Shapes);
                         const isAnki = card.note.note_type.anki_id !== null;
                         const template = card.note.note_type.card_templates[card.template_index];
@@ -183,6 +211,8 @@ export default function CardList({ deckId, onAddCard, onGenerateAI, onEdit }: Ca
                         );
                     })}
                 </div>
+                    )}
+                </>
             )}
         </div>
     );

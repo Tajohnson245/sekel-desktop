@@ -350,36 +350,36 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
                                     <h4>{t('ai.processed', { label: itemsLabel })} ({completedCount}/{files.length})</h4>
                                     <div className="files-grid" style={{ marginTop: '1.5rem' }}>
                                         {files.map((f, idx) => (
-                                            <div key={f.id} className={`file-status-item ${f.status}`} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px', background: 'var(--bg)', borderRadius: '8px', marginBottom: '8px', border: '1px solid var(--border-color, #eee)' }}>
+                                            <div key={f.id} className={`file-status-item ${f.status}`} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px', background: 'var(--bg)', borderRadius: '8px', marginBottom: '8px', border: '1px solid var(--border-color, var(--stroke))' }}>
                                                 {f.type === 'youtube' && f.thumbnail ? (
                                                     <div style={{ width: '60px', height: '45px', borderRadius: '4px', overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
                                                         <img src={f.thumbnail} alt="Video thumbnail" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                                         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.3)' }}>
-                                                            <YouTubeIcon size={16} color="white" />
+                                                            <YouTubeIcon size={16} color="var(--paper)" />
                                                         </div>
                                                     </div>
                                                 ) : (
                                                     f.type === 'youtube' ? <div style={{ padding: '8px' }}><YouTubeIcon size={24} color="#FF0000" /></div>
-                                                        : <div style={{ padding: '8px' }}><FileText size={24} color="#555" /></div>
+                                                        : <div style={{ padding: '8px' }}><FileText size={24} color="var(--slate)" /></div>
                                                 )}
 
                                                 <div className="file-info" style={{ flex: 1, overflow: 'hidden' }}>
                                                     <span className="file-name" style={{ display: 'block', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', fontWeight: 500 }}>{f.name}</span>
-                                                    {f.status === 'error' && <span className="error-text" style={{ color: 'red', fontSize: '12px' }}>{f.error}</span>}
-                                                    {f.status === 'parsing' && <span className="status-text" style={{ fontSize: '12px', color: '#666' }}>{t('ai.processing')}</span>}
+                                                    {f.status === 'error' && <span className="error-text" style={{ color: 'var(--rose)', fontSize: '12px' }}>{f.error}</span>}
+                                                    {f.status === 'parsing' && <span className="status-text" style={{ fontSize: '12px', color: 'var(--mist)' }}>{t('ai.processing')}</span>}
                                                 </div>
 
                                                 <div className="file-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                                     {f.status === 'parsing' && <Loader className="animate-spin" size={20} />}
-                                                    {f.status === 'success' && <CheckCircle size={20} color="green" />}
-                                                    {f.status === 'error' && <AlertCircle size={20} color="red" />}
+                                                    {f.status === 'success' && <CheckCircle size={20} color="var(--teal)" />}
+                                                    {f.status === 'error' && <AlertCircle size={20} color="var(--rose)" />}
                                                     <button
                                                         onClick={() => handleRemoveFile(idx)}
                                                         className="btn-icon"
                                                         style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '4px', opacity: 0.7 }}
                                                         title={t('modals.remove_tooltip')}
                                                     >
-                                                        <Trash2 size={18} color="#888" />
+                                                        <Trash2 size={18} color="var(--slate)" />
                                                     </button>
                                                 </div>
                                             </div>

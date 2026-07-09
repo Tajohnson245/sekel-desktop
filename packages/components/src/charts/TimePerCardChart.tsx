@@ -29,11 +29,12 @@ export interface TimeStats {
     slowestCards: SlowestCard[];
 }
 
+// §11 rating semantics: Again = ROSE, Hard = AMBER, Good = TEAL, Easy = VIOLET
 const RATING_COLORS: Record<string, string> = {
-    again: 'var(--danger, #ef4444)',
-    hard: 'var(--warning, #f59e0b)',
-    good: 'var(--success, #22c55e)',
-    easy: 'var(--primary, #3b82f6)',
+    again: 'var(--rose)',
+    hard: 'var(--amber)',
+    good: 'var(--teal)',
+    easy: 'var(--violet)',
 };
 
 interface TimePerCardChartProps {
@@ -69,18 +70,18 @@ export function TimePerCardChart({ timeStats }: TimePerCardChartProps) {
 
             <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 50, bottom: 30 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--stroke)" horizontal={false} />
                     <XAxis
                         type="number"
                         domain={xDomain}
-                        stroke="var(--muted)"
+                        stroke="var(--slate)"
                         tick={{ fontSize: 13 }}
                         label={{ value: t('study.analytics.seconds_abbrev'), position: 'insideBottom', offset: -5 }}
                     />
                     <YAxis
                         dataKey="label"
                         type="category"
-                        stroke="var(--muted)"
+                        stroke="var(--slate)"
                         tick={{ fontSize: 13, dx: -12 }}
                         tickMargin={12}
                         width={75}
@@ -94,11 +95,13 @@ export function TimePerCardChart({ timeStats }: TimePerCardChartProps) {
                                 t(`study.rating.${p.rating}`),
                             ];
                         }}
-                        contentStyle={{ backgroundColor: 'var(--bg)', border: '1px solid var(--border)' }}
+                        contentStyle={{ backgroundColor: 'var(--panel-2)', border: '1px solid var(--stroke)', boxShadow: 'var(--shadow-md)' }}
+                        labelStyle={{ color: 'var(--mist)' }}
+                        itemStyle={{ color: 'var(--paper)' }}
                     />
                     <Bar dataKey="seconds" radius={[0, 4, 4, 0]}>
                         {chartData.map((entry, index) => (
-                            <Cell key={index} fill={RATING_COLORS[entry.rating] ?? 'var(--muted)'} />
+                            <Cell key={index} fill={RATING_COLORS[entry.rating] ?? 'var(--slate)'} />
                         ))}
                     </Bar>
                 </BarChart>
