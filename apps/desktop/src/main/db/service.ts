@@ -778,13 +778,19 @@ export function fetchDueCardsFocusedCrossDeck(
     return interleaveCrossDeckCards(pooled);
 }
 
-export function fetchAllCardsForStudy(deckId: string, limit = 50): CardWithNote[] {
-    const rows = getDb().prepare(`
+export function fetchAllCardsForStudy(deckId: string, limit?: number): CardWithNote[] {
+    // "Review All" (mode=all) passes no limit → study every card in the deck, in
+    // least-recently-reviewed-first order. A caller may still cap the sample by
+    // passing an explicit limit.
+    const stmt = getDb().prepare(`
         ${CARD_WITH_NOTE_SQL}
         WHERE n.deck_id = ?
         ORDER BY c.last_review ASC NULLS FIRST
-        LIMIT ?
-    `).all(deckId, limit) as CardWithNoteRow[];
+        ${typeof limit === 'number' ? 'LIMIT ?' : ''}
+    `);
+    const rows = (typeof limit === 'number'
+        ? stmt.all(deckId, limit)
+        : stmt.all(deckId)) as CardWithNoteRow[];
     return rows.map(buildCardWithNote);
 }
 
@@ -1735,12 +1741,6 @@ export interface IntelligenceSummary {
     systemBreakdown: SystemAccuracyRow[];
     prioritizedCardCount: number;
     deprioritizedCardCount: number;
-    /**
-     * Due cards across ALL decks belonging to a weak system — what a cross-deck
-     * focused session (SEKEL-137) actually serves. prioritizedCardCount, by
-     * contrast, is scoped to the single suggested deck.
-     */
-    focusedDueCountAllDecks: number;
     totalDueCount: number;
     suggestedDeckId: string | null;
     hasClassifications: boolean;
@@ -1783,7 +1783,6 @@ export function getIntelligenceSummary(userId: string): IntelligenceSummary {
             daysUntilExam: null, examLabel: null, examKey: null,
             weakestSystem: null, systemBreakdown: [],
             prioritizedCardCount: 0, deprioritizedCardCount: 0,
-            focusedDueCountAllDecks: 0,
             totalDueCount: 0, suggestedDeckId: null, hasClassifications: false,
         };
     }
@@ -1949,27 +1948,6 @@ export function getIntelligenceSummary(userId: string): IntelligenceSummary {
     }
     const deprioritizedCardCount = Math.max(0, totalDueCount - prioritizedCardCount);
 
-    // ── Cross-deck focused count: due weak-system cards across every deck ──
-    // What a cross-deck focused session serves, vs the single-deck prioritized count.
-    let focusedDueCountAllDecks = 0;
-    if (weakSystemKeysArray.length > 0) {
-        const placeholders = weakSystemKeysArray.map(() => '?').join(', ');
-        const row = db.prepare(`
-            SELECT COUNT(DISTINCT c.id) AS cnt
-            FROM cards c
-            JOIN notes n ON c.note_id = n.id
-            JOIN decks d ON n.deck_id = d.id
-            JOIN card_classifications cc ON cc.card_id = c.id AND cc.exam_id = ?
-            JOIN blueprint_systems bs ON bs.id = cc.system_id AND bs.system_key IN (${placeholders})
-            WHERE d.user_id = ?
-              AND (
-                  c.state IN ('new', 'learning', 'relearning')
-                  OR (c.state = 'review' AND c.due <= ?)
-              )
-        `).get(examRow.exam_id, ...weakSystemKeysArray, userId, now) as { cnt: number };
-        focusedDueCountAllDecks = row.cnt;
-    }
-
     return {
         daysUntilExam,
         examLabel: examRow.exam_label,
@@ -1988,7 +1966,6 @@ export function getIntelligenceSummary(userId: string): IntelligenceSummary {
         systemBreakdown,
         prioritizedCardCount,
         deprioritizedCardCount,
-        focusedDueCountAllDecks,
         totalDueCount,
         suggestedDeckId,
         hasClassifications,

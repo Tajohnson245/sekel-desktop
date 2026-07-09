@@ -221,8 +221,6 @@ export interface IntelligenceSummary {
     systemBreakdown: SystemAccuracyRow[];
     prioritizedCardCount: number;
     deprioritizedCardCount: number;
-    /** Due weak-system cards across ALL decks — what a cross-deck focused session serves. */
-    focusedDueCountAllDecks: number;
     totalDueCount: number;
     suggestedDeckId: string | null;
     hasClassifications: boolean;

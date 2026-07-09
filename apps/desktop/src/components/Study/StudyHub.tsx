@@ -6,7 +6,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useSekelIntelligence } from '../../hooks/useSekelIntelligence';
 import { useExamProfile } from '../../hooks/useExamProfile';
 import { useActivePlan } from '../../hooks/usePlan';
-import { useDecks } from '../../hooks/useDecks';
+import { useDecks, useDueCardsFocusedCrossDeck } from '../../hooks/useDecks';
 import { useDeckDueCounts } from '../../hooks/useDeckDueCounts';
 import { useAppNavigation } from '../../hooks/useAppNavigation';
 import type { Deck } from '../../lib/types';
@@ -88,8 +88,13 @@ export default function StudyHub() {
             return scoreB - scoreA;
         });
     const weakSystemKeys = weakSystems.map((s) => s.systemKey);
-    const focusedCount = intelligence?.focusedDueCountAllDecks ?? 0;
     const focusedAvailable = hasClassifications && weakSystemKeys.length > 0;
+
+    // Count the ACTUAL focused queue — scope- and daily-limit-aware — using the same
+    // query the session runs, so the badge equals exactly what Begin serves.
+    const focusedQuery = useDueCardsFocusedCrossDeck(scopeDeckIds, weakSystemKeys, examKey, focusedAvailable);
+    const focusedLoading = focusedAvailable && focusedQuery.isLoading;
+    const focusedCount = focusedQuery.data?.length ?? 0;
 
     const daysUntilExam = intelligence?.daysUntilExam ?? null;
     const examLabel = intelligence?.examLabel ?? null;
@@ -223,10 +228,10 @@ export default function StudyHub() {
                             <button
                                 className="study-hub__begin study-hub__begin--teal"
                                 onClick={beginFocused}
-                                disabled={focusedCount === 0}
+                                disabled={focusedLoading || focusedCount === 0}
                                 data-testid="begin-focused"
                             >
-                                {t('studyHub.begin_focused', { defaultValue: 'Begin Focused ({{count}}) →', count: focusedCount })}
+                                {t('studyHub.begin_focused', { defaultValue: 'Begin Focused ({{count}}) →', count: focusedLoading ? '…' : focusedCount })}
                             </button>
                         </>
                     ) : (
