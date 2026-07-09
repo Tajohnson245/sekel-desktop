@@ -11,6 +11,7 @@ import { isExamDateSet } from '../../lib/queries';
 import type { YieldScoreRow } from '../../lib/queries';
 import { useProfileStore } from '../../stores/profileStore';
 import { useAuthStore } from '../../stores/authStore';
+import { useUiPrefsStore } from '../../stores/uiPrefsStore';
 import { useAppNavigation } from '../../hooks/useAppNavigation';
 import CardViewer from '../Card/CardViewer';
 import RatingButtons from './RatingButtons';
@@ -62,6 +63,7 @@ export default function StudySession() {
     const insertReview = useInsertReview();
     const { t } = useTranslation();
     const { showToast } = useToast();
+    const minimalStudyView = useUiPrefsStore((s) => s.minimalStudyView);
 
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isRevealed, setIsRevealed] = useState(false);
@@ -417,17 +419,19 @@ export default function StudySession() {
                         })}
                     </span>
                 </div>
-                <div className="study-topbar__right">
-                    <StudyTimer elapsedSeconds={elapsedSeconds} maxSeconds={maxSeconds} visible={showTimer} />
-                    {fsrsEnabled && (
-                        <span className="chip chip-neutral">{t('study.fsrs_optimal', { defaultValue: 'FSRS · optimal' })}</span>
-                    )}
-                    {focusMode === 'intelligence' && (
-                        <span className="chip chip-teal" title={t('study.focus_mode_no_limits_tooltip')}>
-                            {t('study.focus_mode_chip')}
-                        </span>
-                    )}
-                </div>
+                {!minimalStudyView && (
+                    <div className="study-topbar__right">
+                        <StudyTimer elapsedSeconds={elapsedSeconds} maxSeconds={maxSeconds} visible={showTimer} />
+                        {fsrsEnabled && (
+                            <span className="chip chip-neutral">{t('study.fsrs_optimal', { defaultValue: 'FSRS · optimal' })}</span>
+                        )}
+                        {focusMode === 'intelligence' && (
+                            <span className="chip chip-teal" title={t('study.focus_mode_no_limits_tooltip')}>
+                                {t('study.focus_mode_chip')}
+                            </span>
+                        )}
+                    </div>
+                )}
             </div>
             <div className="study-progress"><span style={{ width: `${progressPct}%` }} /></div>
 
@@ -493,21 +497,23 @@ export default function StudySession() {
                 )}
             </div>
 
-            {/* Session footer + shortcut hints */}
-            <div className="study-footer">
-                <div className="study-stats">
-                    <span><em>{reviewedCount}</em> {t('study.footer.reviewed', { defaultValue: 'reviewed' })}</span>
-                    <span><em>{againCount}</em> {t('study.footer.again', { defaultValue: 'again' })}</span>
-                    <span><em>{avgSeconds != null ? `${avgSeconds}s` : '—'}</em> {t('study.footer.avg_time', { defaultValue: 'avg' })}</span>
-                    <span><em>{retention != null ? `${retention}%` : '—'}</em> {t('study.footer.retention', { defaultValue: 'retention' })}</span>
+            {/* Session footer + shortcut hints (hidden in minimal study view) */}
+            {!minimalStudyView && (
+                <div className="study-footer">
+                    <div className="study-stats">
+                        <span><em>{reviewedCount}</em> {t('study.footer.reviewed', { defaultValue: 'reviewed' })}</span>
+                        <span><em>{againCount}</em> {t('study.footer.again', { defaultValue: 'again' })}</span>
+                        <span><em>{avgSeconds != null ? `${avgSeconds}s` : '—'}</em> {t('study.footer.avg_time', { defaultValue: 'avg' })}</span>
+                        <span><em>{retention != null ? `${retention}%` : '—'}</em> {t('study.footer.retention', { defaultValue: 'retention' })}</span>
+                    </div>
+                    <div className="study-shortcuts">
+                        <span><span className="kbd">Space</span> {t('study.sc_reveal', { defaultValue: 'reveal' })}</span>
+                        <span><span className="kbd">1–4</span> {t('study.sc_rate', { defaultValue: 'rate' })}</span>
+                        <span><span className="kbd">U</span> {t('study.sc_undo', { defaultValue: 'undo' })}</span>
+                        <span><span className="kbd">Esc</span> {t('study.sc_exit', { defaultValue: 'exit' })}</span>
+                    </div>
                 </div>
-                <div className="study-shortcuts">
-                    <span><span className="kbd">Space</span> {t('study.sc_reveal', { defaultValue: 'reveal' })}</span>
-                    <span><span className="kbd">1–4</span> {t('study.sc_rate', { defaultValue: 'rate' })}</span>
-                    <span><span className="kbd">U</span> {t('study.sc_undo', { defaultValue: 'undo' })}</span>
-                    <span><span className="kbd">Esc</span> {t('study.sc_exit', { defaultValue: 'exit' })}</span>
-                </div>
-            </div>
+            )}
 
             {showExitConfirm && (
                 <div className="study-exit-confirm" role="dialog" aria-modal="true">

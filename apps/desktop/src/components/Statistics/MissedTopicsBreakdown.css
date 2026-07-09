@@ -36,7 +36,7 @@
 }
 
 .missed-system-row:hover:not(:disabled) {
-    background: var(--surface-2, rgba(255, 255, 255, 0.05));
+    background: var(--panel-2);
 }
 
 .missed-system-row:disabled {
@@ -111,7 +111,7 @@
 }
 
 .missed-topic-item:hover {
-    background: var(--surface-2, rgba(255, 255, 255, 0.03));
+    background: var(--panel-2);
 }
 
 .missed-topic-label {

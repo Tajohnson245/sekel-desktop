@@ -107,6 +107,12 @@
     --radius:       var(--r-sm);
     --radius-lg:    var(--r-row);
     --card-gradient-end: var(--panel);
+    /* Older components reference these — point them at v2 tokens so their
+       stale indigo/blue fallbacks never fire. */
+    --bg-secondary: var(--panel-2);
+    --card-bg:      var(--panel);
+    --primary-bg:   var(--teal-tint);
+    --foreground:   var(--paper);
 }
 
 /* Visual-card-size class overrides — applied to <html> by

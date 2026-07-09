@@ -327,20 +327,24 @@
 }
 
 .analytics-chart {
-    padding: 1.5rem;
-    border-radius: var(--r-md);
-    background: var(--ink-soft);
-    border: 1px solid var(--ink-muted);
+    padding: 20px 22px;
+    border-radius: var(--r-panel);
+    background: var(--panel);
+    border: 1px solid var(--stroke);
 }
 
 .analytics-chart h4 {
     margin: 0 0 0.5rem 0;
-    font-size: 1.125rem;
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--paper);
 }
 
 .analytics-chart .chart-desc {
     margin: 0 0 1.25rem 0;
     font-size: 0.875rem;
+    color: var(--mist);
 }
 
 .analytics-loading {

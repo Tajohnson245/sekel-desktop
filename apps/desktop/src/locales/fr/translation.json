@@ -334,7 +334,9 @@
         "replay_tour_desc": "Reparcourez les diapos de bienvenue et la visite des fonctionnalités.",
         "replay_tour_btn": "Rejouer la visite",
         "signed_in_as": "Signed in as",
-        "up_to_date": "up to date"
+        "up_to_date": "up to date",
+        "minimal_study_view": "Minimal study view",
+        "minimal_study_view_desc": "Hide the session stats, shortcut hints, and the timer/status chips during study for a distraction-free view."
     },
     "verification": {
         "complete": "Vérification Complète",

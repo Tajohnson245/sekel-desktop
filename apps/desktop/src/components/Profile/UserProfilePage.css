@@ -9,11 +9,11 @@
 .profile-header-section {
     display: flex;
     align-items: center;
-    background: var(--bg-card);
-    border-radius: 1rem;
-    padding: 2rem;
-    margin-bottom: 2rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    background: var(--panel);
+    border: 1px solid var(--stroke);
+    border-radius: var(--r-panel);
+    padding: 24px;
+    margin-bottom: 20px;
 }
 
 .profile-avatar-large-wrapper {
@@ -26,7 +26,7 @@
     height: 100px;
     border-radius: 50%;
     background: var(--primary);
-    color: white;
+    color: var(--ink);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -54,7 +54,7 @@
     justify-content: center;
     opacity: 0;
     transition: opacity 0.2s;
-    color: white;
+    color: var(--paper);
 }
 
 .profile-avatar-large:hover .profile-avatar-overlay {
@@ -63,8 +63,10 @@
 
 .profile-header-info h2 {
     margin: 0 0 0.5rem 0;
-    font-size: 1.5rem;
-    font-weight: 600;
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--paper);
 }
 
 .profile-header-role {
@@ -79,27 +81,28 @@
 }
 
 .profile-section {
-    background: var(--bg-card);
-    border-radius: 1rem;
-    padding: 2rem;
-    margin-bottom: 2rem;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    background: var(--panel);
+    border: 1px solid var(--stroke);
+    border-radius: var(--r-panel);
+    padding: 22px 24px;
+    margin-bottom: 20px;
 }
 
 .section-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.5rem;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 1rem;
+    margin-bottom: 1.25rem;
+    border-bottom: 1px solid var(--stroke);
+    padding-bottom: 0.875rem;
 }
 
 .section-header h3 {
     margin: 0;
-    font-size: 1.25rem;
-    color: var(--primary);
-    font-weight: 500;
+    font-family: var(--font-display);
+    font-size: 17px;
+    color: var(--paper);
+    font-weight: 700;
 }
 
 .subsection-header {
@@ -127,7 +130,7 @@
     border: 1px solid var(--border);
     color: var(--text-primary);
     padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
+    border-radius: var(--r-sm);
     cursor: pointer;
     font-size: 0.8rem;
     transition: all 0.2s;
@@ -205,7 +208,7 @@
 .field-input {
     padding: 0.5rem;
     border: 1px solid var(--border);
-    border-radius: 0.5rem;
+    border-radius: var(--r-sm);
     background: var(--bg-input);
     color: var(--text-primary);
     font-size: 1rem;
@@ -238,7 +241,7 @@
 
 .btn-save {
     background: var(--primary);
-    color: white;
+    color: var(--ink);
     border: none;
 }
 
@@ -261,10 +264,10 @@
 
 .btn-danger {
     background: var(--rose);
-    color: white;
+    color: var(--ink);
     border: none;
     padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
+    border-radius: var(--r-sm);
     cursor: pointer;
     font-weight: 500;
     transition: background 0.2s;
@@ -293,7 +296,7 @@
     padding: 0.6rem 1rem;
     background: var(--bg-input);
     border: 1px solid var(--border);
-    border-radius: 0.5rem;
+    border-radius: var(--r-sm);
     color: var(--text-primary);
     font-size: 0.95rem;
     cursor: pointer;
@@ -303,7 +306,7 @@
 .fsrs-dropdown-trigger:hover,
 .fsrs-dropdown-trigger:focus {
     border-color: var(--primary);
-    box-shadow: 0 0 0 2px var(--primary-light, rgba(59, 130, 246, 0.2));
+    box-shadow: 0 0 0 2px var(--primary-light);
     outline: none;
 }
 
@@ -324,7 +327,7 @@
     right: 0;
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 0.75rem;
+    border-radius: var(--r-panel);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
     z-index: 100;
     overflow: hidden;
@@ -351,7 +354,7 @@
 
 .fsrs-select-btn:hover {
     background: var(--primary);
-    color: white;
+    color: var(--ink);
     border-color: var(--primary);
 }
 
@@ -372,7 +375,7 @@
     align-items: center;
     gap: 0.75rem;
     padding: 0.6rem 0.75rem;
-    border-radius: 0.5rem;
+    border-radius: var(--r-sm);
     cursor: pointer;
     transition: background 0.15s;
 }
@@ -407,7 +410,7 @@
 }
 
 .fsrs-deck-badge.on {
-    background: rgba(59, 130, 246, 0.15);
+    background: var(--teal-tint);
     color: var(--primary);
 }
 

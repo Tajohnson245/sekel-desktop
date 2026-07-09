@@ -334,7 +334,9 @@
         "replay_tour_desc": "再次浏览欢迎幻灯片和功能导览。",
         "replay_tour_btn": "重新播放导览",
         "signed_in_as": "Signed in as",
-        "up_to_date": "up to date"
+        "up_to_date": "up to date",
+        "minimal_study_view": "Minimal study view",
+        "minimal_study_view_desc": "Hide the session stats, shortcut hints, and the timer/status chips during study for a distraction-free view."
     },
     "verification": {
         "complete": "验证完成",

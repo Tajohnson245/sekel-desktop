@@ -272,7 +272,7 @@ export function AccountTab() {
                                     padding: '0.6rem 0.8rem',
                                     borderRadius: '8px',
                                     border: `2px solid ${selected ? 'var(--primary)' : 'var(--border)'}`,
-                                    background: selected ? 'var(--primary-bg, rgba(99,102,241,0.1))' : 'var(--card-bg)',
+                                    background: selected ? 'var(--primary-bg)' : 'var(--card-bg)',
                                     color: 'var(--text)',
                                     cursor: exportingDeck ? 'not-allowed' : 'pointer',
                                     fontWeight: selected ? 600 : 400,

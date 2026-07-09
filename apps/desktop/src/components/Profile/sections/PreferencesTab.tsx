@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuthStore } from '../../../stores/authStore';
 import { useProfileStore } from '../../../stores/profileStore';
+import { useUiPrefsStore } from '../../../stores/uiPrefsStore';
 import { useTheme } from '../../ThemeProvider';
 import { Upload, X, Monitor } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -20,6 +21,8 @@ const THEME_OPTIONS: { value: UserProfile['theme_preference']; color: string; }[
 export function PreferencesTab() {
     const { user } = useAuthStore();
     const { profile, upsertProfile } = useProfileStore();
+    const minimalStudyView = useUiPrefsStore((s) => s.minimalStudyView);
+    const setMinimalStudyView = useUiPrefsStore((s) => s.setMinimalStudyView);
     const { setTheme } = useTheme();
     const { t, i18n } = useTranslation();
     const { showToast } = useToast();
@@ -120,6 +123,22 @@ export function PreferencesTab() {
                                 if (user?.id) upsertProfile(user.id, { flip_animation: next });
                             }}
                             disabled={!(profile?.card_style ?? true)}
+                        />
+                    </div>
+                </div>
+
+                {/* Minimal study view — hide the study-session chrome */}
+                <div className="profile-field" style={{ gridColumn: '1 / -1' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div>
+                            <label className="field-label">{t('profile.minimal_study_view', { defaultValue: 'Minimal study view' })}</label>
+                            <p className="text-muted" style={{ fontSize: '0.85rem', margin: '0.2rem 0 0' }}>
+                                {t('profile.minimal_study_view_desc', { defaultValue: 'Hide the session stats, shortcut hints, and the timer/status chips during study for a distraction-free view.' })}
+                            </p>
+                        </div>
+                        <ToggleSwitch
+                            checked={minimalStudyView}
+                            onChange={setMinimalStudyView}
                         />
                     </div>
                 </div>

@@ -11,6 +11,7 @@ import { useTodaySummary, useCardCountsByMaturity } from '../../hooks/useStatist
 import { useDecks, useDeckStats, useDeckClassificationCount } from '../../hooks/useDecks';
 import { useDeckDueCounts } from '../../hooks/useDeckDueCounts';
 import { isExamDateSet } from '../../lib/queries';
+import { getGreeting } from '../../lib/timeOfDay';
 import { useAppNavigation } from '../../hooks/useAppNavigation';
 import type { Deck } from '../../lib/types';
 import type { ReviewDayCount } from '../../lib/queries';
@@ -213,6 +214,7 @@ export default function Dashboard() {
 
     const showReadiness = hasExamDate && !!intelligence?.hasClassifications && readinessSystems.length > 0;
 
+    const greeting = getGreeting();
     const today = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
     const projectedCoverage = activePlanResult
         ? Math.round(activePlanResult.plan.snapshot.projectedCoverage * 100)
@@ -227,12 +229,12 @@ export default function Dashboard() {
                 <div>
                     <h1 className="page-title">Today's Plan</h1>
                     <p className="dash-header__meta">
-                        {today}
-                        {hasActivePlan && <span className="dash-header__rebalanced"> · rebalanced this morning</span>}
+                        {greeting} — {today}
+                        {hasActivePlan && <span className="dash-header__rebalanced"> · rebalanced today</span>}
                     </p>
                 </div>
                 <button className="btn btn-primary dash-generate" onClick={() => navigate('/documents')}>
-                    ✦ Generate Cards with AI
+                    ✦ Generate Cards
                 </button>
             </div>
 
