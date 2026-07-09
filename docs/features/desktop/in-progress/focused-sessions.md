@@ -37,9 +37,9 @@ sessions store a *representative* deck while each review carries its own real `d
 **Service (`main/db/service.ts`).** `fetchDueCardsCrossDeck` / `fetchDueCardsFocusedCrossDeck`
 delegate to the existing per-deck `fetchDueCards`/`fetchDueCardsFocused`, pool, and interleave
 (learning → new → review) — so daily limits stay **per deck** for free. `createStudySession`
-writes a typed session row; `getIntelligenceSummary` gains `focusedDueCountAllDecks` (the
-single-deck `prioritizedCardCount` under-counted the cross-deck CTA). All wired through the five
-IPC layers, with hooks in `useDecks.ts` / `useSessions.ts`.
+writes a typed session row. All wired through the five IPC layers, with hooks in `useDecks.ts` /
+`useSessions.ts`. The hub counts each mode's queue with the **same query the session runs** (via
+`useDueCardsFocusedCrossDeck` / per-deck stats), so the CTA badge equals exactly what Begin serves.
 
 **Player (`components/Study/`).** The old engine was extracted into a shared **`StudyPlayer`**
 driven by a `StudySource` (`studySource.ts`); `StudySession` is now a thin single-deck wrapper
@@ -65,8 +65,6 @@ primary / Create / More sections).
 
 ## Known Limitations / Future Work
 
-- The Focused CTA badge uses `focusedDueCountAllDecks` (all decks); a plan-scoped Focused session
-  serves only plan decks, so the badge can over-count under a plan scope (the session respects scope).
 - Estimated time is a flat `~15s/card` heuristic, not a per-user average.
 - Cross-deck sessions are local-only (SQLite-first study model); no Supabase sync of session metadata.
 - Manual Electron smoke-test (≥2 decks, partially classified, exam profile) still pending.
@@ -83,3 +81,4 @@ primary / Create / More sections).
 | 2026-07-09 | apps/desktop/src/__tests__/db.service.test.ts,apps/desktop/src/components/Dashboard/Dashboard.tsx,apps/desktop/src/components/Dashboard/PreSessionBriefing.tsx,apps/desktop/src/components/Study/StudySession.tsx,apps/desktop/src/hooks/useAppNavigation.ts,apps/desktop/src/hooks/useDecks.ts,apps/desktop/src/hooks/useSessions.ts,apps/desktop/src/index.css |
 | 2026-07-09 | apps/desktop/src/__tests__/db.service.test.ts,apps/desktop/src/components/Dashboard/Dashboard.tsx,apps/desktop/src/components/Dashboard/PreSessionBriefing.tsx,apps/desktop/src/components/Study/StudySession.tsx,apps/desktop/src/hooks/useAppNavigation.ts,apps/desktop/src/hooks/useDecks.ts,apps/desktop/src/hooks/useSessions.ts,apps/desktop/src/index.css |
 | 2026-07-09 | apps/desktop/src/__tests__/db.service.test.ts,apps/desktop/src/components/Dashboard/Dashboard.tsx,apps/desktop/src/components/Dashboard/PreSessionBriefing.tsx,apps/desktop/src/components/Study/CrossDeckStudySession.tsx,apps/desktop/src/components/Study/StudyHub.css,apps/desktop/src/components/Study/StudyHub.tsx,apps/desktop/src/components/Study/StudyPlayer.tsx,apps/desktop/src/components/Study/StudySession.tsx |
+| 2026-07-09 | apps/desktop/src/components/Study/StudyHub.tsx,apps/desktop/src/main/db/service.ts,apps/desktop/src/types/electron.d.ts |
