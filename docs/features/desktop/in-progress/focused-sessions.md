@@ -37,3 +37,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 | Date | Description |
 |------|-------------|
 | 2026-07-09 | Doc created. apps/desktop/src/__tests__/db.service.test.ts,apps/desktop/src/components/Dashboard/Dashboard.tsx,apps/desktop/src/components/Dashboard/PreSessionBriefing.tsx,apps/desktop/src/components/Study/StudySession.tsx,apps/desktop/src/hooks/useAppNavigation.ts,apps/desktop/src/hooks/useDecks.ts,apps/desktop/src/hooks/useSessions.ts,apps/desktop/src/ipc/database.ts |
+| 2026-07-09 | apps/desktop/src/__tests__/db.service.test.ts,apps/desktop/src/components/Dashboard/Dashboard.tsx,apps/desktop/src/components/Dashboard/PreSessionBriefing.tsx,apps/desktop/src/components/Study/StudySession.tsx,apps/desktop/src/hooks/useAppNavigation.ts,apps/desktop/src/hooks/useDecks.ts,apps/desktop/src/hooks/useSessions.ts,apps/desktop/src/index.css |
