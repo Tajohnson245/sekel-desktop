@@ -193,7 +193,7 @@ export default function StudySession() {
 
             // Cheap, fire-and-forget: lets the main process count reviews and
             // fire a cloud snapshot once the 25-review threshold is crossed.
-            window.electronAPI?.cloudBackup?.requestCheck();
+            void window.electronAPI?.cloudBackup?.requestCheck()?.catch(() => { /* best effort */ });
         }
 
         if (isLastCard && sessionId) {

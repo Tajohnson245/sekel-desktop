@@ -86,14 +86,32 @@ export function shouldSnapshot(reason: BackupReason, now: Date): boolean {
  * the counter and fires a snapshot when the 25-review threshold is crossed.
  */
 export function requestBackupCheck(reviewDelta = 1): void {
-    state.addReviews(reviewDelta);
-    void triggerBackupSnapshot('review-threshold');
+    try {
+        state.addReviews(reviewDelta);
+    } catch (err) {
+        log.warn('Failed to record review for backup check', { error: errMsg(err) });
+    }
+    // triggerBackupSnapshot never rejects (see below), but guard anyway so a
+    // fire-and-forget trigger can never become an unhandledRejection — which the
+    // crash reporter would turn into a hard app exit.
+    void triggerBackupSnapshot('review-threshold').catch(() => { /* never */ });
 }
 
-/** Evaluates the trigger and, if conditions are met, performs the snapshot. */
+/**
+ * Evaluates the trigger and, if conditions are met, performs the snapshot.
+ * IMPORTANT: this must NEVER reject. Backups are best-effort background work;
+ * an escaping rejection would trip the global crash reporter and close the app.
+ */
 export async function triggerBackupSnapshot(reason: BackupReason): Promise<boolean> {
-    if (!shouldSnapshot(reason, new Date())) return false;
-    return runSnapshot(reason);
+    try {
+        if (!shouldSnapshot(reason, new Date())) return false;
+        return await runSnapshot(reason);
+    } catch (err) {
+        // Any unexpected error (bad state read, client init, etc.) is contained
+        // here as a failure — the app keeps running.
+        await handleFailure(err, reason).catch(() => { /* never */ });
+        return false;
+    }
 }
 
 /** Synchronous predicate so the quit hook can decide whether to defer at all. */
@@ -119,7 +137,7 @@ export function startIdleMonitor(window: BrowserWindow): void {
             const systemIdleMs = powerMonitor.getSystemIdleTime() * 1000;
             const appBlurredMs = state.blurredForMs(now);
             if (systemIdleMs >= IDLE_THRESHOLD_MS || appBlurredMs >= IDLE_THRESHOLD_MS) {
-                void triggerBackupSnapshot('idle');
+                void triggerBackupSnapshot('idle').catch(() => { /* never */ });
             }
         } catch (err) {
             log.warn('Idle check failed', { error: errMsg(err) });
@@ -175,19 +193,23 @@ async function doSnapshot(reason: BackupReason): Promise<boolean> {
 
     try {
         // 1. WAL-safe consistent copy (never a raw file copy of a live WAL db).
+        log.info('Cloud snapshot: begin', { reason, snapshotId });
         await getDb().backup(tmpPath);
         const bytes = fs.readFileSync(tmpPath);
         const reviewCount = countReviews();
+        log.info('Cloud snapshot: local copy done', { bytes: bytes.byteLength });
 
         // 2. Per-user, RLS-scoped client.
         const client = await getAuthedClient(session);
         const storagePath = `${session.userId}/${snapshotId}.sqlite`;
+        log.info('Cloud snapshot: authed client ready');
 
         // 3. Upload the file to Storage.
         const { error: uploadError } = await client.storage
             .from(BUCKET)
             .upload(storagePath, bytes, { contentType: 'application/octet-stream', upsert: true });
         if (uploadError) throw new Error(`Storage upload failed: ${uploadError.message}`);
+        log.info('Cloud snapshot: uploaded', { storagePath });
 
         // 4. Insert the metadata row (new snapshots always start as 'daily';
         //    the scheduled pruning job promotes daily→weekly→monthly).
