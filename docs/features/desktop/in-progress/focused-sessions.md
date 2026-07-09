@@ -83,3 +83,4 @@ primary / Create / More sections).
 | 2026-07-09 | apps/desktop/src/__tests__/db.service.test.ts,apps/desktop/src/components/Dashboard/Dashboard.tsx,apps/desktop/src/components/Dashboard/PreSessionBriefing.tsx,apps/desktop/src/components/Study/CrossDeckStudySession.tsx,apps/desktop/src/components/Study/StudyHub.css,apps/desktop/src/components/Study/StudyHub.tsx,apps/desktop/src/components/Study/StudyPlayer.tsx,apps/desktop/src/components/Study/StudySession.tsx |
 | 2026-07-09 | apps/desktop/src/components/Study/StudyHub.tsx,apps/desktop/src/main/db/service.ts,apps/desktop/src/types/electron.d.ts |
 | 2026-07-09 | apps/desktop/src/components/Study/StudyHub.tsx,apps/desktop/src/main/db/service.ts,apps/desktop/src/types/electron.d.ts |
+| 2026-07-09 | apps/desktop/src/components/Study/StudyHub.tsx,apps/desktop/src/main/db/service.ts,apps/desktop/src/types/electron.d.ts |
