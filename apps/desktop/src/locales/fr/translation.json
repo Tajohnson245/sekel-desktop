@@ -116,7 +116,8 @@
         "footer_status": "{{due}} due across {{decks}} decks · est. {{min}} min at current pace",
         "select_deck": "Select deck",
         "import_success": "Import complete",
-        "col_classified": "Classified"
+        "col_classified": "Classified",
+        "yield_tooltip": "Élevé {{high}} · Moyen {{med}} · Faible {{low}} · Non classé {{unc}}"
     },
     "study": {
         "session_complete": "Session Terminée !",

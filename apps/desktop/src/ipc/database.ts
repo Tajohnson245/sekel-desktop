@@ -51,6 +51,9 @@ export function setupDatabaseHandlers(): void {
     instrumentedHandle('db:fetchGlobalRetention', (_e, userId: string, days?: number) =>
         dbService.fetchGlobalRetention(userId, days));
 
+    instrumentedHandle('db:fetchDeckRetentionBatch', (_e, deckIds: string[], userId: string, days?: number) =>
+        dbService.fetchDeckRetentionBatch(deckIds, userId, days));
+
     // ── Statistics ───────────────────────────────────────────────────────────────
     instrumentedHandle('db:fetchTodaySummary', (_e, userId: string) =>
         dbService.fetchTodaySummary(userId));

@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, X, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useDecks, useBulkDeleteDecks } from '../../hooks/useDecks';
 import { useDeckDueCounts, deckDueTotal } from '../../hooks/useDeckDueCounts';
 import { useDeckClassificationCounts } from '../../hooks/useDeckClassificationCounts';
+import { useDeckRetention, useDeckYieldMix, type DeckRetention, type DeckYield } from '../../hooks/useDeckMetrics';
 import { useAppNavigation } from '../../hooks/useAppNavigation';
 import { useDeckEditor } from '../../contexts/DeckEditorContext';
 import { Button, Loader, Modal, useToast } from '../UI';
@@ -27,8 +29,8 @@ const FAMILY_FILTERS = [
     { key: 'nclex', label: 'NCLEX-RN', match: (n: string) => /nclex/i.test(n) },
 ] as const;
 
-const EMPTY_STATS: Pick<DeckStats, 'newCount' | 'learningCount' | 'reviewCount' | 'totalCount'> = {
-    newCount: 0, learningCount: 0, reviewCount: 0, totalCount: 0,
+const EMPTY_STATS: Pick<DeckStats, 'newCount' | 'newTotal' | 'learningCount' | 'reviewCount' | 'totalCount'> = {
+    newCount: 0, newTotal: 0, learningCount: 0, reviewCount: 0, totalCount: 0,
 };
 
 function CountCell({ value, tone }: { value: number; tone: 'new' | 'learning' | 'due' }) {
@@ -36,13 +38,24 @@ function CountCell({ value, tone }: { value: number; tone: 'new' | 'learning' | 
     return <span className={cls}>{value}</span>;
 }
 
-/** Amber (high) + teal (medium) over a slate track (spec §6 yield mix). */
-function YieldMix({ high, med }: { high: number; med: number }) {
-    const total = Math.max(high + med, 1);
+/** Retention tint mirroring the app's accuracy palette (danger < 70 < warning < 85 < teal). */
+function retentionColor(pct: number): string {
+    if (pct < 70) return 'var(--danger)';
+    if (pct < 85) return 'var(--warning)';
+    return 'var(--teal)';
+}
+
+/**
+ * Yield mix (spec §6): amber (high-yield) + teal (medium-yield) as proportions of
+ * the deck's cards, over a slate track — the remaining track is low-yield +
+ * unclassified. `total` is the deck's card count, so the bar reflects real coverage.
+ */
+function YieldMix({ high, medium, total, title }: { high: number; medium: number; total: number; title?: string }) {
+    const denom = Math.max(total, 1);
     return (
-        <span className="yield-mix" aria-hidden="true">
-            <span className="yield-high" style={{ width: `${(high / total) * 100}%` }} />
-            <span className="yield-med" style={{ width: `${(med / total) * 100}%` }} />
+        <span className="yield-mix" title={title}>
+            <span className="yield-high" style={{ width: `${(high / denom) * 100}%` }} />
+            <span className="yield-med" style={{ width: `${(medium / denom) * 100}%` }} />
         </span>
     );
 }
@@ -53,11 +66,26 @@ export default function DeckList() {
     const { data: decks = [], isLoading, error } = useDecks();
     const { byDeck, totalDue, totalCards } = useDeckDueCounts();
     const { byDeck: classifiedByDeck, hasExam } = useDeckClassificationCounts();
+    const retentionByDeck = useDeckRetention();
+    const { byDeck: yieldByDeck, hasExam: hasYieldExam } = useDeckYieldMix();
     const bulkDelete = useBulkDeleteDecks();
     const { t } = useTranslation();
     const { showToast } = useToast();
     const userId = useAuthStore((s) => s.user?.id);
+    const queryClient = useQueryClient();
     const searchRef = useRef<HTMLInputElement>(null);
+
+    // After an import the deck set + every deck's counts change; refresh the
+    // decks-page queries so New/Due/retention/yield reflect the new data without
+    // a manual reload (the import runs in the main process, so nothing else
+    // invalidates the renderer cache). (SEKEL-138)
+    const handleImportSuccess = () => {
+        queryClient.invalidateQueries({ queryKey: ['decks'] });
+        queryClient.invalidateQueries({ queryKey: ['deckRetention'] });
+        queryClient.invalidateQueries({ queryKey: ['deckYieldMix'] });
+        queryClient.invalidateQueries({ queryKey: ['globalDueCount'] });
+        showToast(t('decks.import_success', { defaultValue: 'Import complete' }), 'success');
+    };
 
     const [isDeleteMode, setIsDeleteMode] = useState(false);
     const [selectedDeckIds, setSelectedDeckIds] = useState<Set<string>>(new Set());
@@ -85,6 +113,7 @@ export default function DeckList() {
             (childrenOf.get(deckId) ?? []).forEach((child) => {
                 const c = sum(child.id);
                 acc.newCount += c.newCount;
+                acc.newTotal += c.newTotal;
                 acc.learningCount += c.learningCount;
                 acc.reviewCount += c.reviewCount;
                 acc.totalCount += c.totalCount;
@@ -183,6 +212,27 @@ export default function DeckList() {
         return acc;
     };
 
+    // Retention/yield aggregate the same way. Retention sums raw numerators and
+    // denominators over the subtree so the parent % is a true weighted average.
+    const subtreeRetention = (deckId: string): DeckRetention => {
+        const own = retentionByDeck.get(deckId) ?? { nonAgain: 0, total: 0 };
+        const acc: DeckRetention = { ...own };
+        (aggregate.childrenOf.get(deckId) ?? []).forEach((c) => {
+            const r = subtreeRetention(c.id);
+            acc.nonAgain += r.nonAgain; acc.total += r.total;
+        });
+        return acc;
+    };
+    const subtreeYield = (deckId: string): DeckYield => {
+        const own = yieldByDeck.get(deckId) ?? { high: 0, medium: 0, low: 0 };
+        const acc: DeckYield = { ...own };
+        (aggregate.childrenOf.get(deckId) ?? []).forEach((c) => {
+            const y = subtreeYield(c.id);
+            acc.high += y.high; acc.medium += y.medium; acc.low += y.low;
+        });
+        return acc;
+    };
+
     const renderRow = (node: DeckNode, depth: number): React.ReactNode[] => {
         const { deck, children } = node;
         const stats = depth === 0 ? aggregate.sum(deck.id) : (byDeck.get(deck.id) ?? { deckId: deck.id, ...EMPTY_STATS });
@@ -190,6 +240,10 @@ export default function DeckList() {
         const classified = !hasExam
             ? null
             : (depth === 0 ? subtreeClassified(deck.id) : (classifiedByDeck.get(deck.id)?.classified ?? 0));
+        const retention = depth === 0 ? subtreeRetention(deck.id) : (retentionByDeck.get(deck.id) ?? { nonAgain: 0, total: 0 });
+        const retentionPct = retention.total > 0 ? Math.round((retention.nonAgain / retention.total) * 100) : null;
+        const yieldMix = depth === 0 ? subtreeYield(deck.id) : (yieldByDeck.get(deck.id) ?? { high: 0, medium: 0, low: 0 });
+        const yieldUnclassified = Math.max(0, stats.totalCount - yieldMix.high - yieldMix.medium - yieldMix.low);
         const hasChildren = children.length > 0;
         const isExpanded = expanded.has(deck.id);
         const selected = selectedDeckIds.has(deck.id);
@@ -224,14 +278,33 @@ export default function DeckList() {
                         {deck.name}
                     </button>
                 </div>
-                <div className="deck-col num"><CountCell value={stats.newCount} tone="new" /></div>
+                <div className="deck-col num"><CountCell value={stats.newTotal} tone="new" /></div>
                 <div className="deck-col num"><CountCell value={stats.learningCount} tone="learning" /></div>
                 <div className="deck-col num"><CountCell value={stats.reviewCount} tone="due" /></div>
                 <div className={`deck-col num mono ${classified == null || classified === 0 ? 'deck-muted' : ''}`}>
                     {classified == null ? '—' : classified}
                 </div>
-                <div className="deck-col num mono deck-muted">—</div>
-                <div className="deck-col"><YieldMix high={stats.newCount} med={stats.reviewCount} /></div>
+                <div
+                    className={`deck-col num mono ${retentionPct == null ? 'deck-muted' : ''}`}
+                    style={retentionPct != null ? { color: retentionColor(retentionPct) } : undefined}
+                >
+                    {retentionPct == null ? '—' : `${retentionPct}%`}
+                </div>
+                <div className="deck-col">
+                    {hasYieldExam ? (
+                        <YieldMix
+                            high={yieldMix.high}
+                            medium={yieldMix.medium}
+                            total={stats.totalCount}
+                            title={t('decks.yield_tooltip', {
+                                defaultValue: 'High {{high}} · Med {{med}} · Low {{low}} · Unclassified {{unc}}',
+                                high: yieldMix.high, med: yieldMix.medium, low: yieldMix.low, unc: yieldUnclassified,
+                            })}
+                        />
+                    ) : (
+                        <span className="deck-muted">—</span>
+                    )}
+                </div>
                 <div className="deck-col mono deck-muted">—</div>
                 <div className="deck-col deck-row__action">
                     {due > 0 ? (
@@ -275,7 +348,7 @@ export default function DeckList() {
                                     {t('decks.delete_decks')}
                                 </Button>
                             )}
-                            <ImportAnkiButton onSuccess={() => showToast(t('decks.import_success', { defaultValue: 'Import complete' }), 'success')} />
+                            <ImportAnkiButton onSuccess={handleImportSuccess} />
                             <Button variant="primary" onClick={openDeckEditor} data-testid="create-deck-btn" icon={<Plus size={16} />}>
                                 {t('decks.new_deck')}
                             </Button>

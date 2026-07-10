@@ -10,7 +10,7 @@ import { OpenAI } from 'openai';
 
 const log = createLogger({ module: 'classify', transports: [consoleTransport] });
 import { getDb } from '../main/db/index';
-import { CARD_WITH_NOTE_SQL, buildCardWithNote, getSystemPerformanceNeeds } from '../main/db/service';
+import { CARD_WITH_NOTE_SQL, buildCardWithNote, getSystemPerformanceNeeds, fetchDeckYieldMix } from '../main/db/service';
 import type { SessionQueueCard } from '../types/electron';
 
 // ── OpenAI lazy singleton (same pattern as ai.ts) ──────────────────────────
@@ -588,4 +588,7 @@ export function setupClassifyHandlers(): void {
 
     instrumentedHandle('yield:getDeckClassificationCount', (_e, deckId: string, examKey: string) =>
         getDeckClassificationCount(deckId, examKey));
+
+    instrumentedHandle('yield:getDeckYieldMix', (_e, deckIds: string[], examKey: string) =>
+        fetchDeckYieldMix(deckIds, examKey));
 }

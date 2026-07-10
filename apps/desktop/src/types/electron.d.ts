@@ -237,6 +237,7 @@ interface ElectronDB {
     fetchDeckStats:        (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => Promise<DeckStats>;
     fetchAllDueCardsCount: (userId: string, dailyNewLimit?: number, dailyReviewLimit?: number) => Promise<number>;
     fetchGlobalRetention:  (userId: string, days?: number) => Promise<number | null>;
+    fetchDeckRetentionBatch: (deckIds: string[], userId: string, days?: number) => Promise<DeckRetentionRow[]>;
     // Statistics
     fetchTodaySummary:                    (userId: string) => Promise<TodaySummary>;
     fetchCardCountsByMaturity:            (userId: string, deckId?: string) => Promise<CardCountsByMaturity>;
@@ -410,6 +411,21 @@ export interface YieldScoreRow {
     topicKey: string | null;
 }
 
+/** Per-deck retention numerator/denominator over a window (SEKEL-138). */
+export interface DeckRetentionRow {
+    deckId: string;
+    nonAgain: number;
+    total: number;
+}
+
+/** Per-deck yield-level distribution (SEKEL-138); unclassified is derived from deck totals. */
+export interface DeckYieldMix {
+    deckId: string;
+    high: number;
+    medium: number;
+    low: number;
+}
+
 export interface SessionQueueCard extends CardWithNote {
     yield_score: number | null;
     yield_level: 'high' | 'medium' | 'low' | 'unclassified';
@@ -427,6 +443,7 @@ interface ElectronYield {
     getExplanation:    (cardId: string, examKey: string) => Promise<string>;
     buildSessionQueue: (userId: string, examKey: string, limit?: number) => Promise<SessionQueueCard[]>;
     getDeckClassificationCount: (deckId: string, examKey: string) => Promise<{ classified: number; total: number }>;
+    getDeckYieldMix: (deckIds: string[], examKey: string) => Promise<DeckYieldMix[]>;
 }
 
 export interface ClassificationResult {

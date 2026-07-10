@@ -236,23 +236,25 @@ export function fetchDeckStats(
         WHERE n.deck_id = ?
     `).all(deckId) as StatRow[];
 
-    let newCount = 0;
+    let newTotal = 0;
     let learningCount = 0;
     let reviewCount = 0;
     for (const card of cards) {
-        if (card.state === 'new') newCount++;
+        if (card.state === 'new') newTotal++;
         else if (card.state === 'learning' || card.state === 'relearning') learningCount++;
         else if (card.state === 'review' && card.due <= now) reviewCount++;
     }
 
-    // Apply daily limits if provided
+    // newCount is the daily-available new (capped); newTotal is the deck's full
+    // new-card inventory (uncapped) that the decks page shows.
+    let newCount = newTotal;
     if (userId && dailyNewLimit != null && dailyReviewLimit != null) {
         const studied = countStudiedToday(deckId, userId);
-        newCount = Math.min(newCount, Math.max(0, dailyNewLimit - studied.newStudied));
+        newCount = Math.min(newTotal, Math.max(0, dailyNewLimit - studied.newStudied));
         reviewCount = Math.min(reviewCount, Math.max(0, dailyReviewLimit - studied.reviewStudied));
     }
 
-    return { deckId, newCount, learningCount, reviewCount, totalCount: cards.length };
+    return { deckId, newCount, newTotal, learningCount, reviewCount, totalCount: cards.length };
 }
 
 export function fetchAllDueCardsCount(
@@ -333,6 +335,92 @@ export function fetchGlobalRetention(userId: string, days = 30): number | null {
     if (rows.length === 0) return null;
     const nonAgain = rows.filter(r => r.rating !== 'again').length;
     return Math.round((nonAgain / rows.length) * 100);
+}
+
+export interface DeckRetentionRow {
+    deckId: string;
+    nonAgain: number;
+    total: number;
+}
+
+/**
+ * Per-deck retention over a rolling window for the decks page (SEKEL-138). Returns
+ * raw non-again / total review counts per deck (not a percentage) so parent rows can
+ * aggregate correctly — sum numerators and denominators across a subtree, then
+ * divide. Keyed on reviews.deck_id, which each review carries (accurate even for the
+ * cross-deck sessions from SEKEL-137). Decks with no reviews in-window are absent.
+ */
+export function fetchDeckRetentionBatch(deckIds: string[], userId: string, days = 30): DeckRetentionRow[] {
+    if (deckIds.length === 0) return [];
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+    const placeholders = deckIds.map(() => '?').join(',');
+    const rows = getDb().prepare(`
+        SELECT
+            deck_id,
+            SUM(CASE WHEN rating <> 'again' THEN 1 ELSE 0 END) AS non_again,
+            COUNT(*) AS total
+        FROM reviews
+        WHERE user_id = ? AND deck_id IN (${placeholders}) AND review_time >= ?
+        GROUP BY deck_id
+    `).all(userId, ...deckIds, since.toISOString()) as Array<{ deck_id: string; non_again: number; total: number }>;
+    return rows.map(r => ({ deckId: r.deck_id, nonAgain: r.non_again, total: r.total }));
+}
+
+export interface DeckYieldMixRow {
+    deckId: string;
+    high: number;
+    medium: number;
+    low: number;
+}
+
+/**
+ * Per-deck yield-level distribution for the decks page (SEKEL-138). Buckets each
+ * classified card by the same score/confidence math the yield service uses
+ * (high ≥70, medium ≥40, low else; confidence < 0.5 → unclassified and excluded),
+ * grouped by its owning deck. `unclassified` is derived by the caller as
+ * totalCards − (high+medium+low), so it isn't returned here. Decks with no
+ * classified cards are absent from the result.
+ */
+export function fetchDeckYieldMix(deckIds: string[], examKey: string): DeckYieldMixRow[] {
+    if (deckIds.length === 0) return [];
+    const db = getDb();
+
+    const examRow = db.prepare('SELECT id FROM blueprint_exams WHERE exam_key = ?').get(examKey) as { id: number } | undefined;
+    if (!examRow) throw new Error(`Exam not found: ${examKey}`);
+
+    const placeholders = deckIds.map(() => '?').join(',');
+    const rows = db.prepare(`
+        WITH card_yield AS (
+            SELECT
+                n.deck_id AS deck_id,
+                cc.card_id AS card_id,
+                SUM(
+                    ((bs.weight_min + bs.weight_max) / 2.0)
+                    * bt.relative_weight
+                    * cc.confidence
+                    * cc.split_weight
+                    * 100
+                ) AS score,
+                MAX(cc.confidence) AS max_conf
+            FROM card_classifications cc
+            JOIN blueprint_systems bs ON bs.id = cc.system_id
+            JOIN blueprint_topics bt ON bt.id = cc.topic_id
+            JOIN cards c ON c.id = cc.card_id
+            JOIN notes n ON n.id = c.note_id
+            WHERE cc.exam_id = ? AND n.deck_id IN (${placeholders})
+            GROUP BY cc.card_id, n.deck_id
+        )
+        SELECT
+            deck_id,
+            SUM(CASE WHEN max_conf >= 0.5 AND score >= 70 THEN 1 ELSE 0 END) AS high,
+            SUM(CASE WHEN max_conf >= 0.5 AND score >= 40 AND score < 70 THEN 1 ELSE 0 END) AS medium,
+            SUM(CASE WHEN max_conf >= 0.5 AND score < 40 THEN 1 ELSE 0 END) AS low
+        FROM card_yield
+        GROUP BY deck_id
+    `).all(examRow.id, ...deckIds) as Array<{ deck_id: string; high: number; medium: number; low: number }>;
+
+    return rows.map(r => ({ deckId: r.deck_id, high: r.high, medium: r.medium, low: r.low }));
 }
 
 // ── Statistics ────────────────────────────────────────────────────────────────
