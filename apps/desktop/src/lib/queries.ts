@@ -39,6 +39,7 @@ export const deleteDecks = (ids: string[]) => db().deleteDecks(ids);
 export const fetchDeckStats = (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => db().fetchDeckStats(deckId, userId, dailyNewLimit, dailyReviewLimit);
 export const fetchAllDueCardsCount = (userId: string, dailyNewLimit?: number, dailyReviewLimit?: number) => db().fetchAllDueCardsCount(userId, dailyNewLimit, dailyReviewLimit);
 export const fetchGlobalRetention = (userId: string, days?: number) => db().fetchGlobalRetention(userId, days);
+export const fetchDeckRetentionBatch = (deckIds: string[], userId: string, days?: number) => db().fetchDeckRetentionBatch(deckIds, userId, days);
 
 // ── Cards ────────────────────────────────────────────────────────────────────
 export const fetchDueCards = (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => db().fetchDueCards(deckId, userId, dailyNewLimit, dailyReviewLimit);
@@ -90,7 +91,7 @@ export const exportDeck = (deckId: string, userId: string) => db().exportDeck(de
 export const getExportableCardCount = (deckId: string) => db().getExportableCardCount(deckId);
 
 // ── Yield ─────────────────────────────────────────────────────────────────────
-export type { SessionQueueCard, YieldScoreRow } from '../types/electron';
+export type { SessionQueueCard, YieldScoreRow, DeckRetentionRow, DeckYieldMix } from '../types/electron';
 const yieldApi = () => window.electronAPI.yield;
 export const buildSessionQueue = (userId: string, examKey: string, limit?: number) => yieldApi().buildSessionQueue(userId, examKey, limit);
 export const getYieldScores = (examKey: string, cardIds?: string[]) => yieldApi().getScores(examKey, cardIds);

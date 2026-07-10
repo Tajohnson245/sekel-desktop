@@ -36,6 +36,8 @@ import {
     completeDeckSession,
     fetchDueCardsCrossDeck,
     fetchDueCardsFocusedCrossDeck,
+    fetchDeckRetentionBatch,
+    fetchDeckYieldMix,
     fetchSessionAnalytics,
     fetchUserReviewHistory,
     fetchDrafts,
@@ -184,6 +186,28 @@ describe('fetchDeckStats', () => {
         });
         const stats = fetchDeckStats(deck.id);
         expect(stats.reviewCount).toBe(0);
+    });
+
+    it('newTotal is the uncapped inventory; newCount respects the daily new limit (SEKEL-138)', () => {
+        const nt = seedNoteType();
+        const deck = seedDeck();
+        for (let i = 0; i < 5; i++) {
+            const note = seedNote(deck.id, nt.id);
+            createCard({
+                user_id: USER, note_id: note.id, template_index: 0,
+                state: 'new', due: new Date().toISOString(),
+                stability: 0, difficulty: 0, elapsed_days: 0,
+                scheduled_days: 0, reps: 0, lapses: 0, last_review: null,
+            });
+        }
+        // Daily new limit of 2, nothing studied → newCount caps at 2, newTotal stays 5.
+        const capped = fetchDeckStats(deck.id, USER, 2, 200);
+        expect(capped.newTotal).toBe(5);
+        expect(capped.newCount).toBe(2);
+        // No limits → both equal the full inventory.
+        const uncapped = fetchDeckStats(deck.id);
+        expect(uncapped.newTotal).toBe(5);
+        expect(uncapped.newCount).toBe(5);
     });
 });
 
@@ -715,6 +739,96 @@ describe('cross-deck study', () => {
         const analytics = fetchSessionAnalytics(session.id);
         expect(analytics!.lapseStats.totalReviews).toBe(2);
         expect(analytics!.lapseStats.lapseCount).toBe(1);
+    });
+});
+
+// ── Deck metrics: retention + yield mix (SEKEL-138) ─────────────────────────────
+
+describe('deck metrics', () => {
+    function seedCardInDeck(deckId: string, ntId: string, state: 'new' | 'review' = 'new') {
+        const note = createNote({ user_id: USER, deck_id: deckId, note_type_id: ntId, fields: { Front: 'Q', Back: 'A' }, tags: [] });
+        return createCard({
+            user_id: USER, note_id: note.id, template_index: 0,
+            state, due: new Date().toISOString(),
+            stability: state === 'review' ? 5 : 0, difficulty: state === 'review' ? 5 : 0,
+            elapsed_days: 0, scheduled_days: 0, reps: 0, lapses: 0, last_review: null,
+        });
+    }
+
+    const reviewBase = {
+        user_id: USER,
+        state_before: 'review' as const, stability_before: 5, difficulty_before: 5,
+        state_after: 'review' as const, stability_after: 5, difficulty_after: 5,
+        scheduled_days: 5,
+    };
+
+    it('fetchDeckRetentionBatch returns per-deck non-again / total', () => {
+        const nt = seedNoteType();
+        const deckA = seedDeck('A');
+        const deckB = seedDeck('B');
+        const cardA = seedCardInDeck(deckA.id, nt.id, 'review');
+        const cardB = seedCardInDeck(deckB.id, nt.id, 'review');
+        const sessA = createDeckSession(USER, deckA.id);
+        const sessB = createDeckSession(USER, deckB.id);
+        // Deck A: 3 reviews, 1 again → 2/3.
+        insertReview({ ...reviewBase, card_id: cardA.id, deck_id: deckA.id, session_id: sessA.id, rating: 'good', review_index: 0 });
+        insertReview({ ...reviewBase, card_id: cardA.id, deck_id: deckA.id, session_id: sessA.id, rating: 'again', review_index: 1 });
+        insertReview({ ...reviewBase, card_id: cardA.id, deck_id: deckA.id, session_id: sessA.id, rating: 'easy', review_index: 2 });
+        // Deck B: 1 review, good → 1/1.
+        insertReview({ ...reviewBase, card_id: cardB.id, deck_id: deckB.id, session_id: sessB.id, rating: 'good', review_index: 0 });
+
+        const byDeck = new Map(fetchDeckRetentionBatch([deckA.id, deckB.id], USER, 30).map(r => [r.deckId, r]));
+        expect(byDeck.get(deckA.id)).toEqual({ deckId: deckA.id, nonAgain: 2, total: 3 });
+        expect(byDeck.get(deckB.id)).toEqual({ deckId: deckB.id, nonAgain: 1, total: 1 });
+    });
+
+    it('fetchDeckRetentionBatch excludes reviews older than the window', () => {
+        const nt = seedNoteType();
+        const deck = seedDeck('A');
+        const card = seedCardInDeck(deck.id, nt.id, 'review');
+        const sess = createDeckSession(USER, deck.id);
+        const r = insertReview({ ...reviewBase, card_id: card.id, deck_id: deck.id, session_id: sess.id, rating: 'good', review_index: 0 });
+        const old = new Date(Date.now() - 60 * 86_400_000).toISOString();
+        testDb.prepare('UPDATE reviews SET review_time = ? WHERE id = ?').run(old, r.id);
+
+        expect(fetchDeckRetentionBatch([deck.id], USER, 30)).toHaveLength(0);
+    });
+
+    // Weight averages chosen so score = avg·rel·conf·split·100 lands cleanly in each bucket:
+    // 0.8→80 (high ≥70), 0.5→50 (medium ≥40), 0.2→20 (low <40).
+    function seedYieldBlueprint() {
+        const now = new Date().toISOString();
+        testDb.prepare(`INSERT INTO blueprint_exams (id, exam_key, label, updated_at) VALUES (1, 'step1', 'Step 1', ?)`).run(now);
+        testDb.prepare(`INSERT INTO blueprint_systems (id, exam_id, system_key, label, weight_min, weight_max) VALUES (10, 1, 'sh', 'High', 0.8, 0.8)`).run();
+        testDb.prepare(`INSERT INTO blueprint_systems (id, exam_id, system_key, label, weight_min, weight_max) VALUES (11, 1, 'sm', 'Med', 0.5, 0.5)`).run();
+        testDb.prepare(`INSERT INTO blueprint_systems (id, exam_id, system_key, label, weight_min, weight_max) VALUES (12, 1, 'sl', 'Low', 0.2, 0.2)`).run();
+        testDb.prepare(`INSERT INTO blueprint_topics (id, system_id, topic_key, label, relative_weight) VALUES (100, 10, 'th', 'th', 1.0)`).run();
+        testDb.prepare(`INSERT INTO blueprint_topics (id, system_id, topic_key, label, relative_weight) VALUES (101, 11, 'tm', 'tm', 1.0)`).run();
+        testDb.prepare(`INSERT INTO blueprint_topics (id, system_id, topic_key, label, relative_weight) VALUES (102, 12, 'tl', 'tl', 1.0)`).run();
+    }
+    function classify(cardId: string, systemId: number, topicId: number, confidence = 1.0) {
+        testDb.prepare(`INSERT INTO card_classifications (card_id, exam_id, system_id, topic_id, confidence, split_weight, classified_at) VALUES (?, 1, ?, ?, ?, 1.0, ?)`)
+            .run(cardId, systemId, topicId, confidence, new Date().toISOString());
+    }
+
+    it('fetchDeckYieldMix buckets classified cards by level per deck', () => {
+        seedYieldBlueprint();
+        const nt = seedNoteType();
+        const deckA = seedDeck('A');
+        const deckB = seedDeck('B');
+        const cardH = seedCardInDeck(deckA.id, nt.id);
+        const cardM = seedCardInDeck(deckA.id, nt.id);
+        const cardL = seedCardInDeck(deckB.id, nt.id);
+        const cardUnconf = seedCardInDeck(deckB.id, nt.id);
+        seedCardInDeck(deckB.id, nt.id); // no classification at all
+        classify(cardH.id, 10, 100);
+        classify(cardM.id, 11, 101);
+        classify(cardL.id, 12, 102);
+        classify(cardUnconf.id, 10, 100, 0.3); // confidence < 0.5 → excluded from every bucket
+
+        const byDeck = new Map(fetchDeckYieldMix([deckA.id, deckB.id], 'step1').map(m => [m.deckId, m]));
+        expect(byDeck.get(deckA.id)).toEqual({ deckId: deckA.id, high: 1, medium: 1, low: 0 });
+        expect(byDeck.get(deckB.id)).toEqual({ deckId: deckB.id, high: 0, medium: 0, low: 1 });
     });
 });
 

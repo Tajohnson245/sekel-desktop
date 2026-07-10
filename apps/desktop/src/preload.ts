@@ -72,6 +72,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         fetchDeckStats:        (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => ipcRenderer.invoke('db:fetchDeckStats', deckId, userId, dailyNewLimit, dailyReviewLimit),
         fetchAllDueCardsCount: (userId: string, dailyNewLimit?: number, dailyReviewLimit?: number) => ipcRenderer.invoke('db:fetchAllDueCardsCount', userId, dailyNewLimit, dailyReviewLimit),
         fetchGlobalRetention:  (userId: string, days?: number) => ipcRenderer.invoke('db:fetchGlobalRetention', userId, days),
+        fetchDeckRetentionBatch: (deckIds: string[], userId: string, days?: number) => ipcRenderer.invoke('db:fetchDeckRetentionBatch', deckIds, userId, days),
         // Statistics
         fetchTodaySummary:         (userId: string) => ipcRenderer.invoke('db:fetchTodaySummary', userId),
         fetchCardCountsByMaturity: (userId: string, deckId?: string) => ipcRenderer.invoke('db:fetchCardCountsByMaturity', userId, deckId),
@@ -149,6 +150,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
             ipcRenderer.invoke('yield:build-session-queue', userId, examKey, limit),
         getDeckClassificationCount: (deckId: string, examKey: string) =>
             ipcRenderer.invoke('yield:getDeckClassificationCount', deckId, examKey),
+        getDeckYieldMix: (deckIds: string[], examKey: string) =>
+            ipcRenderer.invoke('yield:getDeckYieldMix', deckIds, examKey),
     },
 
     backup: {
