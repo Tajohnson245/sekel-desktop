@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Sparkles, Calendar, Layers, BookOpen, Target, Clock } from 'lucide-react';
+import { Sparkles, Calendar, Layers, BookOpen, Target, Clock, CheckCircle2 } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import { useSekelIntelligence } from '../../hooks/useSekelIntelligence';
 import { useExamProfile } from '../../hooks/useExamProfile';
@@ -47,7 +47,7 @@ export default function StudyHub() {
     const examKey = examProfile?.exam_key;
     const { data: activePlan } = useActivePlan(examKey);
     const { data: decks = [] } = useDecks();
-    const { byDeck } = useDeckDueCounts();
+    const { byDeck, isLoading: countsLoading } = useDeckDueCounts();
     const { goToCrossDeckSession } = useAppNavigation();
 
     // Scope: default to the active plan's decks when a plan exists, else all decks.
@@ -75,6 +75,12 @@ export default function StudyHub() {
     });
     const reviewAllCount = totalNew + totalLearning + totalReview;
     const estMinutes = Math.max(1, Math.round((reviewAllCount * SECONDS_PER_CARD) / 60));
+
+    // "Caught up" = the day's scheduled obligations are cleared: no new cards left
+    // to introduce and no due reviews. Learning-step cards may still be cycling
+    // (they finish on a minutes timescale) — that's in-flight work, not backlog, so
+    // we treat it as caught up rather than dangling a big "Begin Review All (N)".
+    const caughtUp = !countsLoading && scopedDecks.length > 0 && totalNew === 0 && totalReview === 0;
 
     // Weak-system (Focused) targeting from SEKEL Intelligence.
     const hasClassifications = intelligence?.hasClassifications ?? false;
@@ -141,24 +147,40 @@ export default function StudyHub() {
                 </div>
             )}
 
-            {/* Summary triad */}
-            <div className="study-hub__summary">
-                <div className="study-hub__stat">
-                    <span className="study-hub__stat-value" style={{ color: 'var(--teal)' }}>{reviewAllCount}</span>
-                    <span className="study-hub__stat-label">{t('studyHub.total_due', { defaultValue: 'cards due' })}</span>
+            {/* Caught-up banner when the day's scheduled work is done; otherwise the summary triad */}
+            {caughtUp ? (
+                <div className="study-hub__caught-up" data-testid="study-hub-caught-up">
+                    <CheckCircle2 size={22} className="study-hub__caught-up-icon" />
+                    <div>
+                        <p className="study-hub__caught-up-title">
+                            {t('studyHub.caught_up', { defaultValue: "You're caught up for today" })}
+                        </p>
+                        <p className="study-hub__caught-up-desc">
+                            {totalLearning > 0
+                                ? t('studyHub.caught_up_learning', { defaultValue: '{{count}} cards are still finishing their learning steps.', count: totalLearning })
+                                : t('studyHub.caught_up_desc', { defaultValue: "Today's new cards and due reviews are done." })}
+                        </p>
+                    </div>
                 </div>
-                <div className="study-hub__stat study-hub__stat--split">
-                    <span className="study-hub__split-item"><em>{totalNew}</em> {t('studyHub.split_new', { defaultValue: 'new' })}</span>
-                    <span className="study-hub__split-item"><em>{totalLearning}</em> {t('studyHub.split_learning', { defaultValue: 'learning' })}</span>
-                    <span className="study-hub__split-item"><em>{totalReview}</em> {t('studyHub.split_review', { defaultValue: 'review' })}</span>
+            ) : (
+                <div className="study-hub__summary">
+                    <div className="study-hub__stat">
+                        <span className="study-hub__stat-value" style={{ color: 'var(--teal)' }}>{reviewAllCount}</span>
+                        <span className="study-hub__stat-label">{t('studyHub.total_due', { defaultValue: 'cards due' })}</span>
+                    </div>
+                    <div className="study-hub__stat study-hub__stat--split">
+                        <span className="study-hub__split-item"><em>{totalNew}</em> {t('studyHub.split_new', { defaultValue: 'new' })}</span>
+                        <span className="study-hub__split-item"><em>{totalLearning}</em> {t('studyHub.split_learning', { defaultValue: 'learning' })}</span>
+                        <span className="study-hub__split-item"><em>{totalReview}</em> {t('studyHub.split_review', { defaultValue: 'review' })}</span>
+                    </div>
+                    <div className="study-hub__stat">
+                        <span className="study-hub__stat-value study-hub__stat-value--sm">
+                            <Clock size={16} /> {t('studyHub.est_time', { defaultValue: '~{{min}} min', min: estMinutes })}
+                        </span>
+                        <span className="study-hub__stat-label">{t('studyHub.est_label', { defaultValue: 'estimated' })}</span>
+                    </div>
                 </div>
-                <div className="study-hub__stat">
-                    <span className="study-hub__stat-value study-hub__stat-value--sm">
-                        <Clock size={16} /> {t('studyHub.est_time', { defaultValue: '~{{min}} min', min: estMinutes })}
-                    </span>
-                    <span className="study-hub__stat-label">{t('studyHub.est_label', { defaultValue: 'estimated' })}</span>
-                </div>
-            </div>
+            )}
 
             <div className="study-hub__modes">
                 {/* Review All */}
@@ -173,7 +195,7 @@ export default function StudyHub() {
                         </div>
                     </div>
 
-                    {perDeck.length > 0 && (
+                    {reviewAllCount > 0 && perDeck.length > 0 && (
                         <div className="study-hub__per-deck">
                             {perDeck.map(({ deck, actionable }) => (
                                 <div key={deck.id} className="study-hub__per-deck-row">
@@ -185,12 +207,16 @@ export default function StudyHub() {
                     )}
 
                     <button
-                        className="study-hub__begin study-hub__begin--primary"
+                        className={`study-hub__begin ${caughtUp ? 'study-hub__begin--muted' : 'study-hub__begin--primary'}`}
                         onClick={beginReviewAll}
                         disabled={reviewAllCount === 0}
                         data-testid="begin-review-all"
                     >
-                        {t('studyHub.begin_review_all', { defaultValue: 'Begin Review All ({{count}}) →', count: reviewAllCount })}
+                        {reviewAllCount === 0
+                            ? t('studyHub.nothing_due', { defaultValue: 'Nothing due right now' })
+                            : caughtUp
+                                ? t('studyHub.finish_learning', { defaultValue: 'Finish learning ({{count}}) →', count: reviewAllCount })
+                                : t('studyHub.begin_review_all', { defaultValue: 'Begin Review All ({{count}}) →', count: reviewAllCount })}
                     </button>
                 </div>
 

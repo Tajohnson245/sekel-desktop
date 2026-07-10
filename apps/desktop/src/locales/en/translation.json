@@ -1098,6 +1098,11 @@
         "begin_review_all": "Begin Review All ({{count}}) →",
         "focused_desc": "Due cards in the blueprint systems you are weakest in.",
         "classify_to_unlock": "Classify your cards to unlock focused weak-system sessions.",
-        "begin_focused": "Begin Focused ({{count}}) →"
+        "begin_focused": "Begin Focused ({{count}}) →",
+        "caught_up": "You're caught up for today",
+        "caught_up_desc": "Today's new cards and due reviews are done.",
+        "caught_up_learning": "{{count}} cards are still finishing their learning steps.",
+        "nothing_due": "Nothing due right now",
+        "finish_learning": "Finish learning ({{count}}) →"
     }
 }

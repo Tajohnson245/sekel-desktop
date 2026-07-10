@@ -929,6 +929,11 @@
         "begin_review_all": "Alles wiederholen ({{count}}) →",
         "focused_desc": "Fällige Karten in den Blueprint-Systemen, in denen du am schwächsten bist.",
         "classify_to_unlock": "Klassifiziere deine Karten, um fokussierte Sitzungen für schwache Systeme freizuschalten.",
-        "begin_focused": "Fokussiert starten ({{count}}) →"
+        "begin_focused": "Fokussiert starten ({{count}}) →",
+        "caught_up": "Du bist für heute auf dem neuesten Stand",
+        "caught_up_desc": "Die neuen Karten und fälligen Wiederholungen von heute sind erledigt.",
+        "caught_up_learning": "{{count}} Karten schließen noch ihre Lernschritte ab.",
+        "nothing_due": "Momentan nichts fällig",
+        "finish_learning": "Lernen abschließen ({{count}}) →"
     }
 }

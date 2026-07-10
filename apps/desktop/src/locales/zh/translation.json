@@ -929,6 +929,11 @@
         "begin_review_all": "开始全部复习（{{count}}）→",
         "focused_desc": "你最薄弱的蓝图系统中的到期卡片。",
         "classify_to_unlock": "对卡片进行分类以解锁针对薄弱系统的专注学习。",
-        "begin_focused": "开始专注学习（{{count}}）→"
+        "begin_focused": "开始专注学习（{{count}}）→",
+        "caught_up": "今天的学习已完成",
+        "caught_up_desc": "今天的新卡片和到期复习都已完成。",
+        "caught_up_learning": "还有 {{count}} 张卡片正在完成学习步骤。",
+        "nothing_due": "当前没有到期卡片",
+        "finish_learning": "完成学习（{{count}}）→"
     }
 }

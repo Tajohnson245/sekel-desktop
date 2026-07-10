@@ -929,6 +929,11 @@
         "begin_review_all": "Tout réviser ({{count}}) →",
         "focused_desc": "Cartes dues dans les systèmes du référentiel où vous êtes le plus faible.",
         "classify_to_unlock": "Classez vos cartes pour débloquer les sessions ciblées sur les systèmes faibles.",
-        "begin_focused": "Session ciblée ({{count}}) →"
+        "begin_focused": "Session ciblée ({{count}}) →",
+        "caught_up": "Vous êtes à jour pour aujourd'hui",
+        "caught_up_desc": "Les nouvelles cartes et les révisions dues du jour sont terminées.",
+        "caught_up_learning": "{{count}} cartes terminent encore leurs étapes d'apprentissage.",
+        "nothing_due": "Rien à réviser pour l'instant",
+        "finish_learning": "Terminer l'apprentissage ({{count}}) →"
     }
 }
