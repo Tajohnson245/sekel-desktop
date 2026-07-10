@@ -5,6 +5,8 @@ import Dashboard from '../components/Dashboard/Dashboard';
 import DeckList from '../components/Deck/DeckList';
 import DeckDetail from '../components/Deck/DeckDetail';
 import StudySession from '../components/Study/StudySession';
+import StudyHub from '../components/Study/StudyHub';
+import CrossDeckStudySession from '../components/Study/CrossDeckStudySession';
 import DraftsPage from '../components/Drafts/DraftsPage';
 import ImageOcclusionEditor from '../components/ImageOcclusion/ImageOcclusionEditor';
 import StatisticsPage from '../components/Statistics/StatisticsPage';
@@ -21,6 +23,15 @@ export const router = createMemoryRouter([
             { path: 'plan', element: <PlanPage /> },
             { path: 'decks', element: <DeckList /> },
             { path: 'decks/:deckId', element: <DeckDetail /> },
+            { path: 'study', element: <StudyHub /> },
+            {
+                path: 'study/session',
+                element: (
+                    <ErrorBoundaryRoute variant="inline" resetPath="/study">
+                        <CrossDeckStudySession />
+                    </ErrorBoundaryRoute>
+                ),
+            },
             {
                 path: 'decks/:deckId/study',
                 element: (

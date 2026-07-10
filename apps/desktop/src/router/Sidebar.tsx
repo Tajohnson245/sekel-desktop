@@ -16,6 +16,13 @@ interface NavItemDef {
     label: string;
 }
 
+interface NavGroup {
+    id: string;
+    /** Section heading; null renders the group flush with no label (primary group). */
+    label: string | null;
+    items: NavItemDef[];
+}
+
 interface SidebarProps {
     collapsed: boolean;
     onToggle: () => void;
@@ -45,19 +52,40 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
     const { byDeck } = useDeckDueCounts();
     const isAdmin = useIsAdmin();
 
-    const navItems: NavItemDef[] = useMemo(() => {
-        const items: NavItemDef[] = [
-            { id: 'dashboard', path: '/', label: t('nav.dashboard') },
-            { id: 'decks', path: '/decks', label: t('nav.decks') },
-            { id: 'documents', path: '/documents', label: t('nav.generate') },
-            { id: 'image-occlusion', path: '/image-occlusion', label: t('nav.image_occlusion') },
-            { id: 'drafts', path: '/drafts', label: t('nav.drafts') },
-            { id: 'plan', path: '/plan', label: t('nav.plan') },
-            { id: 'statistics', path: '/statistics', label: t('nav.statistics') },
-            { id: 'profile', path: '/profile', label: t('profile.settings') },
+    const navGroups: NavGroup[] = useMemo(() => {
+        const groups: NavGroup[] = [
+            {
+                id: 'primary',
+                label: null,
+                items: [
+                    { id: 'dashboard', path: '/', label: t('nav.dashboard') },
+                    { id: 'study', path: '/study', label: t('nav.study', { defaultValue: 'Study' }) },
+                    { id: 'decks', path: '/decks', label: t('nav.decks') },
+                    { id: 'plan', path: '/plan', label: t('nav.plan') },
+                ],
+            },
+            {
+                id: 'create',
+                label: t('nav.group_create', { defaultValue: 'Create' }),
+                items: [
+                    { id: 'documents', path: '/documents', label: t('nav.generate') },
+                    { id: 'image-occlusion', path: '/image-occlusion', label: t('nav.image_occlusion') },
+                    { id: 'drafts', path: '/drafts', label: t('nav.drafts') },
+                ],
+            },
+            {
+                id: 'more',
+                label: t('nav.group_more', { defaultValue: 'More' }),
+                items: [
+                    { id: 'statistics', path: '/statistics', label: t('nav.statistics') },
+                    { id: 'profile', path: '/profile', label: t('profile.settings') },
+                ],
+            },
         ];
-        if (isAdmin) items.push({ id: 'admin', path: '/admin', label: 'Diagnostics' });
-        return items;
+        if (isAdmin) {
+            groups[groups.length - 1].items.push({ id: 'admin', path: '/admin', label: 'Diagnostics' });
+        }
+        return groups;
     }, [t, isAdmin]);
 
     const isActive = (path: string) =>
@@ -85,24 +113,28 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
             </div>
 
             <nav className="sidebar-nav" aria-label="Primary">
-                {navItems.map((item) => {
-                    const active = isActive(item.path);
-                    return (
-                        <button
-                            key={item.id}
-                            className={`nav-item ${active ? 'is-active' : ''}`}
-                            onClick={() => navigate(item.path)}
-                            aria-current={active ? 'page' : undefined}
-                            data-testid={`nav-${item.id}`}
-                        >
-                            <span className="nav-dot" aria-hidden="true" />
-                            <span className="nav-item__label">{item.label}</span>
-                            {item.id === 'drafts' && drafts.length > 0 && (
-                                <span className="nav-count-pill">{drafts.length}</span>
-                            )}
-                        </button>
-                    );
-                })}
+                {navGroups.map((group) => (
+                    <div key={group.id} className="sidebar-nav-group">
+                        {group.label && <div className="sidebar-section-label">{group.label}</div>}
+                        {group.items.map((item) => {
+                            const active = isActive(item.path);
+                            return (
+                                <button
+                                    key={item.id}
+                                    className={`nav-item ${active ? 'is-active' : ''}`}
+                                    onClick={() => navigate(item.path)}
+                                    aria-current={active ? 'page' : undefined}
+                                    data-testid={`nav-${item.id}`}
+                                >
+                                    <span className="nav-item__label">{item.label}</span>
+                                    {item.id === 'drafts' && drafts.length > 0 && (
+                                        <span className="nav-count-pill">{drafts.length}</span>
+                                    )}
+                                </button>
+                            );
+                        })}
+                    </div>
+                ))}
             </nav>
 
             {/* Contextual DECKS section (spec §5.1.3) */}

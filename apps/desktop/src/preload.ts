@@ -83,6 +83,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         // Cards
         fetchDueCards:         (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => ipcRenderer.invoke('db:fetchDueCards', deckId, userId, dailyNewLimit, dailyReviewLimit),
         fetchDueCardsFocused:  (deckId: string, systemKeys: string[], examKey: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => ipcRenderer.invoke('db:fetchDueCardsFocused', deckId, systemKeys, examKey, userId, dailyNewLimit, dailyReviewLimit),
+        fetchDueCardsCrossDeck: (userId: string, deckIds: string[] | null, dailyNewLimit?: number, dailyReviewLimit?: number, examKey?: string) => ipcRenderer.invoke('db:fetchDueCardsCrossDeck', userId, deckIds, dailyNewLimit, dailyReviewLimit, examKey),
+        fetchDueCardsFocusedCrossDeck: (userId: string, deckIds: string[] | null, systemKeys: string[], examKey: string, dailyNewLimit?: number, dailyReviewLimit?: number) => ipcRenderer.invoke('db:fetchDueCardsFocusedCrossDeck', userId, deckIds, systemKeys, examKey, dailyNewLimit, dailyReviewLimit),
         fetchAllCardsForStudy: (deckId: string, limit?: number) => ipcRenderer.invoke('db:fetchAllCardsForStudy', deckId, limit),
         fetchAllCardsForDeck:  (deckId: string) => ipcRenderer.invoke('db:fetchAllCardsForDeck', deckId),
         updateCardAfterReview: (cardId: string, updates: unknown) => ipcRenderer.invoke('db:updateCardAfterReview', cardId, updates),
@@ -103,6 +105,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         fetchUserReviewHistory: (userId: string, days?: number) => ipcRenderer.invoke('db:fetchUserReviewHistory', userId, days),
         // Sessions
         createDeckSession:     (userId: string, deckId: string) => ipcRenderer.invoke('db:createDeckSession', userId, deckId),
+        createStudySession:    (userId: string, kind: 'deck' | 'review_all' | 'focused', representativeDeckId: string, scope: 'all' | 'plan' | null, systemKeys: string[] | null) => ipcRenderer.invoke('db:createStudySession', userId, kind, representativeDeckId, scope, systemKeys),
         completeDeckSession:   (sessionId: string) => ipcRenderer.invoke('db:completeDeckSession', sessionId),
         abandonOpenSessions:         (userId: string) => ipcRenderer.invoke('db:abandonOpenSessions', userId),
         fetchBulkClassifiedCardCount: (deckIds: string[]) => ipcRenderer.invoke('db:fetchBulkClassifiedCardCount', deckIds),

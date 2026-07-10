@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     createDeckSession,
+    createStudySession,
     completeDeckSession,
     insertReview,
     fetchSessionAnalytics,
@@ -10,7 +11,7 @@ import {
     type InsertReviewParams,
     type ReviewDayCount,
 } from '../lib/queries';
-import type { SessionAnalytics } from '../lib/types';
+import type { SessionAnalytics, StudySessionKind } from '../lib/types';
 import { intelligenceKeys } from './useSekelIntelligence';
 import { useAuthStore } from '../stores/authStore';
 
@@ -33,6 +34,28 @@ export function useCreateSession() {
     return useMutation({
         mutationFn: ({ userId, deckId }: { userId: string; deckId: string }) =>
             createDeckSession(userId, deckId),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['sessions'] });
+        },
+    });
+}
+
+/**
+ * Create a typed study session (SEKEL-137). Cross-deck sessions ('review_all' /
+ * 'focused') persist a representative deck plus the scope/systemKeys they were
+ * assembled from; per-review deck attribution still lives on reviews.deck_id.
+ */
+export function useCreateStudySession() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ userId, kind, representativeDeckId, scope, systemKeys }: {
+            userId: string;
+            kind: StudySessionKind;
+            representativeDeckId: string;
+            scope: 'all' | 'plan' | null;
+            systemKeys: string[] | null;
+        }) => createStudySession(userId, kind, representativeDeckId, scope, systemKeys),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['sessions'] });
         },

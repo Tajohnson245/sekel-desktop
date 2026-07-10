@@ -25,6 +25,7 @@
     },
     "nav": {
         "dashboard": "仪表板",
+        "study": "学习",
         "decks": "牌组",
         "cards": "卡片",
         "generate": "生成卡片",
@@ -34,7 +35,9 @@
         "statistics": "统计",
         "plan": "计划",
         "collapse_sidebar": "Collapse sidebar",
-        "open_sidebar": "Open sidebar"
+        "open_sidebar": "Open sidebar",
+        "group_create": "创建",
+        "group_more": "更多"
     },
     "dashboard": {
         "welcome": "欢迎回来，{{name}}！",
@@ -211,7 +214,9 @@
         "exit_title": "Exit session?",
         "exit_body": "Your progress is kept.",
         "keep_studying": "Keep studying",
-        "exit": "Exit"
+        "exit": "Exit",
+        "review_all_title": "全部复习",
+        "focused_title": "专注学习"
     },
     "auth": {
         "login": "登录",
@@ -907,5 +912,28 @@
     "plan": {
         "rebalance_accepted": "Plan updated",
         "timeline_extended": "Timeline extended"
+    },
+    "studyHub": {
+        "subtitle": "跨牌组复习——所有到期卡片，或仅针对你的薄弱系统。",
+        "days_until": "天后",
+        "scope_label": "牌组范围",
+        "scope_plan": "计划牌组",
+        "scope_all": "全部牌组",
+        "total_due": "张到期",
+        "split_new": "新卡",
+        "split_learning": "学习中",
+        "split_review": "复习",
+        "est_time": "约 {{min}} 分钟",
+        "est_label": "预计",
+        "review_all_desc": "你所有牌组中的到期卡片，交错呈现。",
+        "begin_review_all": "开始全部复习（{{count}}）→",
+        "focused_desc": "你最薄弱的蓝图系统中的到期卡片。",
+        "classify_to_unlock": "对卡片进行分类以解锁针对薄弱系统的专注学习。",
+        "begin_focused": "开始专注学习（{{count}}）→",
+        "caught_up": "今天的学习已完成",
+        "caught_up_desc": "今天的新卡片和到期复习都已完成。",
+        "caught_up_learning": "还有 {{count}} 张卡片正在完成学习步骤。",
+        "nothing_due": "当前没有到期卡片",
+        "finish_learning": "完成学习（{{count}}）→"
     }
 }

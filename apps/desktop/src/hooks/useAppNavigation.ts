@@ -12,6 +12,17 @@ export function useAppNavigation() {
             navigate(`/decks/${deckId}/study?mode=${mode}`),
         goToIntelligenceStudy: (deckId: string) =>
             navigate(`/decks/${deckId}/study?mode=due&focus=intelligence`),
+        // Cross-deck study (SEKEL-137): the routed /study hub, and the player it launches.
+        goToStudyHub: (intent?: 'focused' | 'review_all') =>
+            navigate('/study' + (intent ? `?intent=${intent}` : '')),
+        goToCrossDeckSession: (opts: { scope: 'plan' | 'all'; focus?: boolean; systemKeys?: string[] }) => {
+            const params = new URLSearchParams({ mode: 'due', scope: opts.scope });
+            if (opts.focus) {
+                params.set('focus', 'intelligence');
+                if (opts.systemKeys && opts.systemKeys.length > 0) params.set('systems', opts.systemKeys.join(','));
+            }
+            navigate(`/study/session?${params.toString()}`);
+        },
         goToDocuments: (deckId?: string) =>
             navigate(deckId ? `/documents?deckId=${deckId}` : '/documents'),
         goToDrafts: () => navigate('/drafts'),

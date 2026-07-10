@@ -16,7 +16,6 @@ import { useAppNavigation } from '../../hooks/useAppNavigation';
 import type { Deck } from '../../lib/types';
 import type { ReviewDayCount } from '../../lib/queries';
 import SekelIntelligencePanel, { IntelligenceHiddenBar } from './SekelIntelligencePanel';
-import PreSessionBriefing from './PreSessionBriefing';
 import { FeedbackSection } from '../Profile/FeedbackSection';
 import './Dashboard.css';
 
@@ -155,13 +154,12 @@ function DeckHealthRow({ deck, userId, examKey }: DeckHealthRowProps) {
 
 export default function Dashboard() {
     const navigate = useNavigate();
-    const { goToProfile, goToDecks } = useAppNavigation();
+    const { goToProfile, goToDecks, goToStudyHub } = useAppNavigation();
 
     const { user } = useAuthStore();
     const userId = user?.id;
     const { profile, fetchProfile, updateProfile } = useProfileStore();
 
-    const [showBriefing, setShowBriefing] = useState(false);
     const [showFeedback, setShowFeedback] = useState(false);
 
     useEffect(() => {
@@ -307,7 +305,7 @@ export default function Dashboard() {
                     intelligenceEnabled ? (
                         <SekelIntelligencePanel
                             intelligence={intelligence}
-                            onStartFocused={() => setShowBriefing(true)}
+                            onStartFocused={() => goToStudyHub('focused')}
                             onHide={() => userId && updateProfile(userId, { intelligence_enabled: false })}
                             onGoToProfile={() => goToProfile('study')}
                             onGoToDecks={() => goToDecks()}
@@ -468,14 +466,7 @@ export default function Dashboard() {
                 <div className="dash-quick-actions__grid">
                     <button
                         className="db-action-btn"
-                        onClick={() => {
-                            const deckId = intelligence?.suggestedDeckId;
-                            if (deckId) {
-                                navigate(`/decks/${deckId}/study?mode=due`);
-                            } else {
-                                navigate('/decks');
-                            }
-                        }}
+                        onClick={() => goToStudyHub()}
                     >
                         <BookOpen size={15} />
                         Start Today's Session
@@ -507,23 +498,6 @@ export default function Dashboard() {
             {/* Feedback Modal */}
             {showFeedback && (
                 <FeedbackSection isOpen={showFeedback} onClose={() => setShowFeedback(false)} />
-            )}
-
-            {/* Pre-Session Briefing Modal */}
-            {showBriefing && intelligence && (
-                <PreSessionBriefing
-                    intelligence={intelligence}
-                    planDeckIds={activePlanResult?.plan.deckFilter ?? null}
-                    onDismiss={() => setShowBriefing(false)}
-                    onBegin={(deckId) => {
-                        setShowBriefing(false);
-                        const weakKeys = intelligence.systemBreakdown
-                            .filter(s => s.accuracy !== null && s.accuracy < 0.80)
-                            .map(s => s.systemKey);
-                        const systemsParam = weakKeys.length > 0 ? `&systems=${weakKeys.join(',')}` : '';
-                        navigate(`/decks/${deckId}/study?mode=due&focus=intelligence${systemsParam}`);
-                    }}
-                />
             )}
         </div>
     );

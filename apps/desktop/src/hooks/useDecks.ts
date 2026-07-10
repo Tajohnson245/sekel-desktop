@@ -13,6 +13,8 @@ import {
     fetchDeckStats,
     fetchDueCards,
     fetchDueCardsFocused,
+    fetchDueCardsCrossDeck,
+    fetchDueCardsFocusedCrossDeck,
     fetchAllCardsForStudy,
     fetchAllCardsForDeck,
     updateCardAfterReview,
@@ -37,6 +39,19 @@ export const deckKeys = {
     allCards: (id: string) => ['decks', id, 'all-cards'] as const,
     cards: (id: string) => ['decks', id, 'cards'] as const,
     classificationCount: (id: string, examKey: string) => ['decks', id, 'classification-count', examKey] as const,
+};
+
+/** Stable cache key for a cross-deck scope: null → every deck, else the sorted id set. */
+function scopeKey(deckIds: string[] | null): string {
+    return deckIds === null ? 'all' : [...deckIds].sort().join(',');
+}
+
+// Query keys for cross-deck study (SEKEL-137). Rooted at ['study', …] so the
+// per-deck ['decks', …] invalidation in useUpdateCard never clobbers an
+// in-progress cross-deck queue (nothing re-reads the card list mid-session).
+export const studyKeys = {
+    crossDeckDue: (deckIds: string[] | null) => ['study', 'due-cross-deck', scopeKey(deckIds)] as const,
+    crossDeckFocused: (deckIds: string[] | null) => ['study', 'focused-cross-deck', scopeKey(deckIds)] as const,
 };
 
 // ─────────────────────────────────────────────────────────────────
@@ -102,6 +117,51 @@ export function useDueCardsFocused(deckId: string | null, systemKeys: string[], 
         queryKey: ['decks', deckId, 'due-cards-focused', systemKeys, newLimit, reviewLimit],
         queryFn: () => fetchDueCardsFocused(deckId!, systemKeys, examKey!, userId, newLimit, reviewLimit),
         enabled: !!deckId && !!userId && !!examKey && systemKeys.length > 0,
+    });
+}
+
+/**
+ * Due cards pooled across decks (Review All). `deckIds = null` → every deck the
+ * user owns; a non-null array scopes to those decks (e.g. the active plan's
+ * deckFilter). Same daily-limit precedence as useDueCards; the main process
+ * applies those limits per deck, so counts reconcile with the sidebar pills.
+ */
+export function useDueCardsCrossDeck(deckIds: string[] | null, examKey: string | undefined, enabled = true) {
+    const userId = useAuthStore((s) => s.user?.id);
+    const profile = useProfileStore((s) => s.profile);
+    const planNewPerDay = useEffectivePlan().effectiveNewPerDay;
+    const limitsEnabled = profile?.daily_limits_enabled ?? true;
+    const newLimit = planNewPerDay ?? (limitsEnabled ? (profile?.daily_new_limit ?? 20) : undefined);
+    const reviewLimit = limitsEnabled ? (profile?.daily_review_limit ?? 200) : undefined;
+    return useQuery<CardWithNote[]>({
+        queryKey: [...studyKeys.crossDeckDue(deckIds), newLimit, reviewLimit, examKey ?? ''],
+        queryFn: () => fetchDueCardsCrossDeck(userId!, deckIds, newLimit, reviewLimit, examKey),
+        enabled: !!userId && enabled,
+    });
+}
+
+/**
+ * Weak-system due cards pooled across decks (Focused / SEKEL Intelligence).
+ * Mirrors useDueCardsFocused but spans the scope's decks. Disabled until an exam
+ * key and at least one weak system are known — there is no focused queue without
+ * classifications.
+ */
+export function useDueCardsFocusedCrossDeck(
+    deckIds: string[] | null,
+    systemKeys: string[],
+    examKey: string | undefined,
+    enabled = true,
+) {
+    const userId = useAuthStore((s) => s.user?.id);
+    const profile = useProfileStore((s) => s.profile);
+    const planNewPerDay = useEffectivePlan().effectiveNewPerDay;
+    const limitsEnabled = profile?.daily_limits_enabled ?? true;
+    const newLimit = planNewPerDay ?? (limitsEnabled ? (profile?.daily_new_limit ?? 20) : undefined);
+    const reviewLimit = limitsEnabled ? (profile?.daily_review_limit ?? 200) : undefined;
+    return useQuery<CardWithNote[]>({
+        queryKey: [...studyKeys.crossDeckFocused(deckIds), systemKeys, examKey ?? '', newLimit, reviewLimit],
+        queryFn: () => fetchDueCardsFocusedCrossDeck(userId!, deckIds, systemKeys, examKey!, newLimit, reviewLimit),
+        enabled: !!userId && !!examKey && systemKeys.length > 0 && enabled,
     });
 }
 

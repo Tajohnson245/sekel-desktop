@@ -25,6 +25,7 @@
     },
     "nav": {
         "dashboard": "Tableau de bord",
+        "study": "Étudier",
         "decks": "Paquets",
         "cards": "Cartes",
         "generate": "Générer des cartes",
@@ -34,7 +35,9 @@
         "statistics": "Statistiques",
         "plan": "Plan",
         "collapse_sidebar": "Collapse sidebar",
-        "open_sidebar": "Open sidebar"
+        "open_sidebar": "Open sidebar",
+        "group_create": "Créer",
+        "group_more": "Plus"
     },
     "dashboard": {
         "welcome": "Bon retour, {{name}} !",
@@ -211,7 +214,9 @@
         "exit_title": "Exit session?",
         "exit_body": "Your progress is kept.",
         "keep_studying": "Keep studying",
-        "exit": "Exit"
+        "exit": "Exit",
+        "review_all_title": "Tout réviser",
+        "focused_title": "Session ciblée"
     },
     "auth": {
         "login": "Connexion",
@@ -907,5 +912,28 @@
     "plan": {
         "rebalance_accepted": "Plan updated",
         "timeline_extended": "Timeline extended"
+    },
+    "studyHub": {
+        "subtitle": "Révisez tous vos paquets — tout ce qui est dû, ou seulement vos systèmes faibles.",
+        "days_until": "jours avant",
+        "scope_label": "Portée des paquets",
+        "scope_plan": "Paquets du plan",
+        "scope_all": "Tous les paquets",
+        "total_due": "cartes à réviser",
+        "split_new": "nouvelles",
+        "split_learning": "apprentissage",
+        "split_review": "révision",
+        "est_time": "~{{min}} min",
+        "est_label": "estimé",
+        "review_all_desc": "Toutes les cartes dues de vos paquets, entremêlées.",
+        "begin_review_all": "Tout réviser ({{count}}) →",
+        "focused_desc": "Cartes dues dans les systèmes du référentiel où vous êtes le plus faible.",
+        "classify_to_unlock": "Classez vos cartes pour débloquer les sessions ciblées sur les systèmes faibles.",
+        "begin_focused": "Session ciblée ({{count}}) →",
+        "caught_up": "Vous êtes à jour pour aujourd'hui",
+        "caught_up_desc": "Les nouvelles cartes et les révisions dues du jour sont terminées.",
+        "caught_up_learning": "{{count}} cartes terminent encore leurs étapes d'apprentissage.",
+        "nothing_due": "Rien à réviser pour l'instant",
+        "finish_learning": "Terminer l'apprentissage ({{count}}) →"
     }
 }

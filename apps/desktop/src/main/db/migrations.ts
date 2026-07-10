@@ -628,4 +628,17 @@ export const MIGRATIONS: string[] = [
     `
     ALTER TABLE notes ADD COLUMN format TEXT;
     `,
+    // Migration — cross-deck study sessions (SEKEL-137). Type a session and
+    // record its scope so a review-all / focused session that spans decks can
+    // still live in deck_sessions. We deliberately use ADD COLUMN (not a table
+    // rebuild): reviews.session_id has an FK to deck_sessions with ON DELETE
+    // SET NULL, and DROP TABLE under the migration runner's `foreign_keys = ON`
+    // transaction would null session_id on every historical review. deck_id
+    // stays NOT NULL — cross-deck sessions store a representative deck; per-deck
+    // analytics come from reviews.deck_id, which each review carries itself.
+    `
+    ALTER TABLE deck_sessions ADD COLUMN kind TEXT NOT NULL DEFAULT 'deck';
+    ALTER TABLE deck_sessions ADD COLUMN scope TEXT;
+    ALTER TABLE deck_sessions ADD COLUMN system_keys TEXT;
+    `,
 ];
