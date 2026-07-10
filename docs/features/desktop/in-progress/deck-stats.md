@@ -37,3 +37,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 | Date | Description |
 |------|-------------|
 | 2026-07-09 | Doc created. apps/desktop/src/__tests__/db.service.test.ts,apps/desktop/src/components/Deck/DeckList.tsx,apps/desktop/src/ipc/classify.ts,apps/desktop/src/ipc/database.ts,apps/desktop/src/lib/queries.ts,apps/desktop/src/locales/de/translation.json,apps/desktop/src/locales/en/translation.json,apps/desktop/src/locales/es/translation.json |
+| 2026-07-09 | apps/desktop/src/__tests__/db.service.test.ts,apps/desktop/src/components/Deck/DeckList.tsx,apps/desktop/src/ipc/classify.ts,apps/desktop/src/ipc/database.ts,apps/desktop/src/lib/queries.ts,apps/desktop/src/locales/de/translation.json,apps/desktop/src/locales/en/translation.json,apps/desktop/src/locales/es/translation.json |
