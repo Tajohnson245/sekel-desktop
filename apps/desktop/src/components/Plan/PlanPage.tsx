@@ -18,12 +18,13 @@ import {
     usePlanProgress,
     useEffectivePlan,
     type Plan,
+    type PlanResult,
     type DeckUnseenCount,
     type PlanProgress,
     type PlanActivityCounts,
 } from '../../hooks/usePlan';
 import type { SystemCoverageRow } from '../../lib/queries';
-import { buildWeeklyProjection } from '../../lib/planMath';
+import { buildWeeklyProjection, type TimeCalibration } from '../../lib/planMath';
 import './PlanPage.css';
 
 // ── Plan narrative ────────────────────────────────────────────────────────────
@@ -42,6 +43,7 @@ function buildPlanNarrative(
     coveragePct: number,
     peakMinutes: number,
     examLabel: string,
+    cal: TimeCalibration,
 ): string {
     const reviewOnlyDays = availableDays - daysToExhaust;
     const plural = (n: number, word: string) => `${n.toLocaleString()} ${word}${n !== 1 ? 's' : ''}`;
@@ -65,7 +67,7 @@ function buildPlanNarrative(
     let timeNote: string;
     if (daysToExhaust < availableDays && reviewOnlyDays > 7) {
         // Review load after exhaustion is much lower than during intro phase
-        const reviewRows = buildWeeklyProjection(rate, unseenTotal, availableDays, Math.ceil(availableDays / 7));
+        const reviewRows = buildWeeklyProjection(rate, unseenTotal, availableDays, Math.ceil(availableDays / 7), cal);
         const steadyMins = reviewRows.weeks.slice(-1)[0]?.estimatedTotalMinutes ?? 0;
         timeNote = `Your busiest days are during the intro phase, peaking around ${peakStr}/day, then settling to roughly ${fmtMinutes(steadyMins)}/day once reviews mature into longer intervals.`;
     } else {
@@ -74,8 +76,8 @@ function buildPlanNarrative(
 
     // ── Sentence 3: coverage ────────────────────────────────────────────────
     const coverageNote = coveragePct === 100
-        ? `You'll cover 100% of the selected deck before ${examStr}.`
-        : `At this pace you'll cover ${coveragePct}% of the selected deck (${Math.round(unseenTotal * coveragePct / 100).toLocaleString()} of ${unseenTotal.toLocaleString()} cards) — consider increasing your daily target to reach more cards.`;
+        ? `If you study every day, you'll cover 100% of the selected deck before ${examStr}.`
+        : `If you study every day, you'll cover ${coveragePct}% of the selected deck (${Math.round(unseenTotal * coveragePct / 100).toLocaleString()} of ${unseenTotal.toLocaleString()} cards) — consider increasing your daily target to reach more cards.`;
 
     return `${intro} ${timeNote} ${coverageNote}`;
 }
@@ -151,31 +153,54 @@ function OverrideControl({ currentNewPerDay }: { currentNewPerDay: number }) {
     );
 }
 
+// ── System coverage status ──────────────────────────────────────────────────
+//
+// A system's status distinguishes six honest states instead of the old two that
+// mislabelled never-studied systems as "On track" and fully-studied ones as "No
+// data". `seenCards` (studied) vs `totalCards` (still unseen) is what separates
+// them. CSS reuses the existing four status colors (complete/ontrack → green,
+// notstarted/nodata → neutral); only the labels differ.
+
+type SysStatus = 'high' | 'medium' | 'ontrack' | 'notstarted' | 'complete' | 'nodata';
+
+function systemStatus(sys: SystemCoverageRow): SysStatus {
+    const totalClassified = sys.totalCards + sys.seenCards;
+    if (totalClassified === 0) return 'nodata';      // no classified cards at all
+    if (sys.totalCards === 0)  return 'complete';    // every classified card studied
+    if (sys.seenCards === 0)   return 'notstarted';  // classified but never studied
+    if (sys.performanceNeed >= 0.6) return 'high';
+    if (sys.performanceNeed >= 0.3) return 'medium';
+    return 'ontrack';
+}
+
+const SYS_STATUS_CLASS: Record<SysStatus, 'high' | 'medium' | 'low' | 'unclassified'> = {
+    high: 'high', medium: 'medium', ontrack: 'low', complete: 'low', notstarted: 'unclassified', nodata: 'unclassified',
+};
+const SYS_STATUS_LABEL: Record<SysStatus, string> = {
+    high: 'High need', medium: 'Med need', ontrack: 'On track',
+    complete: 'Covered', notstarted: 'Not started', nodata: 'No data',
+};
+
 // ── System coverage card (grid item with circular progress ring) ────────────
 
 function SystemCard({ sys }: { sys: SystemCoverageRow }) {
-    const isUnclassified = sys.totalCards === 0;
-    const status: 'high' | 'medium' | 'low' | 'unclassified' = isUnclassified
-        ? 'unclassified'
-        : sys.performanceNeed >= 0.6 ? 'high'
-        : sys.performanceNeed >= 0.3 ? 'medium'
-        :                              'low';
-    const statusLabel =
-        status === 'high'         ? 'High need'
-        : status === 'medium'     ? 'Med need'
-        : status === 'low'        ? 'On track'
-        :                           'No data';
+    const status = systemStatus(sys);
+    const cls    = SYS_STATUS_CLASS[status];
 
-    // SVG ring: r=16, pathLength=100 → pct directly maps to stroke-dashoffset
-    const pct       = isUnclassified ? 0 : sys.coveragePct;
-    const dashOffset = 100 - pct;
+    // Ring = study coverage (studied ÷ total classified) — "how much of this
+    // system you've covered" — so a mastered system reads 100% and an untouched
+    // one reads 0%, instead of the old plan-coverage-of-unseen number.
+    const totalClassified = sys.totalCards + sys.seenCards;
+    const showPct = status !== 'nodata';
+    const pct = totalClassified > 0 ? Math.round((sys.seenCards / totalClassified) * 100) : 0;
+    const dashOffset = 100 - pct; // SVG ring: r=16, pathLength=100 → pct maps to offset
 
     return (
-        <div className={`plan-sys-card plan-sys-card--${status}`}>
+        <div className={`plan-sys-card plan-sys-card--${cls}`}>
             <div className="plan-sys-card__top">
                 <span className="plan-sys-card__name" title={sys.label}>{sys.label}</span>
-                <span className={`plan-sys-card__status plan-sys-card__status--${status}`}>
-                    {statusLabel}
+                <span className={`plan-sys-card__status plan-sys-card__status--${cls}`}>
+                    {SYS_STATUS_LABEL[status]}
                 </span>
             </div>
 
@@ -200,16 +225,16 @@ function SystemCard({ sys }: { sys: SystemCoverageRow }) {
                 </svg>
                 <div className="plan-sys-card__ring-center">
                     <span className="plan-sys-card__pct">
-                        {isUnclassified ? '—' : `${sys.coveragePct}%`}
+                        {showPct ? `${pct}%` : '—'}
                     </span>
-                    <span className="plan-sys-card__pct-label">covered</span>
+                    <span className="plan-sys-card__pct-label">studied</span>
                 </div>
             </div>
 
             <div className="plan-sys-card__footer">
                 <div className="plan-sys-card__footer-stat">
                     <span className="plan-sys-card__footer-value">
-                        {sys.cardsInPlan}<span className="plan-sys-card__footer-of">/{sys.totalCards}</span>
+                        {sys.seenCards}<span className="plan-sys-card__footer-of">/{totalClassified}</span>
                     </span>
                     <span className="plan-sys-card__footer-label">cards</span>
                 </div>
@@ -268,13 +293,19 @@ function DegradedPlanBanner({ deckFilter }: { deckFilter: string[] | null }) {
     );
 }
 
-function ActivePlanDetail({ plan, examLabel }: { plan: Plan; examLabel: string }) {
+function ActivePlanDetail({ plan, liveView, examLabel }: { plan: Plan; liveView: PlanResult | null; examLabel: string }) {
     const { t } = useTranslation();
+    // Frozen commit-time snapshot — the set the user committed to. Kept for the
+    // live-progress denominator (introduced / in-plan), which must stay anchored to
+    // the committed selection rather than the shrinking live unseen pool.
     const snapshot   = plan.snapshot;
-    const coveragePct = Math.round(snapshot.projectedCoverage * 100);
+    // Live view — current coverage / projection / system coverage / unseen pool /
+    // days-to-exam. Falls back to the frozen snapshot when a recompute isn't available.
+    const view       = liveView ?? snapshot;
+    const coveragePct = Math.round(view.projectedCoverage * 100);
     const diverged    = plan.cardsPerDay !== plan.suggestedPerDay;
     const { data: progress } = usePlanProgress(plan);
-    const hasClassifiedCards = snapshot.systemCoverage.some(s => s.totalCards > 0);
+    const hasClassifiedCards = view.systemCoverage.some(s => s.totalCards > 0 || s.seenCards > 0);
 
     return (
         <>
@@ -282,10 +313,10 @@ function ActivePlanDetail({ plan, examLabel }: { plan: Plan; examLabel: string }
             <section className="plan-card plan-summary" data-tour-id="plan-targets">
                 <div className="plan-summary-meta">
                     <span className="plan-exam-label">
-                        {examLabel} · {snapshot.availableDays} {t('plan.days_away')}
+                        {examLabel} · {view.availableDays} {t('plan.days_away')}
                     </span>
                     <span className="plan-unseen-count">
-                        {snapshot.unseenTotal.toLocaleString()} {t('plan.unseen_cards')}
+                        {view.unseenTotal.toLocaleString()} {t('plan.unseen_cards')}
                     </span>
                 </div>
 
@@ -302,11 +333,11 @@ function ActivePlanDetail({ plan, examLabel }: { plan: Plan; examLabel: string }
                     <div className="plan-hero-meta">
                         <div className="plan-meta-row">
                             <span className="plan-meta-label">{t('plan.peak_daily_time')}</span>
-                            <span className="plan-meta-value">{fmtMinutes(snapshot.projectedPeakDailyMinutes)}</span>
+                            <span className="plan-meta-value">{fmtMinutes(view.projectedPeakDailyMinutes)}</span>
                         </div>
                         <div className="plan-meta-row">
                             <span className="plan-meta-label">{t('plan.daily_budget')}</span>
-                            <span className="plan-meta-value">{fmtMinutes(snapshot.dailyTimeBudgetMinutes)}</span>
+                            <span className="plan-meta-value">{fmtMinutes(view.dailyTimeBudgetMinutes)}</span>
                         </div>
                         <div className="plan-meta-row">
                             <span className="plan-meta-label">{t('plan.committed_on')}</span>
@@ -321,8 +352,8 @@ function ActivePlanDetail({ plan, examLabel }: { plan: Plan; examLabel: string }
 
                 <p className="plan-coverage-statement">
                     {t('plan.coverage_statement', {
-                        covered: snapshot.projectedCoverageCount.toLocaleString(),
-                        total:   snapshot.unseenTotal.toLocaleString(),
+                        covered: view.projectedCoverageCount.toLocaleString(),
+                        total:   view.unseenTotal.toLocaleString(),
                         pct:     coveragePct,
                     })}
                 </p>
@@ -335,11 +366,11 @@ function ActivePlanDetail({ plan, examLabel }: { plan: Plan; examLabel: string }
                 </div>
 
                 <div className="plan-yield-breakdown">
-                    <span className="plan-yield-chip yield-high">{snapshot.unseenHighYield} {t('plan.yield_high')}</span>
-                    <span className="plan-yield-chip yield-medium">{snapshot.unseenMediumYield} {t('plan.yield_medium')}</span>
-                    <span className="plan-yield-chip yield-low">{snapshot.unseenLowYield} {t('plan.yield_low')}</span>
-                    {snapshot.unseenUnclassified > 0 && (
-                        <span className="plan-yield-chip yield-unclassified">{snapshot.unseenUnclassified} {t('plan.yield_unclassified')}</span>
+                    <span className="plan-yield-chip yield-high">{view.unseenHighYield} {t('plan.yield_high')}</span>
+                    <span className="plan-yield-chip yield-medium">{view.unseenMediumYield} {t('plan.yield_medium')}</span>
+                    <span className="plan-yield-chip yield-low">{view.unseenLowYield} {t('plan.yield_low')}</span>
+                    {view.unseenUnclassified > 0 && (
+                        <span className="plan-yield-chip yield-unclassified">{view.unseenUnclassified} {t('plan.yield_unclassified')}</span>
                     )}
                 </div>
 
@@ -406,11 +437,11 @@ function ActivePlanDetail({ plan, examLabel }: { plan: Plan; examLabel: string }
             {progress && <PlanActivityPanel progress={progress} />}
 
             {/* ── Weekly projection ─────────────────────────────────────────── */}
-            <WeeklyProjectionCard plan={plan} />
+            <WeeklyProjectionCard weeks={view.weeklyProjection} activatedAt={plan.activatedAt} />
 
             {/* ── System coverage ───────────────────────────────────────────── */}
-            {snapshot.systemCoverage.length > 0 && (
-                <SystemCoverageCard systems={snapshot.systemCoverage} hasClassifiedCards={hasClassifiedCards} />
+            {view.systemCoverage.length > 0 && (
+                <SystemCoverageCard systems={view.systemCoverage} hasClassifiedCards={hasClassifiedCards} />
             )}
         </>
     );
@@ -501,16 +532,15 @@ function PlanActivityPanel({ progress }: { progress: PlanProgress }) {
 
 // ── Weekly projection card (collapsible, with current-week summary) ──────────
 
-function WeeklyProjectionCard({ plan }: { plan: Plan }) {
+function WeeklyProjectionCard({ weeks, activatedAt }: { weeks: Plan['snapshot']['weeklyProjection']; activatedAt: string }) {
     const { t } = useTranslation();
     const [expanded, setExpanded] = useState(true);
-    const weeks = plan.snapshot.weeklyProjection;
     const scrollRef = useRef<HTMLDivElement>(null);
     const currentCardRef = useRef<HTMLDivElement>(null);
 
     // Current week derived from when the plan activated. Clamp to the visible
     // window so a plan studied past its last projected week still resolves.
-    const daysSince     = Math.floor((Date.now() - new Date(plan.activatedAt).getTime()) / 86_400_000);
+    const daysSince     = Math.floor((Date.now() - new Date(activatedAt).getTime()) / 86_400_000);
     const currentWeekIx = weeks.length > 0
         ? Math.min(weeks.length - 1, Math.max(0, Math.floor(daysSince / 7)))
         : 0;
@@ -642,21 +672,23 @@ function SystemCoverageCard({
     const { t } = useTranslation();
     const [expanded, setExpanded] = useState(true);
 
-    // Status rank: needs-work (0) → on-track (1) → unclassified (2). Stable
-    // within a bucket via secondary sort on blueprint weight.
-    const ranked = (sys: SystemCoverageRow): number => {
-        if (sys.totalCards === 0) return 2;
-        if (sys.performanceNeed >= 0.3) return 0;
-        return 1;
-    };
+    // Status rank: needs-work (0) → not-started (1) → on-track/covered (2) →
+    // no-data (3). Stable within a bucket via secondary sort on blueprint weight.
+    const rankOf = (s: SysStatus): number =>
+        s === 'high' || s === 'medium' ? 0
+        : s === 'notstarted'           ? 1
+        : s === 'nodata'               ? 3
+        :                                2; // ontrack, complete
     const sorted = [...systems].sort((a, b) => {
-        const r = ranked(a) - ranked(b);
+        const r = rankOf(systemStatus(a)) - rankOf(systemStatus(b));
         return r !== 0 ? r : b.blueprintWeightMidpoint - a.blueprintWeightMidpoint;
     });
 
-    const needsWorkCount = sorted.filter(s => ranked(s) === 0).length;
-    const onTrackCount   = sorted.filter(s => ranked(s) === 1).length;
-    const unclassCount   = sorted.filter(s => ranked(s) === 2).length;
+    const statuses        = systems.map(systemStatus);
+    const needsWorkCount  = statuses.filter(s => s === 'high' || s === 'medium').length;
+    const notStartedCount = statuses.filter(s => s === 'notstarted').length;
+    const onTrackCount    = statuses.filter(s => s === 'ontrack' || s === 'complete').length;
+    const noDataCount     = statuses.filter(s => s === 'nodata').length;
 
     return (
         <section className="plan-card" data-tour-id="plan-system-coverage">
@@ -670,9 +702,10 @@ function SystemCoverageCard({
                     <h3 className="plan-section-title">{t('plan.system_coverage_title')}</h3>
                     {hasClassifiedCards && (
                         <p className="plan-collapsible-summary">
-                            {needsWorkCount > 0 && <span className="plan-status-pill plan-status-pill--warn">{needsWorkCount} needs work</span>}
-                            {onTrackCount > 0   && <span className="plan-status-pill plan-status-pill--ok">{onTrackCount} on track</span>}
-                            {unclassCount > 0   && <span className="plan-status-pill plan-status-pill--muted">{unclassCount} unclassified</span>}
+                            {needsWorkCount > 0  && <span className="plan-status-pill plan-status-pill--warn">{needsWorkCount} needs work</span>}
+                            {notStartedCount > 0 && <span className="plan-status-pill plan-status-pill--muted">{notStartedCount} not started</span>}
+                            {onTrackCount > 0    && <span className="plan-status-pill plan-status-pill--ok">{onTrackCount} on track</span>}
+                            {noDataCount > 0     && <span className="plan-status-pill plan-status-pill--muted">{noDataCount} no data</span>}
                         </p>
                     )}
                 </div>
@@ -938,7 +971,10 @@ function CreatePlanPanel({
         const { unseenTotal, availableDays } = suggestion;
         const projectedCount = Math.min(unseenTotal, effectiveRate * availableDays);
         const coveragePct    = unseenTotal > 0 ? Math.round((projectedCount / unseenTotal) * 100) : 100;
-        const preview        = buildWeeklyProjection(effectiveRate, unseenTotal, availableDays, 8);
+        // Use the same calibrated timings the committed snapshot was built with so the
+        // live preview's peak/narrative match what the plan will show after commit.
+        const cal            = { minutesPerNewCard: suggestion.minutesPerNewCard, minutesPerReview: suggestion.minutesPerReview };
+        const preview        = buildWeeklyProjection(effectiveRate, unseenTotal, availableDays, 8, cal);
         return {
             projectedCount,
             coveragePct,
@@ -947,6 +983,7 @@ function CreatePlanPanel({
             daysToExhaust: preview.daysToExhaust,
             unseenTotal,
             availableDays,
+            cal,
         };
     }, [suggestion, effectiveRate]);
 
@@ -1066,10 +1103,11 @@ function CreatePlanPanel({
                                 Over the next <strong>{liveStats.availableDays} days</strong>, you'll
                                 introduce <strong>{effectiveRate} new {newCardsLabel} per day</strong>.
                                 {' '}
+                                If you study every day,{' '}
                                 {fullyCovered ? (
-                                    <>By exam day you'll have covered <strong>all {liveStats.unseenTotal.toLocaleString()} cards</strong> in scope.</>
+                                    <>by exam day you'll have covered <strong>all {liveStats.unseenTotal.toLocaleString()} cards</strong> in scope.</>
                                 ) : (
-                                    <>By exam day you'll have covered <strong>{liveStats.projectedCount.toLocaleString()} of {liveStats.unseenTotal.toLocaleString()} cards</strong> ({liveStats.coveragePct}%).</>
+                                    <>by exam day you'll have covered <strong>{liveStats.projectedCount.toLocaleString()} of {liveStats.unseenTotal.toLocaleString()} cards</strong> ({liveStats.coveragePct}%).</>
                                 )}
                             </p>
                             <p>
@@ -1115,6 +1153,7 @@ function CreatePlanPanel({
                                 liveStats.coveragePct,
                                 liveStats.peakMinutes,
                                 examLabel,
+                                liveStats.cal,
                             )}
                         </p>
 
@@ -1446,7 +1485,7 @@ export default function PlanPage() {
             <DegradedPlanBanner deckFilter={activePlan.deckFilter} />
 
             {/* ── Active plan detail ───────────────────────────────────────── */}
-            <ActivePlanDetail plan={activePlan} examLabel={examLabel} />
+            <ActivePlanDetail plan={activePlan} liveView={activePlanResult?.liveView ?? null} examLabel={examLabel} />
 
             {/* ── Plan history ─────────────────────────────────────────────── */}
             {archivedPlans.length > 0 && (

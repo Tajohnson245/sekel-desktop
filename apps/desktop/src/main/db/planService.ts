@@ -12,7 +12,8 @@
 import { randomUUID } from 'crypto';
 import { getDb } from './index';
 import { getSystemPerformanceNeeds } from './service';
-import { dailyMinutes, buildWeeklyProjection } from '../../lib/planMath';
+import { buildWeeklyProjection, daysUntilExamLocal, MINUTES_PER_NEW_CARD, MINUTES_PER_REVIEW } from '../../lib/planMath';
+import { yieldCteBody, toYieldLevel, YIELD_LEVEL_ORDER } from './yieldSql';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -32,6 +33,11 @@ export interface PlanResult {
     systemCoverage: SystemCoverageRow[];
     dailyTimeBudgetMinutes: number;
     projectedPeakDailyMinutes: number;
+    /** Per-card minutes used for this projection — calibrated from the user's real
+     *  review durations (falls back to model defaults). Surfaced so the renderer's
+     *  live preview projects with the same timings the snapshot was built with. */
+    minutesPerNewCard: number;
+    minutesPerReview: number;
     /** Deck IDs this plan was scoped to; null = all decks. */
     deckFilter: string[] | null;
     generatedAt: string;
@@ -48,7 +54,12 @@ export interface SystemCoverageRow {
     systemKey: string;
     label: string;
     blueprintWeightMidpoint: number;
+    /** Unseen (state='new') classified cards in this system, within plan scope. */
     totalCards: number;
+    /** Studied (non-new) classified cards in this system, within plan scope. Lets the
+     *  UI tell "not started" (0 studied) from "on track", and "fully studied" (0 unseen
+     *  but >0 studied) from "no classified cards at all". */
+    seenCards: number;
     cardsInPlan: number;
     cardsSkipped: number;
     coveragePct: number;
@@ -90,6 +101,12 @@ export interface DeckUnseenCount {
 
 export interface ActivePlanResult {
     plan: Plan;
+    /** Live-recomputed display view (coverage / weekly projection / system coverage /
+     *  current unseen pool / days-to-exam) derived from the plan's committed inputs.
+     *  null when a recompute isn't possible (e.g. exam date cleared) — callers fall
+     *  back to the frozen plan.snapshot. The stored plan.snapshot stays the immutable
+     *  commit-time record used by the plan history. */
+    liveView: PlanResult | null;
     /** plan_override_expires_at from user_profiles; null when no override is active. */
     overrideExpiresAt: string | null;
     /** user_profiles.daily_new_limit — equals cardsPerDay normally, override value when active. */
@@ -101,16 +118,8 @@ export interface ActivePlanResult {
 //    / buildWeeklyProjection are imported above.
 
 // ── Yield level helpers ───────────────────────────────────────────────────────
-
-type YieldLevel = 'high' | 'medium' | 'low' | 'unclassified';
-const LEVEL_ORDER: Record<YieldLevel, number> = { high: 0, medium: 1, low: 2, unclassified: 3 };
-
-function toYieldLevel(score: number | null, confidence: number | null): YieldLevel {
-    if (score === null || confidence === null || confidence < 0.5) return 'unclassified';
-    if (score >= 70) return 'high';
-    if (score >= 40) return 'medium';
-    return 'low';
-}
+// toYieldLevel / YIELD_LEVEL_ORDER + the yield CTE now live in ./yieldSql so the
+// scoring model can't drift between the plan engine and the study queue.
 
 // ── Row → Plan deserialiser ───────────────────────────────────────────────────
 
@@ -149,7 +158,8 @@ function rowToPlan(row: PlanRow): Plan {
 // ── Core: computePlan (pure — no DB writes) ───────────────────────────────────
 
 const EXAM_DATE_SENTINEL = '9999-12-31';
-const PEAK_WEEK = 8;
+/** Reviews with fewer than this many measured durations fall back to model defaults. */
+const MIN_DURATION_SAMPLES = 20;
 
 export function computePlan(userId: string, examKey: string, deckIds?: string[], cardsPerDay?: number): PlanResult | null {
     const deckFilter = deckIds && deckIds.length > 0 ? deckIds : null;
@@ -177,13 +187,35 @@ export function computePlan(userId: string, examKey: string, deckIds?: string[],
 
     const dailyNewLimit    = profileRow?.daily_new_limit    ?? 20;
     const dailyReviewLimit = profileRow?.daily_review_limit ?? 200;
-    const dailyTimeBudgetMinutes = Math.round(dailyNewLimit * 0.75 + dailyReviewLimit * 0.33);
 
-    // 3. Available days until exam
-    const availableDays = Math.max(
-        1,
-        Math.floor((new Date(examRow.exam_date).getTime() - Date.now()) / 86_400_000),
-    );
+    // 2b. Calibrated per-card time from the user's own measured review durations, so
+    // the projection reflects how fast THEY actually study. Falls back to the model
+    // defaults until there's enough signal (≥ MIN_DURATION_SAMPLES of each kind).
+    const durRow = db.prepare(`
+        SELECT
+            AVG(CASE WHEN state_before =  'new' THEN review_duration_ms END) AS new_ms,
+            AVG(CASE WHEN state_before <> 'new' THEN review_duration_ms END) AS review_ms,
+            SUM(CASE WHEN state_before =  'new' THEN 1 ELSE 0 END) AS new_n,
+            SUM(CASE WHEN state_before <> 'new' THEN 1 ELSE 0 END) AS review_n
+        FROM reviews
+        WHERE user_id = ? AND review_duration_ms IS NOT NULL
+    `).get(userId) as { new_ms: number | null; review_ms: number | null; new_n: number; review_n: number } | undefined;
+
+    const clampMin = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+    const minutesPerNewCard = durRow && durRow.new_n >= MIN_DURATION_SAMPLES && durRow.new_ms
+        ? clampMin(durRow.new_ms / 60_000, 0.15, 3)
+        : MINUTES_PER_NEW_CARD;
+    const minutesPerReview = durRow && durRow.review_n >= MIN_DURATION_SAMPLES && durRow.review_ms
+        ? clampMin(durRow.review_ms / 60_000, 0.05, 2)
+        : MINUTES_PER_REVIEW;
+    const cal = { minutesPerNewCard, minutesPerReview };
+
+    const dailyTimeBudgetMinutes = Math.round(dailyNewLimit * minutesPerNewCard + dailyReviewLimit * minutesPerReview);
+
+    // 3. Available days until exam — LOCAL calendar days (see daysUntilExamLocal).
+    //    Clamped to ≥1 so the projection math stays well-defined even on/after exam
+    //    day (a today-or-past exam yields daysUntil ≤ 0).
+    const availableDays = Math.max(1, daysUntilExamLocal(examRow.exam_date));
 
     // 4. Unseen cards with yield levels via inline yield-score CTE
     type UnseenRow = {
@@ -193,32 +225,7 @@ export function computePlan(userId: string, examKey: string, deckIds?: string[],
         max_confidence: number | null;
     };
 
-    const yieldCte = `
-        WITH yield_cte AS (
-            SELECT
-                cc.card_id,
-                ROUND(SUM(
-                    ((bs.weight_min + bs.weight_max) / 2.0)
-                    * bt.relative_weight
-                    * cc.confidence
-                    * cc.split_weight
-                    * 100
-                ), 1) AS yield_score,
-                MAX(cc.confidence) AS max_confidence,
-                (
-                    SELECT bs2.system_key
-                    FROM card_classifications cc2
-                    JOIN blueprint_systems bs2 ON bs2.id = cc2.system_id
-                    WHERE cc2.card_id = cc.card_id AND cc2.exam_id = cc.exam_id
-                    ORDER BY cc2.split_weight DESC LIMIT 1
-                ) AS system_key
-            FROM card_classifications cc
-            JOIN blueprint_systems bs ON bs.id = cc.system_id
-            JOIN blueprint_topics bt ON bt.id = cc.topic_id
-            WHERE cc.exam_id = ?
-            GROUP BY cc.card_id
-        )
-    `;
+    const yieldCte = `WITH yield_cte AS (${yieldCteBody()})`;
 
     let unseenRows: UnseenRow[];
     if (deckFilter) {
@@ -252,15 +259,16 @@ export function computePlan(userId: string, examKey: string, deckIds?: string[],
     const unseenLowYield       = withLevels.filter(c => c.level === 'low').length;
     const unseenUnclassified   = withLevels.filter(c => c.level === 'unclassified').length;
 
-    // 5. Recommended new per day — find max n where peak-week load fits budget
+    // 5. Recommended new per day — the max rate whose projected PEAK daily load
+    //    (over the whole study window, calibrated to the user's timings) still fits
+    //    their daily time budget. Peak rises monotonically with the rate, so break
+    //    on the first rate that overshoots.
     const maxNeeded = unseenTotal > 0 ? Math.ceil(unseenTotal / availableDays) : 100;
     let recommendedNewPerDay = 5;
     for (let n = 5; n <= 100; n++) {
-        if (dailyMinutes(n, PEAK_WEEK) <= dailyTimeBudgetMinutes) {
-            recommendedNewPerDay = n;
-        } else {
-            break;
-        }
+        const { peakMinutes } = buildWeeklyProjection(n, unseenTotal, availableDays, 16, cal);
+        if (peakMinutes <= dailyTimeBudgetMinutes) recommendedNewPerDay = n;
+        else break;
     }
     recommendedNewPerDay = Math.min(recommendedNewPerDay, maxNeeded, 100);
 
@@ -272,14 +280,14 @@ export function computePlan(userId: string, examKey: string, deckIds?: string[],
 
     // 6. Projected coverage — sort by yield priority, take first projectedCoverageCount
     const projectedCoverageCount = Math.min(unseenTotal, effectiveRate * availableDays);
-    const sorted = [...withLevels].sort((a, b) => LEVEL_ORDER[a.level] - LEVEL_ORDER[b.level]);
+    const sorted = [...withLevels].sort((a, b) => YIELD_LEVEL_ORDER[a.level] - YIELD_LEVEL_ORDER[b.level]);
     const inPlanIds = new Set(sorted.slice(0, projectedCoverageCount).map(c => c.card_id));
     const projectedCoverage = unseenTotal > 0 ? projectedCoverageCount / unseenTotal : 1;
 
     // 7. Weekly projection — exhaustion-aware (shared cohort math, lib/planMath).
-    //    Capped at 16 weeks to match the snapshot the UI renders.
+    //    16 rows for display; peakMinutes is measured over the FULL window regardless.
     const { weeks: weeklyProjection, peakMinutes: projectedPeakDailyMinutes } =
-        buildWeeklyProjection(effectiveRate, unseenTotal, availableDays, 16);
+        buildWeeklyProjection(effectiveRate, unseenTotal, availableDays, 16, cal);
 
     // 8. System coverage — join with performance needs
     type SysRow = { system_key: string; label: string; weight_min: number | null; weight_max: number | null };
@@ -289,6 +297,39 @@ export function computePlan(userId: string, examKey: string, deckIds?: string[],
 
     const perfNeeds = getSystemPerformanceNeeds(userId, examKey);
     const perfMap   = new Map(perfNeeds.map(n => [n.system_key, n.performance_need]));
+
+    // Studied (non-new) classified cards per DOMINANT system (max split_weight),
+    // matching how unseen cards are bucketed — so seen + unseen describe the same
+    // per-system population. Scoped to the plan's decks when a deck filter is set.
+    type SeenRow = { system_key: string; seen: number };
+    const domSubquery = `
+        SELECT cc.card_id,
+            (SELECT bs2.system_key FROM card_classifications cc2
+             JOIN blueprint_systems bs2 ON bs2.id = cc2.system_id
+             WHERE cc2.card_id = cc.card_id AND cc2.exam_id = cc.exam_id
+             ORDER BY cc2.split_weight DESC LIMIT 1) AS system_key
+        FROM card_classifications cc WHERE cc.exam_id = ? GROUP BY cc.card_id`;
+    let seenRows: SeenRow[];
+    if (deckFilter) {
+        const ph = deckFilter.map(() => '?').join(',');
+        seenRows = db.prepare(`
+            SELECT dom.system_key, COUNT(*) AS seen
+            FROM cards c
+            JOIN notes n ON n.id = c.note_id
+            JOIN (${domSubquery}) dom ON dom.card_id = c.id
+            WHERE c.user_id = ? AND c.state != 'new' AND dom.system_key IS NOT NULL AND n.deck_id IN (${ph})
+            GROUP BY dom.system_key
+        `).all(examRow.exam_id, userId, ...deckFilter) as SeenRow[];
+    } else {
+        seenRows = db.prepare(`
+            SELECT dom.system_key, COUNT(*) AS seen
+            FROM cards c
+            JOIN (${domSubquery}) dom ON dom.card_id = c.id
+            WHERE c.user_id = ? AND c.state != 'new' AND dom.system_key IS NOT NULL
+            GROUP BY dom.system_key
+        `).all(examRow.exam_id, userId) as SeenRow[];
+    }
+    const seenMap = new Map(seenRows.map(r => [r.system_key, r.seen]));
 
     const systemCoverage: SystemCoverageRow[] = systemRows.map(sys => {
         const sysCards   = withLevels.filter(c => c.system_key === sys.system_key);
@@ -301,6 +342,7 @@ export function computePlan(userId: string, examKey: string, deckIds?: string[],
             label: sys.label,
             blueprintWeightMidpoint: (wMin + wMax) / 2,
             totalCards,
+            seenCards: seenMap.get(sys.system_key) ?? 0,
             cardsInPlan,
             cardsSkipped: totalCards - cardsInPlan,
             coveragePct: totalCards > 0 ? Math.round((cardsInPlan / totalCards) * 100) : 100,
@@ -327,6 +369,8 @@ export function computePlan(userId: string, examKey: string, deckIds?: string[],
         systemCoverage,
         dailyTimeBudgetMinutes,
         projectedPeakDailyMinutes,
+        minutesPerNewCard,
+        minutesPerReview,
         deckFilter,
         generatedAt: new Date().toISOString(),
     };
@@ -425,8 +469,19 @@ export function getActivePlan(userId: string, examKey?: string): ActivePlanResul
         'SELECT daily_new_limit, plan_override_expires_at FROM user_profiles WHERE id = ?'
     ).get(userId) as { daily_new_limit: number | null; plan_override_expires_at: string | null } | undefined;
 
+    const plan = rowToPlan(row);
+
+    // Live view — recompute coverage / weekly projection / system coverage / current
+    // unseen pool / days-to-exam from the plan's committed inputs (its chosen rate and
+    // deck scope) so the active-plan screen reflects reality (moved exam date, cards
+    // studied since commit, cards re-classified) instead of the frozen commit-time
+    // snapshot. Falls back to null when a recompute isn't possible; callers then use
+    // plan.snapshot. History (listPlans) always reads the frozen snapshot.
+    const liveView = computePlan(userId, resolvedExamKey, plan.deckFilter ?? undefined, plan.cardsPerDay);
+
     return {
-        plan:                rowToPlan(row),
+        plan,
+        liveView,
         overrideExpiresAt:   profileRow?.plan_override_expires_at ?? null,
         currentDailyNewLimit: profileRow?.daily_new_limit ?? row.cards_per_day,
     };

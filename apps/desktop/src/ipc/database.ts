@@ -80,8 +80,8 @@ export function setupDatabaseHandlers(): void {
     instrumentedHandle('db:fetchDueCardsFocused', (_e, deckId: string, systemKeys: string[], examKey: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) =>
         dbService.fetchDueCardsFocused(deckId, systemKeys, examKey, userId, dailyNewLimit, dailyReviewLimit));
 
-    instrumentedHandle('db:fetchDueCardsCrossDeck', (_e, userId: string, deckIds: string[] | null, dailyNewLimit?: number, dailyReviewLimit?: number, examKey?: string) =>
-        dbService.fetchDueCardsCrossDeck(userId, deckIds, dailyNewLimit, dailyReviewLimit, examKey));
+    instrumentedHandle('db:fetchDueCardsCrossDeck', (_e, userId: string, deckIds: string[] | null, dailyNewLimit?: number, dailyReviewLimit?: number, examKey?: string, globalNewLimit?: number) =>
+        dbService.fetchDueCardsCrossDeck(userId, deckIds, dailyNewLimit, dailyReviewLimit, examKey, globalNewLimit));
 
     instrumentedHandle('db:fetchDueCardsFocusedCrossDeck', (_e, userId: string, deckIds: string[] | null, systemKeys: string[], examKey: string, dailyNewLimit?: number, dailyReviewLimit?: number) =>
         dbService.fetchDueCardsFocusedCrossDeck(userId, deckIds, systemKeys, examKey, dailyNewLimit, dailyReviewLimit));

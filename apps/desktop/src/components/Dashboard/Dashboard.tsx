@@ -214,8 +214,11 @@ export default function Dashboard() {
 
     const greeting = getGreeting();
     const today = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
-    const projectedCoverage = activePlanResult
-        ? Math.round(activePlanResult.plan.snapshot.projectedCoverage * 100)
+    // Prefer the live-recomputed view (current exam date / unseen pool / classifications);
+    // fall back to the frozen commit-time snapshot when a recompute isn't available.
+    const planView = activePlanResult ? (activePlanResult.liveView ?? activePlanResult.plan.snapshot) : null;
+    const projectedCoverage = planView
+        ? Math.round(planView.projectedCoverage * 100)
         : null;
     const newToday = todaySummary?.newCount ?? null;
 
@@ -376,7 +379,7 @@ export default function Dashboard() {
                                     )}
                                     <div className="db-plan-stat">
                                         <span className="db-plan-stat__value">
-                                            {Math.round(activePlanResult.plan.snapshot.projectedCoverage * 100)}%
+                                            {projectedCoverage}%
                                         </span>
                                         <span className="db-plan-stat__label">proj. coverage</span>
                                     </div>

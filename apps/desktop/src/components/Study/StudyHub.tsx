@@ -5,9 +5,10 @@ import { Sparkles, Calendar, Layers, BookOpen, Target, Clock, CheckCircle2 } fro
 import { useAuthStore } from '../../stores/authStore';
 import { useSekelIntelligence } from '../../hooks/useSekelIntelligence';
 import { useExamProfile } from '../../hooks/useExamProfile';
-import { useActivePlan } from '../../hooks/usePlan';
+import { useActivePlan, useEffectivePlan, usePlanProgress } from '../../hooks/usePlan';
 import { useDecks, useDueCardsFocusedCrossDeck } from '../../hooks/useDecks';
 import { useDeckDueCounts } from '../../hooks/useDeckDueCounts';
+import { computeReviewAllTotals } from '../../lib/studyBudget';
 import { useAppNavigation } from '../../hooks/useAppNavigation';
 import type { Deck } from '../../lib/types';
 import './StudyHub.css';
@@ -46,6 +47,8 @@ export default function StudyHub() {
     const { data: examProfile } = useExamProfile();
     const examKey = examProfile?.exam_key;
     const { data: activePlan } = useActivePlan(examKey);
+    const { data: planProgress } = usePlanProgress(activePlan?.plan);
+    const effectiveNewPerDay = useEffectivePlan().effectiveNewPerDay;
     const { data: decks = [] } = useDecks();
     const { byDeck, isLoading: countsLoading } = useDeckDueCounts();
     const { goToCrossDeckSession } = useAppNavigation();
@@ -62,19 +65,42 @@ export default function StudyHub() {
         ? decks
         : decks.filter((d) => scopeDeckIds.includes(d.id));
 
-    // Per-deck actionable counts (new + learning + review), already daily-limit
-    // capped by useDeckDueCounts → matches what the session will actually serve.
-    let totalNew = 0, totalLearning = 0, totalReview = 0;
-    const perDeck = scopedDecks.map((deck) => {
+    // When the active plan owns this scope, new cards are a single GLOBAL daily
+    // budget (the session enforces it in fetchDueCardsCrossDeck), so the hub's
+    // "new" figure must be that shared remaining budget — not the per-deck sum,
+    // which would advertise more new cards than the session actually serves.
+    const planScoped = scope === 'plan' && hasPlan;
+    const newDoneToday = planProgress?.studiedToday ?? 0;
+    const planNewTarget = effectiveNewPerDay ?? 0;
+    const globalNewRemaining = planScoped ? Math.max(0, planNewTarget - newDoneToday) : null;
+
+    const deckCounts = scopedDecks.map((deck) => {
         const s = byDeck.get(deck.id);
-        const nw = s?.newCount ?? 0;
-        const lr = s?.learningCount ?? 0;
-        const rv = s?.reviewCount ?? 0;
-        totalNew += nw; totalLearning += lr; totalReview += rv;
-        return { deck, actionable: nw + lr + rv };
+        return {
+            deckId: deck.id,
+            newCount: s?.newCount ?? 0,
+            learningCount: s?.learningCount ?? 0,
+            reviewCount: s?.reviewCount ?? 0,
+        };
     });
-    const reviewAllCount = totalNew + totalLearning + totalReview;
+    const { totalNew, totalLearning, totalReview, reviewAllCount, perDeckActionable } =
+        computeReviewAllTotals(deckCounts, globalNewRemaining);
+    const perDeck = scopedDecks.map((deck) => ({ deck, actionable: perDeckActionable[deck.id] ?? 0 }));
     const estMinutes = Math.max(1, Math.round((reviewAllCount * SECONDS_PER_CARD) / 60));
+
+    // Plain-language note about the plan's daily new-card budget, so a used-up
+    // budget reads as "target met" rather than "where did my new cards go?".
+    const newBudgetNote = planScoped && planNewTarget > 0
+        ? (globalNewRemaining === 0
+            ? t('studyHub.new_done', {
+                defaultValue: "You've done today's new cards ({{done}}/{{target}}) — new cards resume tomorrow.",
+                done: newDoneToday, target: planNewTarget,
+            })
+            : t('studyHub.new_left', {
+                defaultValue: '{{count}} new cards left today.',
+                count: globalNewRemaining,
+            }))
+        : null;
 
     // "Caught up" = the day's scheduled obligations are cleared: no new cards left
     // to introduce and no due reviews. Learning-step cards may still be cycling
@@ -180,6 +206,12 @@ export default function StudyHub() {
                         <span className="study-hub__stat-label">{t('studyHub.est_label', { defaultValue: 'estimated' })}</span>
                     </div>
                 </div>
+            )}
+
+            {newBudgetNote && (
+                <p className="study-hub__budget-note" style={{ margin: '2px 2px 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    {newBudgetNote}
+                </p>
             )}
 
             <div className="study-hub__modes">

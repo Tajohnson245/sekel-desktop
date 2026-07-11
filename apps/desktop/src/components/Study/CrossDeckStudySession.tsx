@@ -43,7 +43,12 @@ export default function CrossDeckStudySession() {
     const planDeckIds = activePlan?.plan.deckFilter ?? null;
     const deckIds = scope === 'all' ? null : planDeckIds;
 
-    const dueResult = useDueCardsCrossDeck(deckIds, examKey, !isFocused);
+    // When studying the active plan's scope, enforce its new-card rate as a single
+    // GLOBAL budget across the scoped decks (not per deck). The Focused / Sekel
+    // Intelligence path is intentionally left per-deck so it can surface everything
+    // the user is struggling on.
+    const useGlobalNewBudget = scope === 'plan' && !!activePlan;
+    const dueResult = useDueCardsCrossDeck(deckIds, examKey, !isFocused, useGlobalNewBudget);
     const focusedResult = useDueCardsFocusedCrossDeck(deckIds, systemKeys, examKey, isFocused);
     const { data: cards = [], isLoading, refetch } = isFocused ? focusedResult : dueResult;
 

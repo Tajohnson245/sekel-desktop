@@ -6,6 +6,7 @@ import type { AIProgress } from '../../types/electron';
 import { useSaveDraft, useDrafts, DRAFT_LIMIT } from '../../hooks/useDrafts';
 import { useCreateNote, useNoteTypes, useCreateNoteType } from '../../hooks/useNotes';
 import { useDecks } from '../../hooks/useDecks';
+import { useExamProfile } from '../../hooks/useExamProfile';
 import { DEFAULT_NOTE_TYPES } from '../../lib/types';
 import DeckEditor from '../Deck/DeckEditor';
 import { Button, Input, Select, ImageUpload, useToast } from '../UI';
@@ -49,6 +50,16 @@ export default function AICardGenerator({ extractedText, contextSummary, context
     const { data: noteTypes = [] } = useNoteTypes(userId);
     const generateCards = useGenerateCards();
     const createNote = useCreateNote();
+    const { data: examProfile } = useExamProfile();
+
+    // Classify freshly-added AI cards against the primary exam so plan coverage
+    // reflects them (AI-generated cards were previously never classified).
+    // Fire-and-forget — never block the add flow on classification.
+    const classifyNewCards = (cardIds: string[]) => {
+        if (!examProfile?.exam_key || cardIds.length === 0) return;
+        void window.electronAPI.yield.classifyBatch(cardIds, examProfile.exam_key)
+            .catch(err => console.error('[ai] classification failed:', err));
+    };
     const createNoteType = useCreateNoteType();
     const saveDraft = useSaveDraft();
     const { data: drafts = [] } = useDrafts();
@@ -233,7 +244,7 @@ export default function AICardGenerator({ extractedText, contextSummary, context
         const backContent = card.back + (card.backImage ? `<br><img src="${card.backImage}" />` : '');
 
         try {
-            await createNote.mutateAsync({
+            const result = await createNote.mutateAsync({
                 note: {
                     user_id: userId,
                     deck_id: selectedDeckId,
@@ -245,6 +256,7 @@ export default function AICardGenerator({ extractedText, contextSummary, context
                 templateCount: 1,
             });
             setCards(prev => prev.filter((_, i) => i !== index));
+            classifyNewCards(result?.cards?.map(c => c.id) ?? []);
         } catch (_error) {
             showToast(t('errors.add_card'), 'error');
         }
@@ -256,13 +268,14 @@ export default function AICardGenerator({ extractedText, contextSummary, context
 
         const noteTypeId = await getDefaultNoteTypeId();
         let addedCount = 0;
+        const addedCardIds: string[] = [];
 
         for (const card of cards) {
             const frontContent = card.front + (card.frontImage ? `<br><img src="${card.frontImage}" />` : '');
             const backContent = card.back + (card.backImage ? `<br><img src="${card.backImage}" />` : '');
 
             try {
-                await createNote.mutateAsync({
+                const result = await createNote.mutateAsync({
                     note: {
                         user_id: userId,
                         deck_id: selectedDeckId,
@@ -273,6 +286,7 @@ export default function AICardGenerator({ extractedText, contextSummary, context
                     },
                     templateCount: 1,
                 });
+                addedCardIds.push(...(result?.cards?.map(c => c.id) ?? []));
                 addedCount++;
             } catch (_error) {
                 showToast(t('errors.add_card'), 'error');
@@ -282,6 +296,7 @@ export default function AICardGenerator({ extractedText, contextSummary, context
         setCards([]);
         if (addedCount > 0) {
             setSuccessMessage(t('ai.added_success', { count: addedCount }));
+            classifyNewCards(addedCardIds);
         }
     };
 

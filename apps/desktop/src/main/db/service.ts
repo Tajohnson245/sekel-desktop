@@ -219,6 +219,22 @@ function countStudiedToday(deckId: string, userId: string): { newStudied: number
     return { newStudied: newRow.cnt, reviewStudied: reviewRow.cnt };
 }
 
+/**
+ * Distinct NEW cards introduced today across a set of decks — the "studied so far"
+ * side of an active plan's GLOBAL daily new-card budget (as opposed to the per-deck
+ * countStudiedToday). Mirrors getPlanProgress.studiedToday so the study cap and the
+ * plan's progress card reconcile.
+ */
+function countNewStudiedTodayAcrossScope(userId: string, deckIds: string[]): number {
+    if (deckIds.length === 0) return 0;
+    const ph = deckIds.map(() => '?').join(',');
+    const row = getDb().prepare(`
+        SELECT COUNT(DISTINCT card_id) AS cnt FROM reviews
+        WHERE user_id = ? AND state_before = 'new' AND review_time >= ? AND deck_id IN (${ph})
+    `).get(userId, todayMidnight(), ...deckIds) as { cnt: number };
+    return row.cnt;
+}
+
 export function fetchDeckStats(
     deckId: string,
     userId?: string,
@@ -829,10 +845,70 @@ function interleaveCrossDeckCards(cards: CardWithNote[]): CardWithNote[] {
 }
 
 /**
+ * New (state='new') cards pooled across a set of decks, yield-ordered GLOBALLY and
+ * capped at `limit` total. Used for an active plan's global new-card budget so the
+ * highest-yield new cards across the whole scope are served first (not deck-by-deck).
+ * Mirrors the new-card query in fetchDueCards but spans `deck_id IN (…)`.
+ */
+function fetchScopeNewCards(userId: string, deckIds: string[], examKey: string, limit: number): CardWithNote[] {
+    if (deckIds.length === 0 || limit <= 0) return [];
+    const ph = deckIds.map(() => '?').join(',');
+    const rows = getDb().prepare(`
+        WITH yield_proxy AS (
+            SELECT cc.card_id,
+                MAX(((bs.weight_min + bs.weight_max) / 2.0) * cc.confidence * cc.split_weight) AS proxy
+            FROM card_classifications cc
+            JOIN blueprint_systems bs ON bs.id = cc.system_id
+            WHERE cc.exam_id = (SELECT id FROM blueprint_exams WHERE exam_key = ? LIMIT 1)
+            GROUP BY cc.card_id
+        )
+        SELECT
+            c.id, c.user_id, c.note_id, c.template_index,
+            c.state, c.due, c.stability, c.difficulty,
+            c.elapsed_days, c.scheduled_days, c.reps, c.lapses,
+            c.last_review, c.created_at, c.updated_at,
+            c.anki_meta    AS card_anki_meta,
+            n.id       AS note_id,
+            n.deck_id  AS deck_id,
+            n.note_type_id,
+            n.fields   AS note_fields,
+            n.tags     AS note_tags,
+            n.anki_meta AS note_anki_meta,
+            n.created_at AS note_created_at,
+            n.updated_at AS note_updated_at,
+            nt.id          AS nt_id,
+            nt.anki_id     AS nt_anki_id,
+            nt.anki_meta   AS nt_anki_meta,
+            nt.name        AS nt_name,
+            nt.fields      AS nt_fields,
+            nt.card_templates AS nt_templates,
+            nt.created_at  AS nt_created_at,
+            nt.updated_at  AS nt_updated_at
+        FROM cards c
+        JOIN notes n  ON c.note_id = n.id
+        JOIN note_types nt ON n.note_type_id = nt.id
+        LEFT JOIN yield_proxy yp ON yp.card_id = c.id
+        WHERE n.deck_id IN (${ph}) AND c.state = 'new' AND c.user_id = ?
+        ORDER BY
+            CASE WHEN yp.proxy IS NULL THEN 1 ELSE 0 END ASC,
+            yp.proxy DESC,
+            c.due ASC
+        LIMIT ?
+    `).all(examKey, ...deckIds, userId, limit) as CardWithNoteRow[];
+    return rows.map(buildCardWithNote);
+}
+
+/**
  * Due cards pooled across decks (Review All). deckIds=null → every deck the user
- * owns; otherwise the provided scope (e.g. an active plan's deckFilter). Daily
- * limits are applied PER DECK by delegating to fetchDueCards, so one deck's
- * budget never consumes another's and counts reconcile with the sidebar pills.
+ * owns; otherwise the provided scope (e.g. an active plan's deckFilter).
+ *
+ * Review/learning cards are ALWAYS pooled per deck (a due review must surface no
+ * matter which deck it lives in). New cards default to per-deck daily limits too —
+ * EXCEPT when `globalNewLimit` is supplied (an active plan owns this scope), in
+ * which case the new-card budget is a single shared pool across the scope: at most
+ * `globalNewLimit − (new already studied today across scope)` new cards total,
+ * served highest-yield first. This is what makes a plan's "N new/day" mean N total
+ * rather than N per deck. Reviews are untouched either way.
  */
 export function fetchDueCardsCrossDeck(
     userId: string,
@@ -840,8 +916,21 @@ export function fetchDueCardsCrossDeck(
     dailyNewLimit?: number,
     dailyReviewLimit?: number,
     examKey = 'step1',
+    globalNewLimit?: number,
 ): CardWithNote[] {
     const ids = resolveScopeDeckIds(userId, deckIds);
+
+    if (globalNewLimit != null) {
+        const remaining = Math.max(0, globalNewLimit - countNewStudiedTodayAcrossScope(userId, ids));
+        // Learning + reviews per deck (0 new — new cards come from the global pull).
+        // A null review limit means "no cap": use a very large number so fetchDueCards
+        // stays on its limited branch (its no-limit branch would re-introduce new cards).
+        const effReview = dailyReviewLimit ?? Number.MAX_SAFE_INTEGER;
+        const nonNew = ids.flatMap(id => fetchDueCards(id, userId, 0, effReview, examKey));
+        const newCards = fetchScopeNewCards(userId, ids, examKey, remaining);
+        return interleaveCrossDeckCards([...nonNew, ...newCards]);
+    }
+
     const pooled = ids.flatMap(id => fetchDueCards(id, userId, dailyNewLimit, dailyReviewLimit, examKey));
     return interleaveCrossDeckCards(pooled);
 }

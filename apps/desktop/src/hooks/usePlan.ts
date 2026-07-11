@@ -161,7 +161,9 @@ export function useCreatePlan() {
 
         onSuccess: (plan) => {
             if (!plan) return;
-            const result = { plan, overrideExpiresAt: null, currentDailyNewLimit: plan.cardsPerDay };
+            // Seed liveView with the freshly-committed snapshot; the next refetch
+            // (staleTime 0 → on mount) replaces it with a server-side recompute.
+            const result = { plan, liveView: plan.snapshot, overrideExpiresAt: null, currentDailyNewLimit: plan.cardsPerDay };
             // Seed the active-plan cache (the single source of truth) for both the
             // exam-scoped and unscoped query keys so the derived cap updates without
             // waiting for a refetch.
@@ -230,7 +232,9 @@ export function useReactivatePlan() {
         mutationFn: (planId: string) => reactivatePlan(userId!, planId),
         onSuccess: (plan) => {
             if (!plan) return;
-            const result = { plan, overrideExpiresAt: null, currentDailyNewLimit: plan.cardsPerDay };
+            // Seed liveView with the freshly-committed snapshot; the next refetch
+            // (staleTime 0 → on mount) replaces it with a server-side recompute.
+            const result = { plan, liveView: plan.snapshot, overrideExpiresAt: null, currentDailyNewLimit: plan.cardsPerDay };
             qc.setQueryData(planKeys.active(userId ?? '', plan.examKey), result);
             qc.setQueryData(planKeys.active(userId ?? ''), result);
             qc.invalidateQueries({ queryKey: planKeys.list(userId ?? '') });

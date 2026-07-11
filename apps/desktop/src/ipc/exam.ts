@@ -28,6 +28,22 @@ export function setupExamHandlers(): void {
             const mode = sessionMode ?? 'auto';
 
             db.transaction(() => {
+                // If this is a SWITCH to a different exam (not just a date/mode update
+                // to the same exam), archive the OUTGOING primary exam's active plans.
+                // getActivePlan resolves via is_primary, so a plan left active on the
+                // old exam would otherwise become a hidden orphan (and resurface if the
+                // user switches back). Mirrors exam:delete-profile's archival.
+                const currentPrimary = db.prepare(
+                    'SELECT exam_id FROM user_exam_profiles WHERE user_id = ? AND is_primary = 1'
+                ).get(userId) as { exam_id: number } | undefined;
+                if (currentPrimary && currentPrimary.exam_id !== examId) {
+                    db.prepare(`
+                        UPDATE plans SET status = 'archived', updated_at = ?
+                        WHERE user_id = ? AND status = 'active'
+                          AND exam_key = (SELECT exam_key FROM blueprint_exams WHERE id = ?)
+                    `).run(now, userId, currentPrimary.exam_id);
+                }
+
                 db.prepare(
                     'UPDATE user_exam_profiles SET is_primary = 0, updated_at = ? WHERE user_id = ? AND is_primary = 1'
                 ).run(now, userId);

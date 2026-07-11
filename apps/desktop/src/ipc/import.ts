@@ -6,6 +6,7 @@ import { processApkgFile } from '../main/import/apkg';
 import { parseAnkiDatabase } from '../main/import/parser';
 import { buildImportSummary } from '../main/import/summaryBuilder';
 import { executeImport } from '../main/import/insertionEngine';
+import { classifyCardsBatch } from './classify';
 import { extractMedia } from '../main/import/media';
 import { removeTempDir } from '../main/import/tempCleanup';
 import { fetchDecksByAnkiIds } from '../main/db/service';
@@ -187,10 +188,26 @@ export function setupImportHandlers(): void {
                 await removeTempDir(payload.tempDir);
             }
 
+            // Classify the freshly-imported cards against the user's primary exam so
+            // plan coverage reflects them (imported cards were never classified before).
+            // Fire-and-forget: never block or fail the import on classification.
+            const { cardIds: importedCardIds, ...importCounts } = insertResult!;
+            if (importedCardIds && importedCardIds.length > 0) {
+                const examRow = getDb().prepare(`
+                    SELECT be.exam_key FROM user_exam_profiles uep
+                    JOIN blueprint_exams be ON be.id = uep.exam_id
+                    WHERE uep.user_id = ? AND uep.is_primary = 1
+                `).get(payload.userId) as { exam_key: string } | undefined;
+                if (examRow) {
+                    void classifyCardsBatch(importedCardIds, examRow.exam_key)
+                        .catch(err => console.error('[import] post-import classification failed:', err));
+                }
+            }
+
             sendProgress(event.sender, { stage: 'complete', percent: 100 });
 
             return {
-                ...insertResult!,
+                ...importCounts,
                 mediaExtracted: mediaResult!.extracted,
                 mediaSkipped: mediaResult!.skipped,
                 mediaWarnings: mediaResult!.warnings,

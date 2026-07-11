@@ -11,6 +11,7 @@ import { OpenAI } from 'openai';
 const log = createLogger({ module: 'classify', transports: [consoleTransport] });
 import { getDb } from '../main/db/index';
 import { CARD_WITH_NOTE_SQL, buildCardWithNote, getSystemPerformanceNeeds, fetchDeckYieldMix } from '../main/db/service';
+import { yieldCteBody, toYieldLevel } from '../main/db/yieldSql';
 import type { SessionQueueCard } from '../types/electron';
 
 // ── OpenAI lazy singleton (same pattern as ai.ts) ──────────────────────────
@@ -237,7 +238,7 @@ async function classifyCard(
     return raw;
 }
 
-async function classifyCardsBatch(
+export async function classifyCardsBatch(
     cardIds: string[],
     examKey?: string,
     force: boolean = false,
@@ -247,6 +248,11 @@ async function classifyCardsBatch(
         'SELECT id FROM blueprint_exams WHERE exam_key = ?'
     ).get(resolvedExamKey) as { id: number } | undefined;
     if (!examRow) throw new Error(`Exam not found: ${resolvedExamKey}`);
+
+    // Fail fast on a missing OPENAI_API_KEY rather than letting every card fail
+    // individually (which used to return {classified:0, errors:N} and read as a
+    // silent "success, 0 classified" in the UI).
+    if (cardIds.length > 0) getOpenAI();
 
     let remaining = cardIds;
     let skipped = 0;
@@ -293,13 +299,6 @@ export interface YieldScoreRow {
     topicKey: string | null;
 }
 
-function toYieldLevel(score: number | null, confidence: number | null): YieldScoreRow['yieldLevel'] {
-    if (score === null || confidence === null || confidence < 0.5) return 'unclassified';
-    if (score >= 70) return 'high';
-    if (score >= 40) return 'medium';
-    return 'low';
-}
-
 function getYieldScores(examKey: string, cardIds?: string[]): YieldScoreRow[] {
     const db = getDb();
 
@@ -317,39 +316,7 @@ function getYieldScores(examKey: string, cardIds?: string[]): YieldScoreRow[] {
         params.push(...cardIds);
     }
 
-    const rows = db.prepare(`
-        SELECT
-            cc.card_id,
-            ROUND(
-                SUM(
-                    ((bs.weight_min + bs.weight_max) / 2.0)
-                    * bt.relative_weight
-                    * cc.confidence
-                    * cc.split_weight
-                    * 100
-                ), 1
-            ) AS yield_score,
-            MAX(cc.confidence) AS max_confidence,
-            (
-                SELECT bs2.system_key
-                FROM card_classifications cc2
-                JOIN blueprint_systems bs2 ON bs2.id = cc2.system_id
-                WHERE cc2.card_id = cc.card_id AND cc2.exam_id = cc.exam_id
-                ORDER BY cc2.split_weight DESC LIMIT 1
-            ) AS system_key,
-            (
-                SELECT bt2.topic_key
-                FROM card_classifications cc2
-                LEFT JOIN blueprint_topics bt2 ON bt2.id = cc2.topic_id
-                WHERE cc2.card_id = cc.card_id AND cc2.exam_id = cc.exam_id
-                ORDER BY cc2.split_weight DESC LIMIT 1
-            ) AS topic_key
-        FROM card_classifications cc
-        JOIN blueprint_systems bs ON bs.id = cc.system_id
-        JOIN blueprint_topics bt ON bt.id = cc.topic_id
-        WHERE cc.exam_id = ? ${cardFilter}
-        GROUP BY cc.card_id
-    `).all(...params) as Array<{
+    const rows = db.prepare(yieldCteBody(cardFilter)).all(...params) as Array<{
         card_id: string;
         yield_score: number | null;
         max_confidence: number | null;
@@ -479,37 +446,7 @@ function buildSessionQueue(userId: string, examKey: string, limit = 200): Sessio
     const { timeMultiplier, daysUntilExam } = computeTimeMultiplier(profileRow);
 
     const rows = db.prepare(`
-        WITH yield_cte AS (
-            SELECT
-                cc.card_id,
-                ROUND(SUM(
-                    ((bs.weight_min + bs.weight_max) / 2.0)
-                    * bt.relative_weight
-                    * cc.confidence
-                    * cc.split_weight
-                    * 100
-                ), 1) AS yield_score,
-                MAX(cc.confidence) AS max_confidence,
-                (
-                    SELECT bs2.system_key
-                    FROM card_classifications cc2
-                    JOIN blueprint_systems bs2 ON bs2.id = cc2.system_id
-                    WHERE cc2.card_id = cc.card_id AND cc2.exam_id = cc.exam_id
-                    ORDER BY cc2.split_weight DESC LIMIT 1
-                ) AS system_key,
-                (
-                    SELECT bt2.topic_key
-                    FROM card_classifications cc2
-                    LEFT JOIN blueprint_topics bt2 ON bt2.id = cc2.topic_id
-                    WHERE cc2.card_id = cc.card_id AND cc2.exam_id = cc.exam_id
-                    ORDER BY cc2.split_weight DESC LIMIT 1
-                ) AS topic_key
-            FROM card_classifications cc
-            JOIN blueprint_systems bs ON bs.id = cc.system_id
-            JOIN blueprint_topics bt ON bt.id = cc.topic_id
-            WHERE cc.exam_id = ?
-            GROUP BY cc.card_id
-        )
+        WITH yield_cte AS (${yieldCteBody()})
         SELECT base.*, ys.yield_score, ys.max_confidence, ys.system_key, ys.topic_key
         FROM (
             ${CARD_WITH_NOTE_SQL}

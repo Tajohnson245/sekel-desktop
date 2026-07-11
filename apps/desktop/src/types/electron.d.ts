@@ -249,7 +249,7 @@ interface ElectronDB {
     // Cards
     fetchDueCards:         (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => Promise<CardWithNote[]>;
     fetchDueCardsFocused:  (deckId: string, systemKeys: string[], examKey: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => Promise<CardWithNote[]>;
-    fetchDueCardsCrossDeck: (userId: string, deckIds: string[] | null, dailyNewLimit?: number, dailyReviewLimit?: number, examKey?: string) => Promise<CardWithNote[]>;
+    fetchDueCardsCrossDeck: (userId: string, deckIds: string[] | null, dailyNewLimit?: number, dailyReviewLimit?: number, examKey?: string, globalNewLimit?: number) => Promise<CardWithNote[]>;
     fetchDueCardsFocusedCrossDeck: (userId: string, deckIds: string[] | null, systemKeys: string[], examKey: string, dailyNewLimit?: number, dailyReviewLimit?: number) => Promise<CardWithNote[]>;
     fetchAllCardsForStudy: (deckId: string, limit?: number) => Promise<CardWithNote[]>;
     fetchAllCardsForDeck:  (deckId: string) => Promise<CardWithNote[]>;
@@ -521,7 +521,10 @@ export interface SystemCoverageRow {
     systemKey: string;
     label: string;
     blueprintWeightMidpoint: number;
+    /** Unseen (state='new') classified cards in this system, within plan scope. */
     totalCards: number;
+    /** Studied (non-new) classified cards in this system, within plan scope. */
+    seenCards: number;
     cardsInPlan: number;
     cardsSkipped: number;
     coveragePct: number;
@@ -550,6 +553,10 @@ export interface PlanResult {
     systemCoverage: SystemCoverageRow[];
     dailyTimeBudgetMinutes: number;
     projectedPeakDailyMinutes: number;
+    /** Per-card minutes used for this projection — calibrated from the user's real
+     *  review durations (falls back to model defaults). */
+    minutesPerNewCard: number;
+    minutesPerReview: number;
     /** Deck IDs this plan was scoped to; null = all decks. */
     deckFilter: string[] | null;
     generatedAt: string;
@@ -584,6 +591,11 @@ export interface Plan {
 
 export interface ActivePlanResult {
     plan: Plan;
+    /** Live-recomputed display view (coverage / weekly projection / system coverage /
+     *  current unseen pool / days-to-exam) from the plan's committed inputs; null when
+     *  a recompute isn't possible (fall back to plan.snapshot). plan.snapshot stays the
+     *  immutable commit-time record used by the plan history. */
+    liveView: PlanResult | null;
     /** plan_override_expires_at from user_profiles; null when no override is active. */
     overrideExpiresAt: string | null;
     /** user_profiles.daily_new_limit — equals cardsPerDay normally, override value when active. */
