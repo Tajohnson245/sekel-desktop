@@ -38,3 +38,4 @@ Key files, packages, and how they connect. Use a directory tree or bullet list.
 |------|-------------|
 | 2026-07-11 | Doc created. apps/desktop/src/__tests__/computePlan.test.ts,apps/desktop/src/__tests__/db.service.test.ts,apps/desktop/src/__tests__/planMath.test.ts,apps/desktop/src/__tests__/yieldSql.test.ts,apps/desktop/src/components/AIStudy/AICardGenerator.tsx,apps/desktop/src/components/Dashboard/Dashboard.tsx,apps/desktop/src/components/ExamOnboarding/ExamOnboardingModal.tsx,apps/desktop/src/components/Plan/PlanPage.tsx |
 | 2026-07-11 | Task completed |
+| 2026-07-11 | Task completed |
