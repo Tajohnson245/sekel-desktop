@@ -126,16 +126,30 @@ export function useDueCardsFocused(deckId: string | null, systemKeys: string[], 
  * deckFilter). Same daily-limit precedence as useDueCards; the main process
  * applies those limits per deck, so counts reconcile with the sidebar pills.
  */
-export function useDueCardsCrossDeck(deckIds: string[] | null, examKey: string | undefined, enabled = true) {
+/**
+ * @param useGlobalNewBudget when true (an active plan owns this scope), the plan's
+ * new-card rate is enforced as a SINGLE shared budget across the scope's decks —
+ * "N new/day" means N total, not N per deck. Reviews stay per-deck regardless.
+ */
+export function useDueCardsCrossDeck(
+    deckIds: string[] | null,
+    examKey: string | undefined,
+    enabled = true,
+    useGlobalNewBudget = false,
+) {
     const userId = useAuthStore((s) => s.user?.id);
     const profile = useProfileStore((s) => s.profile);
     const planNewPerDay = useEffectivePlan().effectiveNewPerDay;
     const limitsEnabled = profile?.daily_limits_enabled ?? true;
     const newLimit = planNewPerDay ?? (limitsEnabled ? (profile?.daily_new_limit ?? 20) : undefined);
     const reviewLimit = limitsEnabled ? (profile?.daily_review_limit ?? 200) : undefined;
+    // The global budget is the plan's effective rate; it's stable for the session
+    // (the remaining-today count is computed once in the main process at fetch time),
+    // so it's safe in the queryKey without causing a mid-session refetch.
+    const globalNewLimit = useGlobalNewBudget ? (planNewPerDay ?? undefined) : undefined;
     return useQuery<CardWithNote[]>({
-        queryKey: [...studyKeys.crossDeckDue(deckIds), newLimit, reviewLimit, examKey ?? ''],
-        queryFn: () => fetchDueCardsCrossDeck(userId!, deckIds, newLimit, reviewLimit, examKey),
+        queryKey: [...studyKeys.crossDeckDue(deckIds), newLimit, reviewLimit, examKey ?? '', globalNewLimit ?? null],
+        queryFn: () => fetchDueCardsCrossDeck(userId!, deckIds, newLimit, reviewLimit, examKey, globalNewLimit),
         enabled: !!userId && enabled,
     });
 }

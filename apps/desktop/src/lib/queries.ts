@@ -44,7 +44,7 @@ export const fetchDeckRetentionBatch = (deckIds: string[], userId: string, days?
 // ── Cards ────────────────────────────────────────────────────────────────────
 export const fetchDueCards = (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => db().fetchDueCards(deckId, userId, dailyNewLimit, dailyReviewLimit);
 export const fetchDueCardsFocused = (deckId: string, systemKeys: string[], examKey: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => db().fetchDueCardsFocused(deckId, systemKeys, examKey, userId, dailyNewLimit, dailyReviewLimit);
-export const fetchDueCardsCrossDeck = (userId: string, deckIds: string[] | null, dailyNewLimit?: number, dailyReviewLimit?: number, examKey?: string) => db().fetchDueCardsCrossDeck(userId, deckIds, dailyNewLimit, dailyReviewLimit, examKey);
+export const fetchDueCardsCrossDeck = (userId: string, deckIds: string[] | null, dailyNewLimit?: number, dailyReviewLimit?: number, examKey?: string, globalNewLimit?: number) => db().fetchDueCardsCrossDeck(userId, deckIds, dailyNewLimit, dailyReviewLimit, examKey, globalNewLimit);
 export const fetchDueCardsFocusedCrossDeck = (userId: string, deckIds: string[] | null, systemKeys: string[], examKey: string, dailyNewLimit?: number, dailyReviewLimit?: number) => db().fetchDueCardsFocusedCrossDeck(userId, deckIds, systemKeys, examKey, dailyNewLimit, dailyReviewLimit);
 export const fetchAllCardsForStudy = (deckId: string, limit?: number) => db().fetchAllCardsForStudy(deckId, limit);
 export const fetchAllCardsForDeck = (deckId: string) => db().fetchAllCardsForDeck(deckId);

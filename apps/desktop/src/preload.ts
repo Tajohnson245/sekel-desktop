@@ -84,7 +84,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         // Cards
         fetchDueCards:         (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => ipcRenderer.invoke('db:fetchDueCards', deckId, userId, dailyNewLimit, dailyReviewLimit),
         fetchDueCardsFocused:  (deckId: string, systemKeys: string[], examKey: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => ipcRenderer.invoke('db:fetchDueCardsFocused', deckId, systemKeys, examKey, userId, dailyNewLimit, dailyReviewLimit),
-        fetchDueCardsCrossDeck: (userId: string, deckIds: string[] | null, dailyNewLimit?: number, dailyReviewLimit?: number, examKey?: string) => ipcRenderer.invoke('db:fetchDueCardsCrossDeck', userId, deckIds, dailyNewLimit, dailyReviewLimit, examKey),
+        fetchDueCardsCrossDeck: (userId: string, deckIds: string[] | null, dailyNewLimit?: number, dailyReviewLimit?: number, examKey?: string, globalNewLimit?: number) => ipcRenderer.invoke('db:fetchDueCardsCrossDeck', userId, deckIds, dailyNewLimit, dailyReviewLimit, examKey, globalNewLimit),
         fetchDueCardsFocusedCrossDeck: (userId: string, deckIds: string[] | null, systemKeys: string[], examKey: string, dailyNewLimit?: number, dailyReviewLimit?: number) => ipcRenderer.invoke('db:fetchDueCardsFocusedCrossDeck', userId, deckIds, systemKeys, examKey, dailyNewLimit, dailyReviewLimit),
         fetchAllCardsForStudy: (deckId: string, limit?: number) => ipcRenderer.invoke('db:fetchAllCardsForStudy', deckId, limit),
         fetchAllCardsForDeck:  (deckId: string) => ipcRenderer.invoke('db:fetchAllCardsForDeck', deckId),

@@ -385,6 +385,11 @@ export function StudyTab() {
                                                 classified: classifyResult.classified,
                                                 skipped: classifyResult.skipped,
                                             })}
+                                            {classifyResult.errors > 0 && (
+                                                <span style={{ color: 'var(--danger, #c0392b)', marginLeft: 6 }}>
+                                                    · {t('classify.failed', { count: classifyResult.errors, defaultValue: '{{count}} failed' })}
+                                                </span>
+                                            )}
                                           </span>
                                 )}
                             </div>

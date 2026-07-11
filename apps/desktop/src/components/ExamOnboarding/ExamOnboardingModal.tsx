@@ -78,7 +78,11 @@ export function ExamOnboardingModal({ isOpen, onClose, onComplete }: ExamOnboard
             );
             const cardIds = cardIdLists.flat();
             if (cardIds.length > 0) {
-                window.electronAPI.yield.classifyBatch(cardIds, selectedExam.exam_key);
+                // Fire-and-forget, but guard the rejection so a failed start (e.g. a
+                // missing OPENAI_API_KEY, which now throws up-front) can't become an
+                // unhandled promise rejection. The user can re-run from Profile → Study.
+                void window.electronAPI.yield.classifyBatch(cardIds, selectedExam.exam_key)
+                    .catch(err => console.error('[onboarding] classification failed to start:', err));
             }
 
             showToast(t('exam.onboarding_complete'), 'success');

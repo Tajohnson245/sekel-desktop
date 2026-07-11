@@ -678,6 +678,39 @@ describe('cross-deck study', () => {
         expect(perDeck[deckB.id] ?? 0).toBe(1);
     });
 
+    it('enforces a GLOBAL new-card budget across scoped decks when globalNewLimit is set', () => {
+        const nt = seedNoteType();
+        const deckA = seedDeck('A');
+        const deckB = seedDeck('B');
+        seedNewCard(deckA.id, nt.id); seedNewCard(deckA.id, nt.id); seedNewCard(deckA.id, nt.id);
+        seedNewCard(deckB.id, nt.id); seedNewCard(deckB.id, nt.id); seedNewCard(deckB.id, nt.id);
+
+        // Per-deck (no globalNewLimit) would serve 2 from EACH deck = 4. With a global
+        // budget of 2, only 2 new cards total are served across the whole scope.
+        const cards = fetchDueCardsCrossDeck(USER, [deckA.id, deckB.id], 2, 200, 'step1', 2);
+        expect(cards.filter(c => c.state === 'new')).toHaveLength(2);
+    });
+
+    it('subtracts new cards already studied today across the scope from the global budget', () => {
+        const nt = seedNoteType();
+        const deckA = seedDeck('A');
+        const deckB = seedDeck('B');
+        const a1 = seedNewCard(deckA.id, nt.id); seedNewCard(deckA.id, nt.id);
+        seedNewCard(deckB.id, nt.id); seedNewCard(deckB.id, nt.id);
+        // One new card studied today in deck A (state_before='new').
+        const sess = createDeckSession(USER, deckA.id);
+        insertReview({
+            user_id: USER, card_id: a1.id, rating: 'good',
+            state_before: 'new', stability_before: 0, difficulty_before: 0,
+            state_after: 'learning', stability_after: 1, difficulty_after: 5,
+            scheduled_days: 0, session_id: sess.id, deck_id: deckA.id, review_index: 0,
+        });
+
+        // Budget 3, 1 already studied across the scope → 2 new remaining today.
+        const cards = fetchDueCardsCrossDeck(USER, [deckA.id, deckB.id], 3, 200, 'step1', 3);
+        expect(cards.filter(c => c.state === 'new')).toHaveLength(2);
+    });
+
     it('fetchDueCardsFocusedCrossDeck returns only weak-system cards, spanning decks', () => {
         seedBlueprint();
         const nt = seedNoteType();

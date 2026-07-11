@@ -36,6 +36,9 @@ export interface ImportResult {
     notesSkipped: number;
     cardsInserted: number;
     reviewsInserted: number;
+    /** Sekel card IDs created by this import — used to enqueue post-import
+     *  classification. Not surfaced to the renderer. */
+    cardIds?: string[];
 }
 
 export type ImportProgressCallback = (stage: string, detail: string, percent: number) => void;
@@ -363,7 +366,7 @@ export function executeImport(
         reviewsInserted: result.reviewsInserted,
     });
     metrics.increment('import.cards_inserted', {}, result.cardsInserted);
-    return result;
+    return { ...result, cardIds: Array.from(ankiCardIdToSekelCardId.values()) };
 }
 
 // ── Scheduling helpers ────────────────────────────────────────────────────────
