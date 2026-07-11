@@ -10,6 +10,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 >
 > **Format guideline (read me, this matters).** Until every user has installed v1.0.9 or later, the auto-update modal in their installed version uses the old `parseBullets()` renderer — it splits on newlines and treats each non-empty line as a `<li>` without parsing markdown. Anything fancier than a flat list shows `###` and `**` markers literally to those users. Write each release as a **flat bullet list with a bold lead-in**, no Keep-a-Changelog `### Added/Changed/Fixed` subheadings, no nested lists. Example: `- **Cleaner update notifications.** When a new version is ready…`. Old modals show `**Cleaner update notifications.** When a new version is ready…` (stray asterisks but readable); new modals render the bold properly. See `docs/features/desktop/in-progress/update-notes-format.md` for the full background.
 
+## [2.0.0] - 2026-07-11
+
+- **Your study plan's numbers now reflect reality.** Coverage, weekly workload, days-until-exam, and peak study time update as things change — move your exam date and the plan updates on its own, no rebuilding needed. Projected workload also eases off over time instead of climbing to unrealistic numbers.
+- **New cards are capped across your whole plan, not per deck.** A plan set to 20 new cards a day now means 20 total across your decks — before, a multi-deck plan could hand you several times that. Reviews are unaffected, and Focused / Sekel Intelligence sessions still surface everything you're struggling on.
+- **System Coverage tells the truth.** A system you've never studied now reads "Not started" instead of a misleading "On track," and a finished one reads "Covered" instead of "No data." Yield labels were recalibrated too, so cards spread sensibly across high / medium / low instead of nearly everything showing high-yield.
+- **Imported and AI-generated cards get sorted automatically.** Cards you bring in from Anki or generate with AI are now classified into your exam blueprint on their own, so plan coverage includes them without a manual step.
+- **Subject-exam (NBME shelf) coverage now works.** Shelf exams show System Coverage that used to come up blank.
+- **Switching your primary exam cleans up the old plan** instead of leaving it active and hidden in the background.
+- **Deck statistics and cross-deck study refinements.** Improvements to the deck stats view and the Review All experience across your decks.
+
+
 ## [1.1.0] - 2026-05-12
 
 ### Added
