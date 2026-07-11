@@ -20,10 +20,12 @@
         "expand": "展开",
         "collapse": "收起",
         "remove": "移除",
-        "loading_app": "SEKEL 加载中..."
+        "loading_app": "SEKEL 加载中...",
+        "search": "Search"
     },
     "nav": {
         "dashboard": "仪表板",
+        "study": "学习",
         "decks": "牌组",
         "cards": "卡片",
         "generate": "生成卡片",
@@ -31,7 +33,11 @@
         "new_deck": "新建牌组",
         "image_occlusion": "视觉卡片",
         "statistics": "统计",
-        "plan": "计划"
+        "plan": "计划",
+        "collapse_sidebar": "Collapse sidebar",
+        "open_sidebar": "Open sidebar",
+        "group_create": "创建",
+        "group_more": "更多"
     },
     "dashboard": {
         "welcome": "欢迎回来，{{name}}！",
@@ -97,7 +103,21 @@
         "mode_flashcard": "抽认卡",
         "delete": "删除",
         "loading": "加载牌组中...",
-        "error": "加载牌组失败"
+        "error": "加载牌组失败",
+        "summary": "{{decks}} decks · {{cards}} cards · {{due}} due today",
+        "browse": "Browse",
+        "col_deck": "Deck",
+        "col_new": "New",
+        "col_learning": "Learning",
+        "col_due": "Due",
+        "col_retention": "Retention",
+        "col_yield": "Yield mix",
+        "col_last": "Last studied",
+        "footer_status": "{{due}} due across {{decks}} decks · est. {{min}} min at current pace",
+        "select_deck": "Select deck",
+        "import_success": "Import complete",
+        "col_classified": "Classified",
+        "yield_tooltip": "高 {{high}} · 中 {{med}} · 低 {{low}} · 未分类 {{unc}}"
     },
     "study": {
         "session_complete": "学习完成！",
@@ -133,7 +153,7 @@
             "axis_rating": "评分",
             "lapse_rate": "遗忘率",
             "lapse_count": "{{count}} 次遗忘",
-            "lapse_rate_percent": "{{rate}}\u0025 遗忘率",
+            "lapse_rate_percent": "{{rate}}% 遗忘率",
             "most_forgotten": "最常遗忘的卡片",
             "no_forgotten": "没有遗忘的卡片",
             "no_data": "本次会话无数据",
@@ -172,7 +192,32 @@
             "final_sprint": "冲刺模式",
             "next_shift": "~{{days}}天后进入下一阶段",
             "max_urgency": "最高紧迫度"
-        }
+        },
+        "review_session_of": "Review session · {{current}} of {{total}} due",
+        "fsrs_optimal": "FSRS · optimal",
+        "high_yield": "HIGH YIELD",
+        "blueprint": "Blueprint",
+        "hint_reveal": "Press",
+        "hint_reveal_tail": "to reveal answer",
+        "footer": {
+            "reviewed": "reviewed",
+            "again": "again",
+            "avg_time": "avg",
+            "retention": "retention"
+        },
+        "sc_reveal": "reveal",
+        "sc_rate": "rate",
+        "sc_undo": "undo",
+        "sc_exit": "exit",
+        "undo_unavailable": "Can't undo — the list changed",
+        "undo_done": "Undid last rating",
+        "edit_soon": "In-session card editing is coming soon",
+        "exit_title": "Exit session?",
+        "exit_body": "Your progress is kept.",
+        "keep_studying": "Keep studying",
+        "exit": "Exit",
+        "review_all_title": "全部复习",
+        "focused_title": "专注学习"
     },
     "auth": {
         "login": "登录",
@@ -294,13 +339,19 @@
         "help_and_tour": "帮助与导览",
         "replay_tour": "重新播放应用导览",
         "replay_tour_desc": "再次浏览欢迎幻灯片和功能导览。",
-        "replay_tour_btn": "重新播放导览"
+        "replay_tour_btn": "重新播放导览",
+        "signed_in_as": "Signed in as",
+        "up_to_date": "up to date",
+        "minimal_study_view": "Minimal study view",
+        "minimal_study_view_desc": "Hide the session stats, shortcut hints, and the timer/status chips during study for a distraction-free view."
     },
     "verification": {
         "complete": "验证完成",
         "all_translated": "所有组件已翻译。"
     },
     "ai": {
+        "regenerate_with_ai": "用 AI 重新生成",
+        "regenerate_success": "卡片已重新生成 — 请检查并保存",
         "title": "AI 学习助手",
         "subtitle": "上传文档（PDF、DOCX、PPTX、图片）或 YouTube 视频以生成学习计划和抽认卡。",
         "upload_header": "上传文档",
@@ -331,13 +382,20 @@
         "added_badge": "已添加",
         "extracted_text": "提取的文本",
         "error_parsing": "解析失败",
+        "error_pdf_too_large": "PDF 有 {{numPages}} 页——最多支持 {{maxPages}} 页。请拆分为较小的文件后重新上传。",
         "error_video": "解析视频失败",
         "error_summary": "生成摘要失败",
         "error_generating": "生成卡片出错",
         "error_adding": "添加卡片失败",
-        "sections_label": "章节",
-        "chip_sections": "章节",
-        "chip_cards": "预计卡片",
+        "overview_label": "文档概览",
+        "chapter_word_count": "{{words}} 字",
+        "chapter_capacity": "容量约 {{n}} 张卡片",
+        "chapter_generate": "生成卡片",
+        "chapter_regenerate": "重新生成",
+        "chapter_generated_aria": "已从此章节生成卡片",
+        "no_chapters_found": "没有可用于生成卡片的内容。",
+        "filtered_out_label": "已排除：",
+        "filtered_out_count": "（{{count}} 个章节）",
         "items": "项目",
         "videos": "视频",
         "documents": "文档",
@@ -371,7 +429,21 @@
         "difficulty_essential": "仅核心要点",
         "difficulty_detailed": "详细",
         "custom_instructions": "自定义指令",
-        "custom_instructions_placeholder": "例如，仅关注关键定义…"
+        "custom_instructions_placeholder": "例如，仅关注关键定义…",
+        "pipeline_parsed": "已解析 {{count}} 个文件",
+        "pipeline_analyzing": "正在分析文档结构…",
+        "pipeline_generating": "正在生成卡片",
+        "pipeline_skipped_failed": "已跳过 {{count}} 个解析失败的文件。",
+        "cancel_pipeline": "取消并重新开始",
+        "regenerate_button": "重新生成卡片",
+        "show_settings": "显示生成设置",
+        "hide_settings": "隐藏生成设置",
+        "auto_generating_title": "正在生成您的卡片",
+        "auto_generating_subtitle": "正在读取文档、起草卡片并优化每一张。通常需要 30–90 秒。",
+        "preflight_count_hint": "最多 500 张。卡片将按你下面所选的格式进行分配。",
+        "preflight_formats_hint": "至少选择一种。混合格式有助于更丰富的学习体验。",
+        "preflight_need_files": "请先至少上传一个文档再生成卡片。",
+        "preflight_need_formats": "请至少选择一种卡片格式。"
     },
     "fsrs": {
         "title": "FSRS 设置",
@@ -396,7 +468,9 @@
         "delete_confirm_message": "此操作无法撤销。卡片将被永久从牌组中移除。",
         "edit_card": "编辑卡片",
         "delete_card": "删除卡片",
-        "image_badge": "图片"
+        "image_badge": "图片",
+        "search_placeholder": "Search cards in this deck",
+        "no_matches": "No cards match your search"
     },
     "drafts": {
         "title": "草稿",
@@ -520,6 +594,7 @@
         "fill_from_cloze": "从完形填空填充"
     },
     "errors": {
+        "regenerate_card": "重新生成卡片失败",
         "invalid_youtube_url": "请输入有效的 YouTube 网址",
         "upload_image": "图片上传失败",
         "upload_image_retry": "图片上传失败，请重试。",
@@ -542,7 +617,8 @@
         "youtube_rate_limited": "请求次数已达上限，请稍后再试",
         "youtube_transcript_not_available": "字幕不可用",
         "youtube_language_not_available": "语言不可用",
-        "youtube_network_error": "网络错误"
+        "youtube_network_error": "网络错误",
+        "generic": "Something went wrong"
     },
     "stats": {
         "title": "统计",
@@ -649,6 +725,25 @@
         "restoring": "恢复中...",
         "restore_success": "数据库恢复成功。请重新启动应用。",
         "restore_error": "从备份恢复失败",
+        "cloud_title": "云备份",
+        "cloud_description": "学习时你的数据会自动备份到云端。可将任意快照恢复到此设备。",
+        "cloud_backup_now": "立即备份",
+        "cloud_backing_up": "正在备份...",
+        "cloud_backup_success": "已创建云备份",
+        "cloud_backup_error": "创建云备份失败",
+        "cloud_available": "云快照",
+        "cloud_no_backups": "暂无云备份。学习时会自动创建。",
+        "cloud_unavailable": "云备份不可用。请确认你已登录。",
+        "cloud_review_count": "{{n}} 次复习",
+        "cloud_generation_daily": "每日",
+        "cloud_generation_weekly": "每周",
+        "cloud_generation_monthly": "每月",
+        "cloud_restore_confirm_title": "从云备份恢复",
+        "cloud_restore_confirm": "恢复并重启",
+        "cloud_restore_warning": "恢复将下载此快照并替换你当前的数据库。系统会先创建本地安全备份。",
+        "cloud_restore_danger": "自该备份以来的所有更改都将丢失。应用将会重启。",
+        "cloud_restore_success": "备份已恢复。正在重启...",
+        "cloud_restore_error": "从云备份恢复失败",
         "integrity_title": "数据库完整性",
         "integrity_desc": "运行检查以验证数据库是否损坏。",
         "check_database": "检查数据库",
@@ -809,5 +904,37 @@
                 "body": "密码、数据导入/导出、反馈和重新播放导览按钮都在这里。"
             }
         }
+    },
+    "tier": {
+        "upgrade": "Upgrade",
+        "dedicated_caption": "AI features + cloud backup active",
+        "free_caption": "Local FSRS + .apkg import"
+    },
+    "plan": {
+        "rebalance_accepted": "Plan updated",
+        "timeline_extended": "Timeline extended"
+    },
+    "studyHub": {
+        "subtitle": "跨牌组复习——所有到期卡片，或仅针对你的薄弱系统。",
+        "days_until": "天后",
+        "scope_label": "牌组范围",
+        "scope_plan": "计划牌组",
+        "scope_all": "全部牌组",
+        "total_due": "张到期",
+        "split_new": "新卡",
+        "split_learning": "学习中",
+        "split_review": "复习",
+        "est_time": "约 {{min}} 分钟",
+        "est_label": "预计",
+        "review_all_desc": "你所有牌组中的到期卡片，交错呈现。",
+        "begin_review_all": "开始全部复习（{{count}}）→",
+        "focused_desc": "你最薄弱的蓝图系统中的到期卡片。",
+        "classify_to_unlock": "对卡片进行分类以解锁针对薄弱系统的专注学习。",
+        "begin_focused": "开始专注学习（{{count}}）→",
+        "caught_up": "今天的学习已完成",
+        "caught_up_desc": "今天的新卡片和到期复习都已完成。",
+        "caught_up_learning": "还有 {{count}} 张卡片正在完成学习步骤。",
+        "nothing_due": "当前没有到期卡片",
+        "finish_learning": "完成学习（{{count}}）→"
     }
 }

@@ -47,6 +47,9 @@ export function useUpdateExamProfile() {
             updateExamProfile(userId!, updates),
         onSuccess: () => {
             if (userId) qc.invalidateQueries({ queryKey: examKeys.profile(userId) });
+            // The plan is anchored to the exam date, so recompute active plan +
+            // rebalance detection when it changes (e.g. "Extend timeline").
+            qc.invalidateQueries({ queryKey: ['plan'] });
         },
     });
 }

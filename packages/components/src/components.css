@@ -3,43 +3,51 @@
    Source of truth: stylescape/SEKEL_Stylescape_Spec.md
    ========================================================================== */
 
-/* Font loading is handled at the app level — add Google Fonts or local @font-face
-   in each app's entry CSS to activate --font-display, --font-body, --font-mono. */
+/* Font loading is handled at the app level (desktop bundles Lora/Inter/Roboto
+   Mono via @fontsource). These :root values mirror the desktop Ink v2 tokens
+   (DESIGN-SPEC.md §2) so the shared package cannot drift from the app. */
 
 :root {
-  /* --- Typography --- */
-  --font-display: 'DM Serif Display', Georgia, serif;
-  --font-body:    'Outfit', system-ui, sans-serif;
-  --font-mono:    'DM Mono', 'Courier New', monospace;
+  /* --- Typography (spec §3.1) --- */
+  --font-display: 'Lora', Georgia, serif;
+  --font-body:    'Inter', Calibri, system-ui, sans-serif;
+  --font-mono:    'Roboto Mono', 'Courier New', monospace;
 
-  /* --- Dark surfaces (default) --- */
-  --ink:       #0F1117;
-  --ink-soft:  #1C2030;
-  --ink-muted: #2E3348;
-  --slate:     #4A5270;
-  --mist:      #8B93A8;
-  --fog:       #BEC5D4;
-
-  /* --- Light surfaces --- */
-  --cloud: #E8ECF4;
-  --paper: #F4F6FB;
-  --white: #FFFFFF;
-
-  /* --- Accent — full --- */
+  /* --- Brand palette (spec §2.1) --- */
+  --ink:    #0F1117;
+  --slate:  #4A5270;
+  --mist:   #8B93A8;
+  --fog:    #C3C9D6;
+  --cloud:  #E6E9F0;
+  --paper:  #F7F8FA;
+  --white:  #FFFFFF;
   --teal:   #2BBFA4;
-  --amber:  #F0A500;
-  --rose:   #E05C6A;
-  --violet: #7C6EF5;
+  --amber:  #E8A33D;
+  --rose:   #E05C5C;
+  --violet: #8C7BE8;
 
-  /* --- Accent — soft backgrounds --- */
-  --teal-soft:   rgba(43, 191, 164, 0.08);
-  --amber-soft:  rgba(240, 165, 0, 0.10);
-  --rose-soft:   rgba(224, 92, 106, 0.10);
-  --violet-soft: rgba(124, 110, 245, 0.10);
+  /* --- Derived surfaces (spec §2.2) --- */
+  --side:       #0D1019;
+  --panel:      #151A26;
+  --panel-2:    #1B2130;
+  --panel-3:    #12161F;
+  --stroke:     #232838;
+  --nav-active: #161C2A;
+  --ink-soft:   var(--panel);
+  --ink-muted:  var(--panel-2);
 
-  /* --- Accent — borders & glow --- */
-  --teal-border: rgba(43, 191, 164, 0.22);
-  --teal-glow:   0 4px 20px rgba(43, 191, 164, 0.20);
+  /* --- Accent tints (color-mix, track active accent) --- */
+  --teal-tint:    color-mix(in srgb, var(--teal) 16%, transparent);
+  --teal-soft:    color-mix(in srgb, var(--teal) 10%, transparent);
+  --teal-border:  color-mix(in srgb, var(--teal) 45%, transparent);
+  --teal-glow:    0 4px 20px rgba(43, 191, 164, 0.20);
+  --amber-tint:   color-mix(in srgb, var(--amber) 16%, transparent);
+  --amber-soft:   color-mix(in srgb, var(--amber) 10%, transparent);
+  --rose-tint:    color-mix(in srgb, var(--rose) 16%, transparent);
+  --rose-soft:    color-mix(in srgb, var(--rose) 10%, transparent);
+  --rose-border:  color-mix(in srgb, var(--rose) 40%, transparent);
+  --violet-tint:  color-mix(in srgb, var(--violet) 16%, transparent);
+  --violet-soft:  color-mix(in srgb, var(--violet) 10%, transparent);
 
   /* --- Spacing --- */
   --space-xs:  4px;
@@ -50,28 +58,37 @@
   --space-2xl: 32px;
   --space-3xl: 48px;
 
-  /* --- Border radius --- */
-  --r-sm: 6px;
+  /* --- Border radius (spec §4) --- */
+  --r-chip:  6px;
+  --r-sm:    8px;
+  --r-nav:   10px;
+  --r-row:   12px;
+  --r-panel: 14px;
+  --r-card:  16px;
+  --r-full:  999px;
   --r-md: 12px;
-  --r-lg: 20px;
-  --r-xl: 28px;
+  --r-lg: 14px;
+  --r-xl: 16px;
 
-  /* --- Shadows --- */
-  --shadow-sm: 0 1px 3px rgba(15, 17, 23, 0.08), 0 1px 2px rgba(15, 17, 23, 0.04);
-  --shadow-md: 0 4px 16px rgba(15, 17, 23, 0.10), 0 1px 4px rgba(15, 17, 23, 0.06);
-  --shadow-lg: 0 12px 40px rgba(15, 17, 23, 0.14), 0 4px 12px rgba(15, 17, 23, 0.08);
+  /* --- Shadows (spec §4: only study card + toasts) --- */
+  --shadow-card: 0 12px 40px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.20);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.28);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.40);
 
   /* --- Compatibility aliases (used inline in chart TSX files) --- */
   --bg:      var(--ink);
-  --border:  var(--ink-muted);
+  --border:  var(--stroke);
   --muted:   var(--slate);
   --primary: var(--teal);
   --danger:  var(--rose);
   --warning: var(--amber);
-  --success: #22c55e;
+  --success: var(--teal);
 }
 
-/* Light theme overrides */
+/* Light theme overrides. The desktop app toggles a `.light` class on <html>;
+   the [data-theme] form is kept for other consumers of this package. */
+:root.light,
 [data-theme="light"] {
   --ink:       #FFFFFF;
   --ink-soft:  #F4F6FB;
@@ -82,6 +99,12 @@
   --white:     #0F1117;
   --cloud:     #1C2030;
   --paper:     #111827;
+  --side:       #FFFFFF;
+  --panel:      #F4F6FB;
+  --panel-2:    #E8ECF4;
+  --panel-3:    #F4F6FB;
+  --stroke:     #E8ECF4;
+  --nav-active: #E8ECF4;
 }
 
 /* --- Global utility classes used by components --- */

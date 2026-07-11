@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import { app } from 'electron';
 import path from 'node:path';
 import { MIGRATIONS } from './migrations';
+import { backfillPlanCoverage } from './backfill';
 import {
     STEP1_BLUEPRINT,
     STEP2CK_BLUEPRINT,
@@ -39,6 +40,7 @@ export function initDatabase(): Database.Database {
     runMigrations(db);
     seedBlueprints(db);
     cleanupOrphanPlanDeckFilters(db);
+    backfillPlanCoverage(db);
     return db;
 }
 

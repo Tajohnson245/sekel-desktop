@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Sparkles } from 'lucide-react';
 import { useCreateNote, useUpdateNote } from '../../hooks/useNotes';
-import { Button, Modal, RichTextEditor } from '../UI';
+import { Button, Modal, RichTextEditor, useToast } from '../UI';
 import { resolveMediaInHtml } from '../../lib/mediaResolver';
 import type { JoinedNote } from '@sekel/db';
 import type { OcclusionShape } from '../../lib/types';
@@ -14,8 +15,15 @@ interface NoteEditorProps {
     editingNote?: JoinedNote | null;
 }
 
+// Content is "empty" when it strips to no text and embeds no image.
+const isContentEmpty = (html: string) => {
+    const stripped = html.replace(/<[^>]*>/g, '').trim();
+    return !stripped && !html.includes('<img');
+};
+
 export default function NoteEditor({ deckId, userId, noteTypeId, onClose, editingNote }: NoteEditorProps) {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
+    const { showToast } = useToast();
 
     // Detect if this is an occlusion note (supports both legacy and new field names)
     const isOcclusion = !!(editingNote?.fields.Image && (editingNote?.fields.Rectangles || editingNote?.fields.Shapes));
@@ -29,6 +37,7 @@ export default function NoteEditor({ deckId, userId, noteTypeId, onClose, editin
     const [front, setFront] = useState(editingNote ? resolveMediaInHtml(getFrontField(), userId) : '');
     const [back, setBack] = useState(editingNote ? resolveMediaInHtml(getBackField(), userId) : '');
     const [error, setError] = useState<string | null>(null);
+    const [isRegenerating, setIsRegenerating] = useState(false);
 
     // Detect cloze content reactively from front field
     const isCloze = /\{\{c\d+::(.+?)\}\}/.test(front);
@@ -65,12 +74,6 @@ export default function NoteEditor({ deckId, userId, noteTypeId, onClose, editin
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
-
-        // Basic validation - check if content is empty or just HTML tags
-        const isContentEmpty = (html: string) => {
-            const stripped = html.replace(/<[^>]*>/g, '').trim();
-            return !stripped && !html.includes('<img');
-        };
 
         // For occlusion cards, text fields are optional
         if (!isOcclusion) {
@@ -166,6 +169,34 @@ export default function NoteEditor({ deckId, userId, noteTypeId, onClose, editin
         }
     };
 
+    // Ask the AI to rewrite this one card from its current front/back + format.
+    // The result only *populates* the form — it is never auto-saved, so the user
+    // reviews, tweaks, or discards before committing with Save.
+    const handleRegenerate = async () => {
+        if (isContentEmpty(front)) {
+            setError(t('modals.error_front_required'));
+            return;
+        }
+
+        setError(null);
+        setIsRegenerating(true);
+        try {
+            const card = await window.electronAPI.regenerateCard({
+                front,
+                back,
+                format: editingNote?.format ?? undefined,
+                language: i18n.language,
+            });
+            setFront(card.front);
+            setBack(card.back);
+            showToast(t('ai.regenerate_success'), 'success');
+        } catch {
+            showToast(t('errors.regenerate_card'), 'error');
+        } finally {
+            setIsRegenerating(false);
+        }
+    };
+
     // ─── Occlusion preview renderer ──────────────────────────────
     const renderOcclusionPreview = () => {
         if (!editingNote) return null;
@@ -187,8 +218,8 @@ export default function NoteEditor({ deckId, userId, noteTypeId, onClose, editin
         }
 
         const renderPreviewShape = (shape: OcclusionShape, isActive: boolean) => {
-            const fill = isActive ? '#3b82f6' : 'rgba(59,130,246,0.25)';
-            const stroke = isActive ? '#2563eb' : 'rgba(59,130,246,0.5)';
+            const fill = isActive ? 'var(--teal-tint)' : 'var(--violet)';
+            const stroke = isActive ? 'var(--teal)' : 'var(--violet)';
             const strokeWidth = isActive ? 0.6 : 0.4;
             switch (shape.type) {
                 case 'rect':
@@ -236,10 +267,27 @@ export default function NoteEditor({ deckId, userId, noteTypeId, onClose, editin
 
     const footer = (
         <>
+            {/* Regenerate the card's text with AI. Only for existing non-occlusion
+                cards — occlusion cards are image-based and have nothing to rewrite. */}
+            {editingNote && !isOcclusion && (
+                <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleRegenerate}
+                    disabled={isLoading || isRegenerating || isContentEmpty(front)}
+                    isLoading={isRegenerating}
+                    icon={<Sparkles size={16} />}
+                    style={{ marginRight: 'auto' }}
+                    data-testid="regenerate-ai-btn"
+                >
+                    {t('ai.regenerate_with_ai')}
+                </Button>
+            )}
+
             <Button
                 variant="secondary"
                 onClick={onClose}
-                disabled={isLoading}
+                disabled={isLoading || isRegenerating}
             >
                 {t('common.cancel')}
             </Button>
@@ -250,7 +298,7 @@ export default function NoteEditor({ deckId, userId, noteTypeId, onClose, editin
                     type="submit"
                     variant="secondary"
                     onClick={handleSubmit}
-                    disabled={isLoading}
+                    disabled={isLoading || isRegenerating}
                     data-testid="add-another-btn"
                     isLoading={isLoading}
                 >
@@ -261,7 +309,7 @@ export default function NoteEditor({ deckId, userId, noteTypeId, onClose, editin
             <Button
                 variant="primary"
                 onClick={handleSaveAndClose}
-                disabled={isLoading}
+                disabled={isLoading || isRegenerating}
                 data-testid="save-close-btn"
                 isLoading={isLoading}
             >

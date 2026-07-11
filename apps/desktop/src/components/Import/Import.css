@@ -43,8 +43,8 @@
     align-items: flex-start;
     gap: 0.5rem;
     padding: 0.625rem 0.875rem;
-    background: rgba(245, 158, 11, 0.08);
-    border: 1px solid rgba(245, 158, 11, 0.25);
+    background: var(--amber-soft);
+    border: 1px solid var(--amber-soft);
     border-radius: var(--radius);
     color: var(--warning);
     font-size: 0.8125rem;
@@ -74,8 +74,8 @@
     gap: 0.5rem;
     padding: 0.5rem 0.875rem;
     margin-bottom: 1rem;
-    background: rgba(245, 158, 11, 0.07);
-    border: 1px solid rgba(245, 158, 11, 0.2);
+    background: var(--amber-soft);
+    border: 1px solid var(--amber-soft);
     border-radius: var(--radius);
     color: var(--warning);
     font-size: 0.8125rem;
@@ -125,7 +125,7 @@
 
 .import-hierarchy-option.active {
     background: var(--primary);
-    color: var(--primary-fg, #fff);
+    color: var(--primary-fg, var(--ink));
     font-weight: 500;
 }
 
@@ -243,9 +243,9 @@
     font-size: 0.6875rem;
     font-weight: 600;
     border-radius: 9999px;
-    background: rgba(245, 158, 11, 0.12);
+    background: var(--amber-soft);
     color: var(--warning);
-    border: 1px solid rgba(245, 158, 11, 0.25);
+    border: 1px solid var(--amber-soft);
     flex-shrink: 0;
     text-transform: uppercase;
     letter-spacing: 0.03em;
@@ -278,15 +278,15 @@
     gap: 0.625rem;
     margin: 0 0.5rem 0.25rem;
     padding: 0.75rem 1rem;
-    background: rgba(239, 68, 68, 0.06);
-    border: 1px solid rgba(239, 68, 68, 0.2);
+    background: var(--rose-soft);
+    border: 1px solid var(--rose-border);
     border-radius: var(--radius);
     font-size: 0.8125rem;
     color: var(--text-secondary);
 }
 
 .import-overwrite-icon {
-    color: var(--danger, #ef4444);
+    color: var(--danger, var(--rose));
     flex-shrink: 0;
     margin-top: 1px;
 }

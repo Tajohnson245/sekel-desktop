@@ -46,59 +46,46 @@
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #24a98f;
-  box-shadow: var(--teal-glow);
+  filter: brightness(1.08);
 }
 
 .btn-primary:active:not(:disabled) {
-  background-color: #1e9480;
+  filter: brightness(0.96);
 }
 
-/* Secondary */
-.btn-secondary {
-  background-color: var(--ink-muted);
+/* Secondary / Ghost — PANEL fill, 1px STROKE, FOG label (spec §6) */
+.btn-secondary,
+.btn-ghost {
+  background-color: var(--panel);
   color:            var(--fog);
-  border-color:     var(--ink-muted);
+  border-color:     var(--stroke);
 }
 
-.btn-secondary:hover:not(:disabled) {
-  background-color: var(--slate);
-  color:            var(--white);
+.btn-secondary:hover:not(:disabled),
+.btn-ghost:hover:not(:disabled) {
+  background-color: var(--panel-2);
+  border-color:     var(--slate);
+  color:            var(--paper);
 }
 
-.btn-secondary:active:not(:disabled) {
-  background-color: var(--ink-muted);
+.btn-secondary:active:not(:disabled),
+.btn-ghost:active:not(:disabled) {
+  background-color: var(--panel-2);
 }
 
-/* Danger */
+/* Danger — transparent, ROSE outline, never a solid red button (spec §2.3) */
 .btn-danger {
-  background-color: var(--rose);
-  color:            #ffffff;
-  border-color:     transparent;
+  background-color: transparent;
+  color:            var(--rose);
+  border-color:     var(--rose-border);
 }
 
 .btn-danger:hover:not(:disabled) {
-  background-color: #c94d5a;
+  background-color: var(--rose-soft);
 }
 
 .btn-danger:active:not(:disabled) {
-  background-color: #b04350;
-}
-
-/* Ghost */
-.btn-ghost {
-  background-color: transparent;
-  color:            var(--mist);
-  border-color:     transparent;
-}
-
-.btn-ghost:hover:not(:disabled) {
-  background-color: var(--teal-soft);
-  color:            var(--teal);
-}
-
-.btn-ghost:active:not(:disabled) {
-  background-color: var(--ink-muted);
+  background-color: var(--rose-tint);
 }
 
 /* Icon variant — square, no text */

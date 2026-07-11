@@ -34,7 +34,7 @@
 .ai-format-pill {
     padding: 0.4rem 0.875rem;
     border-radius: 999px;
-    border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+    border: 1px solid var(--border, var(--stroke));
     background: transparent;
     color: var(--text-secondary, var(--mist));
     font-family: var(--font-body, 'Outfit', sans-serif);
@@ -50,7 +50,7 @@
 }
 
 .ai-format-pill--active {
-    background: var(--teal-soft, rgba(20, 184, 166, 0.15));
+    background: var(--teal-soft);
     border-color: var(--teal, var(--primary));
     color: var(--teal, var(--primary));
 }
@@ -73,14 +73,14 @@
 .ai-progress__label {
     font-family: var(--font-body, 'Outfit', sans-serif);
     font-size: 0.78rem;
-    color: var(--mist, #9ba0a8);
+    color: var(--mist);
     letter-spacing: 0.01em;
 }
 
 .ai-progress__track {
     height: 4px;
     border-radius: 2px;
-    background: var(--border, rgba(255, 255, 255, 0.08));
+    background: var(--border, var(--stroke));
     overflow: hidden;
 }
 
@@ -107,7 +107,7 @@
     align-items: center;
     gap: 0.5rem;
     padding: 0.75rem 1rem;
-    background: rgba(34, 197, 94, 0.15);
+    background: var(--teal-soft);
     border: 1px solid var(--success);
     border-radius: var(--radius);
     color: var(--success);
@@ -282,7 +282,7 @@
 
 .ai-card-item.added {
     opacity: 0.6;
-    background: rgba(34, 197, 94, 0.05);
+    background: var(--teal-soft);
 }
 
 .ai-card-content {
@@ -419,7 +419,7 @@
 }
 
 .btn-add-card:hover:not(:disabled) {
-    background: rgba(59, 130, 246, 0.2) !important;
+    background: var(--teal-soft) !important;
     color: var(--primary) !important;
     transform: scale(1.1);
 }
@@ -431,4 +431,103 @@
 
 .disabled-with-tooltip {
     cursor: help !important;
+}
+
+/* ── One-shot auto-generating loading view ─────────────────────────────────
+   Shown only on the first generation pass kicked off by autoStart. Centers
+   a sparkle icon, title, subtitle, and the progress bar in a single card.
+   ──────────────────────────────────────────────────────────────────────── */
+
+.ai-auto-generating {
+    max-width: 520px;
+    margin: 3rem auto 0;
+    padding: 2.5rem 2.25rem;
+    background: var(--secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 0.875rem;
+}
+
+.ai-auto-generating__icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--teal-soft);
+    color: var(--teal, var(--primary));
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ai-auto-generating__title {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: var(--fg);
+}
+
+.ai-auto-generating__subtitle {
+    margin: 0 0 0.5rem;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    max-width: 360px;
+}
+
+.ai-auto-generating .ai-progress {
+    width: 100%;
+    margin-top: 0.25rem;
+}
+
+/* ── Collapsible generation settings panel ─────────────────────────────────
+   Wraps the deck picker, card count, generate button, and the format /
+   difficulty / custom-instructions controls. Collapsed by default after
+   autoStart so the cards are the primary visual on the one-shot landing.
+   ──────────────────────────────────────────────────────────────────────── */
+
+.ai-settings-section {
+    background: var(--secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.ai-settings-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.875rem 1.25rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--fg);
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background 0.15s;
+}
+
+.ai-settings-toggle:hover {
+    background: var(--bg);
+}
+
+.ai-settings-toggle__label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.ai-settings-section.is-expanded .ai-settings-toggle {
+    border-bottom: 1px solid var(--border);
+}
+
+.ai-settings-panel {
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
 }

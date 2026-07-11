@@ -13,7 +13,7 @@ interface Props {
 function accuracyColor(accuracy: number): string {
     if (accuracy < 0.70) return 'var(--danger)';
     if (accuracy < 0.85) return 'var(--warning)';
-    return 'var(--success, #22c55e)';
+    return 'var(--teal)';
 }
 
 function pct(n: number): string {

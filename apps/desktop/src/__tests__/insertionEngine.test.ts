@@ -342,12 +342,13 @@ describe('executeImport — scheduling', () => {
         expect(cards[0].stability).toBe(0);
     });
 
-    it('keep: review card retains state=review and non-zero stability', () => {
+    it('keep: review card WITH history retains state=review and non-zero stability', () => {
         const model = makeModel(1001);
         const deck = makeDeck(2001, 'Bio');
         const note = makeNote(3001, 1001);
         const card = makeCard(4001, 3001, 2001, { type: 2, ivl: 30, factor: 2500, due: 19500 }); // review card
-        const collection = makeCollection({ decks: [deck], models: [model], notes: [note], cards: [card] });
+        const revlog = makeRevlog(1700000000000, 4001, { ease: 3, ivl: 30, lastIvl: 15, type: 1 });
+        const collection = makeCollection({ decks: [deck], models: [model], notes: [note], cards: [card], revlog: [revlog] });
 
         executeImport(makeOptions(collection, [makeDeckOption(2001, { scheduling: 'keep' })]), USER);
 
@@ -355,6 +356,22 @@ describe('executeImport — scheduling', () => {
         const cards = testDb.prepare("SELECT state, stability FROM cards WHERE user_id = ?").all(USER) as CardRow[];
         expect(cards[0].state).toBe('review');
         expect(cards[0].stability).toBe(30);
+    });
+
+    it('keep: review card with NO history imports as new (SEKEL-138)', () => {
+        const model = makeModel(1001);
+        const deck = makeDeck(2001, 'Bio');
+        const note = makeNote(3001, 1001);
+        // type=2 (review) but no revlog anywhere → "no data" → should reset to new.
+        const card = makeCard(4001, 3001, 2001, { type: 2, ivl: 30, factor: 2500, due: 19500 });
+        const collection = makeCollection({ decks: [deck], models: [model], notes: [note], cards: [card] });
+
+        executeImport(makeOptions(collection, [makeDeckOption(2001, { scheduling: 'keep' })]), USER);
+
+        type CardRow = { state: string; stability: number };
+        const cards = testDb.prepare("SELECT state, stability FROM cards WHERE user_id = ?").all(USER) as CardRow[];
+        expect(cards[0].state).toBe('new');
+        expect(cards[0].stability).toBe(0);
     });
 });
 

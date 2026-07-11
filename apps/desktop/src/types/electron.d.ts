@@ -117,12 +117,32 @@ export interface DocumentChunk {
     text: string;
 }
 
+export type DocumentSectionKind =
+    | 'chapter'
+    | 'frontmatter'
+    | 'references'
+    | 'appendix'
+    | 'content';
+
+export interface DocumentSection {
+    id: number;
+    title: string;
+    kind: DocumentSectionKind;
+    /** IDs of the chunks (in DocumentOverview.chunks) belonging to this section. */
+    chunkIds: number[];
+    wordCount: number;
+    /** Auto-derived classifier output. Drives the section picker's default selection. */
+    isContent: boolean;
+}
+
 export interface DocumentOverview {
     summary: string;
     topics: string[];
     estimatedCardCount: number;
     /** Pre-computed concept chunks. Used by the card generator to skip its own chunking step. */
     chunks: DocumentChunk[];
+    /** Chunks grouped into user-facing sections with content-type classification. */
+    sections: DocumentSection[];
 }
 
 export interface GeneratedCard {
@@ -148,6 +168,18 @@ export interface AIGenerationOptions {
     /** One or more card formats to generate. Total card count is split evenly across them. */
     cardFormats: CardFormat[];
     difficulty: 'essential' | 'detailed';
+    customInstructions?: string;
+}
+
+export interface RegenerateCardPayload {
+    /** Current front content of the card being edited (may contain HTML / cloze markup). */
+    front: string;
+    /** Current back content of the card being edited (may contain HTML). */
+    back: string;
+    /** The card's format, so the regenerated card keeps the same shape. Defaults to 'basic'. */
+    format?: CardFormat;
+    difficulty?: 'essential' | 'detailed';
+    language?: string;
     customInstructions?: string;
 }
 
@@ -205,6 +237,7 @@ interface ElectronDB {
     fetchDeckStats:        (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => Promise<DeckStats>;
     fetchAllDueCardsCount: (userId: string, dailyNewLimit?: number, dailyReviewLimit?: number) => Promise<number>;
     fetchGlobalRetention:  (userId: string, days?: number) => Promise<number | null>;
+    fetchDeckRetentionBatch: (deckIds: string[], userId: string, days?: number) => Promise<DeckRetentionRow[]>;
     // Statistics
     fetchTodaySummary:                    (userId: string) => Promise<TodaySummary>;
     fetchCardCountsByMaturity:            (userId: string, deckId?: string) => Promise<CardCountsByMaturity>;
@@ -216,6 +249,8 @@ interface ElectronDB {
     // Cards
     fetchDueCards:         (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => Promise<CardWithNote[]>;
     fetchDueCardsFocused:  (deckId: string, systemKeys: string[], examKey: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => Promise<CardWithNote[]>;
+    fetchDueCardsCrossDeck: (userId: string, deckIds: string[] | null, dailyNewLimit?: number, dailyReviewLimit?: number, examKey?: string, globalNewLimit?: number) => Promise<CardWithNote[]>;
+    fetchDueCardsFocusedCrossDeck: (userId: string, deckIds: string[] | null, systemKeys: string[], examKey: string, dailyNewLimit?: number, dailyReviewLimit?: number) => Promise<CardWithNote[]>;
     fetchAllCardsForStudy: (deckId: string, limit?: number) => Promise<CardWithNote[]>;
     fetchAllCardsForDeck:  (deckId: string) => Promise<CardWithNote[]>;
     updateCardAfterReview: (cardId: string, updates: Partial<Card>) => Promise<Card>;
@@ -236,6 +271,7 @@ interface ElectronDB {
     fetchUserReviewHistory: (userId: string, days?: number) => Promise<ReviewDayCount[]>;
     // Sessions
     createDeckSession:     (userId: string, deckId: string) => Promise<DeckSession>;
+    createStudySession:    (userId: string, kind: 'deck' | 'review_all' | 'focused', representativeDeckId: string, scope: 'all' | 'plan' | null, systemKeys: string[] | null) => Promise<DeckSession>;
     completeDeckSession:   (sessionId: string) => Promise<DeckSession>;
     abandonOpenSessions:          (userId: string) => Promise<void>;
     fetchBulkClassifiedCardCount: (deckIds: string[]) => Promise<number>;
@@ -330,12 +366,64 @@ interface ElectronBackup {
     onOpenRestore:  (cb: () => void) => () => void;
 }
 
+/** Supabase session the renderer pushes to main for RLS-scoped cloud writes. */
+export interface CloudBackupSessionInput {
+    userId: string;
+    accessToken: string;
+    refreshToken: string;
+    expiresAt?: number;
+}
+
+export interface CloudSnapshotInfo {
+    id: string;
+    createdAt: string;
+    generation: 'daily' | 'weekly' | 'monthly';
+    sizeBytes: number;
+    reviewCount: number | null;
+    appVersion: string | null;
+}
+
+export interface CloudRestoreResult {
+    success: boolean;
+    error?: string;
+    /** Local safety backup filename created before overwriting, if any. */
+    safetyBackup?: string;
+}
+
+interface ElectronCloudBackup {
+    setSession:   (session: CloudBackupSessionInput | null) => Promise<void>;
+    clearSession: () => Promise<void>;
+    /** Cheap per-review ping; snapshots automatically at the 25-review threshold. */
+    requestCheck: (reviewDelta?: number) => Promise<void>;
+    /** Manual "back up now" — bypasses the hourly cap. Resolves true on success. */
+    snapshotNow:  () => Promise<boolean>;
+    list:         () => Promise<CloudSnapshotInfo[]>;
+    restore:      (snapshotId: string) => Promise<CloudRestoreResult>;
+    /** Relaunch the app (used right after a cloud restore). */
+    restart:      () => Promise<void>;
+}
+
 export interface YieldScoreRow {
     cardId: string;
     yieldScore: number | null;
     yieldLevel: 'high' | 'medium' | 'low' | 'unclassified';
     systemKey: string | null;
     topicKey: string | null;
+}
+
+/** Per-deck retention numerator/denominator over a window (SEKEL-138). */
+export interface DeckRetentionRow {
+    deckId: string;
+    nonAgain: number;
+    total: number;
+}
+
+/** Per-deck yield-level distribution (SEKEL-138); unclassified is derived from deck totals. */
+export interface DeckYieldMix {
+    deckId: string;
+    high: number;
+    medium: number;
+    low: number;
 }
 
 export interface SessionQueueCard extends CardWithNote {
@@ -355,6 +443,7 @@ interface ElectronYield {
     getExplanation:    (cardId: string, examKey: string) => Promise<string>;
     buildSessionQueue: (userId: string, examKey: string, limit?: number) => Promise<SessionQueueCard[]>;
     getDeckClassificationCount: (deckId: string, examKey: string) => Promise<{ classified: number; total: number }>;
+    getDeckYieldMix: (deckIds: string[], examKey: string) => Promise<DeckYieldMix[]>;
 }
 
 export interface ClassificationResult {
@@ -432,7 +521,10 @@ export interface SystemCoverageRow {
     systemKey: string;
     label: string;
     blueprintWeightMidpoint: number;
+    /** Unseen (state='new') classified cards in this system, within plan scope. */
     totalCards: number;
+    /** Studied (non-new) classified cards in this system, within plan scope. */
+    seenCards: number;
     cardsInPlan: number;
     cardsSkipped: number;
     coveragePct: number;
@@ -461,6 +553,10 @@ export interface PlanResult {
     systemCoverage: SystemCoverageRow[];
     dailyTimeBudgetMinutes: number;
     projectedPeakDailyMinutes: number;
+    /** Per-card minutes used for this projection — calibrated from the user's real
+     *  review durations (falls back to model defaults). */
+    minutesPerNewCard: number;
+    minutesPerReview: number;
     /** Deck IDs this plan was scoped to; null = all decks. */
     deckFilter: string[] | null;
     generatedAt: string;
@@ -495,6 +591,11 @@ export interface Plan {
 
 export interface ActivePlanResult {
     plan: Plan;
+    /** Live-recomputed display view (coverage / weekly projection / system coverage /
+     *  current unseen pool / days-to-exam) from the plan's committed inputs; null when
+     *  a recompute isn't possible (fall back to plan.snapshot). plan.snapshot stays the
+     *  immutable commit-time record used by the plan history. */
+    liveView: PlanResult | null;
     /** plan_override_expires_at from user_profiles; null when no override is active. */
     overrideExpiresAt: string | null;
     /** user_profiles.daily_new_limit — equals cardsPerDay normally, override value when active. */
@@ -535,6 +636,8 @@ interface ElectronPlan {
     getProgress:   (userId: string, activatedAt: string, deckFilter: string[] | null) => Promise<PlanProgress | null>;
     setOverride:   (userId: string, newPerDayOverride: number) => Promise<void>;
     clearOverride: (userId: string) => Promise<void>;
+    /** Commit a new committed daily-new rate to the active plan (rebalance "accept"). */
+    updateRate:    (userId: string, examKey: string, newRate: number) => Promise<void>;
     fetchPlansReferencingDecks: (userId: string, deckIds: string[]) => Promise<{ id: string; name: string }[]>;
 }
 
@@ -566,8 +669,10 @@ interface ElectronAPI {
     deepLink: DeepLinkAPI;
     generateCards: (text: string, count?: number, language?: string, options?: AIGenerationOptions) => Promise<GeneratedCard[]>;
     generateCardsFromContext: (summary: string, content: string, count: number, language?: string, options?: AIGenerationOptions, chunks?: DocumentChunk[]) => Promise<GenerationResult>;
+    /** Regenerate a single existing card from its own front/back + format. Returns one fresh card. */
+    regenerateCard: (payload: RegenerateCardPayload) => Promise<GeneratedCard>;
     onAIProgress: (cb: (progress: AIProgress) => void) => () => void;
-    parseDocument: (file: { name: string, buffer?: ArrayBuffer, url?: string, type: string, language?: string }) => Promise<{ filename: string, content: string }>;
+    parseDocument: (file: { name: string, buffer?: ArrayBuffer, url?: string, type: string, language?: string }) => Promise<{ filename: string; content: string }>;
     generateSummary: (documents: Record<string, string>, language?: string) => Promise<DocumentOverview>;
     getSupabaseConfig: () => Promise<{ url: string; anonKey: string }>;
     notify: ElectronNotify;
@@ -577,6 +682,7 @@ interface ElectronAPI {
     admin: ElectronAdmin;
     yield: ElectronYield;
     backup: ElectronBackup;
+    cloudBackup: ElectronCloudBackup;
     exam: ElectronExam;
     plan: ElectronPlan;
     update: ElectronUpdate;

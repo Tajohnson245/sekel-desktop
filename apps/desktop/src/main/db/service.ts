@@ -10,7 +10,7 @@ import type {
     CardTemplate,
     Review,
     Media, MediaInsert,
-    DeckSession,
+    DeckSession, StudySessionKind,
     DraftCard, DraftCardInsert,
     SessionAnalytics,
     Rating,
@@ -219,6 +219,22 @@ function countStudiedToday(deckId: string, userId: string): { newStudied: number
     return { newStudied: newRow.cnt, reviewStudied: reviewRow.cnt };
 }
 
+/**
+ * Distinct NEW cards introduced today across a set of decks — the "studied so far"
+ * side of an active plan's GLOBAL daily new-card budget (as opposed to the per-deck
+ * countStudiedToday). Mirrors getPlanProgress.studiedToday so the study cap and the
+ * plan's progress card reconcile.
+ */
+function countNewStudiedTodayAcrossScope(userId: string, deckIds: string[]): number {
+    if (deckIds.length === 0) return 0;
+    const ph = deckIds.map(() => '?').join(',');
+    const row = getDb().prepare(`
+        SELECT COUNT(DISTINCT card_id) AS cnt FROM reviews
+        WHERE user_id = ? AND state_before = 'new' AND review_time >= ? AND deck_id IN (${ph})
+    `).get(userId, todayMidnight(), ...deckIds) as { cnt: number };
+    return row.cnt;
+}
+
 export function fetchDeckStats(
     deckId: string,
     userId?: string,
@@ -236,23 +252,25 @@ export function fetchDeckStats(
         WHERE n.deck_id = ?
     `).all(deckId) as StatRow[];
 
-    let newCount = 0;
+    let newTotal = 0;
     let learningCount = 0;
     let reviewCount = 0;
     for (const card of cards) {
-        if (card.state === 'new') newCount++;
+        if (card.state === 'new') newTotal++;
         else if (card.state === 'learning' || card.state === 'relearning') learningCount++;
         else if (card.state === 'review' && card.due <= now) reviewCount++;
     }
 
-    // Apply daily limits if provided
+    // newCount is the daily-available new (capped); newTotal is the deck's full
+    // new-card inventory (uncapped) that the decks page shows.
+    let newCount = newTotal;
     if (userId && dailyNewLimit != null && dailyReviewLimit != null) {
         const studied = countStudiedToday(deckId, userId);
-        newCount = Math.min(newCount, Math.max(0, dailyNewLimit - studied.newStudied));
+        newCount = Math.min(newTotal, Math.max(0, dailyNewLimit - studied.newStudied));
         reviewCount = Math.min(reviewCount, Math.max(0, dailyReviewLimit - studied.reviewStudied));
     }
 
-    return { deckId, newCount, learningCount, reviewCount, totalCount: cards.length };
+    return { deckId, newCount, newTotal, learningCount, reviewCount, totalCount: cards.length };
 }
 
 export function fetchAllDueCardsCount(
@@ -333,6 +351,92 @@ export function fetchGlobalRetention(userId: string, days = 30): number | null {
     if (rows.length === 0) return null;
     const nonAgain = rows.filter(r => r.rating !== 'again').length;
     return Math.round((nonAgain / rows.length) * 100);
+}
+
+export interface DeckRetentionRow {
+    deckId: string;
+    nonAgain: number;
+    total: number;
+}
+
+/**
+ * Per-deck retention over a rolling window for the decks page (SEKEL-138). Returns
+ * raw non-again / total review counts per deck (not a percentage) so parent rows can
+ * aggregate correctly — sum numerators and denominators across a subtree, then
+ * divide. Keyed on reviews.deck_id, which each review carries (accurate even for the
+ * cross-deck sessions from SEKEL-137). Decks with no reviews in-window are absent.
+ */
+export function fetchDeckRetentionBatch(deckIds: string[], userId: string, days = 30): DeckRetentionRow[] {
+    if (deckIds.length === 0) return [];
+    const since = new Date();
+    since.setDate(since.getDate() - days);
+    const placeholders = deckIds.map(() => '?').join(',');
+    const rows = getDb().prepare(`
+        SELECT
+            deck_id,
+            SUM(CASE WHEN rating <> 'again' THEN 1 ELSE 0 END) AS non_again,
+            COUNT(*) AS total
+        FROM reviews
+        WHERE user_id = ? AND deck_id IN (${placeholders}) AND review_time >= ?
+        GROUP BY deck_id
+    `).all(userId, ...deckIds, since.toISOString()) as Array<{ deck_id: string; non_again: number; total: number }>;
+    return rows.map(r => ({ deckId: r.deck_id, nonAgain: r.non_again, total: r.total }));
+}
+
+export interface DeckYieldMixRow {
+    deckId: string;
+    high: number;
+    medium: number;
+    low: number;
+}
+
+/**
+ * Per-deck yield-level distribution for the decks page (SEKEL-138). Buckets each
+ * classified card by the same score/confidence math the yield service uses
+ * (high ≥70, medium ≥40, low else; confidence < 0.5 → unclassified and excluded),
+ * grouped by its owning deck. `unclassified` is derived by the caller as
+ * totalCards − (high+medium+low), so it isn't returned here. Decks with no
+ * classified cards are absent from the result.
+ */
+export function fetchDeckYieldMix(deckIds: string[], examKey: string): DeckYieldMixRow[] {
+    if (deckIds.length === 0) return [];
+    const db = getDb();
+
+    const examRow = db.prepare('SELECT id FROM blueprint_exams WHERE exam_key = ?').get(examKey) as { id: number } | undefined;
+    if (!examRow) throw new Error(`Exam not found: ${examKey}`);
+
+    const placeholders = deckIds.map(() => '?').join(',');
+    const rows = db.prepare(`
+        WITH card_yield AS (
+            SELECT
+                n.deck_id AS deck_id,
+                cc.card_id AS card_id,
+                SUM(
+                    ((bs.weight_min + bs.weight_max) / 2.0)
+                    * bt.relative_weight
+                    * cc.confidence
+                    * cc.split_weight
+                    * 100
+                ) AS score,
+                MAX(cc.confidence) AS max_conf
+            FROM card_classifications cc
+            JOIN blueprint_systems bs ON bs.id = cc.system_id
+            JOIN blueprint_topics bt ON bt.id = cc.topic_id
+            JOIN cards c ON c.id = cc.card_id
+            JOIN notes n ON n.id = c.note_id
+            WHERE cc.exam_id = ? AND n.deck_id IN (${placeholders})
+            GROUP BY cc.card_id, n.deck_id
+        )
+        SELECT
+            deck_id,
+            SUM(CASE WHEN max_conf >= 0.5 AND score >= 70 THEN 1 ELSE 0 END) AS high,
+            SUM(CASE WHEN max_conf >= 0.5 AND score >= 40 AND score < 70 THEN 1 ELSE 0 END) AS medium,
+            SUM(CASE WHEN max_conf >= 0.5 AND score < 40 THEN 1 ELSE 0 END) AS low
+        FROM card_yield
+        GROUP BY deck_id
+    `).all(examRow.id, ...deckIds) as Array<{ deck_id: string; high: number; medium: number; low: number }>;
+
+    return rows.map(r => ({ deckId: r.deck_id, high: r.high, medium: r.medium, low: r.low }));
 }
 
 // ── Statistics ────────────────────────────────────────────────────────────────
@@ -717,13 +821,153 @@ export function fetchDueCardsFocused(
     return [...learningRows, ...newRows, ...reviewRows].map(buildCardWithNote);
 }
 
-export function fetchAllCardsForStudy(deckId: string, limit = 50): CardWithNote[] {
+// ── Cross-deck study (SEKEL-137) ────────────────────────────────────────────
+
+/** Deck IDs owned by the user, narrowed to a scope set when one is supplied. */
+function resolveScopeDeckIds(userId: string, deckIds: string[] | null): string[] {
+    if (deckIds && deckIds.length > 0) return deckIds;
+    const rows = getDb().prepare('SELECT id FROM decks WHERE user_id = ?').all(userId) as { id: string }[];
+    return rows.map(r => r.id);
+}
+
+/**
+ * Interleave cards pooled from several decks into one queue, mirroring the
+ * per-deck category ordering in fetchDueCards lifted across decks: learning /
+ * relearning first (by due), then new cards (each deck already yield-ordered by
+ * the per-deck fetch, kept in that order), then review cards (by due).
+ */
+function interleaveCrossDeckCards(cards: CardWithNote[]): CardWithNote[] {
+    const byDue = (a: CardWithNote, b: CardWithNote) => (a.due ?? '').localeCompare(b.due ?? '');
+    const learning = cards.filter(c => c.state === 'learning' || c.state === 'relearning').sort(byDue);
+    const fresh    = cards.filter(c => c.state === 'new');
+    const review   = cards.filter(c => c.state === 'review').sort(byDue);
+    return [...learning, ...fresh, ...review];
+}
+
+/**
+ * New (state='new') cards pooled across a set of decks, yield-ordered GLOBALLY and
+ * capped at `limit` total. Used for an active plan's global new-card budget so the
+ * highest-yield new cards across the whole scope are served first (not deck-by-deck).
+ * Mirrors the new-card query in fetchDueCards but spans `deck_id IN (…)`.
+ */
+function fetchScopeNewCards(userId: string, deckIds: string[], examKey: string, limit: number): CardWithNote[] {
+    if (deckIds.length === 0 || limit <= 0) return [];
+    const ph = deckIds.map(() => '?').join(',');
     const rows = getDb().prepare(`
+        WITH yield_proxy AS (
+            SELECT cc.card_id,
+                MAX(((bs.weight_min + bs.weight_max) / 2.0) * cc.confidence * cc.split_weight) AS proxy
+            FROM card_classifications cc
+            JOIN blueprint_systems bs ON bs.id = cc.system_id
+            WHERE cc.exam_id = (SELECT id FROM blueprint_exams WHERE exam_key = ? LIMIT 1)
+            GROUP BY cc.card_id
+        )
+        SELECT
+            c.id, c.user_id, c.note_id, c.template_index,
+            c.state, c.due, c.stability, c.difficulty,
+            c.elapsed_days, c.scheduled_days, c.reps, c.lapses,
+            c.last_review, c.created_at, c.updated_at,
+            c.anki_meta    AS card_anki_meta,
+            n.id       AS note_id,
+            n.deck_id  AS deck_id,
+            n.note_type_id,
+            n.fields   AS note_fields,
+            n.tags     AS note_tags,
+            n.anki_meta AS note_anki_meta,
+            n.created_at AS note_created_at,
+            n.updated_at AS note_updated_at,
+            nt.id          AS nt_id,
+            nt.anki_id     AS nt_anki_id,
+            nt.anki_meta   AS nt_anki_meta,
+            nt.name        AS nt_name,
+            nt.fields      AS nt_fields,
+            nt.card_templates AS nt_templates,
+            nt.created_at  AS nt_created_at,
+            nt.updated_at  AS nt_updated_at
+        FROM cards c
+        JOIN notes n  ON c.note_id = n.id
+        JOIN note_types nt ON n.note_type_id = nt.id
+        LEFT JOIN yield_proxy yp ON yp.card_id = c.id
+        WHERE n.deck_id IN (${ph}) AND c.state = 'new' AND c.user_id = ?
+        ORDER BY
+            CASE WHEN yp.proxy IS NULL THEN 1 ELSE 0 END ASC,
+            yp.proxy DESC,
+            c.due ASC
+        LIMIT ?
+    `).all(examKey, ...deckIds, userId, limit) as CardWithNoteRow[];
+    return rows.map(buildCardWithNote);
+}
+
+/**
+ * Due cards pooled across decks (Review All). deckIds=null → every deck the user
+ * owns; otherwise the provided scope (e.g. an active plan's deckFilter).
+ *
+ * Review/learning cards are ALWAYS pooled per deck (a due review must surface no
+ * matter which deck it lives in). New cards default to per-deck daily limits too —
+ * EXCEPT when `globalNewLimit` is supplied (an active plan owns this scope), in
+ * which case the new-card budget is a single shared pool across the scope: at most
+ * `globalNewLimit − (new already studied today across scope)` new cards total,
+ * served highest-yield first. This is what makes a plan's "N new/day" mean N total
+ * rather than N per deck. Reviews are untouched either way.
+ */
+export function fetchDueCardsCrossDeck(
+    userId: string,
+    deckIds: string[] | null,
+    dailyNewLimit?: number,
+    dailyReviewLimit?: number,
+    examKey = 'step1',
+    globalNewLimit?: number,
+): CardWithNote[] {
+    const ids = resolveScopeDeckIds(userId, deckIds);
+
+    if (globalNewLimit != null) {
+        const remaining = Math.max(0, globalNewLimit - countNewStudiedTodayAcrossScope(userId, ids));
+        // Learning + reviews per deck (0 new — new cards come from the global pull).
+        // A null review limit means "no cap": use a very large number so fetchDueCards
+        // stays on its limited branch (its no-limit branch would re-introduce new cards).
+        const effReview = dailyReviewLimit ?? Number.MAX_SAFE_INTEGER;
+        const nonNew = ids.flatMap(id => fetchDueCards(id, userId, 0, effReview, examKey));
+        const newCards = fetchScopeNewCards(userId, ids, examKey, remaining);
+        return interleaveCrossDeckCards([...nonNew, ...newCards]);
+    }
+
+    const pooled = ids.flatMap(id => fetchDueCards(id, userId, dailyNewLimit, dailyReviewLimit, examKey));
+    return interleaveCrossDeckCards(pooled);
+}
+
+/**
+ * Weak-system due cards pooled across decks (Focused / SEKEL Intelligence). Same
+ * per-deck limit delegation as fetchDueCardsCrossDeck but routed through
+ * fetchDueCardsFocused so the blueprint-system filter applies. An empty
+ * systemKeys degrades to Review-All behaviour (fetchDueCardsFocused handles that).
+ */
+export function fetchDueCardsFocusedCrossDeck(
+    userId: string,
+    deckIds: string[] | null,
+    systemKeys: string[],
+    examKey: string,
+    dailyNewLimit?: number,
+    dailyReviewLimit?: number,
+): CardWithNote[] {
+    const ids = resolveScopeDeckIds(userId, deckIds);
+    const pooled = ids.flatMap(id =>
+        fetchDueCardsFocused(id, systemKeys, examKey, userId, dailyNewLimit, dailyReviewLimit));
+    return interleaveCrossDeckCards(pooled);
+}
+
+export function fetchAllCardsForStudy(deckId: string, limit?: number): CardWithNote[] {
+    // "Review All" (mode=all) passes no limit → study every card in the deck, in
+    // least-recently-reviewed-first order. A caller may still cap the sample by
+    // passing an explicit limit.
+    const stmt = getDb().prepare(`
         ${CARD_WITH_NOTE_SQL}
         WHERE n.deck_id = ?
         ORDER BY c.last_review ASC NULLS FIRST
-        LIMIT ?
-    `).all(deckId, limit) as CardWithNoteRow[];
+        ${typeof limit === 'number' ? 'LIMIT ?' : ''}
+    `);
+    const rows = (typeof limit === 'number'
+        ? stmt.all(deckId, limit)
+        : stmt.all(deckId)) as CardWithNoteRow[];
     return rows.map(buildCardWithNote);
 }
 
@@ -945,6 +1189,33 @@ export function createDeckSession(userId: string, deckId: string): DeckSession {
         INSERT INTO deck_sessions (id, user_id, deck_id, status, started_at, completed_at, created_at)
         VALUES (?, ?, ?, 'in_progress', ?, NULL, ?)
     `).run(id, userId, deckId, now, now);
+    return getDb().prepare('SELECT * FROM deck_sessions WHERE id = ?').get(id) as DeckSession;
+}
+
+/**
+ * Create a typed study session (SEKEL-137). Cross-deck sessions ('review_all' /
+ * 'focused') still store a representative deck_id (deck_id stays NOT NULL); real
+ * per-review deck attribution lives on reviews.deck_id. `scope` and `systemKeys`
+ * record how the cross-deck queue was assembled for later analytics.
+ */
+export function createStudySession(
+    userId: string,
+    kind: StudySessionKind,
+    representativeDeckId: string,
+    scope: 'all' | 'plan' | null,
+    systemKeys: string[] | null,
+): DeckSession {
+    const now = new Date().toISOString();
+    const id = randomUUID();
+    getDb().prepare(`
+        INSERT INTO deck_sessions
+            (id, user_id, deck_id, status, kind, scope, system_keys, started_at, completed_at, created_at)
+        VALUES (?, ?, ?, 'in_progress', ?, ?, ?, ?, NULL, ?)
+    `).run(
+        id, userId, representativeDeckId, kind, scope,
+        systemKeys && systemKeys.length > 0 ? JSON.stringify(systemKeys) : null,
+        now, now,
+    );
     return getDb().prepare('SELECT * FROM deck_sessions WHERE id = ?').get(id) as DeckSession;
 }
 

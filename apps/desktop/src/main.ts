@@ -102,6 +102,8 @@ import { setupDatabaseHandlers } from './ipc/database';
 import { setupImportHandlers } from './ipc/import';
 import { setupNotificationHandlers } from './ipc/notifications';
 import { setupBackupHandlers } from './ipc/backup';
+import { setupCloudBackupHandlers } from './ipc/cloudBackup';
+import * as cloudBackup from './main/backup/cloudBackup';
 import { setupClassifyHandlers } from './ipc/classify';
 import { setupExamHandlers } from './ipc/exam';
 import { setupAdminHandlers } from './ipc/admin';
@@ -222,6 +224,10 @@ const createWindow = () => {
     mainWindow.once('ready-to-show', () => {
         mainWindow.show();
     });
+
+    // Cloud backup: watch for blur/idle to fire an idle snapshot when there are
+    // unsynced reviews (subject to the 1/hour cap).
+    cloudBackup.startIdleMonitor(mainWindow);
 
     // Route any window.open() / target="_blank" link clicks to the user's
     // default browser instead of letting Electron open a new BrowserWindow.
@@ -347,6 +353,7 @@ app.whenReady().then(() => {
         ['import', setupImportHandlers],
         ['notification', setupNotificationHandlers],
         ['backup', setupBackupHandlers],
+        ['cloudBackup', setupCloudBackupHandlers],
         ['classify', setupClassifyHandlers],
         ['exam', setupExamHandlers],
         ['admin', setupAdminHandlers],
@@ -432,12 +439,28 @@ app.whenReady().then(() => {
     });
 });
 
-app.on('before-quit', () => {
+// Guards against re-entrancy: once the closing snapshot has run (or timed out)
+// we let the quit proceed instead of deferring a second time.
+let closingSnapshotDone = false;
+
+app.on('before-quit', (event) => {
     try {
         abandonAllOpenSessions();
     } catch (err) {
         log.error('Failed to abandon open sessions on quit', { error: err instanceof Error ? err.message : String(err) });
     }
+
+    // Take a final cloud snapshot if there are unsynced reviews. snapshotOnClose
+    // is bounded by an internal timeout, so quit is never blocked indefinitely.
+    if (closingSnapshotDone || !cloudBackup.willSnapshotOnClose()) return;
+    event.preventDefault();
+    cloudBackup.snapshotOnClose()
+        .catch((err) => log.error('Closing cloud snapshot failed', { error: err instanceof Error ? err.message : String(err) }))
+        .finally(() => {
+            closingSnapshotDone = true;
+            cloudBackup.stopIdleMonitor();
+            app.quit();
+        });
 });
 
 app.on('window-all-closed', () => {

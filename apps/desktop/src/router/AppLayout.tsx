@@ -1,145 +1,107 @@
 import { useEffect, useState } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Library, FileText, Plus, Inbox, Layers, BarChart3, Activity, CalendarDays } from 'lucide-react';
+import { Outlet, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import sekelLogo from '../../assets/sekel_logo_draft.png';
+import { ChevronsRight } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { useProfileStore } from '../stores/profileStore';
-import { useDocsWorkStore } from '../stores/docsWorkStore';
-import { useDrafts } from '../hooks/useDrafts';
-import { useExamProfile } from '../hooks/useExamProfile';
-import { useActivePlan, usePlanRebalance, useClearPlanOverride } from '../hooks/usePlan';
-import { usePlanStore } from '../stores/planStore';
-import { UserProfile } from '../components/UserProfile';
+import { useExamProfile, useUpdateExamProfile } from '../hooks/useExamProfile';
+import { useActivePlan, usePlanRebalance, useClearPlanOverride, useUpdatePlanRate } from '../hooks/usePlan';
+import { useToast } from '../components/UI';
 import DocumentsPage from '../components/AIStudy/DocumentsPage';
 import { DeckEditorProvider } from '../contexts/DeckEditorContext';
-import { useDeckEditor } from '../contexts/DeckEditorContext';
 import UpdateAvailableModal from '../components/Update/UpdateAvailableModal';
 import { OnboardingTour } from '../components/Onboarding/OnboardingTour';
+import { FeatureUnlockTours } from '../components/Onboarding/FeatureUnlockTours';
 import { useVisibleTourStepIds } from '../components/Onboarding/useVisibleTourStepIds';
 import { useOnboardingStore, ONBOARDING_LOCALSTORAGE_KEY } from '../stores/onboardingStore';
+import { useGlobalKeyboard } from '../hooks/useGlobalKeyboard';
+import Sidebar from './Sidebar';
 
-function useIsAdmin() {
-    const { user } = useAuthStore();
-    const [isAdmin, setIsAdmin] = useState(false);
-    useEffect(() => {
-        if (user?.email) {
-            window.electronAPI.obs.isAdmin(user.email).then(setIsAdmin);
-        } else {
-            setIsAdmin(false);
-        }
-    }, [user?.email]);
-    return isAdmin;
-}
-
-function NavBar() {
-    const { t } = useTranslation();
-    const location = useLocation();
-    const navigate = useNavigate();
-    const { data: drafts = [] } = useDrafts();
-    const hasUnfinishedDocsWork = useDocsWorkStore((s) => s.hasUnfinishedWork);
-    const isAdmin = useIsAdmin();
-
-    const navItems = [
-        { id: 'dashboard', path: '/', label: t('nav.dashboard'), icon: LayoutDashboard },
-        { id: 'plan', path: '/plan', label: t('nav.plan'), icon: CalendarDays },
-        { id: 'decks', path: '/decks', label: t('nav.decks'), icon: Library },
-        { id: 'documents', path: '/documents', label: t('nav.generate'), icon: FileText },
-        { id: 'image-occlusion', path: '/image-occlusion', label: t('nav.image_occlusion'), icon: Layers },
-        { id: 'drafts', path: '/drafts', label: t('nav.drafts'), icon: Inbox },
-        { id: 'statistics', path: '/statistics', label: t('nav.statistics'), icon: BarChart3 },
-        ...(isAdmin ? [{ id: 'admin', path: '/admin', label: 'Diagnostics', icon: Activity }] : []),
-    ];
-
-    const isActive = (path: string) => {
-        if (path === '/') return location.pathname === '/';
-        return location.pathname.startsWith(path);
-    };
-
-    return (
-        <nav className="top-nav">
-            {navItems.map((item) => {
-                const Icon = item.icon;
-                const isDrafts = item.id === 'drafts';
-                const isDocs = item.id === 'documents';
-                return (
-                    <button
-                        key={item.id}
-                        className={`nav-link ${isActive(item.path) ? 'active' : ''}`}
-                        onClick={() => navigate(item.path)}
-                        aria-current={isActive(item.path) ? 'page' : undefined}
-                        aria-label={item.label}
-                        title={item.label}
-                        data-testid={`nav-${item.id}`}
-                    >
-                        <Icon size={18} />
-                        <span className="nav-link__label">{item.label}</span>
-                        {isDrafts && drafts.length > 0 && (
-                            <span className="nav-draft-badge">{drafts.length}</span>
-                        )}
-                        {isDocs && hasUnfinishedDocsWork && (
-                            <span className="nav-alert-badge" title="Unfinished work">!</span>
-                        )}
-                    </button>
-                );
-            })}
-        </nav>
-    );
-}
-
-function HeaderBar() {
-    const { t } = useTranslation();
-    const { openDeckEditor } = useDeckEditor();
-
-    return (
-        <header className="header">
-            <div className="header-left">
-                <img src={sekelLogo} alt="Sekel" className="header-logo" />
-                <NavBar />
-            </div>
-            <div className="header-right">
-                <button
-                    className="btn btn-primary"
-                    onClick={openDeckEditor}
-                    aria-label={t('nav.new_deck')}
-                    title={t('nav.new_deck')}
-                    data-testid="header-new-deck-btn"
-                >
-                    <Plus size={16} />
-                    <span className="header-cta__label">{t('nav.new_deck')}</span>
-                </button>
-                <UserProfile />
-            </div>
-        </header>
-    );
-}
-
+/**
+ * Rebalance notice — surfaces Plan Mode's silent morning rebalance (spec §9.1).
+ * Kept functionally intact; restyled onto v2 tokens in index.css.
+ */
 function RebalanceBanner() {
-    const { user }  = useAuthStore();
-    const userId    = user?.id ?? '';
-    const { t }     = useTranslation();
+    const { user } = useAuthStore();
+    const userId = user?.id ?? '';
+    const { t } = useTranslation();
+    const { showToast } = useToast();
 
     const { data: examProfile } = useExamProfile();
     const examKey = examProfile?.exam_key ?? null;
 
-    // useActivePlan seeds planStore on every app mount (no examKey = any active plan)
     const { data: activePlanResult } = useActivePlan();
-    const { data: delta }            = usePlanRebalance(examKey);
-    const clearOverride              = useClearPlanOverride();
-    const overrideExpiresAt          = usePlanStore(s => s.overrideExpiresAt);
+    const { data: delta } = usePlanRebalance(examKey);
+    const clearOverride = useClearPlanOverride();
+    const updateRate = useUpdatePlanRate();
+    const updateExam = useUpdateExamProfile();
 
     const [dismissed, setDismissed] = useState(false);
 
-    // On mount: clear a stale one-session override if it has passed midnight
+    // One-time DB cleanup: if an override's expiry has passed, clear it so the
+    // mirrored daily_new_limit doesn't linger.
     useEffect(() => {
         if (!userId) return;
-        const expires = activePlanResult?.overrideExpiresAt ?? overrideExpiresAt;
+        const expires = activePlanResult?.overrideExpiresAt;
         if (expires && new Date(expires) < new Date()) {
             clearOverride.mutate();
         }
     }, [userId, activePlanResult?.overrideExpiresAt]);
 
+    // Per-device acknowledgement (spec: don't re-pop every launch). Stores the
+    // highest daysMissed the user has already acted on; the banner only returns
+    // when they miss MORE days than that. Both actions below also mutate the
+    // plan so the detector itself stops firing — this is the belt-and-suspenders.
+    const ackKey = userId && examKey ? `sekel-rebalance-ack-${userId}-${examKey}` : null;
+    const ackDaysMissed = (() => {
+        if (!ackKey) return -1;
+        try { const v = localStorage.getItem(ackKey); return v == null ? -1 : parseInt(v, 10); }
+        catch { return -1; }
+    })();
+    const recordAck = (days: number) => {
+        if (!ackKey) return;
+        try { localStorage.setItem(ackKey, String(days)); } catch { /* ignore */ }
+    };
+
+    const busy = updateRate.isPending || updateExam.isPending;
+
     if (!delta || dismissed) return null;
+    // Already acknowledged this many (or fewer) missed days — stay hidden.
+    if (delta.daysMissed <= ackDaysMissed) return null;
+
+    // "Got it" — accept the recomputed higher rate and commit it to the plan.
+    const handleAccept = () => {
+        if (!examKey) return;
+        recordAck(delta.daysMissed);
+        setDismissed(true);
+        updateRate.mutate(
+            { examKey, newRate: delta.newNewPerDay },
+            {
+                onSuccess: () => showToast(t('plan.rebalance_accepted', { defaultValue: 'Plan updated' }), 'success'),
+                onError: () => { setDismissed(false); showToast(t('errors.generic', { defaultValue: 'Something went wrong' }), 'error'); },
+            },
+        );
+    };
+
+    // "Extend timeline instead" — push the exam date out just enough to keep the
+    // current daily pace, then recompute from there.
+    const handleExtend = () => {
+        if (!examKey || !examProfile?.exam_date) return;
+        const ratio = delta.previousNewPerDay > 0 ? delta.newNewPerDay / delta.previousNewPerDay : 1;
+        const extraDays = Math.max(1, Math.ceil(delta.availableDaysRemaining * (ratio - 1)));
+        const base = new Date(examProfile.exam_date);
+        base.setDate(base.getDate() + extraDays);
+        const newExamDate = base.toISOString().slice(0, 10);
+        recordAck(delta.daysMissed);
+        setDismissed(true);
+        updateExam.mutate(
+            { exam_date: newExamDate },
+            {
+                onSuccess: () => showToast(t('plan.timeline_extended', { defaultValue: 'Timeline extended' }), 'success'),
+                onError: () => { setDismissed(false); showToast(t('errors.generic', { defaultValue: 'Something went wrong' }), 'error'); },
+            },
+        );
+    };
 
     return (
         <div className="rebalance-banner">
@@ -151,11 +113,11 @@ function RebalanceBanner() {
             </span>
             <div className="rebalance-banner-actions">
                 {delta.canExtendTimeline && (
-                    <button className="btn btn-ghost btn-sm" onClick={() => setDismissed(true)}>
+                    <button className="btn btn-ghost btn-sm" onClick={handleExtend} disabled={busy}>
                         {t('plan.extend_timeline')}
                     </button>
                 )}
-                <button className="btn btn-ghost btn-sm" onClick={() => setDismissed(true)}>
+                <button className="btn btn-primary btn-sm" onClick={handleAccept} disabled={busy}>
                     {t('plan.got_it')}
                 </button>
             </div>
@@ -164,6 +126,7 @@ function RebalanceBanner() {
 }
 
 export default function AppLayout() {
+    const { t } = useTranslation();
     const { user } = useAuthStore();
     const { profile } = useProfileStore();
     const userId = user?.id || '';
@@ -178,8 +141,17 @@ export default function AppLayout() {
     const hasAttemptedProfileFetch = useProfileStore((s) => s.hasAttemptedFetch);
     const fetchProfile = useProfileStore((s) => s.fetchProfile);
 
-    // Help → Replay Tour from the native app menu (Ctrl/Cmd+Shift+T) clears
-    // the local "completed" flag and re-runs the onboarding from step 0.
+    useGlobalKeyboard();
+
+    // Collapsible sidebar (persisted).
+    const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+        try { return localStorage.getItem('sekel-sidebar-collapsed') === '1'; } catch { return false; }
+    });
+    useEffect(() => {
+        try { localStorage.setItem('sekel-sidebar-collapsed', sidebarCollapsed ? '1' : '0'); } catch { /* ignore */ }
+    }, [sidebarCollapsed]);
+
+    // Help → Replay Tour from the native app menu.
     useEffect(() => {
         if (typeof window.electronAPI?.tour?.onReplay !== 'function') return;
         return window.electronAPI.tour.onReplay(() => {
@@ -188,9 +160,7 @@ export default function AppLayout() {
         });
     }, [startOnboarding, visibleTourStepIds]);
 
-    // Make sure the profile fetch runs as soon as we have a user, regardless
-    // of which route they land on. A brand-new user has no user_profiles row
-    // yet (Supabase returns 406 / PGRST116) and the fetch settles with null.
+    // Fetch the profile as soon as we have a user, regardless of route.
     useEffect(() => {
         if (user?.id && !profile && !isProfileLoading && !hasAttemptedProfileFetch) {
             fetchProfile(user.id);
@@ -205,8 +175,6 @@ export default function AppLayout() {
             try { return localStorage.getItem(ONBOARDING_LOCALSTORAGE_KEY) === '1'; }
             catch { return false; }
         })();
-        // Brand-new user with no user_profiles row OR existing user whose
-        // onboarded_at is still null both count as first-time.
         const needsTour = !profile || !profile.onboarded_at;
         if (needsTour && !completedLocally && visibleTourStepIds.length > 0) {
             startOnboarding(visibleTourStepIds);
@@ -224,18 +192,31 @@ export default function AppLayout() {
                     backgroundAttachment: 'fixed',
                 } : undefined}
             >
-                <HeaderBar />
-                <RebalanceBanner />
+                <Sidebar collapsed={sidebarCollapsed} onToggle={() => setSidebarCollapsed((c) => !c)} />
 
-                <main className="main-content" data-testid="main-content">
-                    {/* Always mounted so generated cards survive navigation */}
-                    <div style={{ display: isDocumentsRoute ? 'contents' : 'none' }}>
-                        <DocumentsPage userId={userId} />
-                    </div>
-                    {!isDocumentsRoute && <Outlet />}
-                </main>
+                <div className="app-main">
+                    {sidebarCollapsed && (
+                        <button
+                            className="sidebar-reopen"
+                            onClick={() => setSidebarCollapsed(false)}
+                            aria-label={t('nav.open_sidebar', { defaultValue: 'Open sidebar' })}
+                            title={t('nav.open_sidebar', { defaultValue: 'Open sidebar' })}
+                        >
+                            <ChevronsRight size={16} />
+                        </button>
+                    )}
+                    <RebalanceBanner />
+                    <main className="main-content" data-testid="main-content">
+                        {/* Always mounted so generated cards survive navigation */}
+                        <div style={{ display: isDocumentsRoute ? 'contents' : 'none' }}>
+                            <DocumentsPage userId={userId} />
+                        </div>
+                        {!isDocumentsRoute && <Outlet />}
+                    </main>
+                </div>
 
                 <OnboardingTour />
+                <FeatureUnlockTours />
                 <UpdateAvailableModal />
             </div>
         </DeckEditorProvider>

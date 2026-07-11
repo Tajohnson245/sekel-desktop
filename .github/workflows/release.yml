@@ -82,6 +82,12 @@ jobs:
         working-directory: apps/desktop
         run: supabase functions deploy feedback-discord --project-ref uawkoueqectmkiyjcrtb --no-verify-jwt
 
+      - name: Deploy feedback-email edge function
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        working-directory: apps/desktop
+        run: supabase functions deploy feedback-email --project-ref uawkoueqectmkiyjcrtb --no-verify-jwt
+
   release:
     needs: deploy-server
     runs-on: ${{ matrix.os }}

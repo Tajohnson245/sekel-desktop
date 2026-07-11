@@ -43,6 +43,7 @@
   ],
   "exclude": [
     "node_modules",
+    "supabase/functions",
     "DESKTOP/.vite/build/main.js",
     "DESKTOP/.vite/build/preload.js",
     "renderer.js",

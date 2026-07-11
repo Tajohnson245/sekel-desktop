@@ -17,7 +17,7 @@
 .draft-tray-trigger:hover,
 .draft-tray-trigger.active {
     background: var(--primary);
-    color: white;
+    color: var(--ink);
     border-color: var(--primary);
 }
 
@@ -29,7 +29,7 @@
     height: 18px;
     padding: 0 4px;
     background: var(--primary);
-    color: white;
+    color: var(--ink);
     font-size: 0.7rem;
     font-weight: 700;
     border-radius: 999px;
@@ -40,7 +40,7 @@
 }
 
 .draft-tray-trigger.active .draft-tray-badge {
-    background: white;
+    background: var(--paper);
     color: var(--primary);
 }
 
@@ -49,7 +49,7 @@
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.4);
-    z-index: 200;
+    z-index: 1200;
     backdrop-filter: blur(2px);
 }
 
@@ -66,7 +66,7 @@
     flex-direction: column;
     box-shadow: -8px 0 32px rgba(0, 0, 0, 0.2);
     animation: slideInRight 0.25s ease;
-    z-index: 201;
+    z-index: 1201;
 }
 
 @keyframes slideInRight {
@@ -117,8 +117,8 @@
 }
 
 .draft-capacity.full {
-    background: rgba(239, 68, 68, 0.15);
-    color: var(--danger, #ef4444);
+    background: var(--rose-soft);
+    color: var(--danger, var(--rose));
 }
 
 .draft-tray-close {

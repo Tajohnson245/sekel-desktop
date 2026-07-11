@@ -39,10 +39,13 @@ export const deleteDecks = (ids: string[]) => db().deleteDecks(ids);
 export const fetchDeckStats = (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => db().fetchDeckStats(deckId, userId, dailyNewLimit, dailyReviewLimit);
 export const fetchAllDueCardsCount = (userId: string, dailyNewLimit?: number, dailyReviewLimit?: number) => db().fetchAllDueCardsCount(userId, dailyNewLimit, dailyReviewLimit);
 export const fetchGlobalRetention = (userId: string, days?: number) => db().fetchGlobalRetention(userId, days);
+export const fetchDeckRetentionBatch = (deckIds: string[], userId: string, days?: number) => db().fetchDeckRetentionBatch(deckIds, userId, days);
 
 // ── Cards ────────────────────────────────────────────────────────────────────
 export const fetchDueCards = (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => db().fetchDueCards(deckId, userId, dailyNewLimit, dailyReviewLimit);
 export const fetchDueCardsFocused = (deckId: string, systemKeys: string[], examKey: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => db().fetchDueCardsFocused(deckId, systemKeys, examKey, userId, dailyNewLimit, dailyReviewLimit);
+export const fetchDueCardsCrossDeck = (userId: string, deckIds: string[] | null, dailyNewLimit?: number, dailyReviewLimit?: number, examKey?: string, globalNewLimit?: number) => db().fetchDueCardsCrossDeck(userId, deckIds, dailyNewLimit, dailyReviewLimit, examKey, globalNewLimit);
+export const fetchDueCardsFocusedCrossDeck = (userId: string, deckIds: string[] | null, systemKeys: string[], examKey: string, dailyNewLimit?: number, dailyReviewLimit?: number) => db().fetchDueCardsFocusedCrossDeck(userId, deckIds, systemKeys, examKey, dailyNewLimit, dailyReviewLimit);
 export const fetchAllCardsForStudy = (deckId: string, limit?: number) => db().fetchAllCardsForStudy(deckId, limit);
 export const fetchAllCardsForDeck = (deckId: string) => db().fetchAllCardsForDeck(deckId);
 export const updateCardAfterReview = (cardId: string, updates: Partial<Card>) => db().updateCardAfterReview(cardId, updates);
@@ -63,6 +66,7 @@ export const createNoteType = (noteType: NoteTypeInsert) => db().createNoteType(
 
 // ── Deck Sessions ─────────────────────────────────────────────────────────────
 export const createDeckSession = (userId: string, deckId: string) => db().createDeckSession(userId, deckId);
+export const createStudySession = (userId: string, kind: 'deck' | 'review_all' | 'focused', representativeDeckId: string, scope: 'all' | 'plan' | null, systemKeys: string[] | null) => db().createStudySession(userId, kind, representativeDeckId, scope, systemKeys);
 export const completeDeckSession = (sessionId: string) => db().completeDeckSession(sessionId);
 export const fetchSessionAnalytics = (sessionId: string) => db().fetchSessionAnalytics(sessionId);
 export const createDeckFromMissedCards = (userId: string, deckName: string, cardIds: string[]) =>
@@ -87,7 +91,7 @@ export const exportDeck = (deckId: string, userId: string) => db().exportDeck(de
 export const getExportableCardCount = (deckId: string) => db().getExportableCardCount(deckId);
 
 // ── Yield ─────────────────────────────────────────────────────────────────────
-export type { SessionQueueCard, YieldScoreRow } from '../types/electron';
+export type { SessionQueueCard, YieldScoreRow, DeckRetentionRow, DeckYieldMix } from '../types/electron';
 const yieldApi = () => window.electronAPI.yield;
 export const buildSessionQueue = (userId: string, examKey: string, limit?: number) => yieldApi().buildSessionQueue(userId, examKey, limit);
 export const getYieldScores = (examKey: string, cardIds?: string[]) => yieldApi().getScores(examKey, cardIds);
@@ -124,3 +128,4 @@ export const reactivatePlan    = (userId: string, planId: string) => planApi().r
 export const rebalancePlan     = (userId: string, examKey: string) => planApi().rebalance(userId, examKey);
 export const setPlanOverride   = (userId: string, newPerDayOverride: number) => planApi().setOverride(userId, newPerDayOverride);
 export const clearPlanOverride = (userId: string) => planApi().clearOverride(userId);
+export const updatePlanRate    = (userId: string, examKey: string, newRate: number) => planApi().updateRate(userId, examKey, newRate);

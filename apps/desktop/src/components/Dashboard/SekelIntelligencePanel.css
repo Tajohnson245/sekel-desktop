@@ -84,7 +84,7 @@
     display: inline-flex;
     align-items: center;
     background: var(--teal);
-    color: #0a0e1a;
+    color: var(--ink);
     border: none;
     border-radius: var(--r-sm);
     padding: 0.5rem 1.125rem;
@@ -157,7 +157,7 @@
 
 .intel-panel__exam-chip {
     font-size: 0.72rem;
-    color: var(--text-muted, #8892a4);
+    color: var(--mist);
     background: var(--secondary, var(--ink-muted));
     padding: 0.15rem 0.55rem;
     border-radius: 999px;
@@ -167,7 +167,7 @@
     background: none;
     border: none;
     cursor: pointer;
-    color: var(--text-muted, #8892a4);
+    color: var(--mist);
     padding: 0.15rem;
     display: flex;
     align-items: center;
@@ -176,7 +176,7 @@
 }
 
 .intel-panel__hide-btn:hover {
-    color: var(--text, #e2e8f0);
+    color: var(--paper);
 }
 
 /* Section label */
@@ -185,19 +185,19 @@
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: var(--text-muted, #8892a4);
+    color: var(--mist);
 }
 
 .intel-section-label--warn {
-    color: var(--warning, #f59e0b);
+    color: var(--amber);
 }
 
 .intel-section-label--success {
-    color: var(--success, #22c55e);
+    color: var(--teal);
 }
 
 .intel-section-label--neutral {
-    color: var(--text-muted, #8892a4);
+    color: var(--mist);
     text-transform: none;
     letter-spacing: 0;
     font-weight: 500;
@@ -208,12 +208,12 @@
 }
 
 .intel-system-row__bar--untested {
-    background: var(--text-muted, #8892a4);
+    background: var(--mist);
     opacity: 0.5;
 }
 
 .intel-system-row__pct--untested {
-    color: var(--text-muted, #8892a4);
+    color: var(--mist);
     font-weight: 500;
     font-variant-numeric: tabular-nums;
 }
@@ -227,7 +227,7 @@
 
 .intel-untested-hint {
     font-size: 0.7rem;
-    color: var(--text-muted, #8892a4);
+    color: var(--mist);
     font-style: italic;
     margin-bottom: 0.15rem;
 }
@@ -239,17 +239,17 @@
     flex-wrap: wrap;
     align-items: center;
     font-size: 0.72rem;
-    color: var(--text-muted, #8892a4);
+    color: var(--mist);
 }
 
 .intel-on-track-row__check {
-    color: var(--success, #22c55e);
+    color: var(--teal);
     font-weight: 700;
     margin-right: 0.1rem;
 }
 
 .intel-on-track-row__item--pct {
-    color: var(--success, #22c55e);
+    color: var(--teal);
     font-weight: 600;
 }
 
@@ -269,7 +269,7 @@
 }
 
 .intel-system-row__label {
-    color: var(--text, #e2e8f0);
+    color: var(--paper);
     white-space: nowrap;
 }
 
@@ -293,7 +293,7 @@
 }
 
 .intel-system-row__meta {
-    color: var(--text-muted, #8892a4);
+    color: var(--mist);
     font-size: 0.7rem;
     white-space: nowrap;
 }
@@ -303,7 +303,7 @@
     width: 100%;
     padding: 0.6rem 1rem;
     background: var(--primary, var(--teal));
-    color: #0a0e1a;
+    color: var(--ink);
     font-weight: 700;
     font-size: 0.85rem;
     border: none;
@@ -328,7 +328,7 @@
     align-items: center;
     gap: 0.5rem;
     font-size: 0.825rem;
-    color: var(--text-muted, #8892a4);
+    color: var(--mist);
 }
 
 .intel-panel__prompt-text {
@@ -336,7 +336,7 @@
 }
 
 .intel-panel__prompt-text strong {
-    color: var(--text, #e2e8f0);
+    color: var(--paper);
 }
 
 .intel-panel__cta-link {
@@ -365,7 +365,7 @@
 }
 
 .intel-icon--amber {
-    color: var(--warning, #f59e0b);
+    color: var(--amber);
     flex-shrink: 0;
 }
 
@@ -378,7 +378,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
+    z-index: 1200;
+    padding: var(--space-xl);
+    box-sizing: border-box;
     backdrop-filter: blur(2px);
 }
 
@@ -389,6 +391,9 @@
     padding: 1.5rem;
     width: 100%;
     max-width: 400px;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
@@ -404,7 +409,7 @@
 .presession-modal__title {
     font-size: 1rem;
     font-weight: 700;
-    color: var(--text, #e2e8f0);
+    color: var(--paper);
 }
 
 .presession-insights {
@@ -426,12 +431,12 @@
 .presession-insight-card__value {
     font-size: 0.9rem;
     font-weight: 700;
-    color: var(--text, #e2e8f0);
+    color: var(--paper);
 }
 
 .presession-insight-card__label {
     font-size: 0.75rem;
-    color: var(--text-muted, #8892a4);
+    color: var(--mist);
     margin-top: 0.1rem;
 }
 
@@ -443,7 +448,7 @@
 
 .presession-deck-select__label {
     font-size: 0.775rem;
-    color: var(--text-muted, #8892a4);
+    color: var(--mist);
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
@@ -472,7 +477,7 @@
     background: none;
     border: 1px solid var(--border, var(--ink-muted));
     border-radius: var(--r-sm);
-    color: var(--text-muted, #8892a4);
+    color: var(--mist);
     padding: 0.5rem 1rem;
     font-size: 0.875rem;
     cursor: pointer;
@@ -480,14 +485,14 @@
 }
 
 .presession-modal__cancel:hover {
-    border-color: var(--text-muted, #8892a4);
+    border-color: var(--mist);
 }
 
 .presession-modal__begin {
     background: var(--primary, var(--teal));
     border: none;
     border-radius: var(--r-sm);
-    color: #0a0e1a;
+    color: var(--ink);
     font-weight: 700;
     padding: 0.5rem 1.25rem;
     font-size: 0.875rem;
@@ -514,6 +519,6 @@
     border: 1px dashed var(--border, var(--ink-muted));
     border-radius: var(--r-md);
     font-size: 0.775rem;
-    color: var(--text-muted, #8892a4);
+    color: var(--mist);
     animation: intel-fade-in 0.28s ease;
 }

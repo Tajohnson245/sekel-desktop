@@ -20,10 +20,12 @@
         "expand": "Expandir",
         "collapse": "Contraer",
         "remove": "Eliminar",
-        "loading_app": "Cargando SEKEL..."
+        "loading_app": "Cargando SEKEL...",
+        "search": "Search"
     },
     "nav": {
         "dashboard": "Tablero",
+        "study": "Estudiar",
         "decks": "Mazos",
         "cards": "Tarjetas",
         "generate": "Generar Tarjetas",
@@ -31,7 +33,11 @@
         "new_deck": "Nuevo Mazo",
         "image_occlusion": "Tarjetas Visuales",
         "statistics": "Estadísticas",
-        "plan": "Plan"
+        "plan": "Plan",
+        "collapse_sidebar": "Collapse sidebar",
+        "open_sidebar": "Open sidebar",
+        "group_create": "Crear",
+        "group_more": "Más"
     },
     "dashboard": {
         "welcome": "¡Bienvenido de nuevo, {{name}}!",
@@ -97,7 +103,21 @@
         "mode_flashcard": "Fichas",
         "delete": "Eliminar",
         "loading": "Cargando mazos...",
-        "error": "Error al cargar mazos"
+        "error": "Error al cargar mazos",
+        "summary": "{{decks}} decks · {{cards}} cards · {{due}} due today",
+        "browse": "Browse",
+        "col_deck": "Deck",
+        "col_new": "New",
+        "col_learning": "Learning",
+        "col_due": "Due",
+        "col_retention": "Retention",
+        "col_yield": "Yield mix",
+        "col_last": "Last studied",
+        "footer_status": "{{due}} due across {{decks}} decks · est. {{min}} min at current pace",
+        "select_deck": "Select deck",
+        "import_success": "Import complete",
+        "col_classified": "Classified",
+        "yield_tooltip": "Alto {{high}} · Medio {{med}} · Bajo {{low}} · Sin clasificar {{unc}}"
     },
     "card": {
         "front": "Anverso",
@@ -108,7 +128,9 @@
         "delete_confirm_message": "Esta acción no se puede deshacer. La tarjeta se eliminará permanentemente de tu mazo.",
         "edit_card": "Editar tarjeta",
         "delete_card": "Eliminar tarjeta",
-        "image_badge": "Imagen"
+        "image_badge": "Imagen",
+        "search_placeholder": "Search cards in this deck",
+        "no_matches": "No cards match your search"
     },
     "drafts": {
         "title": "Borradores",
@@ -213,7 +235,32 @@
             "final_sprint": "Sprint final",
             "next_shift": "Próximo cambio en ~{{days}} días",
             "max_urgency": "Urgencia máxima"
-        }
+        },
+        "review_session_of": "Review session · {{current}} of {{total}} due",
+        "fsrs_optimal": "FSRS · optimal",
+        "high_yield": "HIGH YIELD",
+        "blueprint": "Blueprint",
+        "hint_reveal": "Press",
+        "hint_reveal_tail": "to reveal answer",
+        "footer": {
+            "reviewed": "reviewed",
+            "again": "again",
+            "avg_time": "avg",
+            "retention": "retention"
+        },
+        "sc_reveal": "reveal",
+        "sc_rate": "rate",
+        "sc_undo": "undo",
+        "sc_exit": "exit",
+        "undo_unavailable": "Can't undo — the list changed",
+        "undo_done": "Undid last rating",
+        "edit_soon": "In-session card editing is coming soon",
+        "exit_title": "Exit session?",
+        "exit_body": "Your progress is kept.",
+        "keep_studying": "Keep studying",
+        "exit": "Exit",
+        "review_all_title": "Repasar todo",
+        "focused_title": "Sesión enfocada"
     },
     "auth": {
         "login": "Iniciar Sesión",
@@ -335,13 +382,19 @@
         "help_and_tour": "Ayuda y recorrido",
         "replay_tour": "Repetir el recorrido de la app",
         "replay_tour_desc": "Vuelve a ver las diapositivas de bienvenida y el recorrido por las funciones.",
-        "replay_tour_btn": "Repetir recorrido"
+        "replay_tour_btn": "Repetir recorrido",
+        "signed_in_as": "Signed in as",
+        "up_to_date": "up to date",
+        "minimal_study_view": "Minimal study view",
+        "minimal_study_view_desc": "Hide the session stats, shortcut hints, and the timer/status chips during study for a distraction-free view."
     },
     "verification": {
         "complete": "Verificación Completa",
         "all_translated": "Todos los componentes han sido traducidos."
     },
     "ai": {
+        "regenerate_with_ai": "Regenerar con IA",
+        "regenerate_success": "Tarjeta regenerada: revísala y guárdala",
         "title": "Asistente de Estudio IA",
         "subtitle": "Sube documentos (PDF, DOCX, PPTX, Imágenes) o videos de YouTube para generar un plan de estudio y tarjetas.",
         "upload_header": "Subir Documentos",
@@ -372,13 +425,20 @@
         "added_badge": "Añadido",
         "extracted_text": "Texto Extraído",
         "error_parsing": "Error al analizar",
+        "error_pdf_too_large": "El PDF tiene {{numPages}} páginas — el máximo es {{maxPages}}. Divídelo en archivos más pequeños y vuelve a subirlo.",
         "error_video": "Error al analizar video",
         "error_summary": "Error al generar resumen",
         "error_generating": "Error al generar tarjetas",
         "error_adding": "Error al añadir tarjeta",
-        "sections_label": "Secciones",
-        "chip_sections": "Secciones",
-        "chip_cards": "Tarjetas est.",
+        "overview_label": "Resumen del documento",
+        "chapter_word_count": "{{words}} palabras",
+        "chapter_capacity": "Capacidad ~{{n}} tarjetas",
+        "chapter_generate": "Generar tarjetas",
+        "chapter_regenerate": "Generar de nuevo",
+        "chapter_generated_aria": "Ya se generaron tarjetas de este capítulo",
+        "no_chapters_found": "No hay contenido disponible para generar tarjetas.",
+        "filtered_out_label": "Excluido:",
+        "filtered_out_count": "({{count}} secciones)",
         "items": "Elementos",
         "videos": "Videos",
         "documents": "Documentos",
@@ -412,7 +472,21 @@
         "difficulty_essential": "Solo Esencial",
         "difficulty_detailed": "Detallado",
         "custom_instructions": "Instrucciones Personalizadas",
-        "custom_instructions_placeholder": "Ej., Enfocarse solo en definiciones clave…"
+        "custom_instructions_placeholder": "Ej., Enfocarse solo en definiciones clave…",
+        "pipeline_parsed": "{{count}} archivo(s) procesado(s)",
+        "pipeline_analyzing": "Analizando la estructura del documento…",
+        "pipeline_generating": "Generando tarjetas",
+        "pipeline_skipped_failed": "Se omitieron {{count}} archivo(s) que no se pudieron procesar.",
+        "cancel_pipeline": "Cancelar y empezar de nuevo",
+        "regenerate_button": "Regenerar tarjetas",
+        "show_settings": "Mostrar opciones de generación",
+        "hide_settings": "Ocultar opciones de generación",
+        "auto_generating_title": "Generando tus tarjetas",
+        "auto_generating_subtitle": "Leyendo el documento, redactando tarjetas y refinando cada una. Suele tardar entre 30 y 90 segundos.",
+        "preflight_count_hint": "Hasta 500. Las tarjetas se reparten entre los formatos que elijas abajo.",
+        "preflight_formats_hint": "Elige uno o más. Mezclar formatos enriquece el estudio.",
+        "preflight_need_files": "Sube al menos un documento antes de generar.",
+        "preflight_need_formats": "Elige al menos un formato de tarjeta."
     },
     "modals": {
         "create": "Crear",
@@ -520,6 +594,7 @@
         "fill_from_cloze": "Rellenar desde cloze"
     },
     "errors": {
+        "regenerate_card": "No se pudo regenerar la tarjeta",
         "invalid_youtube_url": "Por favor ingresa una URL de YouTube válida",
         "upload_image": "Error al subir la imagen",
         "upload_image_retry": "Error al subir la imagen. Inténtalo de nuevo.",
@@ -542,7 +617,8 @@
         "youtube_rate_limited": "Límite de solicitudes alcanzado, intenta más tarde",
         "youtube_transcript_not_available": "Transcripción no disponible",
         "youtube_language_not_available": "Idioma no disponible",
-        "youtube_network_error": "Error de red"
+        "youtube_network_error": "Error de red",
+        "generic": "Something went wrong"
     },
     "stats": {
         "title": "Estadísticas",
@@ -649,6 +725,25 @@
         "restoring": "Restaurando...",
         "restore_success": "Base de datos restaurada exitosamente. Por favor reinicia la aplicación.",
         "restore_error": "Error al restaurar desde el respaldo",
+        "cloud_title": "Copias en la nube",
+        "cloud_description": "Tus datos se respaldan automáticamente en la nube mientras estudias. Restaura cualquier copia en este dispositivo.",
+        "cloud_backup_now": "Hacer copia ahora",
+        "cloud_backing_up": "Creando copia...",
+        "cloud_backup_success": "Copia en la nube creada",
+        "cloud_backup_error": "No se pudo crear la copia en la nube",
+        "cloud_available": "Copias en la nube",
+        "cloud_no_backups": "Aún no hay copias en la nube. Se crean automáticamente mientras estudias.",
+        "cloud_unavailable": "Las copias en la nube no están disponibles. Asegúrate de haber iniciado sesión.",
+        "cloud_review_count": "{{n}} repasos",
+        "cloud_generation_daily": "diaria",
+        "cloud_generation_weekly": "semanal",
+        "cloud_generation_monthly": "mensual",
+        "cloud_restore_confirm_title": "Restaurar desde copia en la nube",
+        "cloud_restore_confirm": "Restaurar y reiniciar",
+        "cloud_restore_warning": "Al restaurar se descargará esta copia y se reemplazará tu base de datos actual. Primero se creará una copia de seguridad local.",
+        "cloud_restore_danger": "Se perderán todos los cambios realizados desde esta copia. La aplicación se reiniciará.",
+        "cloud_restore_success": "Copia restaurada. Reiniciando...",
+        "cloud_restore_error": "No se pudo restaurar desde la copia en la nube",
         "integrity_title": "Integridad de la base de datos",
         "integrity_desc": "Ejecuta una verificación para comprobar que tu base de datos no está dañada.",
         "check_database": "Verificar base de datos",
@@ -809,5 +904,37 @@
                 "body": "Contraseña, importación/exportación de datos, comentarios y el botón para repetir el recorrido están aquí."
             }
         }
+    },
+    "tier": {
+        "upgrade": "Upgrade",
+        "dedicated_caption": "AI features + cloud backup active",
+        "free_caption": "Local FSRS + .apkg import"
+    },
+    "plan": {
+        "rebalance_accepted": "Plan updated",
+        "timeline_extended": "Timeline extended"
+    },
+    "studyHub": {
+        "subtitle": "Repasa entre tus mazos: todo lo pendiente o solo tus sistemas débiles.",
+        "days_until": "días hasta",
+        "scope_label": "Alcance de mazos",
+        "scope_plan": "Mazos del plan",
+        "scope_all": "Todos los mazos",
+        "total_due": "tarjetas pendientes",
+        "split_new": "nuevas",
+        "split_learning": "aprendiendo",
+        "split_review": "repaso",
+        "est_time": "~{{min}} min",
+        "est_label": "estimado",
+        "review_all_desc": "Todas las tarjetas pendientes de tus mazos, intercaladas.",
+        "begin_review_all": "Repasar todo ({{count}}) →",
+        "focused_desc": "Tarjetas pendientes de los sistemas del temario en los que eres más débil.",
+        "classify_to_unlock": "Clasifica tus tarjetas para desbloquear sesiones enfocadas en sistemas débiles.",
+        "begin_focused": "Sesión enfocada ({{count}}) →",
+        "caught_up": "Estás al día por hoy",
+        "caught_up_desc": "Las tarjetas nuevas y los repasos pendientes de hoy están completos.",
+        "caught_up_learning": "{{count}} tarjetas aún están terminando sus pasos de aprendizaje.",
+        "nothing_due": "Nada pendiente ahora mismo",
+        "finish_learning": "Terminar aprendizaje ({{count}}) →"
     }
 }

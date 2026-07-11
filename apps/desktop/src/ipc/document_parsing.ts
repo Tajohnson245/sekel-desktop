@@ -24,6 +24,18 @@ import {
 } from 'youtube-transcript';
 const pdfParse = require('pdf-parse');
 import { stripMarkdown } from '../lib/stringUtils';
+import {
+    chunkDocumentWithSections,
+    sampleChunksForOverview,
+    type Chunk,
+    type DocumentSection,
+} from '../lib/textChunker';
+
+// Hard cap on pages parsed from a PDF. pdf-parse honors this via its `max`
+// option — pages beyond this index are skipped entirely (not extracted, not
+// summarized, not chunked). Large textbooks get a consistent first-N-pages
+// experience instead of unbounded processing time.
+export const MAX_PDF_PAGES = 500;
 
 // YouTube guardrails
 const YOUTUBE_MAX_DURATION_SECONDS = 7200;          // 2 hours
@@ -34,6 +46,13 @@ class YoutubeValidationError extends Error {
     constructor(public errorCode: string, message: string) {
         super(message);
         this.name = 'YoutubeValidationError';
+    }
+}
+
+class PdfPageLimitError extends Error {
+    constructor(public numPages: number, public maxPages: number) {
+        super(`PDF has ${numPages} pages; maximum supported is ${maxPages}.`);
+        this.name = 'PdfPageLimitError';
     }
 }
 
@@ -55,14 +74,11 @@ export const setupDocumentHandlers = () => {
     // Handle document parsing requests from renderer
     instrumentedHandle('parse-document', async (event, file: { name: string, buffer?: ArrayBuffer, url?: string, type: string, language?: string }) => {
         try {
-            const language = file.language || 'English';
             if (file.type === 'youtube' && file.url) {
                 const { title, text } = await parseYoutubeVideo(file.url);
-                const summary = await summarizeDocumentContent(title, text, language);
-                return {
-                    filename: title,
-                    content: summary
-                };
+                // Rollback path: restore summarizeDocumentContent here to return to
+                // summary-based parsing. Downstream accepts either raw text or summary.
+                return buildParseResponse(title, text);
             }
 
             if (!file.buffer) {
@@ -103,13 +119,9 @@ export const setupDocumentHandlers = () => {
                     throw new Error(`Unsupported file type: .${extension}`);
             }
 
-            // Generate a summary of the extracted text
-            const summary = await summarizeDocumentContent(file.name, extractedText, language);
-
-            return {
-                filename: file.name,
-                content: summary
-            };
+            // Rollback path: restore summarizeDocumentContent here to return to
+            // summary-based parsing. Downstream accepts either raw text or summary.
+            return buildParseResponse(file.name, extractedText);
 
         } catch (error) {
             console.error(`Error parsing ${file.name}:`, error);
@@ -117,6 +129,10 @@ export const setupDocumentHandlers = () => {
                 // Encode errorCode in the message so it survives Electron IPC serialization
                 // Format: [YOUTUBE_ERROR:code] message
                 throw new Error(`[YOUTUBE_ERROR:${error.errorCode}] ${error.message}`);
+            }
+            if (error instanceof PdfPageLimitError) {
+                // Format: [PDF_PAGE_LIMIT:numPages:maxPages] message
+                throw new Error(`[PDF_PAGE_LIMIT:${error.numPages}:${error.maxPages}] ${error.message}`);
             }
             throw error;
         }
@@ -160,17 +176,27 @@ export async function parseWithOpenAIVision(filename: string, buffer: Buffer, ex
 
         return response.choices[0].message.content || "";
     } else if (extension === 'pdf') {
-        // For PDFs, use local extraction
         return parsePdfLocal(buffer);
     }
 
     return "";
 }
 
-// Extract text from PDF using local library
+// Extract text from PDF, with an up-front page count check.
+//
+// First call: `{ max: 1 }` — pdf-parse still reports `numpages` from the PDF
+// catalog while only rendering the first page, so this is a cheap probe.
+// If the document exceeds MAX_PDF_PAGES, throw PdfPageLimitError so the
+// renderer can show a clear upload-time message instead of silently
+// processing only the first N pages.
+//
+// Second call: render up to MAX_PDF_PAGES for documents that pass the probe.
 export async function parsePdfLocal(buffer: Buffer): Promise<string> {
-    // pdf-parse v1.1.1 API
-    const data = await pdfParse(buffer);
+    const probe = await pdfParse(buffer, { max: 1 });
+    if (probe.numpages > MAX_PDF_PAGES) {
+        throw new PdfPageLimitError(probe.numpages, MAX_PDF_PAGES);
+    }
+    const data = await pdfParse(buffer, { max: MAX_PDF_PAGES });
     return data.text;
 }
 
@@ -246,7 +272,19 @@ function extractValuesByKey(obj: any, key: string): string[] {
     return values;
 }
 
-// Summarize a single document's content
+// Build the parse-document IPC response. No truncation — full extracted text
+// flows downstream; the renderer's section classifier handles relevance.
+function buildParseResponse(filename: string, extractedText: string): {
+    filename: string;
+    content: string;
+} {
+    return { filename, content: extractedText };
+}
+
+// Summarize a single document's content. No longer called from parse-document
+// (the pipeline now passes raw text through); kept for the rollback escape
+// hatch documented in the parse-document handler, and for potential future
+// preview-style features.
 export async function summarizeDocumentContent(filename: string, content: string, language: string = 'English'): Promise<string> {
     const response = await trackedCompletion({
         operation: 'summarize',
@@ -389,10 +427,21 @@ async function parseYoutubeVideo(rawUrl: string): Promise<{ title: string, text:
     return { title, text };
 }
 
-// Generate a structured overview across all parsed documents (Stage 1).
-// Also produces concept chunks in the same call so the card-generation pipeline
-// can skip its own chunking step. One LLM call instead of two; the user no
-// longer waits for "Analyzing your document…" after clicking Generate.
+// Generate a structured overview across all parsed documents.
+//
+// Pipeline:
+//   A. Local deterministic chunking with section detection (no LLM). Returns
+//      both flat chunks (for downstream per-chunk card generation) and
+//      sections (chunks grouped by detected chapter/section headings, with
+//      content-type classification driving the section picker's default
+//      selection state).
+//   B. Sampled overview LLM call — receives a representative subset of chunks
+//      plus the first sentence of every chunk, returns summary + topics. The
+//      renderer's section picker replaces the topic list as the primary UI
+//      affordance; topics are kept for backward compat and any non-picker
+//      callers.
+//
+// estimatedCardCount is derived locally from chunk count.
 export async function generateGlobalSummary(
     documents: Record<string, string>,
     language: string = 'English',
@@ -400,72 +449,92 @@ export async function generateGlobalSummary(
     summary: string;
     topics: string[];
     estimatedCardCount: number;
-    chunks: Array<{ id: number; text: string }>;
+    chunks: Chunk[];
+    sections: DocumentSection[];
 }> {
-    const combinedContent = Object.entries(documents).map(([name, content]) => {
-        return `--- File: ${name} ---\n\n${content}\n\n`;
-    }).join("\n\n");
+    // Phase A — local section-aware chunking.
+    const combined = Object.entries(documents)
+        .map(([name, content]) => `--- File: ${name} ---\n\n${content}\n\n`)
+        .join('\n\n');
+
+    const { chunks: allChunks, sections } = chunkDocumentWithSections(combined);
+    if (allChunks.length === 0) {
+        return { summary: '', topics: [], estimatedCardCount: 5, chunks: [], sections: [] };
+    }
+
+    // Phase B — sampled overview LLM call.
+    const sampledChunks = sampleChunksForOverview(allChunks, 25);
+    const chunkPreviewTitles = allChunks
+        .map((c, i) => `${i + 1}. ${firstSentence(c.text)}`)
+        .join('\n');
+
+    const userContent = [
+        '=== Document overview ===',
+        `Total chunks: ${allChunks.length}`,
+        `Detected sections: ${sections.length}`,
+        '',
+        'Chunk preview titles (first sentence of each chunk):',
+        chunkPreviewTitles,
+        '',
+        '=== Sampled representative chunks ===',
+        ...sampledChunks.map(c => `[Chunk ${c.id}]\n${c.text}`),
+    ].join('\n\n');
 
     const response = await trackedCompletion({
         operation: 'global-summary',
         logger: log,
         call: getOpenAI().chat.completions.create({
-            model: "gpt-4.1-mini",
+            model: 'gpt-4.1-mini',
             messages: [
                 {
-                    role: "system",
+                    role: 'system',
                     content: `You are a study assistant analyzing documents for flashcard generation.
 
-Given the documents below, produce ALL of the following in a single JSON response:
-1. A 2-3 sentence summary of what the documents cover (in ${language})
-2. A list of the main topics found (max 8 items)
-3. An estimated number of high-quality flashcards these documents can support
-4. The full content split into discrete concept chunks. Each chunk should:
-   - Represent one coherent topic or concept
-   - Be between 100-400 words
-   - Preserve enough context to generate cards without referencing other chunks
-   - Cover the source material end-to-end (no gaps)
+You will receive a sample of chunks from a larger document plus the first-sentence preview of every chunk.
 
-Be concise on the summary. Do not add commentary or suggestions.
+Return JSON with:
+1. "summary": 2-3 sentences in ${language} describing what the document covers end-to-end. Use chunk preview titles for breadth, sampled chunks for depth.
+2. "topics": up to 12 main topics across the document (preview titles are the primary signal).
 
-Return JSON only. No preamble, no explanation.
+Return JSON only. No preamble.
 
-{
-  "summary": "...",
-  "topics": ["...", "..."],
-  "estimatedCardCount": 42,
-  "chunks": [{ "id": 1, "text": "..." }, { "id": 2, "text": "..." }]
-}`
+{ "summary": "...", "topics": ["..."] }`,
                 },
-                {
-                    role: "user",
-                    content: combinedContent
-                }
+                { role: 'user', content: userContent },
             ],
             response_format: { type: 'json_object' },
         }),
     });
 
-    const rawContent = response.choices[0].message.content || "{}";
+    const rawContent = response.choices[0].message.content || '{}';
+    let parsed: { summary?: unknown; topics?: unknown };
     try {
-        const parsed = JSON.parse(rawContent);
-        const rawChunks: unknown = parsed.chunks;
-        const chunks: Array<{ id: number; text: string }> = Array.isArray(rawChunks)
-            ? rawChunks
-                .map((c, i) => {
-                    const obj = c as { id?: unknown; text?: unknown };
-                    if (typeof obj?.text !== 'string' || !obj.text.trim()) return null;
-                    return { id: typeof obj.id === 'number' ? obj.id : i + 1, text: obj.text };
-                })
-                .filter((c): c is { id: number; text: string } => c !== null)
-            : [];
-        return {
-            summary: parsed.summary || rawContent,
-            topics: Array.isArray(parsed.topics) ? parsed.topics : [],
-            estimatedCardCount: typeof parsed.estimatedCardCount === 'number' ? parsed.estimatedCardCount : 5,
-            chunks,
-        };
+        parsed = JSON.parse(rawContent);
     } catch {
-        return { summary: rawContent, topics: [], estimatedCardCount: 5, chunks: [] };
+        parsed = {};
     }
+
+    const summary = typeof parsed.summary === 'string' ? parsed.summary : '';
+    const topics = Array.isArray(parsed.topics)
+        ? parsed.topics.filter((t): t is string => typeof t === 'string').slice(0, 12)
+        : [];
+
+    // Estimated card capacity based on content-section chunks only (drops
+    // frontmatter/references/appendix from the count so the slider's max
+    // reflects what's actually generating cards). Multiplier of 4 reflects
+    // that each chunk genuinely supports multiple cards (definition,
+    // mechanism, application, contrast), not the prior conservative 2.
+    const contentChunkCount = sections
+        .filter((s) => s.isContent)
+        .reduce((sum, s) => sum + s.chunkIds.length, 0);
+    const effectiveChunkCount = contentChunkCount > 0 ? contentChunkCount : allChunks.length;
+    const estimatedCardCount = Math.min(effectiveChunkCount * 4, 500);
+
+    return { summary, topics, estimatedCardCount, chunks: allChunks, sections };
+}
+
+function firstSentence(text: string): string {
+    const trimmed = text.trim();
+    const match = trimmed.match(/^[^.!?\n]{1,140}[.!?]?/);
+    return (match ? match[0] : trimmed.slice(0, 140)).replace(/\s+/g, ' ').trim();
 }

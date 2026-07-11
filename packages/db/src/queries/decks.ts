@@ -3,7 +3,10 @@ import type { Deck, DeckInsert, DeckUpdate, Rating } from '../types';
 
 export interface DeckStats {
     deckId: string;
+    /** New cards available to study today (may be capped by the daily new limit). */
     newCount: number;
+    /** Total new-state cards in the deck, uncapped — the decks-page inventory count. */
+    newTotal: number;
     learningCount: number;
     reviewCount: number;
     totalCount: number;
@@ -85,7 +88,7 @@ export async function fetchDeckStats(client: SupabaseClient, deckId: string): Pr
     const noteIds = notes?.map(n => n.id) ?? [];
 
     if (noteIds.length === 0) {
-        return { deckId, newCount: 0, learningCount: 0, reviewCount: 0, totalCount: 0 };
+        return { deckId, newCount: 0, newTotal: 0, learningCount: 0, reviewCount: 0, totalCount: 0 };
     }
 
     const { data: cards, error: cardsError } = await client
@@ -98,6 +101,7 @@ export async function fetchDeckStats(client: SupabaseClient, deckId: string): Pr
     const stats: DeckStats = {
         deckId,
         newCount: 0,
+        newTotal: 0,
         learningCount: 0,
         reviewCount: 0,
         totalCount: cards?.length ?? 0,
@@ -106,6 +110,7 @@ export async function fetchDeckStats(client: SupabaseClient, deckId: string): Pr
     for (const card of cards ?? []) {
         if (card.state === 'new') {
             stats.newCount++;
+            stats.newTotal++;
         } else if (card.state === 'learning' || card.state === 'relearning') {
             stats.learningCount++;
         } else if (card.state === 'review' && new Date(card.due) <= new Date(now)) {

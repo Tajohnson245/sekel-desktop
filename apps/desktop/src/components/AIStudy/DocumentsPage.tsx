@@ -1,13 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Loader, FileText, CheckCircle, AlertCircle, RefreshCw, ArrowRight, Trash2 } from 'lucide-react';
+import { Loader, FileText, CheckCircle, AlertCircle, RefreshCw, Trash2, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import DocumentUpload from './DocumentUpload';
-import AICardGenerator from './AICardGenerator';
-import { Button, MetaChip, YouTubeIcon, useToast, ErrorBoundary } from '../UI';
+import AICardGenerator, { ALL_CARD_FORMATS } from './AICardGenerator';
+import { Button, Input, YouTubeIcon, useToast, ErrorBoundary } from '../UI';
 import { useDocsWorkStore } from '../../stores/docsWorkStore';
 import { parseFile, parseYoutube } from '../../lib/documentParser';
+import type { AIGenerationOptions } from '../../hooks/useAI';
+import type { DocumentSection, DocumentChunk } from '../../types/electron';
 import './DocumentsPage.css';
+
+type CardFormat = AIGenerationOptions['cardFormats'][number];
+
+const DEFAULT_CARD_COUNT = 100;
 
 interface DocumentsPageProps {
     userId: string;
@@ -16,31 +22,18 @@ interface DocumentsPageProps {
 type ParsingStatus = 'idle' | 'parsing' | 'success' | 'error';
 
 interface ParsedFile {
-    id: string; // Unique identifier for React keys
+    id: string;
     name: string;
     status: ParsingStatus;
     content?: string;
     error?: string;
     type: 'file' | 'youtube';
-    originalFile?: File; // Only for files
-    url?: string;        // Only for YouTube
-    thumbnail?: string;  // Only for YouTube
+    originalFile?: File;
+    url?: string;
+    thumbnail?: string;
 }
 
-interface SectionItemProps {
-    index: number;
-    label: string;
-}
-
-function SectionItem({ index, label }: SectionItemProps) {
-    return (
-        <div className="section-item">
-            <span className="section-item__number">{index + 1}</span>
-            <span className="section-item__dot" />
-            <span className="section-item__label">{label}</span>
-        </div>
-    );
-}
+type Phase = 'upload' | 'analyzing' | 'ready';
 
 export default function DocumentsPage({ userId }: DocumentsPageProps) {
     const { t, i18n } = useTranslation();
@@ -48,73 +41,128 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
     const [searchParams] = useSearchParams();
     const initialDeckId = searchParams.get('deckId') || undefined;
     const setHasUnfinishedWork = useDocsWorkStore((s) => s.setHasUnfinishedWork);
+
     const [files, setFiles] = useState<ParsedFile[]>([]);
+    const [phase, setPhase] = useState<Phase>('upload');
     const [summaryText, setSummaryText] = useState<string>('');
-    const [summaryTopics, setSummaryTopics] = useState<string[]>([]);
-    const [estimatedCardCount, setEstimatedCardCount] = useState<number>(5);
-    const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
-    const [step, setStep] = useState<'upload' | 'review' | 'generate'>('upload');
-    const [fullContextContent, setFullContextContent] = useState<string>('');
-    const [contextChunks, setContextChunks] = useState<Array<{ id: number; text: string }>>([]);
+    const [contextChunks, setContextChunks] = useState<DocumentChunk[]>([]);
+    const [sections, setSections] = useState<DocumentSection[]>([]);
+    const [estimatedCardCount, setEstimatedCardCount] = useState<number>(20);
     const [generatedCardCount, setGeneratedCardCount] = useState(0);
 
-    // Notify parent about unfinished work status
+    // Pre-flight settings: chosen on the upload page before the user clicks
+    // Generate. Default to all six formats + 100 cards (the cap-aware
+    // first-run default). These flow into AICardGenerator as initial state;
+    // the user can still tweak them post-generation via the collapsed
+    // settings panel and regenerate.
+    const [selectedFormats, setSelectedFormats] = useState<Set<CardFormat>>(new Set(ALL_CARD_FORMATS));
+    const [cardCount, setCardCount] = useState<number>(DEFAULT_CARD_COUNT);
+
+    const toggleFormat = (fmt: CardFormat) => {
+        setSelectedFormats(prev => {
+            const next = new Set(prev);
+            if (next.has(fmt)) next.delete(fmt);
+            else next.add(fmt);
+            return next;
+        });
+    };
+
     useEffect(() => {
-        // Unfinished work is:
-        // 1. Files uploaded but not generated (step 'upload', 'review')
-        // 2. Cards generated but not added/discarded (step 'generate' AND card count > 0)
-
         let hasUnfinished = false;
-        if (step === 'upload' && files.length > 0) hasUnfinished = true;
-        if (step === 'review') hasUnfinished = true;
-        if (step === 'generate' && generatedCardCount > 0) hasUnfinished = true;
-
+        if (phase === 'upload' && files.length > 0) hasUnfinished = true;
+        if (phase === 'analyzing') hasUnfinished = true;
+        if (phase === 'ready' && generatedCardCount > 0) hasUnfinished = true;
         setHasUnfinishedWork(hasUnfinished);
-    }, [files.length, step, generatedCardCount, setHasUnfinishedWork]);
+    }, [files.length, phase, generatedCardCount, setHasUnfinishedWork]);
 
     const isProcessing = files.some(f => f.status === 'parsing');
 
-    // Process selected files via backend parser
+    // One-shot kickoff: after parsing completes, immediately run the analyze
+    // step. No user click required — that's the whole point of this rework.
+    const runAnalyze = async (parsedFiles: ParsedFile[]) => {
+        const completed = parsedFiles.filter(f => f.status === 'success');
+        if (completed.length === 0) return;
+
+        // Transition synchronously so the upload zone locks before any await.
+        setPhase('analyzing');
+
+        try {
+            const documentsObj = completed.reduce((acc, file) => {
+                acc[file.name] = file.content || '';
+                return acc;
+            }, {} as Record<string, string>);
+
+            const overview = await window.electronAPI.generateSummary(documentsObj, i18n.language);
+
+            setSummaryText(overview.summary);
+            setContextChunks(overview.chunks ?? []);
+            setSections(overview.sections ?? []);
+            setEstimatedCardCount(overview.estimatedCardCount);
+            setPhase('ready');
+
+            window.electronAPI?.notify?.show?.(
+                t('ai.notify_analyze_done_title'),
+                t('ai.notify_analyze_done_body'),
+            );
+        } catch (_error) {
+            showToast(t('ai.error_summary'), 'error');
+            // Drop back to upload so the user can retry without losing files.
+            setPhase('upload');
+        }
+    };
+
     const handleFilesSelected = async (selectedFiles: File[]) => {
+        if (phase !== 'upload') return;
+
         const newFiles: ParsedFile[] = selectedFiles.map(f => ({
-            id: Math.random().toString(36).substr(2, 9),
+            id: Math.random().toString(36).slice(2, 11),
             name: f.name,
             status: 'parsing',
             type: 'file',
-            originalFile: f
+            originalFile: f,
         }));
 
         setFiles(prev => [...prev, ...newFiles]);
 
-        // Process files
-        let successCount = 0;
+        // Build a local copy alongside React state so we can hand the final
+        // statuses to runAnalyze without racing the setFiles updates.
+        const parsedResults: ParsedFile[] = [];
         for (let i = 0; i < selectedFiles.length; i++) {
             const file = selectedFiles[i];
-            const fileId = newFiles[i].id;
+            const id = newFiles[i].id;
 
             try {
                 const result = await parseFile(file, i18n.language);
-
-                setFiles(prev => prev.map(f => f.id === fileId ? {
-                    ...f,
+                const updated: ParsedFile = {
+                    ...newFiles[i],
                     status: 'success',
                     content: result.content,
-                    name: result.filename
-                } : f));
-                successCount++;
-            } catch (_error) {
-                showToast(`${t('ai.error_parsing')}: ${file.name}`, 'error');
-                setFiles(prev => prev.map(f => f.id === fileId ? {
-                    ...f,
+                    name: result.filename,
+                };
+                setFiles(prev => prev.map(f => f.id === id ? updated : f));
+                parsedResults.push(updated);
+            } catch (error: unknown) {
+                const errCode = (error as { errorCode?: string })?.errorCode;
+                let message: string;
+                if (errCode === 'pdf_page_limit') {
+                    const numPages = (error as { numPages?: number })?.numPages ?? 0;
+                    const maxPages = (error as { maxPages?: number })?.maxPages ?? 500;
+                    message = t('ai.error_pdf_too_large', { numPages, maxPages });
+                } else {
+                    message = t('ai.error_parsing');
+                }
+                showToast(`${message}: ${file.name}`, 'error');
+                const updated: ParsedFile = {
+                    ...newFiles[i],
                     status: 'error',
-                    error: t('ai.error_parsing')
-                } : f));
+                    error: message,
+                };
+                setFiles(prev => prev.map(f => f.id === id ? updated : f));
+                parsedResults.push(updated);
             }
         }
 
-        // Desktop notification when the batch finishes — useful if the user
-        // tabbed away during a long parse. notify.show is a no-op when our
-        // window is focused, so this won't double up on the in-app state.
+        const successCount = parsedResults.filter(p => p.status === 'success').length;
         if (successCount > 0) {
             window.electronAPI?.notify?.show?.(
                 t('ai.notify_upload_done_title'),
@@ -124,31 +172,32 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
     };
 
     const handleUrlSelected = async (url: string) => {
-        // Extract video ID for thumbnail
+        if (phase !== 'upload') return;
+
         const videoIdMatch = url.match(new RegExp('(?:youtube\\.com/(?:[^/]+/.+/|(?:v|e(?:mbed)?)/|.*[?&]v=)|youtu\\.be/)([^"&?/\\s]{11})'));
         const videoId = videoIdMatch ? videoIdMatch[1] : null;
         const thumbnail = videoId ? `https://img.youtube.com/vi/${videoId}/0.jpg` : undefined;
 
         const newFile: ParsedFile = {
-            id: Math.random().toString(36).substr(2, 9),
-            name: url, // Temporary name until parsed
+            id: Math.random().toString(36).slice(2, 11),
+            name: url,
             status: 'parsing',
             type: 'youtube',
-            url: url,
-            thumbnail: thumbnail
+            url,
+            thumbnail,
         };
 
         setFiles(prev => [...prev, newFile]);
 
         try {
-            const result = await parseYoutube(url, i18n.language); // Backend fetches title and transcript
-
-            setFiles(prev => prev.map(f => f.id === newFile.id ? {
-                ...f,
+            const result = await parseYoutube(url, i18n.language);
+            const updated: ParsedFile = {
+                ...newFile,
                 status: 'success',
                 content: result.content,
-                name: result.filename || f.name
-            } : f));
+                name: result.filename || newFile.name,
+            };
+            setFiles(prev => prev.map(f => f.id === newFile.id ? updated : f));
 
             window.electronAPI?.notify?.show?.(
                 t('ai.notify_upload_done_title'),
@@ -162,7 +211,7 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
             setFiles(prev => prev.map(f => f.id === newFile.id ? {
                 ...f,
                 status: 'error',
-                error: message
+                error: message,
             } : f));
         }
     };
@@ -171,76 +220,62 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
         setFiles(prev => prev.filter((_, i) => i !== index));
     };
 
-    // Request AI summary for all successfully parsed documents
-    const generateContextSummary = async () => {
-        const completedFiles = files.filter(f => f.status === 'success');
-        if (completedFiles.length === 0) return;
-
-        setIsGeneratingSummary(true);
-        try {
-            const documentsObj = completedFiles.reduce((acc, file) => {
-                acc[file.name] = file.content || '';
-                return acc;
-            }, {} as Record<string, string>);
-
-            const combinedContent = Object.entries(documentsObj)
-                .map(([name, content]) => `--- Document: ${name} ---\n${content}`)
-                .join('\n\n');
-            setFullContextContent(combinedContent);
-
-            const overview = await window.electronAPI.generateSummary(documentsObj, i18n.language);
-
-            setSummaryText(overview.summary);
-            setSummaryTopics(overview.topics);
-            setEstimatedCardCount(overview.estimatedCardCount);
-            setContextChunks(overview.chunks ?? []);
-            setStep('review');
-
-            window.electronAPI?.notify?.show?.(
-                t('ai.notify_analyze_done_title'),
-                t('ai.notify_analyze_done_body'),
-            );
-        } catch (_error) {
-            showToast(t('ai.error_summary'), 'error');
-        } finally {
-            setIsGeneratingSummary(false);
-        }
-    };
-
-    const handleConfirmSummary = () => {
-        setStep('generate');
+    const handleGenerateClick = async () => {
+        const completed = files.filter(f => f.status === 'success');
+        if (completed.length === 0 || selectedFormats.size === 0 || cardCount <= 0) return;
+        await runAnalyze(completed);
     };
 
     const handleRestart = () => {
         setFiles([]);
         setSummaryText('');
-        setSummaryTopics([]);
-        setEstimatedCardCount(5);
-        setStep('upload');
-        setFullContextContent('');
         setContextChunks([]);
+        setSections([]);
+        setEstimatedCardCount(20);
+        setGeneratedCardCount(0);
+        setPhase('upload');
+        setSelectedFormats(new Set(ALL_CARD_FORMATS));
+        setCardCount(DEFAULT_CARD_COUNT);
     };
 
-    if (step === 'generate') {
+    // Restrict to content-classified chapter sections when the chunker
+    // detected them. For unstructured docs (no chapter sections), the whole
+    // document flows through.
+    const contentChunks = useMemo<DocumentChunk[]>(() => {
+        const chapters = sections.filter(s => s.kind === 'chapter');
+        if (chapters.length === 0) return contextChunks;
+        const allowed = new Set(chapters.flatMap(c => c.chunkIds));
+        return contextChunks.filter(c => allowed.has(c.id));
+    }, [sections, contextChunks]);
+
+    const contentText = useMemo(
+        () => contentChunks.map(c => c.text).join('\n\n'),
+        [contentChunks],
+    );
+
+    if (phase === 'ready') {
         return (
             <ErrorBoundary variant="inline" onReset={handleRestart}>
                 <AICardGenerator
-                    extractedText={fullContextContent}
+                    extractedText={contentText}
                     contextSummary={summaryText}
-                    contextChunks={contextChunks}
+                    contextChunks={contentChunks}
                     estimatedCardCount={estimatedCardCount}
                     userId={userId}
                     onComplete={handleRestart}
                     initialDeckId={initialDeckId}
                     onCardCountChange={setGeneratedCardCount}
+                    autoStart
+                    defaultFormats={Array.from(selectedFormats) as AIGenerationOptions['cardFormats']}
+                    initialCardCount={cardCount}
                 />
             </ErrorBoundary>
         );
     }
 
     const completedCount = files.filter(f => f.status === 'success').length;
+    const errorCount = files.filter(f => f.status === 'error').length;
 
-    // Determine context for UI labels
     const hasVideos = files.some(f => f.type === 'youtube');
     const hasDocs = files.some(f => f.type === 'file');
 
@@ -249,116 +284,154 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
     else if (!hasVideos && hasDocs) itemsLabel = t('ai.documents');
     else if (hasVideos && hasDocs) itemsLabel = t('ai.content');
 
-    let actionLabel = t('ai.analyze');
-    if (hasVideos && !hasDocs) actionLabel = t('ai.process_video');
-    else if (hasVideos && hasDocs) actionLabel = t('ai.process_content');
-
     return (
         <div className="documents-page">
             <div className="documents-header">
                 <h2>{t('ai.title')}</h2>
-                <p className="text-muted">
-                    {t('ai.subtitle')}
-                </p>
+                <p className="text-muted">{t('ai.subtitle')}</p>
             </div>
 
-            {step === 'upload' && (
-                <div className="upload-section" data-tour-id="documents-upload-zone">
-                    <DocumentUpload
-                        onFilesSelected={handleFilesSelected}
-                        onUrlSelected={handleUrlSelected}
-                        isProcessing={isProcessing}
-                    >
-                        {files.length > 0 && (
-                            <div className="files-list">
-                                <h4>{t('ai.processed', { label: itemsLabel })} ({completedCount}/{files.length})</h4>
-                                <div className="files-grid" style={{ marginTop: '1.5rem' }}>
-                                    {files.map((f, idx) => (
-                                        <div key={f.id} className={`file-status-item ${f.status}`} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px', background: 'var(--bg)', borderRadius: '8px', marginBottom: '8px', border: '1px solid var(--border-color, #eee)' }}>
-                                            {f.type === 'youtube' && f.thumbnail ? (
-                                                <div style={{ width: '60px', height: '45px', borderRadius: '4px', overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
-                                                    <img src={f.thumbnail} alt="Video thumbnail" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.3)' }}>
-                                                        <YouTubeIcon size={16} color="white" />
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                f.type === 'youtube' ? <div style={{ padding: '8px' }}><YouTubeIcon size={24} color="#FF0000" /></div>
-                                                    : <div style={{ padding: '8px' }}><FileText size={24} color="#555" /></div>
-                                            )}
+            {phase === 'upload' && (
+                <div className="documents-page__upload-grid">
+                    {/* Left column — pre-flight generation settings */}
+                    <aside className="preflight-settings">
+                        <h3 className="preflight-settings__title">{t('ai.generation_options')}</h3>
 
-                                            <div className="file-info" style={{ flex: 1, overflow: 'hidden' }}>
-                                                <span className="file-name" style={{ display: 'block', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', fontWeight: 500 }}>{f.name}</span>
-                                                {f.status === 'error' && <span className="error-text" style={{ color: 'red', fontSize: '12px' }}>{f.error}</span>}
-                                                {f.status === 'parsing' && <span className="status-text" style={{ fontSize: '12px', color: '#666' }}>{t('ai.processing')}</span>}
-                                            </div>
+                        <div className="preflight-settings__section">
+                            <Input
+                                type="number"
+                                label={t('ai.cards_to_generate')}
+                                min={1}
+                                max={500}
+                                value={cardCount}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCardCount(Number(e.target.value))}
+                            />
+                            <p className="preflight-settings__hint">{t('ai.preflight_count_hint')}</p>
+                        </div>
 
-                                            <div className="file-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                {f.status === 'parsing' && <Loader className="animate-spin" size={20} />}
-                                                {f.status === 'success' && <CheckCircle size={20} color="green" />}
-                                                {f.status === 'error' && <AlertCircle size={20} color="red" />}
-                                                <button
-                                                    onClick={() => handleRemoveFile(idx)}
-                                                    className="btn-icon"
-                                                    style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '4px', opacity: 0.7 }}
-                                                    title={t('modals.remove_tooltip')}
-                                                >
-                                                    <Trash2 size={18} color="#888" />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <div className="actions-bar" style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
-                                    <Button
-                                        variant="primary"
-                                        disabled={completedCount === 0 || isProcessing || isGeneratingSummary}
-                                        onClick={generateContextSummary}
-                                        isLoading={isGeneratingSummary}
-                                        icon={!isGeneratingSummary && <ArrowRight size={18} />}
-                                    >
-                                        {isGeneratingSummary ? t('ai.analyzing') : actionLabel}
-                                    </Button>
-                                </div>
+                        <div className="preflight-settings__section">
+                            <label className="ai-format-picker__label">{t('ai.card_format')}</label>
+                            <div className="ai-format-picker__pills" role="group" aria-label={t('ai.card_format')}>
+                                {([
+                                    { value: 'basic',            label: t('ai.format_basic') },
+                                    { value: 'cloze',            label: t('ai.format_cloze') },
+                                    { value: 'reversed',         label: t('ai.format_reversed') },
+                                    { value: 'true-false',       label: t('ai.format_true_false') },
+                                    { value: 'compare-contrast', label: t('ai.format_compare_contrast') },
+                                    { value: 'multiple-choice',  label: t('ai.format_multiple_choice') },
+                                ] as const).map((opt) => {
+                                    const active = selectedFormats.has(opt.value);
+                                    return (
+                                        <button
+                                            key={opt.value}
+                                            type="button"
+                                            className={`ai-format-pill${active ? ' ai-format-pill--active' : ''}`}
+                                            onClick={() => toggleFormat(opt.value)}
+                                            aria-pressed={active}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    );
+                                })}
                             </div>
-                        )}
-                    </DocumentUpload>
-                </div>
-            )}
-
-            {step === 'review' && (
-                <div className="review-split-container">
-                    <aside className="review-sidebar">
-                        <p className="review-sidebar__heading">{t('ai.sections_label')}</p>
-                        <div className="review-sidebar__list">
-                            {summaryTopics.map((topic, i) => (
-                                <SectionItem
-                                    key={i}
-                                    index={i}
-                                    label={topic}
-                                />
-                            ))}
+                            <p className="preflight-settings__hint">{t('ai.preflight_formats_hint')}</p>
                         </div>
                     </aside>
 
-                    <div className="review-main">
-                        <div className="review-meta-row">
-                            <MetaChip label={t('ai.chip_sections')} value={summaryTopics.length} />
-                            <MetaChip label={t('ai.chip_cards')} value={`~${estimatedCardCount}`} />
-                        </div>
-                        <p className="review-summary-label">{t('ai.review_title')}</p>
-                        <div className="review-summary-readonly">{summaryText}</div>
-                    </div>
+                    {/* Right column — upload zone + file list + Generate CTA */}
+                    <section className="upload-column" data-tour-id="documents-upload-zone">
+                        <DocumentUpload
+                            onFilesSelected={handleFilesSelected}
+                            onUrlSelected={handleUrlSelected}
+                            isProcessing={isProcessing}
+                        >
+                            {files.length > 0 && (
+                                <div className="files-list">
+                                    <h4>{t('ai.processed', { label: itemsLabel })} ({completedCount}/{files.length})</h4>
+                                    <div className="files-grid" style={{ marginTop: '1.5rem' }}>
+                                        {files.map((f, idx) => (
+                                            <div key={f.id} className={`file-status-item ${f.status}`} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px', background: 'var(--bg)', borderRadius: '8px', marginBottom: '8px', border: '1px solid var(--border-color, var(--stroke))' }}>
+                                                {f.type === 'youtube' && f.thumbnail ? (
+                                                    <div style={{ width: '60px', height: '45px', borderRadius: '4px', overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
+                                                        <img src={f.thumbnail} alt="Video thumbnail" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.3)' }}>
+                                                            <YouTubeIcon size={16} color="var(--paper)" />
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    f.type === 'youtube' ? <div style={{ padding: '8px' }}><YouTubeIcon size={24} color="#FF0000" /></div>
+                                                        : <div style={{ padding: '8px' }}><FileText size={24} color="var(--slate)" /></div>
+                                                )}
 
-                    <div className="review-footer">
-                        <Button variant="secondary" onClick={handleRestart} icon={<RefreshCw size={16} />}>
-                            {t('ai.reupload')}
-                        </Button>
-                        <Button variant="primary" onClick={handleConfirmSummary} icon={<ArrowRight size={16} />}>
-                            {t('ai.confirm_generate')}
-                        </Button>
-                    </div>
+                                                <div className="file-info" style={{ flex: 1, overflow: 'hidden' }}>
+                                                    <span className="file-name" style={{ display: 'block', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', fontWeight: 500 }}>{f.name}</span>
+                                                    {f.status === 'error' && <span className="error-text" style={{ color: 'var(--rose)', fontSize: '12px' }}>{f.error}</span>}
+                                                    {f.status === 'parsing' && <span className="status-text" style={{ fontSize: '12px', color: 'var(--mist)' }}>{t('ai.processing')}</span>}
+                                                </div>
+
+                                                <div className="file-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    {f.status === 'parsing' && <Loader className="animate-spin" size={20} />}
+                                                    {f.status === 'success' && <CheckCircle size={20} color="var(--teal)" />}
+                                                    {f.status === 'error' && <AlertCircle size={20} color="var(--rose)" />}
+                                                    <button
+                                                        onClick={() => handleRemoveFile(idx)}
+                                                        className="btn-icon"
+                                                        style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '4px', opacity: 0.7 }}
+                                                        title={t('modals.remove_tooltip')}
+                                                    >
+                                                        <Trash2 size={18} color="var(--slate)" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </DocumentUpload>
+
+                        <div className="generate-cta">
+                            <Button
+                                variant="primary"
+                                onClick={handleGenerateClick}
+                                disabled={isProcessing || completedCount === 0 || selectedFormats.size === 0 || cardCount <= 0}
+                                icon={<Sparkles size={16} />}
+                                title={
+                                    completedCount === 0 ? t('ai.preflight_need_files')
+                                    : selectedFormats.size === 0 ? t('ai.preflight_need_formats')
+                                    : undefined
+                                }
+                            >
+                                {t('ai.generate_button')}
+                            </Button>
+                        </div>
+                    </section>
+                </div>
+            )}
+
+            {phase === 'analyzing' && (
+                <div className="pipeline-stepper" role="status" aria-live="polite">
+                    <ol className="pipeline-stepper__steps">
+                        <li className="pipeline-stepper__step is-done">
+                            <span className="pipeline-stepper__marker"><CheckCircle size={18} /></span>
+                            <span className="pipeline-stepper__label">{t('ai.pipeline_parsed', { count: completedCount })}</span>
+                        </li>
+                        <li className="pipeline-stepper__step is-active">
+                            <span className="pipeline-stepper__marker"><Loader className="animate-spin" size={18} /></span>
+                            <span className="pipeline-stepper__label">{t('ai.pipeline_analyzing')}</span>
+                        </li>
+                        <li className="pipeline-stepper__step">
+                            <span className="pipeline-stepper__marker pipeline-stepper__marker--dot" aria-hidden="true" />
+                            <span className="pipeline-stepper__label">{t('ai.pipeline_generating')}</span>
+                        </li>
+                    </ol>
+                    {errorCount > 0 && (
+                        <p className="pipeline-stepper__warn">
+                            {t('ai.pipeline_skipped_failed', { count: errorCount })}
+                        </p>
+                    )}
+                    <Button variant="secondary" onClick={handleRestart} icon={<RefreshCw size={14} />}>
+                        {t('ai.cancel_pipeline')}
+                    </Button>
                 </div>
             )}
         </div>

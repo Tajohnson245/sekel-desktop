@@ -283,22 +283,25 @@ function buildCardTypePrompt(
         : '';
 
     const prompts: Record<CardFormat, string> = {
-        basic: `You are a flashcard generation expert creating study cards for a medical student.
+        basic: `You are a flashcard generation expert creating study cards for a medical student preparing for high-stakes board exams.
 
 Rules:
-- Each card tests exactly ONE fact
-- Questions must be specific and unambiguous
-- Answers must be concise: 1-10 words maximum
-- Never start a question with "What is" or "Define"
-- Frame questions in clinical or applied context where possible
-- Do not generate cards about background history or general introductions
+- Each card tests ONE clearly-defined concept or reasoning step. Closely-linked facts MAY be combined when they're learned together in practice (e.g. a drug's mechanism + its primary clinical use + a key adverse effect can live on one card if they're conceptually inseparable). Do NOT cram unrelated facts together.
+- Questions must be specific, unambiguous, and — where the source supports it — clinically framed. Prefer mini-vignettes, mechanism prompts, or case-based stems over bare definitions (e.g. "A 45-year-old presents with X — what is the most likely mechanism behind Y?" beats "What is Y?").
+- Answer length is whatever the answer warrants:
+  * Single-fact recall: 1-10 words.
+  * Mechanism / reasoning: 1-3 sentences explaining cause and effect.
+  * Multi-step process or differentiating features: a short bulleted list inside HTML using ONLY <p>, <strong>, <ul>, <li> tags (no attributes, no other tags).
+- Prefer integration over isolation: when two facts only make sense together, teach them together rather than fragmenting into shallow cards.
+- Favor "why" and "how" questions over "what" questions where the source supports it. "What is" framings are acceptable when they're genuinely the clearest phrasing, but should not be the default.
+- Do not generate cards about background history, general introductions, or self-referential definitions of the field.
 - ${difficultyNote}
 
 ${META_EXCLUSIONS}
 
 User instruction: ${userInstruction}
 ${revisionNote}
-Generate exactly ${n} Q&A flashcards from the content below.
+Generate exactly ${n} flashcards from the content below.
 
 Return JSON only. No preamble, no explanation.
 
@@ -542,19 +545,19 @@ async function evaluateCardsBatch(cards: GeneratedCard[], cardFormat: string): P
         }).join('\n');
 
         const criteriaList = isMC
-            ? `1. Atomicity: tests exactly one fact
+            ? `1. Atomicity: tests exactly one fact (MC distractors only work for single-fact stems)
 2. Testability: correct answer is unambiguous and clearly the best option
 3. Clarity: question and options are clearly worded
 4. Non-triviality: tests real subject-matter knowledge — NOT trivia about the exam/credential itself (format, length, scoring, registration), the document (author, chapters, foreword, acknowledgments, study-strategy advice), or generic self-definitions of the field
 5. Distractor quality: the three wrong options are plausible, same-domain, and NOT trivially eliminable (no joke options, no obvious outliers, no near-duplicates of the correct answer or each other)`
-            : `1. Atomicity: tests exactly one fact
-2. Testability: answer is unambiguous and concise
-3. Clarity: question/sentence is clearly worded
+            : `1. Focus: tests one clearly-defined concept or reasoning step. Multi-fact cards that integrate closely-linked facts (e.g. drug MOA + clinical use + key adverse effect learned together) are acceptable — only penalize when a card crams in unrelated facts.
+2. Testability: answer has a single defensible answer and is clearly verifiable
+3. Clarity: question/sentence is clearly worded; clinical framing where the source supports it
 4. Non-triviality: tests real subject-matter knowledge — NOT trivia about the exam/credential itself (format, length, scoring, registration), the document (author, chapters, foreword, acknowledgments, study-strategy advice), or generic self-definitions of the field`;
 
         const schemaExample = isMC
             ? `{ "atomicity": 1, "testability": 1, "clarity": 1, "nontriviality": 1, "distractorQuality": 1, "total": 5, "verdict": "keep", "reason": "one short sentence" }`
-            : `{ "atomicity": 1, "testability": 1, "clarity": 1, "nontriviality": 1, "total": 4, "verdict": "keep", "reason": "one short sentence" }`;
+            : `{ "focus": 1, "testability": 1, "clarity": 1, "nontriviality": 1, "total": 4, "verdict": "keep", "reason": "one short sentence" }`;
 
         const prompt = `You are a flashcard quality reviewer.
 
@@ -591,15 +594,18 @@ Return JSON only. No preamble.
             }));
 
             const parsed = JSON.parse(response.choices[0].message.content || '{}');
-            const rawScores: Array<Partial<CardScore> & { atomicity?: number; testability?: number; clarity?: number; nontriviality?: number; distractorQuality?: number }> = parsed.scores || [];
+            const rawScores: Array<Partial<CardScore> & { atomicity?: number; focus?: number; testability?: number; clarity?: number; nontriviality?: number; distractorQuality?: number }> = parsed.scores || [];
 
             return batch.map((_, idx) => {
                 const r = rawScores[idx];
                 if (!r) return defaultScore(cardFormat);
 
-                // Some models return flat fields, some return a nested "scores" object.
+                // Non-MC criterion renamed "atomicity" → "focus" so multi-fact
+                // integration cards aren't penalized. The internal property
+                // name stays "atomicity" as the canonical first-criterion slot
+                // so the rest of the pipeline doesn't need to branch.
                 const nested = r.scores ?? {
-                    atomicity: r.atomicity ?? 3,
+                    atomicity: (isMC ? r.atomicity : r.focus ?? r.atomicity) ?? 3,
                     testability: r.testability ?? 3,
                     clarity: r.clarity ?? 3,
                     nontriviality: r.nontriviality ?? 3,
@@ -694,6 +700,87 @@ async function evaluateAndRefineCards(
     }
 
     return kept;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Stage 5 — Refinement
+// ─────────────────────────────────────────────────────────────────
+
+const REFINE_BATCH_SIZE = 8;
+
+/**
+ * Second-pass refinement on every kept card.
+ *
+ * After evaluation + backfill, every surviving card gets one more shot at
+ * being sharper. The refiner is instructed NOT to change the underlying
+ * topic or make the card easier — only tighten the question and complete
+ * the answer with mechanism / clinical framing where the source supports
+ * it. Failure-tolerant: parse errors or API failures return originals so a
+ * refinement outage can't strand kept cards.
+ */
+async function refineCardsBatch(cards: GeneratedCard[], cardFormat: CardFormat): Promise<GeneratedCard[]> {
+    if (cards.length === 0) return [];
+
+    const batches: GeneratedCard[][] = [];
+    for (let i = 0; i < cards.length; i += REFINE_BATCH_SIZE) {
+        batches.push(cards.slice(i, i + REFINE_BATCH_SIZE));
+    }
+
+    const refinedBatches = await Promise.all(batches.map(async (batch) => {
+        const cardLines = batch.map((c, idx) =>
+            `${idx + 1}. Front: ${c.front}\n   Back: ${c.back}`,
+        ).join('\n\n');
+
+        const prompt = `You are a flashcard refiner. You receive flashcards that passed quality review but could be sharper.
+
+For each card, return an IMPROVED version that:
+- Sharpens the question — more specific, more clinically framed, mechanism-aware where the source supports it
+- Tightens the answer — precise, well-scoped, includes the "why" when relevant
+- Preserves the card's underlying fact and format
+- Does NOT change the topic of the card
+- Does NOT make the card easier or simpler
+
+Preserve any HTML formatting (cloze {{c1::...}} markers, <p>/<strong>/<ul>/<li> tags) exactly as the original used it.
+
+Card format: ${cardFormat}
+Cards (numbered):
+${cardLines}
+
+The "refined" array MUST have exactly ${batch.length} entries in the same order as the input.
+
+Return JSON only. No preamble.
+
+{ "refined": [{ "front": "...", "back": "..." }, ...] }`;
+
+        try {
+            const response = await limit(() => trackedCompletion({
+                operation: 'refine',
+                logger: log,
+                call: getOpenAI().chat.completions.create({
+                    model: MODEL,
+                    messages: [{ role: 'system', content: prompt }],
+                    response_format: { type: 'json_object' },
+                }),
+            }));
+
+            const parsed = JSON.parse(response.choices[0].message.content || '{}');
+            const refined: Array<{ front?: string; back?: string }> = parsed.refined || [];
+
+            return batch.map((original, idx) => {
+                const r = refined[idx];
+                if (!r || typeof r.front !== 'string' || typeof r.back !== 'string' || !r.front.trim() || !r.back.trim()) {
+                    return original;
+                }
+                return { ...original, front: r.front, back: r.back };
+            });
+        } catch {
+            // Refinement failure → ship originals. Better a slightly-less-polished
+            // card than no card at all.
+            return batch;
+        }
+    }));
+
+    return refinedBatches.flat();
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -825,7 +912,9 @@ ${META_EXCLUSIONS}`,
             // Backfill: generate additional cards if evaluation dropped some.
             // Distribute the deficit across formats the same way as the main
             // pass so the result mix roughly preserves the user's selection.
-            const MAX_BACKFILL_ROUNDS = 2;
+            // 3 rounds (was 2) trades a small extra call budget for noticeably
+            // better recovery on aggressive evaluator runs.
+            const MAX_BACKFILL_ROUNDS = 3;
             let backfillRound = 0;
 
             while (allCards.length < count && backfillRound < MAX_BACKFILL_ROUNDS) {
@@ -863,6 +952,30 @@ ${META_EXCLUSIONS}`,
                 allCards = allCards.slice(0, count);
             }
 
+            // Stage 5: second-pass refinement on every kept card.
+            // Grouped by format because the refiner prompt is format-aware
+            // (preserves cloze markers, HTML structure, MC option shape, etc.).
+            if (allCards.length > 0) {
+                sendProgress({ phase: 'refining', current: 0, total: allCards.length });
+
+                const byFormat = new Map<CardFormat, GeneratedCard[]>();
+                for (const card of allCards) {
+                    const fmt = (card.format ?? 'basic') as CardFormat;
+                    if (!byFormat.has(fmt)) byFormat.set(fmt, []);
+                    byFormat.get(fmt)!.push(card);
+                }
+
+                const refinedByFormat = await Promise.all(
+                    Array.from(byFormat.entries()).map(([fmt, fmtCards]) => refineCardsBatch(fmtCards, fmt)),
+                );
+
+                // Format-grouped output (basic-block, then cloze-block, etc.).
+                // Slightly different from interleaved chunk×format order but
+                // friendlier in the preview grid.
+                allCards = refinedByFormat.flat();
+                sendProgress({ phase: 'refining', current: allCards.length, total: allCards.length });
+            }
+
             sendProgress({ phase: 'done', current: 1, total: 1 });
 
             return {
@@ -876,6 +989,73 @@ ${META_EXCLUSIONS}`,
 
         } catch (error) {
             console.error('Error generating cards from context:', error);
+            throw error;
+        }
+    });
+
+    // Single-card regeneration — a lightweight path through the pipeline for the
+    // card editor's "Regenerate with AI" button. The card being edited already
+    // carries everything the batch pipeline works hard to derive: its own
+    // front/back define the topic, and its format fixes the shape. So there's no
+    // document to chunk, no count to distribute, and no batch to backfill. We run
+    // just Stage 3 (generate one card from the existing content) + Stage 5 (one
+    // refine pass) and skip the batch-only evaluation/backfill machinery.
+    instrumentedHandle('regenerate-card', async (_event, payload: {
+        front: string;
+        back: string;
+        format?: CardFormat;
+        difficulty?: 'essential' | 'detailed';
+        language?: string;
+        customInstructions?: string;
+    }): Promise<GeneratedCard> => {
+        try {
+            getOpenAI(); // fail early if API key is missing
+
+            const format: CardFormat = payload.format ?? 'basic';
+            const difficulty: 'essential' | 'detailed' = payload.difficulty ?? 'detailed';
+            const language = payload.language || 'English';
+
+            // The existing card IS the source material: its front/back define the
+            // concept to re-test. Strip HTML tags and unwrap cloze markers so the
+            // model reasons about the concept rather than the markup — the `format`
+            // argument tells it what shape to emit.
+            const toPlainText = (html: string) => html
+                .replace(/\{\{c\d+::([^}]+)\}\}/g, '$1')
+                .replace(/<[^>]*>/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+
+            const sourceText = `Existing flashcard being regenerated:\nFront: ${toPlainText(payload.front)}\nBack: ${toPlainText(payload.back)}`;
+
+            const instructionParts = [
+                'Regenerate this single flashcard. Test the SAME underlying concept as the existing card above, but write a freshly-worded question and answer — do not copy the original phrasing.',
+            ];
+            if (payload.customInstructions?.trim()) {
+                instructionParts.push(payload.customInstructions.trim());
+            }
+            const instruction = instructionParts.join(' ');
+
+            // Stage 3 — generate exactly one card from the existing content.
+            const generated = await generateCardsForChunk(
+                { id: 1, text: sourceText },
+                1,
+                format,
+                difficulty,
+                instruction,
+                language,
+            );
+
+            if (generated.length === 0) {
+                throw new Error('Regeneration returned no card');
+            }
+
+            // Stage 5 — a single refine pass to sharpen. Failure-tolerant: on any
+            // error refineCardsBatch returns the original, so the user still gets
+            // a regenerated card back.
+            const [refined] = await refineCardsBatch([generated[0]], format);
+            return refined ?? generated[0];
+        } catch (error) {
+            console.error('Error regenerating card:', error);
             throw error;
         }
     });

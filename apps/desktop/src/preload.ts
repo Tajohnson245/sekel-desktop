@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/electron/renderer';
 import { contextBridge, ipcRenderer } from 'electron';
-import type { AIGenerationOptions } from './types/electron';
+import type { AIGenerationOptions, RegenerateCardPayload } from './types/electron';
 
 Sentry.init({
     dsn: 'https://cacb0014cc3c9ce493a71a738929f415@o4511351709171712.ingest.us.sentry.io/4511351710285824',
@@ -28,6 +28,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
     generateCards: (text: string, count?: number, language?: string, options?: AIGenerationOptions) => ipcRenderer.invoke('generate-cards', text, count, language, options),
     generateCardsFromContext: (summary: string, content: string, count: number, language?: string, options?: AIGenerationOptions, chunks?: Array<{ id: number; text: string }>) => ipcRenderer.invoke('generate-cards-from-context', { summary, content, count, language, options, chunks }),
+    regenerateCard: (payload: RegenerateCardPayload) => ipcRenderer.invoke('regenerate-card', payload),
     onAIProgress: (cb: (progress: { phase: 'chunking' | 'generating' | 'refining' | 'done'; current: number; total: number }) => void) => {
         const listener = (_event: unknown, progress: { phase: 'chunking' | 'generating' | 'refining' | 'done'; current: number; total: number }) => cb(progress);
         ipcRenderer.on('ai-progress', listener);
@@ -71,6 +72,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         fetchDeckStats:        (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => ipcRenderer.invoke('db:fetchDeckStats', deckId, userId, dailyNewLimit, dailyReviewLimit),
         fetchAllDueCardsCount: (userId: string, dailyNewLimit?: number, dailyReviewLimit?: number) => ipcRenderer.invoke('db:fetchAllDueCardsCount', userId, dailyNewLimit, dailyReviewLimit),
         fetchGlobalRetention:  (userId: string, days?: number) => ipcRenderer.invoke('db:fetchGlobalRetention', userId, days),
+        fetchDeckRetentionBatch: (deckIds: string[], userId: string, days?: number) => ipcRenderer.invoke('db:fetchDeckRetentionBatch', deckIds, userId, days),
         // Statistics
         fetchTodaySummary:         (userId: string) => ipcRenderer.invoke('db:fetchTodaySummary', userId),
         fetchCardCountsByMaturity: (userId: string, deckId?: string) => ipcRenderer.invoke('db:fetchCardCountsByMaturity', userId, deckId),
@@ -82,6 +84,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         // Cards
         fetchDueCards:         (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => ipcRenderer.invoke('db:fetchDueCards', deckId, userId, dailyNewLimit, dailyReviewLimit),
         fetchDueCardsFocused:  (deckId: string, systemKeys: string[], examKey: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => ipcRenderer.invoke('db:fetchDueCardsFocused', deckId, systemKeys, examKey, userId, dailyNewLimit, dailyReviewLimit),
+        fetchDueCardsCrossDeck: (userId: string, deckIds: string[] | null, dailyNewLimit?: number, dailyReviewLimit?: number, examKey?: string, globalNewLimit?: number) => ipcRenderer.invoke('db:fetchDueCardsCrossDeck', userId, deckIds, dailyNewLimit, dailyReviewLimit, examKey, globalNewLimit),
+        fetchDueCardsFocusedCrossDeck: (userId: string, deckIds: string[] | null, systemKeys: string[], examKey: string, dailyNewLimit?: number, dailyReviewLimit?: number) => ipcRenderer.invoke('db:fetchDueCardsFocusedCrossDeck', userId, deckIds, systemKeys, examKey, dailyNewLimit, dailyReviewLimit),
         fetchAllCardsForStudy: (deckId: string, limit?: number) => ipcRenderer.invoke('db:fetchAllCardsForStudy', deckId, limit),
         fetchAllCardsForDeck:  (deckId: string) => ipcRenderer.invoke('db:fetchAllCardsForDeck', deckId),
         updateCardAfterReview: (cardId: string, updates: unknown) => ipcRenderer.invoke('db:updateCardAfterReview', cardId, updates),
@@ -102,6 +106,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         fetchUserReviewHistory: (userId: string, days?: number) => ipcRenderer.invoke('db:fetchUserReviewHistory', userId, days),
         // Sessions
         createDeckSession:     (userId: string, deckId: string) => ipcRenderer.invoke('db:createDeckSession', userId, deckId),
+        createStudySession:    (userId: string, kind: 'deck' | 'review_all' | 'focused', representativeDeckId: string, scope: 'all' | 'plan' | null, systemKeys: string[] | null) => ipcRenderer.invoke('db:createStudySession', userId, kind, representativeDeckId, scope, systemKeys),
         completeDeckSession:   (sessionId: string) => ipcRenderer.invoke('db:completeDeckSession', sessionId),
         abandonOpenSessions:         (userId: string) => ipcRenderer.invoke('db:abandonOpenSessions', userId),
         fetchBulkClassifiedCardCount: (deckIds: string[]) => ipcRenderer.invoke('db:fetchBulkClassifiedCardCount', deckIds),
@@ -145,6 +150,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
             ipcRenderer.invoke('yield:build-session-queue', userId, examKey, limit),
         getDeckClassificationCount: (deckId: string, examKey: string) =>
             ipcRenderer.invoke('yield:getDeckClassificationCount', deckId, examKey),
+        getDeckYieldMix: (deckIds: string[], examKey: string) =>
+            ipcRenderer.invoke('yield:getDeckYieldMix', deckIds, examKey),
     },
 
     backup: {
@@ -163,6 +170,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
             ipcRenderer.on('backup:open-restore', listener);
             return () => ipcRenderer.removeListener('backup:open-restore', listener);
         },
+    },
+
+    cloudBackup: {
+        // Push/clear the Supabase session so main can write snapshots as the user.
+        setSession:   (session: { userId: string; accessToken: string; refreshToken: string; expiresAt?: number } | null) =>
+                          ipcRenderer.invoke('cloudBackup:setSession', session),
+        clearSession: () => ipcRenderer.invoke('cloudBackup:clearSession'),
+        // Cheap per-review ping — increments the counter, snapshots at threshold.
+        requestCheck: (reviewDelta?: number) => ipcRenderer.invoke('cloudBackup:requestCheck', reviewDelta),
+        snapshotNow:  () => ipcRenderer.invoke('cloudBackup:snapshotNow') as Promise<boolean>,
+        // Restore UI.
+        list:         () => ipcRenderer.invoke('cloudBackup:list') as Promise<Array<{ id: string; createdAt: string; generation: 'daily' | 'weekly' | 'monthly'; sizeBytes: number; reviewCount: number | null; appVersion: string | null }>>,
+        restore:      (snapshotId: string) => ipcRenderer.invoke('cloudBackup:restore', snapshotId) as Promise<{ success: boolean; error?: string; safetyBackup?: string }>,
+        restart:      () => ipcRenderer.invoke('cloudBackup:restart'),
     },
 
     obs: {
@@ -230,6 +251,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
                           ipcRenderer.invoke('plan:setOverride', userId, newPerDayOverride),
         clearOverride: (userId: string) =>
                           ipcRenderer.invoke('plan:clearOverride', userId),
+        updateRate:   (userId: string, examKey: string, newRate: number) =>
+                          ipcRenderer.invoke('plan:updateRate', userId, examKey, newRate),
         fetchPlansReferencingDecks: (userId: string, deckIds: string[]) =>
                           ipcRenderer.invoke('plan:fetchPlansReferencingDecks', userId, deckIds),
     },

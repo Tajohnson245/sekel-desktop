@@ -20,10 +20,12 @@
         "expand": "Erweitern",
         "collapse": "Einklappen",
         "remove": "Entfernen",
-        "loading_app": "SEKEL wird geladen..."
+        "loading_app": "SEKEL wird geladen...",
+        "search": "Search"
     },
     "nav": {
         "dashboard": "Dashboard",
+        "study": "Lernen",
         "decks": "Stapel",
         "cards": "Karten",
         "generate": "Karten Generieren",
@@ -31,7 +33,11 @@
         "new_deck": "Neuer Stapel",
         "image_occlusion": "Visuelle Karten",
         "statistics": "Statistiken",
-        "plan": "Plan"
+        "plan": "Plan",
+        "collapse_sidebar": "Collapse sidebar",
+        "open_sidebar": "Open sidebar",
+        "group_create": "Erstellen",
+        "group_more": "Mehr"
     },
     "dashboard": {
         "welcome": "Willkommen zurück, {{name}}!",
@@ -97,7 +103,21 @@
         "mode_flashcard": "Karteikarten",
         "delete": "Löschen",
         "loading": "Lade Stapel...",
-        "error": "Fehler beim Laden der Stapel"
+        "error": "Fehler beim Laden der Stapel",
+        "summary": "{{decks}} decks · {{cards}} cards · {{due}} due today",
+        "browse": "Browse",
+        "col_deck": "Deck",
+        "col_new": "New",
+        "col_learning": "Learning",
+        "col_due": "Due",
+        "col_retention": "Retention",
+        "col_yield": "Yield mix",
+        "col_last": "Last studied",
+        "footer_status": "{{due}} due across {{decks}} decks · est. {{min}} min at current pace",
+        "select_deck": "Select deck",
+        "import_success": "Import complete",
+        "col_classified": "Classified",
+        "yield_tooltip": "Hoch {{high}} · Mittel {{med}} · Niedrig {{low}} · Nicht klassifiziert {{unc}}"
     },
     "study": {
         "session_complete": "Sitzung Abgeschlossen!",
@@ -172,7 +192,32 @@
             "final_sprint": "Endspurt",
             "next_shift": "Nächste Stufe in ~{{days}} Tagen",
             "max_urgency": "Maximale Dringlichkeit"
-        }
+        },
+        "review_session_of": "Review session · {{current}} of {{total}} due",
+        "fsrs_optimal": "FSRS · optimal",
+        "high_yield": "HIGH YIELD",
+        "blueprint": "Blueprint",
+        "hint_reveal": "Press",
+        "hint_reveal_tail": "to reveal answer",
+        "footer": {
+            "reviewed": "reviewed",
+            "again": "again",
+            "avg_time": "avg",
+            "retention": "retention"
+        },
+        "sc_reveal": "reveal",
+        "sc_rate": "rate",
+        "sc_undo": "undo",
+        "sc_exit": "exit",
+        "undo_unavailable": "Can't undo — the list changed",
+        "undo_done": "Undid last rating",
+        "edit_soon": "In-session card editing is coming soon",
+        "exit_title": "Exit session?",
+        "exit_body": "Your progress is kept.",
+        "keep_studying": "Keep studying",
+        "exit": "Exit",
+        "review_all_title": "Alles wiederholen",
+        "focused_title": "Fokussierte Sitzung"
     },
     "auth": {
         "login": "Anmelden",
@@ -294,13 +339,19 @@
         "help_and_tour": "Hilfe & Rundgang",
         "replay_tour": "App-Rundgang wiederholen",
         "replay_tour_desc": "Sieh dir die Willkommensfolien und den Rundgang durch die Funktionen erneut an.",
-        "replay_tour_btn": "Rundgang wiederholen"
+        "replay_tour_btn": "Rundgang wiederholen",
+        "signed_in_as": "Signed in as",
+        "up_to_date": "up to date",
+        "minimal_study_view": "Minimal study view",
+        "minimal_study_view_desc": "Hide the session stats, shortcut hints, and the timer/status chips during study for a distraction-free view."
     },
     "verification": {
         "complete": "Verifizierung Abgeschlossen",
         "all_translated": "Alle Komponenten wurden übersetzt."
     },
     "ai": {
+        "regenerate_with_ai": "Mit KI neu generieren",
+        "regenerate_success": "Karte neu generiert – prüfen und speichern",
         "title": "KI-Lernassistent",
         "subtitle": "Laden Sie Dokumente (PDF, DOCX, PPTX, Bilder) oder YouTube-Videos hoch, um einen Lernplan und Karteikarten zu erstellen.",
         "upload_header": "Dokumente Hochladen",
@@ -331,13 +382,20 @@
         "added_badge": "Hinzugefügt",
         "extracted_text": "Extrahierter Text",
         "error_parsing": "Fehler beim Parsen",
+        "error_pdf_too_large": "PDF hat {{numPages}} Seiten — maximal {{maxPages}}. Bitte in kleinere Dateien aufteilen und erneut hochladen.",
         "error_video": "Fehler beim Parsen des Videos",
         "error_summary": "Fehler beim Generieren der Zusammenfassung",
         "error_generating": "Fehler beim Generieren der Karten",
         "error_adding": "Fehler beim Hinzufügen der Karte",
-        "sections_label": "Abschnitte",
-        "chip_sections": "Abschnitte",
-        "chip_cards": "Ca. Karten",
+        "overview_label": "Dokumentübersicht",
+        "chapter_word_count": "{{words}} Wörter",
+        "chapter_capacity": "Kapazität ca. {{n}} Karten",
+        "chapter_generate": "Karten generieren",
+        "chapter_regenerate": "Erneut generieren",
+        "chapter_generated_aria": "Karten wurden bereits aus diesem Kapitel generiert",
+        "no_chapters_found": "Kein Inhalt für die Kartengenerierung verfügbar.",
+        "filtered_out_label": "Übersprungen:",
+        "filtered_out_count": "({{count}} Abschnitte)",
         "items": "Elemente",
         "videos": "Videos",
         "documents": "Dokumente",
@@ -371,7 +429,21 @@
         "difficulty_essential": "Nur Wesentliches",
         "difficulty_detailed": "Detailliert",
         "custom_instructions": "Eigene Anweisungen",
-        "custom_instructions_placeholder": "Z.B., Nur auf Schlüsselbegriffe konzentrieren…"
+        "custom_instructions_placeholder": "Z.B., Nur auf Schlüsselbegriffe konzentrieren…",
+        "pipeline_parsed": "{{count}} Datei(en) verarbeitet",
+        "pipeline_analyzing": "Dokumentstruktur wird analysiert…",
+        "pipeline_generating": "Karten werden generiert",
+        "pipeline_skipped_failed": "{{count}} Datei(en) übersprungen, die nicht verarbeitet werden konnten.",
+        "cancel_pipeline": "Abbrechen und neu starten",
+        "regenerate_button": "Karten neu generieren",
+        "show_settings": "Generierungseinstellungen anzeigen",
+        "hide_settings": "Generierungseinstellungen ausblenden",
+        "auto_generating_title": "Deine Karten werden generiert",
+        "auto_generating_subtitle": "Das Dokument wird gelesen, Karten werden entworfen und verfeinert. Das dauert in der Regel 30–90 Sekunden.",
+        "preflight_count_hint": "Bis zu 500. Die Karten werden auf die unten gewählten Formate aufgeteilt.",
+        "preflight_formats_hint": "Wähle mindestens eines. Eine Mischung von Formaten sorgt für abwechslungsreicheres Lernen.",
+        "preflight_need_files": "Lade mindestens ein Dokument hoch, bevor du generierst.",
+        "preflight_need_formats": "Wähle mindestens ein Kartenformat."
     },
     "fsrs": {
         "title": "FSRS Einstellungen",
@@ -396,7 +468,9 @@
         "delete_confirm_message": "Diese Aktion kann nicht rückgängig gemacht werden. Die Karte wird dauerhaft aus deinem Stapel entfernt.",
         "edit_card": "Karte bearbeiten",
         "delete_card": "Karte löschen",
-        "image_badge": "Bild"
+        "image_badge": "Bild",
+        "search_placeholder": "Search cards in this deck",
+        "no_matches": "No cards match your search"
     },
     "drafts": {
         "title": "Entwürfe",
@@ -520,6 +594,7 @@
         "fill_from_cloze": "Aus Lückentext übernehmen"
     },
     "errors": {
+        "regenerate_card": "Karte konnte nicht neu generiert werden",
         "invalid_youtube_url": "Bitte gib eine gültige YouTube-URL ein",
         "upload_image": "Bild konnte nicht hochgeladen werden",
         "upload_image_retry": "Bild konnte nicht hochgeladen werden. Bitte versuche es erneut.",
@@ -542,7 +617,8 @@
         "youtube_rate_limited": "Anfragelimit erreicht, bitte versuchen Sie es später erneut",
         "youtube_transcript_not_available": "Transkript nicht verfügbar",
         "youtube_language_not_available": "Sprache nicht verfügbar",
-        "youtube_network_error": "Netzwerkfehler"
+        "youtube_network_error": "Netzwerkfehler",
+        "generic": "Something went wrong"
     },
     "stats": {
         "title": "Statistiken",
@@ -649,6 +725,25 @@
         "restoring": "Wird wiederhergestellt...",
         "restore_success": "Datenbank erfolgreich wiederhergestellt. Bitte starte die App neu.",
         "restore_error": "Wiederherstellung aus Sicherung fehlgeschlagen",
+        "cloud_title": "Cloud-Backups",
+        "cloud_description": "Deine Daten werden beim Lernen automatisch in der Cloud gesichert. Stelle jeden Snapshot auf diesem Gerät wieder her.",
+        "cloud_backup_now": "Jetzt sichern",
+        "cloud_backing_up": "Wird gesichert...",
+        "cloud_backup_success": "Cloud-Backup erstellt",
+        "cloud_backup_error": "Cloud-Backup konnte nicht erstellt werden",
+        "cloud_available": "Cloud-Snapshots",
+        "cloud_no_backups": "Noch keine Cloud-Backups. Sie werden beim Lernen automatisch erstellt.",
+        "cloud_unavailable": "Cloud-Backups sind nicht verfügbar. Stelle sicher, dass du angemeldet bist.",
+        "cloud_review_count": "{{n}} Wiederholungen",
+        "cloud_generation_daily": "täglich",
+        "cloud_generation_weekly": "wöchentlich",
+        "cloud_generation_monthly": "monatlich",
+        "cloud_restore_confirm_title": "Aus Cloud-Backup wiederherstellen",
+        "cloud_restore_confirm": "Wiederherstellen & Neustart",
+        "cloud_restore_warning": "Beim Wiederherstellen wird dieser Snapshot heruntergeladen und deine aktuelle Datenbank ersetzt. Zuvor wird ein lokales Sicherheits-Backup erstellt.",
+        "cloud_restore_danger": "Alle seit diesem Backup vorgenommenen Änderungen gehen verloren. Die App wird neu gestartet.",
+        "cloud_restore_success": "Backup wiederhergestellt. Neustart...",
+        "cloud_restore_error": "Wiederherstellung aus Cloud-Backup fehlgeschlagen",
         "integrity_title": "Datenbankintegrität",
         "integrity_desc": "Führe eine Prüfung durch, um sicherzustellen, dass deine Datenbank nicht beschädigt ist.",
         "check_database": "Datenbank prüfen",
@@ -809,5 +904,37 @@
                 "body": "Passwort, Daten-Import/Export, Feedback und der Button zum Wiederholen des Rundgangs leben hier."
             }
         }
+    },
+    "tier": {
+        "upgrade": "Upgrade",
+        "dedicated_caption": "AI features + cloud backup active",
+        "free_caption": "Local FSRS + .apkg import"
+    },
+    "plan": {
+        "rebalance_accepted": "Plan updated",
+        "timeline_extended": "Timeline extended"
+    },
+    "studyHub": {
+        "subtitle": "Lerne deckübergreifend – alles Fällige oder nur deine schwachen Systeme.",
+        "days_until": "Tage bis",
+        "scope_label": "Deck-Umfang",
+        "scope_plan": "Plan-Decks",
+        "scope_all": "Alle Decks",
+        "total_due": "fällige Karten",
+        "split_new": "neu",
+        "split_learning": "lernend",
+        "split_review": "wiederholen",
+        "est_time": "~{{min}} Min.",
+        "est_label": "geschätzt",
+        "review_all_desc": "Alle fälligen Karten deiner Decks, gemischt.",
+        "begin_review_all": "Alles wiederholen ({{count}}) →",
+        "focused_desc": "Fällige Karten in den Blueprint-Systemen, in denen du am schwächsten bist.",
+        "classify_to_unlock": "Klassifiziere deine Karten, um fokussierte Sitzungen für schwache Systeme freizuschalten.",
+        "begin_focused": "Fokussiert starten ({{count}}) →",
+        "caught_up": "Du bist für heute auf dem neuesten Stand",
+        "caught_up_desc": "Die neuen Karten und fälligen Wiederholungen von heute sind erledigt.",
+        "caught_up_learning": "{{count}} Karten schließen noch ihre Lernschritte ab.",
+        "nothing_due": "Momentan nichts fällig",
+        "finish_learning": "Lernen abschließen ({{count}}) →"
     }
 }

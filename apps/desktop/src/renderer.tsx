@@ -1,8 +1,20 @@
 import * as Sentry from '@sentry/electron/renderer';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+// Ink v2 brand faces, bundled offline via @fontsource (spec §3.1) — no CDN.
+// Display=Lora, Body=Inter, Mono=Roboto Mono; only the shipped weights.
+import '@fontsource/lora/400.css';
+import '@fontsource/lora/500.css';
+import '@fontsource/lora/700.css';
+import '@fontsource/inter/400.css';
+import '@fontsource/inter/500.css';
+import '@fontsource/inter/600.css';
+import '@fontsource/inter/700.css';
+import '@fontsource/roboto-mono/400.css';
+import '@fontsource/roboto-mono/500.css';
 import App from './App';
 import './index.css';
+import './styles/ink-components.css';
 import './i18n';
 
 Sentry.init({

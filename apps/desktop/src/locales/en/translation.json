@@ -20,10 +20,12 @@
         "user": "User",
         "expand": "Expand",
         "collapse": "Collapse",
-        "loading_app": "Loading SEKEL..."
+        "loading_app": "Loading SEKEL...",
+        "search": "Search"
     },
     "nav": {
         "dashboard": "Dashboard",
+        "study": "Study",
         "decks": "Decks",
         "cards": "Cards",
         "generate": "Generate Flashcards",
@@ -31,7 +33,11 @@
         "new_deck": "New Deck",
         "image_occlusion": "Visual Cards",
         "statistics": "Statistics",
-        "plan": "Plan"
+        "plan": "Plan",
+        "collapse_sidebar": "Collapse sidebar",
+        "open_sidebar": "Open sidebar",
+        "group_create": "Create",
+        "group_more": "More"
     },
     "plan": {
         "title": "Study Plans",
@@ -104,8 +110,9 @@
         "got_it": "Got it",
         "extend_timeline": "Extend timeline instead",
         "progress_title": "Progress",
+        "progress_in_plan": "cards in plan",
         "progress_introduced": "new cards introduced",
-        "progress_remaining": "still unseen",
+        "progress_remaining": "left in plan",
         "progress_today": "new today",
         "activity_title": "Plan Activity",
         "activity_today": "Today",
@@ -130,7 +137,9 @@
         "scope_n_decks": "{{n}} deck(s)",
         "scope_no_decks_warning": "Select at least one deck to generate a plan.",
         "scope_deleted_deck": "Deleted deck",
-        "degraded_banner": "{{count}} deck(s) in this plan's scope have been deleted. The plan may serve fewer cards than originally projected."
+        "degraded_banner": "{{count}} deck(s) in this plan's scope have been deleted. The plan may serve fewer cards than originally projected.",
+        "rebalance_accepted": "Plan updated",
+        "timeline_extended": "Timeline extended"
     },
     "dashboard": {
         "welcome": "Welcome back, {{name}}!",
@@ -205,7 +214,21 @@
         "mode_flashcard": "Flashcards",
         "delete": "Delete",
         "loading": "Loading decks...",
-        "error": "Error loading decks"
+        "error": "Error loading decks",
+        "summary": "{{decks}} decks · {{cards}} cards · {{due}} due today",
+        "browse": "Browse",
+        "col_deck": "Deck",
+        "col_new": "New",
+        "col_learning": "Learning",
+        "col_due": "Due",
+        "col_retention": "Retention",
+        "col_yield": "Yield mix",
+        "col_last": "Last studied",
+        "footer_status": "{{due}} due across {{decks}} decks · est. {{min}} min at current pace",
+        "select_deck": "Select deck",
+        "import_success": "Import complete",
+        "col_classified": "Classified",
+        "yield_tooltip": "High {{high}} · Med {{med}} · Low {{low}} · Unclassified {{unc}}"
     },
     "study": {
         "session_complete": "Session Complete!",
@@ -282,7 +305,32 @@
             "final_sprint": "Final Sprint",
             "next_shift": "Next shift in ~{{days}} days",
             "max_urgency": "Max urgency"
-        }
+        },
+        "review_session_of": "Review session · {{current}} of {{total}} due",
+        "fsrs_optimal": "FSRS · optimal",
+        "high_yield": "HIGH YIELD",
+        "blueprint": "Blueprint",
+        "hint_reveal": "Press",
+        "hint_reveal_tail": "to reveal answer",
+        "footer": {
+            "reviewed": "reviewed",
+            "again": "again",
+            "avg_time": "avg",
+            "retention": "retention"
+        },
+        "sc_reveal": "reveal",
+        "sc_rate": "rate",
+        "sc_undo": "undo",
+        "sc_exit": "exit",
+        "undo_unavailable": "Can't undo — the list changed",
+        "undo_done": "Undid last rating",
+        "edit_soon": "In-session card editing is coming soon",
+        "exit_title": "Exit session?",
+        "exit_body": "Your progress is kept.",
+        "keep_studying": "Keep studying",
+        "exit": "Exit",
+        "review_all_title": "Review All",
+        "focused_title": "Focused Session"
     },
     "auth": {
         "login": "Login",
@@ -420,13 +468,19 @@
         "help_and_tour": "Help & tour",
         "replay_tour": "Replay app tour",
         "replay_tour_desc": "Walk through the welcome slides and feature tour again.",
-        "replay_tour_btn": "Replay tour"
+        "replay_tour_btn": "Replay tour",
+        "signed_in_as": "Signed in as",
+        "up_to_date": "up to date",
+        "minimal_study_view": "Minimal study view",
+        "minimal_study_view_desc": "Hide the session stats, shortcut hints, and the timer/status chips during study for a distraction-free view."
     },
     "verification": {
         "complete": "Verification Complete",
         "all_translated": "All components have been translated."
     },
     "ai": {
+        "regenerate_with_ai": "Regenerate with AI",
+        "regenerate_success": "Card regenerated — review and save",
         "title": "AI Study Assistant",
         "subtitle": "Upload documents (PDF, DOCX, PPTX, XLSX, CSV, TXT, MD) or YouTube videos to generate a study plan and flashcards.",
         "upload_header": "Upload Documents",
@@ -458,13 +512,20 @@
         "added_badge": "Added",
         "extracted_text": "Extracted Text",
         "error_parsing": "Failed to parse",
+        "error_pdf_too_large": "PDF has {{numPages}} pages — maximum is {{maxPages}}. Split into smaller files and re-upload.",
         "error_video": "Failed to parse video",
         "error_summary": "Failed to generate summary",
         "error_generating": "Error generating cards",
         "error_adding": "Failed to add card",
-        "sections_label": "Sections",
-        "chip_sections": "Sections",
-        "chip_cards": "Est. Cards",
+        "overview_label": "Document overview",
+        "chapter_word_count": "{{words}} words",
+        "chapter_capacity": "~{{n}} cards capacity",
+        "chapter_generate": "Generate cards",
+        "chapter_regenerate": "Generate again",
+        "chapter_generated_aria": "Cards already generated from this chapter",
+        "no_chapters_found": "No content available for card generation.",
+        "filtered_out_label": "Filtered out:",
+        "filtered_out_count": "({{count}} sections)",
         "items": "Items",
         "videos": "Videos",
         "documents": "Documents",
@@ -498,7 +559,21 @@
         "difficulty_essential": "Essential Only",
         "difficulty_detailed": "Detailed",
         "custom_instructions": "Custom Instructions",
-        "custom_instructions_placeholder": "e.g., Focus only on key definitions…"
+        "custom_instructions_placeholder": "e.g., Focus only on key definitions…",
+        "pipeline_parsed": "Parsed {{count}} file(s)",
+        "pipeline_analyzing": "Analyzing document structure…",
+        "pipeline_generating": "Generating cards",
+        "pipeline_skipped_failed": "Skipped {{count}} file(s) that failed to parse.",
+        "cancel_pipeline": "Cancel and start over",
+        "regenerate_button": "Regenerate Cards",
+        "show_settings": "Show generation settings",
+        "hide_settings": "Hide generation settings",
+        "auto_generating_title": "Generating your cards",
+        "auto_generating_subtitle": "Reading your document, drafting cards, and refining each one. This usually takes 30–90 seconds.",
+        "preflight_count_hint": "Up to 500. Cards are split across the formats you pick below.",
+        "preflight_formats_hint": "Pick one or more. Mixing formats gives a richer study experience.",
+        "preflight_need_files": "Upload at least one document before generating.",
+        "preflight_need_formats": "Pick at least one card format."
     },
     "modals": {
         "create": "Create",
@@ -552,7 +627,9 @@
         "delete_warn_classifications": "Exam yield classifications and scores",
         "edit_card": "Edit card",
         "delete_card": "Delete card",
-        "image_badge": "Image"
+        "image_badge": "Image",
+        "search_placeholder": "Search cards in this deck",
+        "no_matches": "No cards match your search"
     },
     "drafts": {
         "title": "Drafts",
@@ -649,6 +726,7 @@
         "fill_from_cloze": "Fill from cloze"
     },
     "errors": {
+        "regenerate_card": "Failed to regenerate card",
         "invalid_youtube_url": "Please enter a valid YouTube URL",
         "youtube_invalid_url": "Invalid YouTube URL. Please check the link and try again.",
         "youtube_invalid_domain": "Only youtube.com and youtu.be links are supported.",
@@ -671,7 +749,8 @@
         "delete_cards": "Failed to delete cards",
         "session_create": "Failed to create study session",
         "save_fsrs": "Failed to save FSRS settings",
-        "login_required": "Please log in to view profile."
+        "login_required": "Please log in to view profile.",
+        "generic": "Something went wrong"
     },
     "feedback": {
         "title": "Feedback",
@@ -770,6 +849,25 @@
         "restoring": "Restoring...",
         "restore_success": "Database restored successfully. Please restart the app.",
         "restore_error": "Failed to restore from backup",
+        "cloud_title": "Cloud Backups",
+        "cloud_description": "Your data is automatically backed up to the cloud as you study. Restore any snapshot to this device.",
+        "cloud_backup_now": "Back Up Now",
+        "cloud_backing_up": "Backing up...",
+        "cloud_backup_success": "Cloud backup created",
+        "cloud_backup_error": "Failed to create cloud backup",
+        "cloud_available": "Cloud Snapshots",
+        "cloud_no_backups": "No cloud backups yet. They're created automatically as you study.",
+        "cloud_unavailable": "Cloud backups are unavailable. Make sure you're signed in.",
+        "cloud_review_count": "{{n}} reviews",
+        "cloud_generation_daily": "daily",
+        "cloud_generation_weekly": "weekly",
+        "cloud_generation_monthly": "monthly",
+        "cloud_restore_confirm_title": "Restore from Cloud Backup",
+        "cloud_restore_confirm": "Restore & Restart",
+        "cloud_restore_warning": "Restoring will download this snapshot and replace your current database. A local safety backup will be created first.",
+        "cloud_restore_danger": "Any changes made since this backup was created will be lost. The app will restart.",
+        "cloud_restore_success": "Backup restored. Restarting...",
+        "cloud_restore_error": "Failed to restore from cloud backup",
         "integrity_title": "Database Integrity",
         "integrity_desc": "Run a check to verify your database is not corrupted.",
         "check_database": "Check Database",
@@ -979,5 +1077,33 @@
                 "body": "Password, data import/export, feedback, and the Replay tour button live here."
             }
         }
+    },
+    "tier": {
+        "upgrade": "Upgrade",
+        "dedicated_caption": "AI features + cloud backup active",
+        "free_caption": "Local FSRS + .apkg import"
+    },
+    "studyHub": {
+        "subtitle": "Review across your decks — everything due, or just your weak systems.",
+        "days_until": "days until",
+        "scope_label": "Deck scope",
+        "scope_plan": "Plan decks",
+        "scope_all": "All decks",
+        "total_due": "cards due",
+        "split_new": "new",
+        "split_learning": "learning",
+        "split_review": "review",
+        "est_time": "~{{min}} min",
+        "est_label": "estimated",
+        "review_all_desc": "Every due card across your decks, interleaved.",
+        "begin_review_all": "Begin Review All ({{count}}) →",
+        "focused_desc": "Due cards in the blueprint systems you are weakest in.",
+        "classify_to_unlock": "Classify your cards to unlock focused weak-system sessions.",
+        "begin_focused": "Begin Focused ({{count}}) →",
+        "caught_up": "You're caught up for today",
+        "caught_up_desc": "Today's new cards and due reviews are done.",
+        "caught_up_learning": "{{count}} cards are still finishing their learning steps.",
+        "nothing_due": "Nothing due right now",
+        "finish_learning": "Finish learning ({{count}}) →"
     }
 }

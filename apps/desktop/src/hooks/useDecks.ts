@@ -13,6 +13,8 @@ import {
     fetchDeckStats,
     fetchDueCards,
     fetchDueCardsFocused,
+    fetchDueCardsCrossDeck,
+    fetchDueCardsFocusedCrossDeck,
     fetchAllCardsForStudy,
     fetchAllCardsForDeck,
     updateCardAfterReview,
@@ -23,7 +25,7 @@ import {
 import type { Deck, DeckInsert, DeckUpdate, Card } from '../lib/types';
 import { useAuthStore } from '../stores/authStore';
 import { useProfileStore } from '../stores/profileStore';
-import { usePlanStore } from '../stores/planStore';
+import { useEffectivePlan } from './usePlan';
 
 // ─────────────────────────────────────────────────────────────────
 // Query Keys
@@ -37,6 +39,19 @@ export const deckKeys = {
     allCards: (id: string) => ['decks', id, 'all-cards'] as const,
     cards: (id: string) => ['decks', id, 'cards'] as const,
     classificationCount: (id: string, examKey: string) => ['decks', id, 'classification-count', examKey] as const,
+};
+
+/** Stable cache key for a cross-deck scope: null → every deck, else the sorted id set. */
+function scopeKey(deckIds: string[] | null): string {
+    return deckIds === null ? 'all' : [...deckIds].sort().join(',');
+}
+
+// Query keys for cross-deck study (SEKEL-137). Rooted at ['study', …] so the
+// per-deck ['decks', …] invalidation in useUpdateCard never clobbers an
+// in-progress cross-deck queue (nothing re-reads the card list mid-session).
+export const studyKeys = {
+    crossDeckDue: (deckIds: string[] | null) => ['study', 'due-cross-deck', scopeKey(deckIds)] as const,
+    crossDeckFocused: (deckIds: string[] | null) => ['study', 'focused-cross-deck', scopeKey(deckIds)] as const,
 };
 
 // ─────────────────────────────────────────────────────────────────
@@ -63,8 +78,11 @@ export function useDeck(id: string | null) {
 export function useDeckStats(deckId: string | null) {
     const userId = useAuthStore((s) => s.user?.id);
     const profile = useProfileStore((s) => s.profile);
+    const planNewPerDay = useEffectivePlan().effectiveNewPerDay;
     const limitsEnabled = profile?.daily_limits_enabled ?? true;
-    const newLimit = limitsEnabled ? (profile?.daily_new_limit ?? 20) : undefined;
+    // An active plan's rate caps new cards (same precedence as useDueCards), so the
+    // deck-list badge matches what the study session will actually serve.
+    const newLimit = planNewPerDay ?? (limitsEnabled ? (profile?.daily_new_limit ?? 20) : undefined);
     const reviewLimit = limitsEnabled ? (profile?.daily_review_limit ?? 200) : undefined;
     return useQuery<DeckStats>({
         queryKey: [...deckKeys.stats(deckId ?? ''), newLimit, reviewLimit],
@@ -76,7 +94,7 @@ export function useDeckStats(deckId: string | null) {
 export function useDueCards(deckId: string | null) {
     const userId = useAuthStore((s) => s.user?.id);
     const profile = useProfileStore((s) => s.profile);
-    const planNewPerDay = usePlanStore((s) => s.effectiveNewPerDay);
+    const planNewPerDay = useEffectivePlan().effectiveNewPerDay;
     const limitsEnabled = profile?.daily_limits_enabled ?? true;
     // Plan limit takes precedence over Supabase profile when a plan is active
     const newLimit = planNewPerDay ?? (limitsEnabled ? (profile?.daily_new_limit ?? 20) : undefined);
@@ -91,7 +109,7 @@ export function useDueCards(deckId: string | null) {
 export function useDueCardsFocused(deckId: string | null, systemKeys: string[], examKey: string | undefined) {
     const userId = useAuthStore((s) => s.user?.id);
     const profile = useProfileStore((s) => s.profile);
-    const planNewPerDay = usePlanStore((s) => s.effectiveNewPerDay);
+    const planNewPerDay = useEffectivePlan().effectiveNewPerDay;
     const limitsEnabled = profile?.daily_limits_enabled ?? true;
     const newLimit = planNewPerDay ?? (limitsEnabled ? (profile?.daily_new_limit ?? 20) : undefined);
     const reviewLimit = limitsEnabled ? (profile?.daily_review_limit ?? 200) : undefined;
@@ -99,6 +117,65 @@ export function useDueCardsFocused(deckId: string | null, systemKeys: string[], 
         queryKey: ['decks', deckId, 'due-cards-focused', systemKeys, newLimit, reviewLimit],
         queryFn: () => fetchDueCardsFocused(deckId!, systemKeys, examKey!, userId, newLimit, reviewLimit),
         enabled: !!deckId && !!userId && !!examKey && systemKeys.length > 0,
+    });
+}
+
+/**
+ * Due cards pooled across decks (Review All). `deckIds = null` → every deck the
+ * user owns; a non-null array scopes to those decks (e.g. the active plan's
+ * deckFilter). Same daily-limit precedence as useDueCards; the main process
+ * applies those limits per deck, so counts reconcile with the sidebar pills.
+ */
+/**
+ * @param useGlobalNewBudget when true (an active plan owns this scope), the plan's
+ * new-card rate is enforced as a SINGLE shared budget across the scope's decks —
+ * "N new/day" means N total, not N per deck. Reviews stay per-deck regardless.
+ */
+export function useDueCardsCrossDeck(
+    deckIds: string[] | null,
+    examKey: string | undefined,
+    enabled = true,
+    useGlobalNewBudget = false,
+) {
+    const userId = useAuthStore((s) => s.user?.id);
+    const profile = useProfileStore((s) => s.profile);
+    const planNewPerDay = useEffectivePlan().effectiveNewPerDay;
+    const limitsEnabled = profile?.daily_limits_enabled ?? true;
+    const newLimit = planNewPerDay ?? (limitsEnabled ? (profile?.daily_new_limit ?? 20) : undefined);
+    const reviewLimit = limitsEnabled ? (profile?.daily_review_limit ?? 200) : undefined;
+    // The global budget is the plan's effective rate; it's stable for the session
+    // (the remaining-today count is computed once in the main process at fetch time),
+    // so it's safe in the queryKey without causing a mid-session refetch.
+    const globalNewLimit = useGlobalNewBudget ? (planNewPerDay ?? undefined) : undefined;
+    return useQuery<CardWithNote[]>({
+        queryKey: [...studyKeys.crossDeckDue(deckIds), newLimit, reviewLimit, examKey ?? '', globalNewLimit ?? null],
+        queryFn: () => fetchDueCardsCrossDeck(userId!, deckIds, newLimit, reviewLimit, examKey, globalNewLimit),
+        enabled: !!userId && enabled,
+    });
+}
+
+/**
+ * Weak-system due cards pooled across decks (Focused / SEKEL Intelligence).
+ * Mirrors useDueCardsFocused but spans the scope's decks. Disabled until an exam
+ * key and at least one weak system are known — there is no focused queue without
+ * classifications.
+ */
+export function useDueCardsFocusedCrossDeck(
+    deckIds: string[] | null,
+    systemKeys: string[],
+    examKey: string | undefined,
+    enabled = true,
+) {
+    const userId = useAuthStore((s) => s.user?.id);
+    const profile = useProfileStore((s) => s.profile);
+    const planNewPerDay = useEffectivePlan().effectiveNewPerDay;
+    const limitsEnabled = profile?.daily_limits_enabled ?? true;
+    const newLimit = planNewPerDay ?? (limitsEnabled ? (profile?.daily_new_limit ?? 20) : undefined);
+    const reviewLimit = limitsEnabled ? (profile?.daily_review_limit ?? 200) : undefined;
+    return useQuery<CardWithNote[]>({
+        queryKey: [...studyKeys.crossDeckFocused(deckIds), systemKeys, examKey ?? '', newLimit, reviewLimit],
+        queryFn: () => fetchDueCardsFocusedCrossDeck(userId!, deckIds, systemKeys, examKey!, newLimit, reviewLimit),
+        enabled: !!userId && !!examKey && systemKeys.length > 0 && enabled,
     });
 }
 

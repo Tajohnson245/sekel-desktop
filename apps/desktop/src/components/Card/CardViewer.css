@@ -8,7 +8,10 @@
 /* ── Shared layout ───────────────────────────────────────────── */
 
 .card-viewer {
-    --card-max-h: calc(70vh - 2rem);
+    /* Bounded to the study area's height (accounts for the top bar, progress
+       bar, rating row and footer) so the visual card fits without producing an
+       outer scrollbar. Long card content scrolls inside the face. */
+    --card-max-h: calc(100vh - 380px);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -120,13 +123,13 @@
     overflow: hidden;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
-    background: var(--secondary);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
+    background: var(--panel);
+    border: 1px solid var(--stroke);
+    border-radius: var(--r-card);
     padding: 2rem;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--shadow-card);
 }
 
 /* ── Inner scroll container ─────────────────────────────────── */
@@ -176,7 +179,7 @@
 }
 
 .flashcard-face-back::after {
-    background: linear-gradient(to bottom, transparent, #1a1f2e);
+    background: linear-gradient(to bottom, transparent, var(--panel));
 }
 
 .flashcard-face.has-overflow::after {
@@ -194,8 +197,8 @@
 }
 
 .flashcard-face-front:hover {
-    border-color: var(--primary);
-    box-shadow: 0 4px 25px rgba(59, 130, 246, 0.2);
+    border-color: var(--teal);
+    box-shadow: var(--teal-glow);
 }
 
 .flashcard-container.flipped .flashcard-face-front:hover {
@@ -222,7 +225,7 @@
 }
 
 .flashcard-face-back .flashcard-content:not(:has(.occlusion-card)) {
-    color: var(--success);
+    color: var(--paper);
 }
 
 /* ── Static mode — no 3D, one face at a time ─────────────────── */
@@ -292,6 +295,15 @@
     padding: 1.5rem 0;
 }
 
+/* Study vignette — Lora, generous line-height (spec §3.2 / §7.2) */
+.classic-front .flashcard-content {
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    line-height: 1.5;
+    font-weight: 400;
+    color: var(--paper);
+}
+
 .classic-front .flashcard-content img,
 .classic-back  .flashcard-content img {
     max-height: 25vh;
@@ -302,7 +314,7 @@
     margin: auto auto 0;
     padding: 0.6rem 2rem;
     background: var(--primary);
-    color: #fff;
+    color: var(--ink);
     border: none;
     border-radius: var(--r-sm);
     font-family: var(--font-body);
@@ -345,7 +357,7 @@
 }
 
 .classic-back .flashcard-content:not(:has(.occlusion-card)) {
-    color: var(--success);
+    color: var(--paper);
 }
 
 /* ── Cloze deletion ──────────────────────────────────────────── */

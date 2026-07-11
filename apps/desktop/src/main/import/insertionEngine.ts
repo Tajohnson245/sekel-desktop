@@ -36,6 +36,9 @@ export interface ImportResult {
     notesSkipped: number;
     cardsInserted: number;
     reviewsInserted: number;
+    /** Sekel card IDs created by this import — used to enqueue post-import
+     *  classification. Not surfaced to the renderer. */
+    cardIds?: string[];
 }
 
 export type ImportProgressCallback = (stage: string, detail: string, percent: number) => void;
@@ -112,6 +115,12 @@ export function executeImport(
     // Pre-count total cards for progress reporting
     const totalCards = parsedData.cards.filter(c => selectedOptions.has(c.did)).length;
     const totalRevlogs = parsedData.revlog.length;
+
+    // Cards that actually have review history. In 'keep' mode, a card with no
+    // history starts as new regardless of its Anki type, so shared/prebuilt decks
+    // (whose cards may carry type=review with no personal revlog) don't import as a
+    // wall of spuriously-due cards. (SEKEL-138)
+    const cardsWithHistory = new Set<number>(parsedData.revlog.map(r => r.cid));
 
     // Maps built during card insertion for use when inserting review logs
     const ankiCardIdToSekelCardId = new Map<number, string>();
@@ -251,7 +260,7 @@ export function executeImport(
                 for (const ankiCard of cards) {
                     const cardId = randomUUID();
                     const { state, due, stability, difficulty, scheduledDays, easeFactor } =
-                        mapScheduling(ankiCard, opt);
+                        mapScheduling(ankiCard, opt, cardsWithHistory.has(ankiCard.id));
 
                     insertCard.run(
                         cardId,
@@ -357,7 +366,7 @@ export function executeImport(
         reviewsInserted: result.reviewsInserted,
     });
     metrics.increment('import.cards_inserted', {}, result.cardsInserted);
-    return result;
+    return { ...result, cardIds: Array.from(ankiCardIdToSekelCardId.values()) };
 }
 
 // ── Scheduling helpers ────────────────────────────────────────────────────────
@@ -371,10 +380,13 @@ interface SchedulingValues {
     easeFactor: number | null;
 }
 
-function mapScheduling(ankiCard: AnkiCard, opt: ImportOptionsDeck): SchedulingValues {
+function mapScheduling(ankiCard: AnkiCard, opt: ImportOptionsDeck, hasHistory: boolean): SchedulingValues {
     const now = new Date().toISOString();
 
-    if (opt.scheduling === 'fresh') {
+    // Reset to new when the user chose 'fresh', OR (in 'keep' mode) when the card
+    // has no review history — "no data → new". Cards with real history keep their
+    // schedule below.
+    if (opt.scheduling === 'fresh' || !hasHistory) {
         return {
             state: 'new',
             due: now,

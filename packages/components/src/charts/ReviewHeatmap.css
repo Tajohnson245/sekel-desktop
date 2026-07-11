@@ -98,12 +98,11 @@
   z-index:          9999;
   background-color: var(--ink);
   color:            var(--fog);
-  border:           1px solid var(--ink-muted);
+  border: 1px solid var(--stroke);
   border-radius:    var(--r-sm);
   padding:          var(--space-xs) var(--space-sm);
   font-family:      var(--font-mono);
   font-size:        12px;
   white-space:      nowrap;
-  box-shadow:       var(--shadow-md);
   pointer-events:   none;
 }
