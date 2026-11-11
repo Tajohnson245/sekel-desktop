@@ -91,7 +91,7 @@ export function buildAnkiDatabase(deckId: string, userId: string): string {
         if (cardSekelIds.length > 0) {
             const cardPlaceholders = cardSekelIds.map(() => '?').join(',');
             reviews = sekelDb.prepare(
-                `SELECT * FROM reviews WHERE card_id IN (${cardPlaceholders})`
+                `SELECT * FROM reviews WHERE card_id IN (${cardPlaceholders}) ORDER BY review_time, id`
             ).all(...cardSekelIds) as Record<string, unknown>[];
         }
 
@@ -234,11 +234,20 @@ export function buildAnkiDatabase(deckId: string, userId: string): string {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
 
+        // revlog.id is both the review time (Unix ms) and the primary key, so two
+        // reviews in the same millisecond would collide and abort the export.
+        // Bump duplicates forward 1 ms at a time (reviews are sorted by time).
+        const usedRevlogIds = new Set<number>();
+
         for (const review of reviews) {
             const cardAnkiId = cardSekelToAnkiId.get(review.card_id as string);
             if (!cardAnkiId) continue;
 
             const reviewTime = Date.parse(review.review_time as string);
+            if (!Number.isFinite(reviewTime)) continue;
+            let revlogId = reviewTime;
+            while (usedRevlogIds.has(revlogId)) revlogId++;
+            usedRevlogIds.add(revlogId);
             const ease = mapRatingToAnkiEase(review.rating as string);
             const ivl = (review.scheduled_days as number) ?? 0;
             const lastIvl = (review.interval_before as number) ?? 0;
@@ -249,7 +258,7 @@ export function buildAnkiDatabase(deckId: string, userId: string): string {
             const type = (review.review_type as number) ?? mapStateToRevlogType(review.state_before as string);
 
             insertRevlog.run(
-                reviewTime,                             // id (unix ms)
+                revlogId,                               // id (unix ms, unique)
                 cardAnkiId,                             // cid
                 -1,                                     // usn
                 ease,                                   // ease

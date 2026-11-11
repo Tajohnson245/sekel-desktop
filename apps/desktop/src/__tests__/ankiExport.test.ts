@@ -72,6 +72,17 @@ function seedCard(opts: { state: string; due: string; ankiMeta?: Record<string, 
     return id;
 }
 
+let reviewSeq = 0;
+function seedReview(cardId: string, reviewTime: string): void {
+    reviewSeq++;
+    testDb.prepare(`
+        INSERT INTO reviews (id, user_id, card_id, rating, review_time, state_before, stability_before,
+                             difficulty_before, state_after, stability_after, difficulty_after,
+                             scheduled_days, review_type, created_at)
+        VALUES (?, ?, ?, 'good', ?, 'review', 5, 5, 'review', 10, 5, 10, 1, ?)
+    `).run(`rev-${reviewSeq}`, USER, cardId, reviewTime, NOW);
+}
+
 const tmpDirs: string[] = [];
 function build(deckId: string): Database.Database {
     const dbPath = buildAnkiDatabase(deckId, USER);
@@ -79,7 +90,7 @@ function build(deckId: string): Database.Database {
     return new Database(dbPath, { readonly: true });
 }
 
-beforeEach(() => { testDb = setupDb(); cardSeq = 0; });
+beforeEach(() => { testDb = setupDb(); cardSeq = 0; reviewSeq = 0; });
 afterEach(() => {
     testDb.close();
     for (const dir of tmpDirs.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
@@ -162,12 +173,7 @@ describe('buildAnkiDatabase — scheduling', () => {
         const dueIso = '2027-03-15T13:45:00.000Z';
         const cardId = seedCard({ state: 'review', due: dueIso });
         // Review history so 'keep' scheduling retains the review state.
-        testDb.prepare(`
-            INSERT INTO reviews (id, user_id, card_id, rating, review_time, state_before, stability_before,
-                                 difficulty_before, state_after, stability_after, difficulty_after,
-                                 scheduled_days, review_type, created_at)
-            VALUES ('rev-1', ?, ?, 'good', '2027-03-05T10:00:00.000Z', 'review', 5, 5, 'review', 10, 5, 10, 1, ?)
-        `).run(USER, cardId, NOW);
+        seedReview(cardId, '2027-03-05T10:00:00.000Z');
 
         const dbPath = buildAnkiDatabase(deckId, USER);
         tmpDirs.push(path.dirname(dbPath));
@@ -190,5 +196,26 @@ describe('buildAnkiDatabase — scheduling', () => {
         expect(row.state).toBe('review');
         expect(row.due.slice(0, 10)).toBe('2027-03-15');
         expect(row.last_review).toBe('2027-03-05T10:00:00.000Z');
+    });
+});
+
+describe('buildAnkiDatabase — review log', () => {
+    it('gives reviews in the same millisecond distinct revlog ids', () => {
+        const { deckId } = seedDeck();
+        const a = seedCard({ state: 'review', due: '2027-03-15T00:00:00.000Z' });
+        const b = seedCard({ state: 'review', due: '2027-03-15T00:00:00.000Z' });
+        const t = '2026-05-01T12:00:00.000Z';
+        seedReview(a, t);
+        seedReview(b, t);
+        seedReview(b, t);
+        // A later review exactly 1 ms after the collision still gets its own id.
+        seedReview(a, '2026-05-01T12:00:00.001Z');
+
+        const anki = build(deckId);
+        const ids = (anki.prepare('SELECT id FROM revlog ORDER BY id').all() as { id: number }[]).map(r => r.id);
+        anki.close();
+
+        const base = Date.parse(t);
+        expect(ids).toEqual([base, base + 1, base + 2, base + 3]);
     });
 });
