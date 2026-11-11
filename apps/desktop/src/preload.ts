@@ -141,8 +141,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     yield: {
         classifyCard:  (cardId: string, examKey: string) =>
             ipcRenderer.invoke('yield:classify-card', cardId, examKey),
-        classifyBatch: (cardIds: string[], examKey: string, force?: boolean) =>
-            ipcRenderer.invoke('yield:classify-batch', cardIds, examKey, force),
+        classifyBatch: (cardIds: string[], examKey: string, force?: boolean, options?: { skipRelevanceCheck?: boolean }) =>
+            ipcRenderer.invoke('yield:classify-batch', cardIds, examKey, force, options),
+        clearDeckClassifications: (deckId: string, examKey: string) =>
+            ipcRenderer.invoke('yield:clear-deck-classifications', deckId, examKey),
         getScores:     (examKey: string, cardIds?: string[]) =>
             ipcRenderer.invoke('yield:get-scores', examKey, cardIds),
         getExplanation: (cardId: string, examKey: string) =>

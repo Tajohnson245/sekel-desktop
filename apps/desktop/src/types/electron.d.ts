@@ -448,35 +448,49 @@ export interface SessionQueueCard extends CardWithNote {
 }
 
 interface ElectronYield {
-    classifyCard:      (cardId: string, examKey: string) => Promise<ClassificationResult>;
-    classifyBatch:     (cardIds: string[], examKey: string, force?: boolean) => Promise<BatchClassifyResult>;
+    classifyCard:      (cardId: string, examKey: string) => Promise<BatchClassifyResult>;
+    classifyBatch:     (cardIds: string[], examKey: string, force?: boolean, options?: { skipRelevanceCheck?: boolean }) => Promise<BatchClassifyResult>;
+    clearDeckClassifications: (deckId: string, examKey: string) => Promise<{ clearedCards: number }>;
     getScores:         (examKey: string, cardIds?: string[]) => Promise<YieldScoreRow[]>;
     getExplanation:    (cardId: string, examKey: string) => Promise<string>;
     buildSessionQueue: (userId: string, examKey: string, limit?: number) => Promise<SessionQueueCard[]>;
-    getDeckClassificationCount: (deckId: string, examKey: string) => Promise<{ classified: number; total: number }>;
+    getDeckClassificationCount: (deckId: string, examKey: string) => Promise<DeckClassificationCount>;
     getDeckYieldMix: (deckIds: string[], examKey: string) => Promise<DeckYieldMix[]>;
 }
 
-export interface ClassificationResult {
-    exam_key: string;
-    system_key: string;
-    topic_key: string;
-    confidence: number;
-    reasoning: string;
-    multi_system?: true;
-    classifications?: Array<{
-        system_key: string;
-        topic_key: string;
-        confidence: number;
-        split_weight: number;
-        reasoning: string;
-    }>;
+export interface DeckClassificationCount {
+    /** Cards mapped to the exam blueprint with enough confidence to get a yield level. */
+    classified: number;
+    /** Cards that were checked but aren't exam material. */
+    notRelated: number;
+    total: number;
+}
+
+/** A deck whose sampled cards mostly weren't exam material, so it wasn't classified. */
+export interface SkippedDeck {
+    deckId: string;
+    deckName: string;
+    /** Cards from this deck in the request that were left unclassified. */
+    cardCount: number;
+    /** Sampled cards the AI judged. */
+    sampled: number;
+    /** Of those, how many were exam material. */
+    relevant: number;
+    /** What the AI thinks the deck is about, e.g. "C# programming". */
+    subject: string | null;
 }
 
 export interface BatchClassifyResult {
+    /** Cards mapped to the blueprint. */
     classified: number;
+    /** Cards checked and found not to be exam material. */
+    notRelated: number;
+    /** Cards already classified (not re-run unless forced). */
     skipped: number;
     errors: number;
+    skippedDecks: SkippedDeck[];
+    /** Stopped because the user is signed out or out of today's AI allowance. */
+    stoppedEarly: boolean;
 }
 
 export interface BlueprintExam {

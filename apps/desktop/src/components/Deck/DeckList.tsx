@@ -211,6 +211,12 @@ export default function DeckList() {
         (aggregate.childrenOf.get(deckId) ?? []).forEach((c) => { acc += subtreeClassified(c.id); });
         return acc;
     };
+    // Cards checked and found not to be exam material (shown as a tooltip).
+    const subtreeNotRelated = (deckId: string): number => {
+        let acc = classifiedByDeck.get(deckId)?.notRelated ?? 0;
+        (aggregate.childrenOf.get(deckId) ?? []).forEach((c) => { acc += subtreeNotRelated(c.id); });
+        return acc;
+    };
 
     // Retention/yield aggregate the same way. Retention sums raw numerators and
     // denominators over the subtree so the parent % is a true weighted average.
@@ -240,6 +246,9 @@ export default function DeckList() {
         const classified = !hasExam
             ? null
             : (depth === 0 ? subtreeClassified(deck.id) : (classifiedByDeck.get(deck.id)?.classified ?? 0));
+        const notRelated = !hasExam
+            ? 0
+            : (depth === 0 ? subtreeNotRelated(deck.id) : (classifiedByDeck.get(deck.id)?.notRelated ?? 0));
         const retention = depth === 0 ? subtreeRetention(deck.id) : (retentionByDeck.get(deck.id) ?? { nonAgain: 0, total: 0 });
         const retentionPct = retention.total > 0 ? Math.round((retention.nonAgain / retention.total) * 100) : null;
         const yieldMix = depth === 0 ? subtreeYield(deck.id) : (yieldByDeck.get(deck.id) ?? { high: 0, medium: 0, low: 0 });
@@ -281,7 +290,10 @@ export default function DeckList() {
                 <div className="deck-col num"><CountCell value={stats.newTotal} tone="new" /></div>
                 <div className="deck-col num"><CountCell value={stats.learningCount} tone="learning" /></div>
                 <div className="deck-col num"><CountCell value={stats.reviewCount} tone="due" /></div>
-                <div className={`deck-col num mono ${classified == null || classified === 0 ? 'deck-muted' : ''}`}>
+                <div
+                    className={`deck-col num mono ${classified == null || classified === 0 ? 'deck-muted' : ''}`}
+                    title={notRelated > 0 ? t('classify.not_related_tooltip', { count: notRelated }) : undefined}
+                >
                     {classified == null ? '—' : classified}
                 </div>
                 <div

@@ -23,6 +23,7 @@ import {
     type CardWithNote,
 } from '../lib/queries';
 import type { Deck, DeckInsert, DeckUpdate, Card } from '../lib/types';
+import type { DeckClassificationCount } from '../types/electron';
 import { useAuthStore } from '../stores/authStore';
 import { useProfileStore } from '../stores/profileStore';
 import { useEffectivePlan, planNewScopeFor, planNewScopeKey } from './usePlan';
@@ -203,7 +204,7 @@ export function useAllCardsForStudy(deckId: string | null) {
 }
 
 export function useDeckClassificationCount(deckId: string | null, examKey: string | undefined) {
-    return useQuery<{ classified: number; total: number }>({
+    return useQuery<DeckClassificationCount>({
         queryKey: deckKeys.classificationCount(deckId ?? '', examKey ?? ''),
         queryFn: () => window.electronAPI.yield.getDeckClassificationCount(deckId!, examKey!),
         enabled: !!deckId && !!examKey,

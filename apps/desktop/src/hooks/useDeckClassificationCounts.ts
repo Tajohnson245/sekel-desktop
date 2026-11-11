@@ -12,6 +12,8 @@ import { useExamProfile } from './useExamProfile';
 
 export interface ClassificationCount {
     classified: number;
+    /** Checked but not exam material. */
+    notRelated: number;
     total: number;
 }
 

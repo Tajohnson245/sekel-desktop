@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import type { BatchClassifyResult } from '../../../types/electron';
 import { useAuthStore } from '../../../stores/authStore';
 import { useProfileStore } from '../../../stores/profileStore';
 import { Bell, Brain, Clock, GraduationCap, Plus, Sparkles, X } from 'lucide-react';
@@ -46,10 +48,13 @@ export function StudyTab() {
     const [showDateConfirm, setShowDateConfirm] = useState(false);
 
     // Classify Cards state
+    const queryClient = useQueryClient();
     const [classifyDeckId, setClassifyDeckId] = useState('');
     const [classifyForce, setClassifyForce] = useState(false);
     const [classifyRunning, setClassifyRunning] = useState(false);
-    const [classifyResult, setClassifyResult] = useState<{ classified: number; skipped: number; errors: number } | null>(null);
+    const [classifyResult, setClassifyResult] = useState<BatchClassifyResult | 'empty' | null>(null);
+    const [confirmClearClassifications, setConfirmClearClassifications] = useState(false);
+    const [clearingClassifications, setClearingClassifications] = useState(false);
 
     useEffect(() => {
         if (examProfile) {
@@ -109,27 +114,58 @@ export function StudyTab() {
         setShowExamModal(false);
     };
 
-    const handleClassify = async () => {
+    // Classification feeds the deck counts, yield chips, plans and study queues.
+    const refreshClassificationData = () => {
+        for (const key of ['decks', 'deckYieldMix', 'plan', 'study']) {
+            void queryClient.invalidateQueries({ queryKey: [key] });
+        }
+    };
+
+    // skipRelevanceCheck: "Classify anyway" after the deck check said the deck
+    // doesn't look like exam material.
+    const handleClassify = async (skipRelevanceCheck = false) => {
         if (!classifyDeckId || !examProfile) return;
         setClassifyRunning(true);
         setClassifyResult(null);
+        setConfirmClearClassifications(false);
         try {
             const cards = await window.electronAPI.db.fetchAllCardsForDeck(classifyDeckId);
             if (cards.length === 0) {
-                setClassifyResult({ classified: 0, skipped: 0, errors: 0 });
+                setClassifyResult('empty');
                 return;
             }
             const cardIds = cards.map((c: { id: string }) => c.id);
             const result = await window.electronAPI.yield.classifyBatch(
                 cardIds,
                 examProfile.exam_key,
-                classifyForce
+                classifyForce,
+                { skipRelevanceCheck },
             );
             setClassifyResult(result);
+            refreshClassificationData();
         } catch {
             showToast(t('classify.error'), 'error');
         } finally {
             setClassifyRunning(false);
+        }
+    };
+
+    const handleClearClassifications = async () => {
+        if (!classifyDeckId || !examProfile) return;
+        setClearingClassifications(true);
+        try {
+            const { clearedCards } = await window.electronAPI.yield.clearDeckClassifications(
+                classifyDeckId,
+                examProfile.exam_key,
+            );
+            setClassifyResult(null);
+            setConfirmClearClassifications(false);
+            refreshClassificationData();
+            showToast(t('classify.cleared', { count: clearedCards }), 'success');
+        } catch {
+            showToast(t('classify.clear_error'), 'error');
+        } finally {
+            setClearingClassifications(false);
         }
     };
 
@@ -349,8 +385,12 @@ export function StudyTab() {
                             <Select
                                 containerClassName="study-classify-deck"
                                 value={classifyDeckId}
-                                onChange={(e) => { setClassifyDeckId(e.target.value); setClassifyResult(null); }}
-                                disabled={classifyRunning}
+                                onChange={(e) => {
+                                    setClassifyDeckId(e.target.value);
+                                    setClassifyResult(null);
+                                    setConfirmClearClassifications(false);
+                                }}
+                                disabled={classifyRunning || clearingClassifications}
                                 placeholder={t('classify.select_deck_placeholder')}
                                 options={decks.map(deck => ({ value: deck.id, label: deck.name }))}
                             />
@@ -360,39 +400,107 @@ export function StudyTab() {
                                     type="checkbox"
                                     checked={classifyForce}
                                     onChange={(e) => setClassifyForce(e.target.checked)}
-                                    disabled={classifyRunning}
+                                    disabled={classifyRunning || clearingClassifications}
                                 />
                                 {t('classify.force_reclassify')}
                             </label>
 
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
                                 <Button
                                     variant="primary"
-                                    onClick={handleClassify}
-                                    disabled={!classifyDeckId || classifyRunning}
+                                    onClick={() => handleClassify()}
+                                    disabled={!classifyDeckId || classifyRunning || clearingClassifications}
                                     isLoading={classifyRunning}
                                 >
                                     {classifyRunning ? t('classify.running') : t('classify.run_button')}
                                 </Button>
 
-                                {classifyResult && (
-                                    classifyResult.classified === 0 && classifyResult.skipped === 0 && classifyResult.errors === 0
-                                        ? <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                                            {t('classify.no_cards')}
-                                          </span>
-                                        : <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                                            {t('classify.success', {
-                                                classified: classifyResult.classified,
-                                                skipped: classifyResult.skipped,
-                                            })}
-                                            {classifyResult.errors > 0 && (
-                                                <span style={{ color: 'var(--danger, #c0392b)', marginLeft: 6 }}>
-                                                    · {t('classify.failed', { count: classifyResult.errors })}
-                                                </span>
-                                            )}
-                                          </span>
+                                {confirmClearClassifications ? (
+                                    <>
+                                        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                            {t('classify.clear_confirm', { examLabel: examProfile.exam_label })}
+                                        </span>
+                                        <Button
+                                            variant="danger"
+                                            onClick={handleClearClassifications}
+                                            isLoading={clearingClassifications}
+                                            disabled={clearingClassifications}
+                                        >
+                                            {t('common.confirm')}
+                                        </Button>
+                                        <Button variant="ghost" onClick={() => setConfirmClearClassifications(false)}>
+                                            {t('common.cancel')}
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <Button
+                                        variant="ghost"
+                                        onClick={() => setConfirmClearClassifications(true)}
+                                        disabled={!classifyDeckId || classifyRunning || clearingClassifications}
+                                    >
+                                        {t('classify.clear_button')}
+                                    </Button>
                                 )}
                             </div>
+
+                            {classifyResult === 'empty' && (
+                                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                    {t('classify.no_cards')}
+                                </span>
+                            )}
+
+                            {classifyResult && classifyResult !== 'empty' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                                    <span>
+                                        {t('classify.summary', {
+                                            classified: classifyResult.classified,
+                                            notRelated: classifyResult.notRelated,
+                                            skipped: classifyResult.skipped,
+                                        })}
+                                        {classifyResult.errors > 0 && (
+                                            <span style={{ color: 'var(--danger, #c0392b)', marginLeft: 6 }}>
+                                                · {t('classify.failed', { count: classifyResult.errors })}
+                                            </span>
+                                        )}
+                                    </span>
+
+                                    {classifyResult.stoppedEarly && (
+                                        <span style={{ color: 'var(--danger, #c0392b)' }}>
+                                            {t('classify.stopped_early')}
+                                        </span>
+                                    )}
+
+                                    {classifyResult.skippedDecks.map((d) => (
+                                        <div
+                                            key={d.deckId}
+                                            role="status"
+                                            style={{
+                                                padding: '0.75rem',
+                                                border: '1px solid var(--border)',
+                                                borderRadius: 'var(--radius, 8px)',
+                                                background: 'var(--bg-secondary)',
+                                            }}
+                                        >
+                                            <p style={{ margin: '0 0 0.5rem' }}>
+                                                {t('classify.deck_not_relevant', {
+                                                    deckName: d.deckName,
+                                                    examLabel: examProfile.exam_label,
+                                                    relevant: d.relevant,
+                                                    sampled: d.sampled,
+                                                })}
+                                                {d.subject && <> {t('classify.deck_subject', { subject: d.subject })}</>}
+                                            </p>
+                                            <Button
+                                                variant="secondary"
+                                                onClick={() => handleClassify(true)}
+                                                disabled={classifyRunning || clearingClassifications}
+                                            >
+                                                {t('classify.classify_anyway')}
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     ) : null}
                 </div>
