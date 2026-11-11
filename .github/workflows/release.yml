@@ -33,10 +33,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Pinned: `latest` now resolves to the 3.x CLI (released 2026-11-02).
+      # A floating major must not get prod credentials unreviewed. Bump on
+      # purpose.
       - name: Install Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.122.1
 
       - name: Link to prod project
         env:
@@ -70,12 +73,26 @@ jobs:
       - name: Install dependencies (root + workspaces)
         run: npm ci
 
+      # tsx isn't in package-lock.json, so a bare `npx tsx` would download
+      # whatever is `latest` and run it with the prod service-role key in its
+      # environment. Pin it exactly. The runner reads TSX_VERSION so the
+      # per-exam child processes it spawns use the same pinned version.
       - name: Seed blueprints to prod Supabase
         env:
           VITE_SUPABASE_PROJECT_URL: ${{ secrets.VITE_SUPABASE_PROJECT_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: npx tsx scripts/seed-blueprints-supabase.ts
+          TSX_VERSION: 4.23.15
+        run: npx --yes "tsx@${TSX_VERSION}" scripts/seed-blueprints-supabase.ts
 
+      # Edge functions. JWT verification is ON unless the function
+      # authenticates another way:
+      #   --no-verify-jwt  feedback-discord, feedback-email (x-webhook-secret
+      #                    from the DB webhook), prune-backups (x-cron-secret
+      #                    from pg_cron)
+      #   verified JWT     backup-alert (main process, user JWT), delete-account
+      #                    (renderer, user JWT)
+      # Shared helpers live in supabase/functions/_shared/ and are bundled
+      # into each function that imports them.
       - name: Deploy feedback-discord edge function
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -87,6 +104,28 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         working-directory: apps/desktop
         run: supabase functions deploy feedback-email --project-ref uawkoueqectmkiyjcrtb --no-verify-jwt
+
+      # Requires the CRON_SECRET function secret and a pg_cron job that sends
+      # it, both set up by hand (see "prod-at-release checklist" in
+      # docs/features/desktop/in-progress/cloud-backup-system.md). Until then
+      # the function rejects every call with 403.
+      - name: Deploy prune-backups edge function
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        working-directory: apps/desktop
+        run: supabase functions deploy prune-backups --project-ref uawkoueqectmkiyjcrtb --no-verify-jwt
+
+      - name: Deploy backup-alert edge function
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        working-directory: apps/desktop
+        run: supabase functions deploy backup-alert --project-ref uawkoueqectmkiyjcrtb
+
+      - name: Deploy delete-account edge function
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        working-directory: apps/desktop
+        run: supabase functions deploy delete-account --project-ref uawkoueqectmkiyjcrtb
 
   release:
     needs: deploy-server
