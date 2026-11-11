@@ -91,9 +91,9 @@ export function StudyTab() {
         deleteExamProfile.mutate(undefined, {
             onSuccess: () => {
                 setConfirmDeleteExam(false);
-                showToast(hadPlan ? 'Exam removed and plan archived' : 'Exam configuration removed', 'success');
+                showToast(hadPlan ? t('exam.removed_plan_archived') : t('exam.removed'), 'success');
             },
-            onError: () => showToast('Failed to remove exam configuration', 'error'),
+            onError: () => showToast(t('exam.remove_error'), 'error'),
         });
     };
 
@@ -269,8 +269,8 @@ export function StudyTab() {
                                     <>
                                         <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                                             {activePlanResult
-                                                ? 'Remove exam? Your active study plan will be archived.'
-                                                : 'Remove exam configuration?'}
+                                                ? t('exam.remove_confirm_with_plan')
+                                                : t('exam.remove_confirm')}
                                         </span>
                                         <Button
                                             variant="danger"
@@ -278,15 +278,15 @@ export function StudyTab() {
                                             isLoading={deleteExamProfile.isPending}
                                             disabled={deleteExamProfile.isPending}
                                         >
-                                            Confirm
+                                            {t('common.confirm')}
                                         </Button>
                                         <Button variant="ghost" onClick={() => setConfirmDeleteExam(false)}>
-                                            Cancel
+                                            {t('common.cancel')}
                                         </Button>
                                     </>
                                 ) : (
                                     <Button variant="ghost" onClick={() => setConfirmDeleteExam(true)}>
-                                        Remove
+                                        {t('common.remove')}
                                     </Button>
                                 )}
                             </div>
@@ -308,12 +308,12 @@ export function StudyTab() {
                     <Modal
                         isOpen={showDateConfirm}
                         onClose={handleCancelDateChange}
-                        title="Update exam date?"
+                        title={t('exam.update_date_title')}
                         size="sm"
                         footer={
                             <>
                                 <Button variant="ghost" onClick={handleCancelDateChange}>
-                                    Cancel
+                                    {t('common.cancel')}
                                 </Button>
                                 <Button
                                     variant="primary"
@@ -321,13 +321,13 @@ export function StudyTab() {
                                     isLoading={updateExamProfile.isPending}
                                     disabled={updateExamProfile.isPending}
                                 >
-                                    Update date
+                                    {t('exam.update_date_button')}
                                 </Button>
                             </>
                         }
                     >
                         <p style={{ margin: 0, fontSize: '0.9rem' }}>
-                            Your study plan will rebalance to fit the new exam date. Daily targets may change.
+                            {t('exam.update_date_desc')}
                         </p>
                     </Modal>
                 </div>
@@ -387,7 +387,7 @@ export function StudyTab() {
                                             })}
                                             {classifyResult.errors > 0 && (
                                                 <span style={{ color: 'var(--danger, #c0392b)', marginLeft: 6 }}>
-                                                    · {t('classify.failed', { count: classifyResult.errors, defaultValue: '{{count}} failed' })}
+                                                    · {t('classify.failed', { count: classifyResult.errors })}
                                                 </span>
                                             )}
                                           </span>
@@ -524,7 +524,7 @@ export function StudyTab() {
                                 SEKEL Intelligence
                             </label>
                             <p className="text-muted field-helper">
-                                Personalized study insights based on your exam blueprint
+                                {t('profile.intelligence_desc')}
                             </p>
                         </div>
                         <ToggleSwitch
