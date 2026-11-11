@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Loader, FileText, CheckCircle, AlertCircle, RefreshCw, Trash2, Sparkles } from 'lucide-react';
+import { Loader, FileText, CheckCircle, AlertCircle, Trash2, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import DocumentUpload from './DocumentUpload';
 import AICardGenerator, { ALL_CARD_FORMATS } from './AICardGenerator';
+import { GenerationScreen } from './GenerationProgress';
 import { Button, Input, YouTubeIcon, useToast, ErrorBoundary } from '../UI';
 import { useDocsWorkStore } from '../../stores/docsWorkStore';
 import { parseFile, parseYoutube } from '../../lib/documentParser';
@@ -77,12 +78,18 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
 
     const isProcessing = files.some(f => f.status === 'parsing');
 
+    // Bumped by every analyze run and by handleRestart, so an analysis that
+    // finishes after the user pressed Cancel is ignored instead of jumping
+    // straight into generation.
+    const analyzeRunRef = useRef(0);
+
     // One-shot kickoff: after parsing completes, immediately run the analyze
     // step. No user click required — that's the whole point of this rework.
     const runAnalyze = async (parsedFiles: ParsedFile[]) => {
         const completed = parsedFiles.filter(f => f.status === 'success');
         if (completed.length === 0) return;
 
+        const runId = ++analyzeRunRef.current;
         // Transition synchronously so the upload zone locks before any await.
         setPhase('analyzing');
 
@@ -93,6 +100,7 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
             }, {} as Record<string, string>);
 
             const overview = await window.electronAPI.generateSummary(documentsObj, i18n.language);
+            if (runId !== analyzeRunRef.current) return;
 
             setSummaryText(overview.summary);
             setContextChunks(overview.chunks ?? []);
@@ -105,6 +113,7 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
                 t('ai.notify_analyze_done_body'),
             );
         } catch (_error) {
+            if (runId !== analyzeRunRef.current) return;
             showToast(t('ai.error_summary'), 'error');
             // Drop back to upload so the user can retry without losing files.
             setPhase('upload');
@@ -227,6 +236,7 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
     };
 
     const handleRestart = () => {
+        analyzeRunRef.current++;
         setFiles([]);
         setSummaryText('');
         setContextChunks([]);
@@ -253,6 +263,21 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
         [contentChunks],
     );
 
+    const errorCount = files.filter(f => f.status === 'error').length;
+    const skippedNote = errorCount > 0 ? t('ai.pipeline_skipped_failed', { count: errorCount }) : undefined;
+
+    // Analysis and the first generation pass show the same full-screen
+    // loading view in the same place, so they read as one continuous screen.
+    if (phase === 'analyzing') {
+        return (
+            <GenerationScreen
+                status={t('ai.progress_chunking')}
+                note={skippedNote}
+                onCancel={handleRestart}
+            />
+        );
+    }
+
     if (phase === 'ready') {
         return (
             <ErrorBoundary variant="inline" onReset={handleRestart}>
@@ -268,13 +293,14 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
                     autoStart
                     defaultFormats={Array.from(selectedFormats) as AIGenerationOptions['cardFormats']}
                     initialCardCount={cardCount}
+                    onCancel={handleRestart}
+                    loadingNote={skippedNote}
                 />
             </ErrorBoundary>
         );
     }
 
     const completedCount = files.filter(f => f.status === 'success').length;
-    const errorCount = files.filter(f => f.status === 'error').length;
 
     const hasVideos = files.some(f => f.type === 'youtube');
     const hasDocs = files.some(f => f.type === 'file');
@@ -405,33 +431,6 @@ export default function DocumentsPage({ userId }: DocumentsPageProps) {
                             </Button>
                         </div>
                     </section>
-                </div>
-            )}
-
-            {phase === 'analyzing' && (
-                <div className="pipeline-stepper" role="status" aria-live="polite">
-                    <ol className="pipeline-stepper__steps">
-                        <li className="pipeline-stepper__step is-done">
-                            <span className="pipeline-stepper__marker"><CheckCircle size={18} /></span>
-                            <span className="pipeline-stepper__label">{t('ai.pipeline_parsed', { count: completedCount })}</span>
-                        </li>
-                        <li className="pipeline-stepper__step is-active">
-                            <span className="pipeline-stepper__marker"><Loader className="animate-spin" size={18} /></span>
-                            <span className="pipeline-stepper__label">{t('ai.pipeline_analyzing')}</span>
-                        </li>
-                        <li className="pipeline-stepper__step">
-                            <span className="pipeline-stepper__marker pipeline-stepper__marker--dot" aria-hidden="true" />
-                            <span className="pipeline-stepper__label">{t('ai.pipeline_generating')}</span>
-                        </li>
-                    </ol>
-                    {errorCount > 0 && (
-                        <p className="pipeline-stepper__warn">
-                            {t('ai.pipeline_skipped_failed', { count: errorCount })}
-                        </p>
-                    )}
-                    <Button variant="secondary" onClick={handleRestart} icon={<RefreshCw size={14} />}>
-                        {t('ai.cancel_pipeline')}
-                    </Button>
                 </div>
             )}
         </div>

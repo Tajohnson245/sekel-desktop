@@ -2,41 +2,48 @@
    Three cards, one 6s cycle each, offset by 2s so they always sit in
    different slots. Per card:
 
-     0.00–1.30s  front: loading bar fills
-     1.30–1.45s  front: bar full (brief hold)
-     1.45–2.00s  slides off to the side, then tucks in at the back
-     2.00–3.45s  back (bar resets here, out of sight)
-     3.45–4.00s  moves up to the middle
-     4.00–5.45s  middle
-     5.45–6.00s  moves up to the front
+     0.00–1.20s  front: loading bar fills
+     1.20–1.30s  front: bar full (brief hold)
+     1.30–2.00s  lifts off, drops behind the others at the peak, settles
+                 at the back
+     2.00–3.30s  back (bar resets here, out of sight)
+     3.30–4.00s  moves up to the middle
+     4.00–5.30s  middle
+     5.30–6.00s  moves up to the front
 
    Card 2 starts 4s in (middle) and card 3 starts 2s in (back) through
-   negative delays. It loops at a fixed pace and never tracks real
-   progress. Only transform, opacity and z-index animate.
+   negative delays. --cs-sync (set from JS) pins the loop to a shared clock,
+   so a stack that remounts continues where the last one was. It loops at a
+   fixed pace and never tracks real progress. Only transform, opacity and
+   z-index animate.
    ──────────────────────────────────────────────────────────────────────── */
 
 .card-shuffle {
-    --cs-cycle: 6s;
+    --cs-cycle: 6s; /* keep in sync with SHUFFLE_CYCLE_MS */
     --cs-step: 2s;
     display: flex;
     justify-content: center;
     flex-shrink: 0;
 }
 
+/* Loading screen: big cards, lifting up and over to the back. */
 .card-shuffle--large {
-    --cs-w: 176px;
-    --cs-h: 116px;
-    --cs-peek: 12px;
-    --cs-radius: 12px;
-    --cs-pad: 16px;
-    --cs-line-h: 7px;
-    --cs-gap: 8px;
-    --cs-bar-h: 6px;
-    --cs-out-x: 85%;
-    --cs-out-y: -10%;
-    --cs-out-rot: 7deg;
+    --cs-w: clamp(260px, 30vw, 420px);
+    --cs-h: calc(var(--cs-w) * 0.64);
+    --cs-peek: calc(var(--cs-w) * 0.055);
+    --cs-radius: 16px;
+    --cs-pad: calc(var(--cs-w) * 0.075);
+    --cs-line-h: calc(var(--cs-w) * 0.032);
+    --cs-gap: calc(var(--cs-w) * 0.034);
+    --cs-bar-h: calc(var(--cs-w) * 0.024);
+    --cs-out-x: 12%;
+    --cs-out-y: -78%;
+    --cs-out-rot: -6deg;
+    /* Headroom for the lifted card. */
+    padding-top: calc(var(--cs-h) * 0.4);
 }
 
+/* Settings panel: small cards, sliding off to the right. */
 .card-shuffle--compact {
     --cs-w: 56px;
     --cs-h: 38px;
@@ -50,7 +57,7 @@
     --cs-out-y: -12%;
     --cs-out-rot: 8deg;
     /* Room on the right for the card that slides off, so it never covers
-       the label next to it or gets clipped by the settings panel. */
+       the text next to it or gets clipped by the settings panel. */
     padding-right: calc(var(--cs-w) * 0.66);
 }
 
@@ -62,7 +69,7 @@
 }
 
 .card-shuffle__card {
-    --cs-delay: 0s;
+    --cs-delay: var(--cs-sync, 0ms);
     position: absolute;
     left: 0;
     bottom: 0;
@@ -85,18 +92,22 @@
     animation-delay: var(--cs-delay);
 }
 
-/* Dims the cards further back toward the panel colour. An overlay rather
+/* Dims the cards further back toward the page colour. An overlay rather
    than card opacity, so stacked cards never show through each other. */
 .card-shuffle__card::after {
     content: '';
     position: absolute;
     inset: -1px;
     border-radius: inherit;
-    background: var(--secondary);
+    background: var(--bg);
     opacity: 0;
     pointer-events: none;
     animation: card-shuffle-dim var(--cs-cycle) cubic-bezier(0.4, 0, 0.2, 1) infinite;
     animation-delay: var(--cs-delay);
+}
+
+.card-shuffle--compact .card-shuffle__card::after {
+    background: var(--secondary);
 }
 
 /* Static slots double as the reduced-motion frame. */
@@ -105,7 +116,7 @@
 }
 
 .card-shuffle__card:nth-child(2) {
-    --cs-delay: calc(var(--cs-step) * -2);
+    --cs-delay: calc(var(--cs-sync, 0ms) + var(--cs-step) * -2);
     z-index: 2;
     transform: translate(0, calc(var(--cs-peek) * -1)) rotate(0deg) scale(0.92);
 }
@@ -115,7 +126,7 @@
 }
 
 .card-shuffle__card:nth-child(3) {
-    --cs-delay: calc(var(--cs-step) * -1);
+    --cs-delay: calc(var(--cs-sync, 0ms) + var(--cs-step) * -1);
     z-index: 1;
     transform: translate(0, calc(var(--cs-peek) * -2)) rotate(0deg) scale(0.84);
 }
@@ -126,18 +137,31 @@
 
 .card-shuffle__line {
     display: block;
-    width: 78%;
+    flex-shrink: 0;
+    width: 80%;
     height: var(--cs-line-h);
     border-radius: 999px;
     background: color-mix(in srgb, var(--mist) 24%, transparent);
 }
 
 .card-shuffle__line--short {
-    width: 52%;
+    width: 56%;
+}
+
+/* A third, "answer" line on the big cards only. */
+.card-shuffle__line--answer {
+    width: 34%;
+    margin-top: calc(var(--cs-gap) * 1.5);
+    background: color-mix(in srgb, var(--mist) 16%, transparent);
+}
+
+.card-shuffle--compact .card-shuffle__line--answer {
+    display: none;
 }
 
 .card-shuffle__bar {
     display: block;
+    flex-shrink: 0;
     margin-top: auto;
     height: var(--cs-bar-h);
     border-radius: 999px;
@@ -161,16 +185,16 @@
 }
 
 @keyframes card-shuffle-move {
-    0%, 24.167% {
+    0%, 21.667% {
         transform: translate(0, 0) rotate(0deg) scale(1);
     }
-    28.75% {
+    27.5% {
         transform: translate(var(--cs-out-x), var(--cs-out-y)) rotate(var(--cs-out-rot)) scale(1);
     }
-    33.333%, 57.5% {
+    33.333%, 55% {
         transform: translate(0, calc(var(--cs-peek) * -2)) rotate(0deg) scale(0.84);
     }
-    66.667%, 90.833% {
+    66.667%, 88.333% {
         transform: translate(0, calc(var(--cs-peek) * -1)) rotate(0deg) scale(0.92);
     }
     100% {
@@ -179,96 +203,181 @@
 }
 
 /* step-end holds each value until the next keyframe. The outgoing card drops
-   below the others at the peak of its slide, while it's off to the side. */
+   below the others at the peak of its lift. */
 @keyframes card-shuffle-z {
     0%      { z-index: 3; }
-    28.75%  { z-index: 0; }
+    27.5%   { z-index: 0; }
     33.333% { z-index: 1; }
-    62.083% { z-index: 2; }
-    95.417% { z-index: 3; }
+    60.833% { z-index: 2; }
+    94.167% { z-index: 3; }
     100%    { z-index: 3; }
 }
 
 @keyframes card-shuffle-dim {
-    0%, 28.75%       { opacity: 0; }
-    33.333%, 57.5%   { opacity: 0.55; }
-    66.667%, 90.833% { opacity: 0.3; }
+    0%, 27.5%        { opacity: 0; }
+    33.333%, 55%     { opacity: 0.55; }
+    66.667%, 88.333% { opacity: 0.3; }
     100%             { opacity: 0; }
 }
 
 /* Fills in two spurts with a short stall, like a real load. Stays full while
-   the card slides away and resets once it's hidden at the back. */
+   the card lifts away and resets once it's hidden at the back. */
 @keyframes card-shuffle-fill {
     0%            { transform: scaleX(0); }
-    9%            { transform: scaleX(0.42); }
-    14%           { transform: scaleX(0.58); }
-    21.667%       { transform: scaleX(1); }
+    7.5%          { transform: scaleX(0.42); }
+    12%           { transform: scaleX(0.58); }
+    20%           { transform: scaleX(1); }
     33.333%       { transform: scaleX(1); }
     33.334%, 100% { transform: scaleX(0); }
+}
+
+/* ── Stage text (shown instead of a progress bar) ─────────────────────── */
+
+.gen-status {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    margin: 0;
+    font-weight: 500;
+    color: var(--teal, var(--primary));
+}
+
+.gen-status--large {
+    font-size: 1.05rem;
+}
+
+.gen-status--compact {
+    font-size: 0.85rem;
+    color: var(--fg);
+}
+
+.gen-status__dot {
+    position: relative;
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--teal, var(--primary));
+}
+
+.gen-status__dot::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: inherit;
+    animation: gen-status-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.gen-status__text {
+    animation: gen-status-in 0.4s ease both;
+}
+
+@keyframes gen-status-ping {
+    0%       { transform: scale(1); opacity: 0.6; }
+    80%, 100% { transform: scale(2.6); opacity: 0; }
+}
+
+@keyframes gen-status-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* ── Full loading screen ──────────────────────────────────────────────────
+   No container box: text on the left, the large stack on the right,
+   filling the main content area.
+   ──────────────────────────────────────────────────────────────────────── */
+
+.gen-screen {
+    box-sizing: border-box;
+    min-height: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    align-items: center;
+    gap: clamp(2rem, 5vw, 5rem);
+    /* The lifted card can swing past the right edge on narrow windows; clip
+       sideways (into the page padding at most) so the scrolling main area
+       never flashes a horizontal scrollbar. Vertical stays visible. */
+    overflow-x: clip;
+    overflow-clip-margin: 48px;
+}
+
+.gen-screen__text {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    max-width: 30rem;
+}
+
+.gen-screen__title {
+    margin: 0;
+    font-size: clamp(1.75rem, 2.6vw, 2.5rem);
+    font-weight: 600;
+    line-height: 1.15;
+    color: var(--text-primary, var(--fg));
+}
+
+.gen-screen__subtitle {
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--mist);
+}
+
+.gen-screen .gen-status {
+    margin-top: 0.5rem;
+}
+
+.gen-screen__note {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--mist);
+}
+
+.gen-screen__actions {
+    margin-top: 0.75rem;
+}
+
+.gen-screen__visual {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+@media (max-width: 900px) {
+    .gen-screen {
+        grid-template-columns: 1fr;
+        align-content: center;
+    }
+
+    .gen-screen__visual {
+        order: -1;
+    }
+
+    .gen-screen__text {
+        align-items: center;
+        text-align: center;
+        margin: 0 auto;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
     .card-shuffle__card,
     .card-shuffle__card::after,
-    .card-shuffle__fill {
+    .card-shuffle__fill,
+    .gen-status__dot::after {
         animation: none;
     }
 }
 
-/* ── Real progress bar ────────────────────────────────────────────────────
-   Thin determinate bar under the stack, driven by `ai-progress` events.
-   ──────────────────────────────────────────────────────────────────────── */
-
-.ai-progress {
-    margin-top: 0.625rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.375rem;
-}
-
-.ai-progress__label {
-    font-family: var(--font-body, 'Outfit', sans-serif);
-    font-size: 0.78rem;
-    color: var(--mist);
-    letter-spacing: 0.01em;
-}
-
-.ai-progress__track {
-    height: 4px;
-    border-radius: 2px;
-    background: var(--border, var(--stroke));
-    overflow: hidden;
-}
-
-.ai-progress__fill {
-    height: 100%;
-    background: var(--teal, var(--primary));
-    border-radius: 2px;
-    transition: width 0.3s ease;
-    min-width: 4px;
-}
-
-.ai-progress__fill--indeterminate {
-    width: 30%;
-    animation: ai-progress-slide 1.4s ease-in-out infinite;
-}
-
-@keyframes ai-progress-slide {
-    0%   { transform: translateX(-100%); }
-    100% { transform: translateX(400%); }
-}
-
-/* Settings panel: compact stack and the bar on one full-width row. */
+/* Settings panel: compact stack and the stage text on one full-width row. */
 .ai-progress-inline {
     flex: 1 1 100%;
     display: flex;
     align-items: center;
     gap: 0.75rem;
     min-width: 0;
-}
-
-.ai-progress-inline .ai-progress {
-    flex: 1;
-    min-width: 0;
-    margin-top: 0;
 }

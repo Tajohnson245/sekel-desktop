@@ -59,7 +59,7 @@
     color: var(--teal, var(--primary));
 }
 
-/* Generation progress (card shuffle + bar) lives in GenerationProgress.css. */
+/* Generation progress (card shuffle + stage text) lives in GenerationProgress.css. */
 
 .success-banner {
     display: flex;
@@ -392,48 +392,7 @@
     cursor: help !important;
 }
 
-/* ── One-shot auto-generating loading view ─────────────────────────────────
-   Shown only on the first generation pass kicked off by autoStart. Centers
-   the card-shuffle stack, title, subtitle, and the progress bar in a
-   single card.
-   ──────────────────────────────────────────────────────────────────────── */
-
-.ai-auto-generating {
-    max-width: 520px;
-    margin: 3rem auto 0;
-    padding: 2.5rem 2.25rem;
-    background: var(--secondary);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 0.875rem;
-}
-
-.ai-auto-generating .card-shuffle {
-    margin: 0.25rem 0 0.75rem;
-}
-
-.ai-auto-generating__title {
-    margin: 0;
-    font-size: 1.35rem;
-    font-weight: 600;
-    color: var(--fg);
-}
-
-.ai-auto-generating__subtitle {
-    margin: 0 0 0.5rem;
-    font-size: 0.95rem;
-    line-height: 1.5;
-    max-width: 360px;
-}
-
-.ai-auto-generating .ai-progress {
-    width: 100%;
-    margin-top: 0.25rem;
-}
+/* The first-generation loading screen lives in GenerationProgress.css. */
 
 /* ── Collapsible generation settings panel ─────────────────────────────────
    Wraps the deck picker, card count, generate button, and the format /
