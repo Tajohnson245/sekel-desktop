@@ -68,3 +68,4 @@ One 6-second cycle per card; the three cards are offset by 2 seconds, so a new c
 | Date | Description |
 |------|-------------|
 | 2026-11-11 | Created; card shuffle loader, translated stage labels |
+| 2026-11-11 | apps/desktop/src/__tests__/GenerationProgress.test.tsx,apps/desktop/src/components/AIStudy/AICardGenerator.css,apps/desktop/src/components/AIStudy/AICardGenerator.tsx,apps/desktop/src/components/AIStudy/GenerationProgress.css,apps/desktop/src/components/AIStudy/GenerationProgress.tsx,apps/desktop/src/locales/de/translation.json,apps/desktop/src/locales/en/translation.json,apps/desktop/src/locales/es/translation.json |
