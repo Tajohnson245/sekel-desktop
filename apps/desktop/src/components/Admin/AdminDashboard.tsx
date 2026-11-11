@@ -7,26 +7,29 @@ import {
 import { Tabs, TabList, Tab, TabPanel } from '../UI';
 import { useAuthStore } from '../../stores/authStore';
 import type { MetricSnapshot } from '@sekel/observability';
-import type { AdminOverview, AdminUserRow, AdminUserDetail } from '../../ipc/admin';
-import type { Feedback } from '@sekel/db';
+import { supabase } from '../../lib/supabase';
+import {
+    fetchAdminFeedback, fetchAdminOverview, fetchAdminUserDetail, fetchAdminUsers, isAdminUser,
+    type AdminFeedbackRow, type AdminOverview, type AdminUserDetail, type AdminUserRow,
+} from '../../lib/adminApi';
 import './AdminDashboard.css';
 
 // ── Overview Tab ──────────────────────────────────────────────────────────────
 
-function OverviewTab({ email }: { email: string }) {
+function OverviewTab() {
     const [overview, setOverview] = useState<AdminOverview | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         setLoading(true);
-        window.electronAPI.admin.getOverview(email)
+        fetchAdminOverview(supabase)
             .then(setOverview)
             .catch(() => setOverview(null))
             .finally(() => setLoading(false));
-    }, [email]);
+    }, []);
 
     if (loading) return <p className="admin-empty">Loading overview...</p>;
-    if (!overview) return <p className="admin-empty">Failed to load overview. Check service role key.</p>;
+    if (!overview) return <p className="admin-empty">Failed to load overview.</p>;
 
     return (
         <div className="admin-tab-content">
@@ -88,21 +91,21 @@ function StatCard({ label, value }: { label: string; value: number }) {
 
 // ── Users Tab ─────────────────────────────────────────────────────────────────
 
-function UsersTab({ email }: { email: string }) {
+function UsersTab() {
     const [users, setUsers] = useState<AdminUserRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedUser, setSelectedUser] = useState<string | null>(null);
 
     useEffect(() => {
         setLoading(true);
-        window.electronAPI.admin.getUsers(email)
+        fetchAdminUsers(supabase)
             .then(setUsers)
             .catch(() => setUsers([]))
             .finally(() => setLoading(false));
-    }, [email]);
+    }, []);
 
     if (selectedUser) {
-        return <UserDetailView email={email} userId={selectedUser} onBack={() => setSelectedUser(null)} />;
+        return <UserDetailView userId={selectedUser} onBack={() => setSelectedUser(null)} />;
     }
 
     if (loading) return <p className="admin-empty">Loading users...</p>;
@@ -157,17 +160,17 @@ function UsersTab({ email }: { email: string }) {
 
 // ── User Detail View ──────────────────────────────────────────────────────────
 
-function UserDetailView({ email, userId, onBack }: { email: string; userId: string; onBack: () => void }) {
+function UserDetailView({ userId, onBack }: { userId: string; onBack: () => void }) {
     const [detail, setDetail] = useState<AdminUserDetail | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         setLoading(true);
-        window.electronAPI.admin.getUserDetail(email, userId)
+        fetchAdminUserDetail(supabase, userId)
             .then(setDetail)
             .catch(() => setDetail(null))
             .finally(() => setLoading(false));
-    }, [email, userId]);
+    }, [userId]);
 
     if (loading) return <p className="admin-empty">Loading user details...</p>;
     if (!detail) return <p className="admin-empty">Failed to load user details.</p>;
@@ -267,17 +270,17 @@ function UserDetailView({ email, userId, onBack }: { email: string; userId: stri
 
 // ── Feedback Tab ──────────────────────────────────────────────────────────────
 
-function FeedbackTab({ email }: { email: string }) {
-    const [feedback, setFeedback] = useState<(Feedback & { user_email: string })[]>([]);
+function FeedbackTab() {
+    const [feedback, setFeedback] = useState<AdminFeedbackRow[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         setLoading(true);
-        window.electronAPI.admin.getFeedback(email)
+        fetchAdminFeedback(supabase)
             .then(setFeedback)
             .catch(() => setFeedback([]))
             .finally(() => setLoading(false));
-    }, [email]);
+    }, []);
 
     if (loading) return <p className="admin-empty">Loading feedback...</p>;
     if (feedback.length === 0) return <p className="admin-empty">No feedback submitted yet.</p>;
@@ -412,19 +415,8 @@ function MetricsTab() {
 
 export default function AdminDashboard() {
     const { user } = useAuthStore();
-    const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
-    useEffect(() => {
-        if (user?.email) {
-            window.electronAPI.obs.isAdmin(user.email).then(setIsAdmin);
-        } else {
-            setIsAdmin(false);
-        }
-    }, [user?.email]);
-
-    if (isAdmin === null) return null;
-
-    if (!isAdmin) {
+    if (!isAdminUser(user)) {
         return (
             <div className="admin-denied">
                 <ShieldOff size={48} className="admin-denied__icon" />
@@ -433,8 +425,6 @@ export default function AdminDashboard() {
             </div>
         );
     }
-
-    const email = user!.email!;
 
     return (
         <div className="admin-dashboard">
@@ -452,13 +442,13 @@ export default function AdminDashboard() {
                 </TabList>
 
                 <TabPanel id="overview">
-                    <OverviewTab email={email} />
+                    <OverviewTab />
                 </TabPanel>
                 <TabPanel id="users">
-                    <UsersTab email={email} />
+                    <UsersTab />
                 </TabPanel>
                 <TabPanel id="feedback">
-                    <FeedbackTab email={email} />
+                    <FeedbackTab />
                 </TabPanel>
                 <TabPanel id="metrics">
                     <MetricsTab />

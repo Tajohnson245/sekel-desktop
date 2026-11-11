@@ -8,23 +8,21 @@
  */
 
 import { instrumentedHandle, trackedCompletion, createLogger, consoleTransport } from '@sekel/observability';
-import { OpenAI } from "openai";
+import type { OpenAI } from "openai";
+import { createProxiedOpenAI, requireAiSession } from '../main/ai/openaiClient';
 
 const log = createLogger({ module: 'ai', transports: [consoleTransport] });
 
-// Lazy-initialize OpenAI client (avoids crash on startup when key is absent).
+// Lazy-initialized OpenAI client. Calls go through the ai-proxy edge function
+// as the signed-in user (see main/ai/openaiClient.ts).
 // maxRetries=5 covers transient 429s; timeout caps the worst-case stuck request
 // so a single hung call can't block the whole batch.
 let _openai: OpenAI | null = null;
 
 function getOpenAI(): OpenAI {
+    requireAiSession();
     if (!_openai) {
-        const apiKey = process.env.OPENAI_API_KEY;
-        if (!apiKey) {
-            throw new Error('Missing OPENAI_API_KEY. Set it in your .env.local file.');
-        }
-        _openai = new OpenAI({
-            apiKey,
+        _openai = createProxiedOpenAI({
             maxRetries: 5,
             timeout: 60_000,
         });
@@ -35,8 +33,9 @@ function getOpenAI(): OpenAI {
 // Generation uses the heavier model; evaluation uses a cheaper/faster one.
 // A 350-card batch fires hundreds of eval calls — splitting models keeps both
 // cost and TPM pressure down without sacrificing generation quality.
-const MODEL = process.env.OPENAI_MODEL || 'gpt-4.1-mini';
-const EVAL_MODEL = process.env.OPENAI_EVAL_MODEL || 'gpt-4o-mini';
+// Both must be in the ai-proxy's allowed models (AI_ALLOWED_MODELS).
+const MODEL = 'gpt-4.1-mini';
+const EVAL_MODEL = 'gpt-4o-mini';
 
 // Cap concurrent OpenAI calls so a 350-card batch can't dump 350+ requests on
 // the API in the same second and trip RPM/TPM limits. 8 in flight at any time
@@ -791,7 +790,7 @@ export const setupAIHandlers = () => {
     // Basic text-to-cards generation (Legacy)
     instrumentedHandle('generate-cards', async (_event, text: string, count: number = 5, language: string = 'English', options?: GenerationOptions) => {
         try {
-            getOpenAI(); // fail early if API key is missing
+            getOpenAI(); // fail early if signed out
 
             const formatRules = buildFormatRules(options ?? {});
 
@@ -839,7 +838,7 @@ ${META_EXCLUSIONS}`,
         };
 
         try {
-            getOpenAI(); // fail early if API key is missing
+            getOpenAI(); // fail early if signed out
 
             const activeFormats: CardFormat[] = options?.cardFormats?.length
                 ? options.cardFormats
@@ -1009,7 +1008,7 @@ ${META_EXCLUSIONS}`,
         customInstructions?: string;
     }): Promise<GeneratedCard> => {
         try {
-            getOpenAI(); // fail early if API key is missing
+            getOpenAI(); // fail early if signed out
 
             const format: CardFormat = payload.format ?? 'basic';
             const difficulty: 'essential' | 'detailed' = payload.difficulty ?? 'detailed';

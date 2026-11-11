@@ -8,7 +8,12 @@ export default defineConfig(({ mode }) => {
     // Merge filesystem .env files AND process.env so CI runners (which have no
     // .env files; values come from GitHub Secrets via the workflow's env:
     // block) can supply build-time substitutions for the main-process bundle.
-    const fileEnv = loadEnv(mode, envDir, ['VITE_', 'OPENAI_', 'ADMIN_', 'SUPABASE_']);
+    //
+    // Only public values may be inlined: anything in a define: block can be
+    // read out of the installer. Server-only keys (OpenAI, the Supabase
+    // service role) stay in Supabase function secrets and are used through
+    // the ai-proxy and admin edge functions. buildSecrets.test.ts guards this.
+    const fileEnv = loadEnv(mode, envDir, ['VITE_']);
     const env = { ...fileEnv, ...process.env };
     // Renderer + preload don't have access to electron's app.getVersion(),
     // so we inline the version at build time for Sentry's release tag and
@@ -23,10 +28,6 @@ export default defineConfig(({ mode }) => {
                 // Electron does not set NODE_ENV in packaged builds; inline it
                 // here so Sentry's environment tag resolves correctly.
                 'process.env.NODE_ENV': JSON.stringify(mode),
-                'process.env.OPENAI_API_KEY': JSON.stringify(env.OPENAI_API_KEY ?? ''),
-                'process.env.OPENAI_MODEL': JSON.stringify(env.OPENAI_MODEL ?? ''),
-                'process.env.ADMIN_EMAIL': JSON.stringify(env.ADMIN_EMAIL ?? ''),
-                'process.env.SUPABASE_SERVICE_ROLE_KEY': JSON.stringify(env.SUPABASE_SERVICE_ROLE_KEY ?? ''),
                 'process.env.VITE_SUPABASE_PROJECT_URL': JSON.stringify(env.VITE_SUPABASE_PROJECT_URL ?? ''),
                 'process.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY ?? ''),
             },

@@ -5,7 +5,7 @@
 
 ## Prerequisites
 - Run the app: `npm run dev`.
-- Set `OPENAI_API_KEY` in `.env.local` to exercise the classification tests (Section C).
+- Sign in to an account on a Supabase project that has the `ai-proxy` function deployed and the `OPENAI_API_KEY` function secret set, to exercise the classification tests (Section C).
 - Have (or create) an **active plan**, ideally scoped to **2+ decks** with unstudied new cards, for the enforcement tests.
 - Automated coverage: `npm test` (282/282 passing on this branch — remember the better-sqlite3 ABI toggle: `npm run rebuild:node` before tests, `npm run rebuild:electron` after, and close the app first).
 
@@ -37,7 +37,7 @@
 - [ ] **C2 — System status labels are honest.** Find a **never-studied** system and a **fully-studied** one. **Expect:** never-studied → **"Not started"** (neutral, not green "On track"); fully-studied → **"Covered"** (not "No data").
 - [ ] **C3 — Classify on import.** Import an Anki deck (primary exam set). Wait ~30–60s, then check Profile → Study or Plan coverage. **Expect:** imported cards get classified automatically. *(Previously imports were never classified.)*
 - [ ] **C4 — Classify on AI generation.** Generate AI cards and **Add** some to a deck. **Expect:** those cards get classified in the background.
-- [ ] **C5 — Missing-key fail-fast (optional).** Temporarily remove `OPENAI_API_KEY`, run the manual **Classify** in Profile → Study. **Expect:** a clear error toast, not a silent "0 classified". With a key present and some cards failing, the result shows a "N failed" count.
+- [ ] **C5 — AI-unavailable fail-fast (optional).** Temporarily unset the `OPENAI_API_KEY` function secret on the dev project (or exhaust the daily allowance), run the manual **Classify** in Profile → Study. **Expect:** the batch stops after the first failure instead of trying every card, and the result reports every card as failed, not a silent "0 classified". Signed out, it fails up-front with "Sign in to use AI features." With AI available and some cards failing, the result shows a "N failed" count.
 
 ## D. Exam switch cleans up
 

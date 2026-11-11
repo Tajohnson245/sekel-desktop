@@ -51,7 +51,7 @@ Trigger: push to a tag matching `desktop/v*.*.*`
 | `CF_R2_SECRET_ACCESS_KEY` | Publish step — uploads artifacts to Cloudflare R2 |
 | `GITHUB_TOKEN` | Auto-provided — creates the GitHub Release and uploads release assets |
 
-Note: `OPENAI_API_KEY` is **not** baked into the build. It is entered by the user at runtime and stored locally.
+Note: only public values (`VITE_SUPABASE_*`) are baked into the build. The OpenAI key and the Supabase service-role key are Supabase function secrets used by the `ai-proxy` and `admin` edge functions; never add them to the build env (`src/__tests__/buildSecrets.test.ts` guards the Vite config). Up to v2.0.0 they were baked in; see `docs/features/desktop/in-progress/server-side-ai-and-admin.md`.
 
 ## Auto-Update Delivery
 
