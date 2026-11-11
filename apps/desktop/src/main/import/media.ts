@@ -64,6 +64,8 @@ export async function extractMedia(
     const mediaDir = path.join(app.getPath('userData'), 'media');
     await mkdir(mediaDir, { recursive: true });
 
+    const tempRoot = path.resolve(tempDir) + path.sep;
+
     let extracted = 0;
     let skipped = 0;
     let processed = 0;
@@ -84,8 +86,15 @@ export async function extractMedia(
             batch.map(async ([numericKey, originalFilename]) => {
                 const sourcePath = path.join(tempDir, numericKey);
 
+                // Defence in depth: the key must name a file inside tempDir.
+                // parseMediaFile already rejects non-numeric keys, but never read
+                // (and copy into userData) anything outside the extraction dir.
+                if (!path.resolve(sourcePath).startsWith(tempRoot)) {
+                    return { numericKey, originalFilename, status: 'unsafe' as const };
+                }
+
                 if (!existsSync(sourcePath)) {
-                    return { numericKey, originalFilename, missing: true as const };
+                    return { numericKey, originalFilename, status: 'missing' as const };
                 }
 
                 const { buffer, sha1 } = await readAndHash(sourcePath);
@@ -94,16 +103,21 @@ export async function extractMedia(
                 try {
                     assertMediaFileSize(buffer.length, originalFilename);
                 } catch {
-                    return { numericKey, originalFilename, missing: true as const };
+                    return { numericKey, originalFilename, status: 'missing' as const };
                 }
 
-                return { numericKey, originalFilename, missing: false as const, buffer, sha1 };
+                return { numericKey, originalFilename, status: 'ok' as const, sourcePath, buffer, sha1 };
             }),
         );
 
         // Phase 2: DB writes + file copies (sequential — SQLite is single-writer)
         for (const item of readResults) {
-            if (item.missing) {
+            if (item.status === 'unsafe') {
+                warnings.push(`[media] Rejected unsafe media key "${item.numericKey}"`);
+                processed++;
+                continue;
+            }
+            if (item.status === 'missing') {
                 warnings.push(
                     `[media] File missing from archive: key "${item.numericKey}" → "${item.originalFilename}"`,
                 );
@@ -138,10 +152,7 @@ export async function extractMedia(
                 const { writeFile } = await import('node:fs/promises');
                 await writeFile(destPath, validation.sanitizedBuffer);
             } else {
-                await copyFile(
-                    path.join(tempDir, item.numericKey),
-                    destPath,
-                );
+                await copyFile(item.sourcePath, destPath);
             }
 
             const record = createMedia({

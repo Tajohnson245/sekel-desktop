@@ -162,11 +162,36 @@ export function validateAnkiDb(dbPath: string): void {
     }
 }
 
+/** Anki names extracted media entries by a plain decimal index ("0", "1", ...). */
+const MEDIA_KEY_RE = /^\d+$/;
+
+/**
+ * True when `key` is a safe extracted-media entry name. Keys are joined onto the
+ * temp dir to locate the source file, so anything but digits could escape it
+ * (e.g. "..\\..\\Pictures\\id.jpg").
+ */
+export function isSafeMediaKey(key: string): boolean {
+    return MEDIA_KEY_RE.test(key);
+}
+
+/**
+ * True when `filename` is a plain file name with no path components. The
+ * original filename only ever names the media file inside the card; it must
+ * never carry separators, parent-dir segments, drive/stream colons, or NULs.
+ */
+export function isSafeMediaFilename(filename: unknown): filename is string {
+    return typeof filename === 'string'
+        && filename.length > 0
+        && !/[/\\:\0]/.test(filename)
+        && !filename.includes('..');
+}
+
 /**
  * Reads and parses the "media" JSON file from destDir.
  * Returns an empty map with a warning if the file is absent — does not fail.
+ * Entries with an unsafe key or filename are dropped with a warning.
  */
-async function parseMediaFile(
+export async function parseMediaFile(
     destDir: string,
     extractedFiles: Set<string>,
 ): Promise<{ mediaMap: Record<string, string>; mediaFilePaths: string[]; warnings: string[] }> {
@@ -177,13 +202,31 @@ async function parseMediaFile(
         return { mediaMap: {}, mediaFilePaths: [], warnings };
     }
 
-    let mediaMap: Record<string, string>;
+    let parsed: unknown;
     try {
         const raw = await fsPromises.readFile(path.join(destDir, 'media'), 'utf-8');
-        mediaMap = JSON.parse(raw) as Record<string, string>;
+        parsed = JSON.parse(raw);
     } catch {
+        parsed = undefined;
+    }
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
         warnings.push('The media file in this .apkg could not be parsed; media will be skipped.');
         return { mediaMap: {}, mediaFilePaths: [], warnings };
+    }
+
+    const mediaMap: Record<string, string> = {};
+    let rejected = 0;
+    for (const [key, filename] of Object.entries(parsed as Record<string, unknown>)) {
+        if (isSafeMediaKey(key) && isSafeMediaFilename(filename)) {
+            mediaMap[key] = filename;
+        } else {
+            rejected++;
+        }
+    }
+    if (rejected > 0) {
+        warnings.push(
+            `${rejected} media entr${rejected === 1 ? 'y' : 'ies'} in this .apkg had an invalid name and will be skipped.`,
+        );
     }
 
     const mediaFilePaths = Object.keys(mediaMap).map(key => path.join(destDir, key));
