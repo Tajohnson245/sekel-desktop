@@ -331,6 +331,141 @@ describe('executeImport — conflict strategies', () => {
     });
 });
 
+describe('executeImport — note identity (anki_guid)', () => {
+    /** Cloze-style note 3001 with sibling cards split across two decks. */
+    function splitSiblingCollection(opts: { revlog?: AnkiReviewLog[] } = {}) {
+        const model: AnkiModel = {
+            ...makeModel(1001, 'Cloze'),
+            type: 1,
+            tmpls: [{ ord: 0, name: 'Cloze', qfmt: '{{cloze:Text}}', afmt: '{{cloze:Text}}' }],
+        };
+        // "Leeches" sorts before "Science::Bio" (shallower), so it's processed first.
+        const home = makeDeck(2002, 'Science::Bio');
+        const leeches = makeDeck(2001, 'Leeches');
+        const note = makeNote(3001, 1001);
+        const c1 = makeCard(4001, 3001, 2002, { ord: 0 });
+        const c2 = makeCard(4002, 3001, 2001, { ord: 1 });
+        const c3 = makeCard(4003, 3001, 2002, { ord: 2 });
+        return makeCollection({
+            decks: [home, leeches],
+            models: [model],
+            notes: [note],
+            cards: [c2, c1, c3],
+            revlog: opts.revlog,
+        });
+    }
+
+    it('inserts a note once when its sibling cards span two decks', () => {
+        const collection = splitSiblingCollection();
+
+        const result = executeImport(makeOptions(collection, [
+            makeDeckOption(2001),
+            makeDeckOption(2002),
+        ]), USER);
+
+        expect(result.notesInserted).toBe(1);
+        expect(result.cardsInserted).toBe(3);
+        type Row = { anki_id: number; note_id: string; deck_anki_id: number };
+        const rows = testDb.prepare(`
+            SELECT c.anki_id, c.note_id, d.anki_id AS deck_anki_id
+            FROM cards c JOIN notes n ON n.id = c.note_id JOIN decks d ON d.id = n.deck_id
+            WHERE c.user_id = ? ORDER BY c.anki_id
+        `).all(USER) as Row[];
+        expect(new Set(rows.map(r => r.note_id)).size).toBe(1);
+        // The note (and so all its cards) lives in the deck of its lowest-ord card.
+        expect(rows.map(r => r.deck_anki_id)).toEqual([2002, 2002, 2002]);
+    });
+
+    it('imports only the selected sibling cards when one of the decks is deselected', () => {
+        const collection = splitSiblingCollection();
+
+        const result = executeImport(makeOptions(collection, [
+            makeDeckOption(2001),
+            makeDeckOption(2002, { selected: false }),
+        ]), USER);
+
+        expect(result.notesInserted).toBe(1);
+        expect(result.cardsInserted).toBe(1);
+        const deck = testDb.prepare(`
+            SELECT d.anki_id FROM notes n JOIN decks d ON d.id = n.deck_id WHERE n.user_id = ?
+        `).get(USER) as { anki_id: number };
+        expect(deck.anki_id).toBe(2001);
+    });
+
+    it('keeps per-deck scheduling and reviews for sibling cards in a different deck', () => {
+        const collection = splitSiblingCollection({ revlog: [makeRevlog(1700000000000, 4002)] });
+        collection.cards = collection.cards.map(c =>
+            c.id === 4002 ? { ...c, type: 2, queue: 2, ivl: 9, due: 1000 } : c,
+        );
+
+        const result = executeImport(makeOptions(collection, [
+            makeDeckOption(2001, { scheduling: 'keep' }),
+            makeDeckOption(2002, { scheduling: 'fresh' }),
+        ]), USER);
+
+        expect(result.reviewsInserted).toBe(1);
+        const card = testDb.prepare('SELECT state FROM cards WHERE anki_id = 4002').get() as { state: string };
+        expect(card.state).toBe('review');
+        // The review is attributed to the Sekel deck the card actually lives in.
+        const review = testDb.prepare(`
+            SELECT d.anki_id FROM reviews r JOIN decks d ON d.id = r.deck_id
+        `).get() as { anki_id: number };
+        expect(review.anki_id).toBe(2002);
+    });
+
+    it('lets a second local account import the same deck', () => {
+        const OTHER = 'user-test-other';
+        const build = () => makeCollection({
+            decks: [makeDeck(2001, 'Shared')],
+            models: [makeModel(1001)],
+            notes: [makeNote(3001, 1001)],
+            cards: [makeCard(4001, 3001, 2001)],
+        });
+
+        executeImport(makeOptions(build(), [makeDeckOption(2001)]), USER);
+        const second = executeImport(makeOptions(build(), [makeDeckOption(2001)]), OTHER);
+
+        expect(second.notesInserted).toBe(1);
+        expect(second.cardsInserted).toBe(1);
+        const owners = testDb.prepare("SELECT user_id FROM notes WHERE anki_guid = 'guid-3001' ORDER BY user_id")
+            .all() as { user_id: string }[];
+        expect(owners.map(o => o.user_id)).toEqual([OTHER, USER].sort());
+    });
+
+    it('skips (instead of aborting on) a note the user already has in another deck', () => {
+        // First package: note 3001 lives in deck 2001.
+        executeImport(makeOptions(makeCollection({
+            decks: [makeDeck(2001, 'Old')],
+            models: [makeModel(1001)],
+            notes: [makeNote(3001, 1001)],
+            cards: [makeCard(4001, 3001, 2001)],
+        }), [makeDeckOption(2001)]), USER);
+
+        // Second package: same note (guid) now in a different deck, plus a new note.
+        const result = executeImport(makeOptions(makeCollection({
+            decks: [makeDeck(2005, 'New')],
+            models: [makeModel(1001)],
+            notes: [makeNote(3001, 1001), makeNote(3002, 1001)],
+            cards: [makeCard(4001, 3001, 2005), makeCard(4002, 3002, 2005)],
+        }), [makeDeckOption(2005)]), USER);
+
+        expect(result.notesSkipped).toBe(1);
+        expect(result.notesInserted).toBe(1);
+        expect(result.cardsInserted).toBe(1);
+    });
+
+    it('enforces anki_guid uniqueness per user, not globally', () => {
+        const insert = testDb.prepare(`
+            INSERT INTO notes (id, user_id, deck_id, note_type_id, anki_guid, created_at, updated_at)
+            VALUES (?, ?, 'deck', 'nt', 'same-guid', 'now', 'now')
+        `);
+        testDb.pragma('foreign_keys = OFF');
+        insert.run('n1', 'user-a');
+        expect(() => insert.run('n2', 'user-b')).not.toThrow();
+        expect(() => insert.run('n3', 'user-a')).toThrow(/UNIQUE constraint failed/);
+    });
+});
+
 describe('executeImport — scheduling', () => {
     it('fresh: all cards inserted with state=new and zero stability', () => {
         const model = makeModel(1001);

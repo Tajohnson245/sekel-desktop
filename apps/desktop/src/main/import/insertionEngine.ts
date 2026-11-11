@@ -34,7 +34,10 @@ export interface ImportResult {
     decksCreated: number;
     decksSkipped: number;
     notesInserted: number;
-    /** Notes skipped during merge because they already exist in the collection. */
+    /**
+     * Notes skipped because the user already has a note with the same Anki guid
+     * (merge-mode re-imports, or the note was imported earlier via another deck).
+     */
     notesSkipped: number;
     cardsInserted: number;
     reviewsInserted: number;
@@ -144,6 +147,9 @@ export function executeImport(
     const ankiCardIdToAnkiDeckId = new Map<number, number>();
     // Tracks which anki deck ids used 'keep' scheduling (only those get review logs)
     const keepSchedulingDeckIds = new Set<number>();
+    // Anki deck id → Sekel deck id for every deck whose cards get imported
+    // (skipped decks are absent). Iteration order follows sortedDeckIds.
+    const importedDeckIds = new Map<number, string>();
 
     const tx = db.transaction(() => {
         onProgress?.('inserting-decks', `Creating ${sortedDeckIds.length} deck(s)`, 30);
@@ -198,123 +204,130 @@ export function executeImport(
             }
 
             nameToSekelId.set(ankiDeck.name, sekelDeckId);
+            importedDeckIds.set(ankiDeckId, sekelDeckId);
             if (opt.scheduling === 'keep') keepSchedulingDeckIds.add(ankiDeckId);
+        }
 
-            // Report note type / notes progress once per deck
-            if (result.cardsInserted === 0) {
-                onProgress?.('inserting-notes', `Importing notes and cards...`, 35);
-            }
+        onProgress?.('inserting-notes', `Importing notes and cards...`, 35);
 
-            // All Anki cards belonging to this deck
-            const ankiCards = cardsByDeck.get(ankiDeckId) ?? [];
-
-            // Group cards by note id
-            const cardsByNote = new Map<number, AnkiCard[]>();
-            for (const card of ankiCards) {
+        // Group the cards of every imported deck by note. A note's cards can span
+        // several Anki decks (cloze siblings split by a Leech or filtered deck,
+        // per-template deck overrides), but Sekel ties decks to notes, not cards —
+        // so each note is inserted ONCE and all of its imported cards attach to it.
+        const cardsByNote = new Map<number, AnkiCard[]>();
+        for (const ankiDeckId of importedDeckIds.keys()) {
+            for (const card of cardsByDeck.get(ankiDeckId) ?? []) {
                 let group = cardsByNote.get(card.nid);
                 if (!group) { group = []; cardsByNote.set(card.nid, group); }
                 group.push(card);
             }
+        }
 
-            const now = new Date().toISOString();
+        const now = new Date().toISOString();
 
-            for (const [ankiNoteId, cards] of cardsByNote) {
-                const ankiNote = parsedData.notes.get(ankiNoteId);
-                if (!ankiNote) continue;
+        for (const [ankiNoteId, cards] of cardsByNote) {
+            const ankiNote = parsedData.notes.get(ankiNoteId);
+            if (!ankiNote) continue;
 
-                // Merge mode: skip notes already imported (identified by anki_guid)
-                if (opt.conflict === 'merge' && existing) {
-                    if (findNoteByGuid.get(userId, ankiNote.guid)) {
-                        result.notesSkipped++;
-                        continue;
-                    }
-                }
+            // Skip notes this user already has (anki_guid is unique per user):
+            // merge-mode re-imports, or a note already imported via another deck
+            // or package. Inserting it again would abort the whole import.
+            if (findNoteByGuid.get(userId, ankiNote.guid)) {
+                result.notesSkipped++;
+                continue;
+            }
 
-                // Ensure NoteType exists (upsert by anki_id)
-                let noteType = noteTypeCache.get(ankiNote.mid);
-                if (!noteType) {
-                    const model = parsedData.models.get(ankiNote.mid);
-                    if (!model) continue;
-                    noteType = createNoteType({
-                        user_id: userId,
-                        name: model.name,
-                        anki_id: model.id,
-                        fields: model.flds.map(f => ({ name: f.name })),
-                        card_templates: model.tmpls.map(t => ({
-                            name: t.name,
-                            front_template: sanitizeTemplateHtml(t.qfmt),
-                            back_template: sanitizeTemplateHtml(t.afmt),
-                        })),
-                        anki_meta: JSON.stringify({
-                            css: model.css,
-                            type: model.type,
-                            mod: model.mod,
-                            fields: model.flds.map(f => ({ name: f.name, sticky: f.sticky, font: f.font, size: f.size })),
-                            templates: model.tmpls.map(t => ({ name: t.name, bqfmt: t.bqfmt, bafmt: t.bafmt })),
-                        }),
-                    });
-                    noteTypeCache.set(ankiNote.mid, noteType);
-                }
+            // Ensure NoteType exists (upsert by anki_id)
+            let noteType = noteTypeCache.get(ankiNote.mid);
+            if (!noteType) {
+                const model = parsedData.models.get(ankiNote.mid);
+                if (!model) continue;
+                noteType = createNoteType({
+                    user_id: userId,
+                    name: model.name,
+                    anki_id: model.id,
+                    fields: model.flds.map(f => ({ name: f.name })),
+                    card_templates: model.tmpls.map(t => ({
+                        name: t.name,
+                        front_template: sanitizeTemplateHtml(t.qfmt),
+                        back_template: sanitizeTemplateHtml(t.afmt),
+                    })),
+                    anki_meta: JSON.stringify({
+                        css: model.css,
+                        type: model.type,
+                        mod: model.mod,
+                        fields: model.flds.map(f => ({ name: f.name, sticky: f.sticky, font: f.font, size: f.size })),
+                        templates: model.tmpls.map(t => ({ name: t.name, bqfmt: t.bqfmt, bafmt: t.bafmt })),
+                    }),
+                });
+                noteTypeCache.set(ankiNote.mid, noteType);
+            }
 
-                // Insert note (with anki_id + anki_guid for future dedup/sync)
-                const noteId = randomUUID();
-                insertNote.run(
-                    noteId,
+            // The note lives in the deck of its lowest-ord card (the first
+            // template / cloze, i.e. where Anki users normally "keep" the note).
+            cards.sort((a, b) => a.ord - b.ord || a.id - b.id);
+            const sekelDeckId = importedDeckIds.get(cards[0].did)!;
+
+            // Insert note (with anki_id + anki_guid for future dedup/sync)
+            const noteId = randomUUID();
+            insertNote.run(
+                noteId,
+                userId,
+                sekelDeckId,
+                noteType.id,
+                sanitizeNoteFields(ankiNote.fields),
+                JSON.stringify(ankiNote.tags),
+                ankiNoteId,
+                ankiNote.guid,
+                JSON.stringify({ mod: ankiNote.mod }),
+                now,
+                now,
+            );
+            result.notesInserted++;
+
+            // Insert one Sekel card per Anki card (preserves multi-template notes).
+            // Scheduling follows the options chosen for the card's own Anki deck.
+            for (const ankiCard of cards) {
+                const opt = selectedOptions.get(ankiCard.did)!;
+                const cardId = randomUUID();
+                const { state, due, stability, difficulty, scheduledDays, easeFactor, lastReview } =
+                    mapScheduling(ankiCard, opt, parsedData.crt, lastReviewMsByCard.get(ankiCard.id));
+
+                insertCard.run(
+                    cardId,
                     userId,
-                    sekelDeckId,
-                    noteType.id,
-                    sanitizeNoteFields(ankiNote.fields),
-                    JSON.stringify(ankiNote.tags),
-                    ankiNoteId,
-                    ankiNote.guid,
-                    JSON.stringify({ mod: ankiNote.mod }),
+                    noteId,
+                    ankiCard.ord,        // template_index
+                    state,
+                    due,
+                    stability,
+                    difficulty,
+                    Math.max(ankiCard.ivl, 0),  // elapsed_days
+                    scheduledDays,
+                    ankiCard.reps,
+                    ankiCard.lapses,
+                    lastReview,
+                    ankiCard.id,         // anki_id
+                    JSON.stringify({ queue: ankiCard.queue, mod: ankiCard.mod }),
+                    easeFactor,
                     now,
                     now,
                 );
-                result.notesInserted++;
+                result.cardsInserted++;
+                ankiCardIdToSekelCardId.set(ankiCard.id, cardId);
+                ankiCardIdToSekelDeckId.set(ankiCard.id, sekelDeckId);
+                ankiCardIdToAnkiDeckId.set(ankiCard.id, ankiCard.did);
 
-                // Insert one Sekel card per Anki card (preserves multi-template notes)
-                for (const ankiCard of cards) {
-                    const cardId = randomUUID();
-                    const { state, due, stability, difficulty, scheduledDays, easeFactor, lastReview } =
-                        mapScheduling(ankiCard, opt, parsedData.crt, lastReviewMsByCard.get(ankiCard.id));
-
-                    insertCard.run(
-                        cardId,
-                        userId,
-                        noteId,
-                        ankiCard.ord,        // template_index
-                        state,
-                        due,
-                        stability,
-                        difficulty,
-                        Math.max(ankiCard.ivl, 0),  // elapsed_days
-                        scheduledDays,
-                        ankiCard.reps,
-                        ankiCard.lapses,
-                        lastReview,
-                        ankiCard.id,         // anki_id
-                        JSON.stringify({ queue: ankiCard.queue, mod: ankiCard.mod }),
-                        easeFactor,
-                        now,
-                        now,
+                // Report progress every 100 cards
+                if (result.cardsInserted % 100 === 0) {
+                    const cardPercent = totalCards > 0
+                        ? 35 + Math.round((result.cardsInserted / totalCards) * 45)
+                        : 35;
+                    onProgress?.(
+                        'inserting-cards',
+                        `${result.cardsInserted.toLocaleString()} / ${totalCards.toLocaleString()} cards`,
+                        Math.min(cardPercent, 80),
                     );
-                    result.cardsInserted++;
-                    ankiCardIdToSekelCardId.set(ankiCard.id, cardId);
-                    ankiCardIdToSekelDeckId.set(ankiCard.id, sekelDeckId);
-                    ankiCardIdToAnkiDeckId.set(ankiCard.id, ankiCard.did);
-
-                    // Report progress every 100 cards
-                    if (result.cardsInserted % 100 === 0) {
-                        const cardPercent = totalCards > 0
-                            ? 35 + Math.round((result.cardsInserted / totalCards) * 45)
-                            : 35;
-                        onProgress?.(
-                            'inserting-cards',
-                            `${result.cardsInserted.toLocaleString()} / ${totalCards.toLocaleString()} cards`,
-                            Math.min(cardPercent, 80),
-                        );
-                    }
                 }
             }
         }

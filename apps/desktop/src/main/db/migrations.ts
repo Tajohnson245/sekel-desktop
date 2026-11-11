@@ -641,4 +641,14 @@ export const MIGRATIONS: string[] = [
     ALTER TABLE deck_sessions ADD COLUMN scope TEXT;
     ALTER TABLE deck_sessions ADD COLUMN system_keys TEXT;
     `,
+    // Migration — scope Anki note-guid uniqueness to the user (SEKEL-145).
+    // Migration 003 made notes.anki_guid unique across ALL users, so a second
+    // local account importing the same shared deck aborted with
+    // "UNIQUE constraint failed: notes.anki_guid". Rows that satisfied the
+    // global index trivially satisfy the per-user one.
+    `
+    DROP INDEX IF EXISTS idx_notes_anki_guid;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_notes_user_anki_guid
+        ON notes(user_id, anki_guid) WHERE anki_guid IS NOT NULL;
+    `,
 ];
