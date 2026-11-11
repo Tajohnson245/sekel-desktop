@@ -1,5 +1,6 @@
 import React from 'react';
 import { AlertTriangle, RefreshCw, ArrowLeft } from 'lucide-react';
+import * as Sentry from '@sentry/electron/renderer';
 import { createLogger, consoleTransport } from '@sekel/observability';
 import i18n from '../../i18n';
 import './ErrorBoundary.css';
@@ -34,6 +35,12 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
             error: error.message,
             stack: error.stack,
             componentStack: errorInfo.componentStack,
+        });
+        // Previously console-only: render crashes never reached Sentry.
+        Sentry.withScope((scope) => {
+            scope.setTag('boundary', this.props.variant ?? 'page');
+            scope.setContext('react', { componentStack: errorInfo.componentStack ?? null });
+            Sentry.captureException(error);
         });
     }
 
