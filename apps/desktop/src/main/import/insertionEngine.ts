@@ -24,9 +24,11 @@ import type {
     AnkiReviewLog,
 } from './types';
 import { sanitizeNoteFields, sanitizeTemplateHtml } from './sanitizeFields';
+import { queueFromType } from './parser';
 
-// Anki stores review-card due dates as "days since 2006-01-01 UTC"
-const ANKI_EPOCH_MS = 1136073600000;
+const MS_PER_DAY = 86400000;
+/** Largest magnitude a JS Date can represent. */
+const MAX_DATE_MS = 8.64e15;
 
 export interface ImportResult {
     decksCreated: number;
@@ -116,11 +118,16 @@ export function executeImport(
     const totalCards = parsedData.cards.filter(c => selectedOptions.has(c.did)).length;
     const totalRevlogs = parsedData.revlog.length;
 
-    // Cards that actually have review history. In 'keep' mode, a card with no
-    // history starts as new regardless of its Anki type, so shared/prebuilt decks
-    // (whose cards may carry type=review with no personal revlog) don't import as a
-    // wall of spuriously-due cards. (SEKEL-138)
-    const cardsWithHistory = new Set<number>(parsedData.revlog.map(r => r.cid));
+    // Latest review (revlog id = Unix ms) per card that actually has review
+    // history. In 'keep' mode, a card with no history starts as new regardless of
+    // its Anki type, so shared/prebuilt decks (whose cards may carry type=review
+    // with no personal revlog) don't import as a wall of spuriously-due cards.
+    // (SEKEL-138)
+    const lastReviewMsByCard = new Map<number, number>();
+    for (const r of parsedData.revlog) {
+        const prev = lastReviewMsByCard.get(r.cid);
+        if (prev === undefined || r.id > prev) lastReviewMsByCard.set(r.cid, r.id);
+    }
 
     // Maps built during card insertion for use when inserting review logs
     const ankiCardIdToSekelCardId = new Map<number, string>();
@@ -259,8 +266,8 @@ export function executeImport(
                 // Insert one Sekel card per Anki card (preserves multi-template notes)
                 for (const ankiCard of cards) {
                     const cardId = randomUUID();
-                    const { state, due, stability, difficulty, scheduledDays, easeFactor } =
-                        mapScheduling(ankiCard, opt, cardsWithHistory.has(ankiCard.id));
+                    const { state, due, stability, difficulty, scheduledDays, easeFactor, lastReview } =
+                        mapScheduling(ankiCard, opt, parsedData.crt, lastReviewMsByCard.get(ankiCard.id));
 
                     insertCard.run(
                         cardId,
@@ -275,7 +282,7 @@ export function executeImport(
                         scheduledDays,
                         ankiCard.reps,
                         ankiCard.lapses,
-                        null,                // last_review
+                        lastReview,
                         ankiCard.id,         // anki_id
                         JSON.stringify({ queue: ankiCard.queue, mod: ankiCard.mod }),
                         easeFactor,
@@ -378,15 +385,26 @@ interface SchedulingValues {
     difficulty: number;
     scheduledDays: number;
     easeFactor: number | null;
+    lastReview: string | null;
 }
 
-function mapScheduling(ankiCard: AnkiCard, opt: ImportOptionsDeck, hasHistory: boolean): SchedulingValues {
+/**
+ * @param crt          Collection creation time (col.crt, Unix seconds).
+ * @param lastReviewMs Latest revlog id (Unix ms) for this card, or undefined
+ *                     when the card has no review history.
+ */
+function mapScheduling(
+    ankiCard: AnkiCard,
+    opt: ImportOptionsDeck,
+    crt: number,
+    lastReviewMs: number | undefined,
+): SchedulingValues {
     const now = new Date().toISOString();
 
     // Reset to new when the user chose 'fresh', OR (in 'keep' mode) when the card
     // has no review history — "no data → new". Cards with real history keep their
     // schedule below.
-    if (opt.scheduling === 'fresh' || !hasHistory) {
+    if (opt.scheduling === 'fresh' || lastReviewMs === undefined) {
         return {
             state: 'new',
             due: now,
@@ -394,12 +412,13 @@ function mapScheduling(ankiCard: AnkiCard, opt: ImportOptionsDeck, hasHistory: b
             difficulty: 0,
             scheduledDays: 0,
             easeFactor: null,
+            lastReview: null,
         };
     }
 
     // Keep scheduling: map Anki state + compute due date
     const state = mapAnkiState(ankiCard.type);
-    const due = computeDue(ankiCard, now);
+    const due = computeDue(ankiCard, crt, now);
     const ivl = Math.max(ankiCard.ivl, 0);
 
     // FSRS approximation: stability ≈ interval, difficulty derived from ease factor
@@ -417,6 +436,8 @@ function mapScheduling(ankiCard: AnkiCard, opt: ImportOptionsDeck, hasHistory: b
         difficulty,
         scheduledDays: ivl,
         easeFactor,
+        // A card reset to new in Anki has no "last review" for scheduling purposes.
+        lastReview: state === 'new' ? null : toIsoOr(lastReviewMs, null),
     };
 }
 
@@ -471,18 +492,35 @@ function mapFactorToDifficulty(factor: number): number {
     return Math.max(0, Math.min(10, (3500 - factor) / 200));
 }
 
-function computeDue(ankiCard: AnkiCard, now: string): string {
-    if (ankiCard.type === 0) return now;
+/**
+ * Converts an Anki card's `due` into an ISO timestamp. The unit depends on the
+ * queue, not the type: intraday learning (1) and preview (4) store Unix
+ * seconds; review (2) and interday learning (3) store days since the
+ * collection was created (col.crt). Filtered-deck cards were already restored
+ * to their home-deck due by the parser.
+ */
+function computeDue(ankiCard: AnkiCard, crt: number, now: string): string {
+    // Sekel has no suspended/buried state, so such cards come back active
+    // (anki_meta.queue keeps the original for export). Their `due` keeps the
+    // units of the queue they'd be restored to.
+    const queue = ankiCard.queue < 0
+        ? queueFromType(ankiCard.type, ankiCard.due)
+        : ankiCard.queue;
 
-    if (ankiCard.type === 2) {
-        // Review: due is days since Anki epoch (2006-01-01)
-        return new Date(ANKI_EPOCH_MS + ankiCard.due * 86400000).toISOString();
+    switch (queue) {
+        case 1:
+        case 4:
+            return ankiCard.due > 0 ? toIsoOr(ankiCard.due * 1000, now) : now;
+        case 2:
+        case 3:
+            return toIsoOr(crt * 1000 + ankiCard.due * MS_PER_DAY, now);
+        default:
+            return now;
     }
+}
 
-    if ((ankiCard.type === 1 || ankiCard.type === 3) && ankiCard.due > 0) {
-        // Learning/relearning: due is Unix timestamp in seconds
-        return new Date(ankiCard.due * 1000).toISOString();
-    }
-
-    return now;
+/** ISO string for a Unix-ms value, or `fallback` when it isn't a valid date. */
+function toIsoOr<T extends string | null>(ms: number | undefined, fallback: T): string | T {
+    if (ms === undefined || !Number.isFinite(ms) || Math.abs(ms) > MAX_DATE_MS) return fallback;
+    return new Date(ms).toISOString();
 }

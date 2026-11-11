@@ -112,6 +112,7 @@ function makeCollection(opts: {
     for (const n of opts.notes ?? []) notes.set(n.id, n);
 
     return {
+        crt: 1609459200,
         decks,
         models,
         deckConfigs: new Map(),

@@ -106,7 +106,12 @@ function makeRevlog(id: number, cid: number, opts: Partial<AnkiReviewLog> = {}):
     };
 }
 
+// 2021-01-01T00:00:00Z — a realistic collection creation time, well after 2006.
+const DEFAULT_CRT = 1609459200;
+const DAY_MS = 86400000;
+
 function makeCollection(opts: {
+    crt?: number;
     decks?: AnkiDeck[];
     models?: AnkiModel[];
     notes?: AnkiNote[];
@@ -121,6 +126,7 @@ function makeCollection(opts: {
     const notes = new Map<number, AnkiNote>();
     for (const n of opts.notes ?? []) notes.set(n.id, n);
     return {
+        crt: opts.crt ?? DEFAULT_CRT,
         decks,
         models,
         deckConfigs: new Map(),
@@ -372,6 +378,91 @@ describe('executeImport — scheduling', () => {
         const cards = testDb.prepare("SELECT state, stability FROM cards WHERE user_id = ?").all(USER) as CardRow[];
         expect(cards[0].state).toBe('new');
         expect(cards[0].stability).toBe(0);
+    });
+});
+
+describe('executeImport — due dates (keep scheduling)', () => {
+    type CardRow = { state: string; due: string; last_review: string | null; anki_meta: string };
+
+    /** Imports a single card (with one revlog entry) and returns its row. */
+    function importOne(card: Partial<AnkiCard>, opts: { crt?: number; revlogIds?: number[]; scheduling?: 'keep' | 'fresh' } = {}): CardRow {
+        const collection = makeCollection({
+            crt: opts.crt,
+            decks: [makeDeck(2001, 'Bio')],
+            models: [makeModel(1001)],
+            notes: [makeNote(3001, 1001)],
+            cards: [makeCard(4001, 3001, 2001, card)],
+            revlog: (opts.revlogIds ?? [1700000000000]).map(id => makeRevlog(id, 4001)),
+        });
+        executeImport(makeOptions(collection, [makeDeckOption(2001, { scheduling: opts.scheduling ?? 'keep' })]), USER);
+        return testDb.prepare('SELECT state, due, last_review, anki_meta FROM cards WHERE user_id = ?').get(USER) as CardRow;
+    }
+
+    it('review card due is a day number relative to col.crt, not 2006-01-01', () => {
+        const row = importOne({ type: 2, queue: 2, ivl: 30, due: 1000 });
+        expect(row.state).toBe('review');
+        expect(row.due).toBe(new Date(DEFAULT_CRT * 1000 + 1000 * DAY_MS).toISOString());
+        expect(row.due).toBe('2023-09-28T00:00:00.000Z');
+    });
+
+    it('a review card due today in Anki is due today, not ~15 years overdue', () => {
+        const crt = Math.floor(Date.UTC(2021, 0, 1) / 1000);
+        const todayDays = Math.floor((Date.now() - crt * 1000) / DAY_MS);
+        const row = importOne({ type: 2, queue: 2, ivl: 10, due: todayDays }, { crt });
+        const dueMs = Date.parse(row.due);
+        expect(Math.abs(dueMs - Date.now())).toBeLessThan(DAY_MS);
+    });
+
+    it('intraday learning card (queue 1) due is Unix seconds', () => {
+        const row = importOne({ type: 1, queue: 1, due: 1700000000 });
+        expect(row.state).toBe('learning');
+        expect(row.due).toBe(new Date(1700000000 * 1000).toISOString());
+    });
+
+    it('interday learning card (queue 3) due is a day number relative to col.crt', () => {
+        const row = importOne({ type: 3, queue: 3, due: 1200 });
+        expect(row.state).toBe('relearning');
+        expect(row.due).toBe(new Date(DEFAULT_CRT * 1000 + 1200 * DAY_MS).toISOString());
+    });
+
+    it('suspended review card keeps its crt-relative due and its queue in anki_meta', () => {
+        const row = importOne({ type: 2, queue: -1, ivl: 30, due: 1000 });
+        // Sekel has no suspended state: the card comes back active…
+        expect(row.state).toBe('review');
+        expect(row.due).toBe(new Date(DEFAULT_CRT * 1000 + 1000 * DAY_MS).toISOString());
+        // …but the original queue is preserved for export.
+        expect(JSON.parse(row.anki_meta).queue).toBe(-1);
+    });
+
+    it('buried intraday learning card keeps its Unix-seconds due', () => {
+        const row = importOne({ type: 1, queue: -3, due: 1700000000 });
+        expect(row.due).toBe(new Date(1700000000 * 1000).toISOString());
+    });
+
+    it('falls back to now for an out-of-range due instead of throwing', () => {
+        const before = Date.now();
+        const row = importOne({ type: 2, queue: 2, ivl: 30, due: 2_000_000_000 });
+        expect(Date.parse(row.due)).toBeGreaterThanOrEqual(before - 1000);
+    });
+
+    it('sets last_review to the latest revlog time for the card', () => {
+        const row = importOne(
+            { type: 2, queue: 2, ivl: 30, due: 1000 },
+            { revlogIds: [1690000000000, 1700000000000, 1695000000000] },
+        );
+        expect(row.last_review).toBe(new Date(1700000000000).toISOString());
+    });
+
+    it('leaves last_review null for cards imported fresh', () => {
+        const row = importOne({ type: 2, queue: 2, ivl: 30, due: 1000 }, { scheduling: 'fresh' });
+        expect(row.state).toBe('new');
+        expect(row.last_review).toBeNull();
+    });
+
+    it('leaves last_review null for a card that is new in Anki despite history', () => {
+        const row = importOne({ type: 0, queue: 0, due: 5 });
+        expect(row.state).toBe('new');
+        expect(row.last_review).toBeNull();
     });
 });
 

@@ -15,6 +15,7 @@ import {
 // ── Private raw DB row shapes ─────────────────────────────────────────────────
 
 interface RawColRow {
+    crt: number;
     models: string;
     decks: string;
     dconf: string;
@@ -42,6 +43,8 @@ interface RawCardRow {
     reps: number;
     lapses: number;
     mod: number;
+    odue: number;
+    odid: number;
 }
 
 interface RawRevlogRow {
@@ -83,12 +86,12 @@ function parseAnkiDatabaseSync(dbPath: string): AnkiCollection {
     const warnings: string[] = [];
 
     try {
-        const { models, decks, deckConfigs } = parseCol(db);
+        const { crt, models, decks, deckConfigs } = parseCol(db);
         const notes = parseNotes(db, models, warnings);
-        const cards = parseCards(db, notes, warnings);
+        const cards = parseCards(db, notes, decks, warnings);
         const revlog = parseRevlog(db);
 
-        return { models, decks, deckConfigs, notes, cards, revlog, warnings };
+        return { crt, models, decks, deckConfigs, notes, cards, revlog, warnings };
     } finally {
         db.close();
     }
@@ -97,11 +100,12 @@ function parseAnkiDatabaseSync(dbPath: string): AnkiCollection {
 // ── col table ─────────────────────────────────────────────────────────────────
 
 function parseCol(db: Database.Database): {
+    crt: number;
     models: Map<number, AnkiModel>;
     decks: Map<number, AnkiDeck>;
     deckConfigs: Map<number, AnkiDeckConfig>;
 } {
-    const row = db.prepare('SELECT models, decks, dconf FROM col').get() as RawColRow | undefined;
+    const row = db.prepare('SELECT crt, models, decks, dconf FROM col').get() as RawColRow | undefined;
     if (!row) {
         throw new InvalidApkgError('col table is empty — database may be corrupt.');
     }
@@ -110,7 +114,7 @@ function parseCol(db: Database.Database): {
     const decks = parseDecks(row.decks);
     const deckConfigs = parseDeckConfigs(row.dconf);
 
-    return { models, decks, deckConfigs };
+    return { crt: Number(row.crt) || 0, models, decks, deckConfigs };
 }
 
 function parseModels(raw: string): Map<number, AnkiModel> {
@@ -293,11 +297,12 @@ function parseNotes(
 function parseCards(
     db: Database.Database,
     notes: Map<number, AnkiNote>,
+    decks: Map<number, AnkiDeck>,
     warnings: string[],
 ): AnkiCard[] {
     const rows = db
         .prepare(
-            'SELECT id, nid, did, ord, type, queue, due, ivl, factor, reps, lapses, mod FROM cards',
+            'SELECT id, nid, did, ord, type, queue, due, ivl, factor, reps, lapses, mod, odue, odid FROM cards',
         )
         .all() as RawCardRow[];
 
@@ -308,7 +313,7 @@ function parseCards(
             warnings.push(`Card ${row.id}: references unknown note id ${row.nid}.`);
         }
 
-        cards.push({
+        const card: AnkiCard = {
             id: row.id,
             nid: row.nid,
             did: row.did,
@@ -321,10 +326,46 @@ function parseCards(
             reps: row.reps,
             lapses: row.lapses,
             mod: row.mod,
-        });
+        };
+        if (row.odid) restoreFromFilteredDeck(card, row.odid, row.odue, decks);
+        cards.push(card);
     }
 
     return cards;
+}
+
+/**
+ * Cards sitting in a filtered deck carry their home deck in `odid` and their
+ * real due in `odue`; `did`/`due`/`queue` describe the temporary filtered-deck
+ * state. Mirrors Anki's `remove_from_filtered_deck_restoring_queue` so the rest
+ * of the importer only ever sees home-deck scheduling.
+ */
+function restoreFromFilteredDeck(
+    card: AnkiCard,
+    odid: number,
+    odue: number,
+    decks: Map<number, AnkiDeck>,
+): void {
+    // Fall back to the filtered deck when the home deck wasn't exported.
+    if (decks.has(odid)) card.did = odid;
+    if (odue) card.due = odue;
+    // Suspended/buried (negative) queues are kept; everything else, including
+    // preview (4), is derived from the card type.
+    if (card.queue >= 0) card.queue = queueFromType(card.type, card.due);
+}
+
+/** Anki's `restore_queue_from_type`. */
+export function queueFromType(type: number, due: number): number {
+    switch (type) {
+        case 1:
+        case 3:
+            // Learning due is either a Unix timestamp (intraday) or a day number.
+            return due > 1_000_000_000 ? 1 : 3;
+        case 2:
+            return 2;
+        default:
+            return 0;
+    }
 }
 
 // ── revlog table ──────────────────────────────────────────────────────────────

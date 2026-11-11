@@ -10,8 +10,11 @@ import os from 'node:os';
 import fs from 'node:fs';
 import { getDb } from '../db/index';
 
-// Anki stores review-card due dates as "days since 2006-01-01 UTC"
-const ANKI_EPOCH_MS = 1136073600000;
+// Anki stores review-card due dates as day numbers relative to col.crt (the
+// collection's creation time). Exports use a fixed crt so those day numbers are
+// stable and always positive; importers (Anki's and ours) rebase them onto
+// their own collection.
+const EXPORT_CRT_SECS = 1136073600; // 2006-01-01T00:00:00Z
 const MS_PER_DAY = 86400000;
 
 interface AnkiMeta {
@@ -113,7 +116,7 @@ export function buildAnkiDatabase(deckId: string, userId: string): string {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
             1,                                          // id
-            Math.floor(Date.now() / 1000),             // crt (creation time)
+            EXPORT_CRT_SECS,                            // crt (review dues are relative to this)
             Math.floor(Date.now() / 1000),             // mod
             Math.floor(Date.now()),                     // scm (schema mod)
             11,                                         // ver (schema version)
@@ -191,7 +194,12 @@ export function buildAnkiDatabase(deckId: string, userId: string): string {
             const meta = parseAnkiMeta(card.anki_meta as string | null);
             const state = card.state as string;
             const type = mapStateToAnkiType(state);
-            const queue = meta.queue ?? mapStateToAnkiQueue(state);
+            // The due units below follow the Sekel state, so the queue must too.
+            // Only a suspended/buried queue (< 0) from the original import is
+            // carried over — Sekel can't represent it, but Anki can.
+            const queue = meta.queue !== undefined && meta.queue < 0
+                ? meta.queue
+                : mapStateToAnkiQueue(state);
             const due = computeAnkiDue(card.due as string, state);
             const mod = meta.mod ?? Math.floor(Date.parse(card.updated_at as string) / 1000);
             const factor = card.ease_factor
@@ -510,9 +518,9 @@ function computeAnkiDue(dueIso: string, state: string): number {
     if (state === 'new') return 0;
 
     if (state === 'review') {
-        // Review: days since Anki epoch
+        // Review: day number relative to col.crt — the day containing the due time
         const dueMs = Date.parse(dueIso);
-        return Math.round((dueMs - ANKI_EPOCH_MS) / MS_PER_DAY);
+        return Math.floor((dueMs - EXPORT_CRT_SECS * 1000) / MS_PER_DAY);
     }
 
     // Learning/relearning: Unix timestamp in seconds
