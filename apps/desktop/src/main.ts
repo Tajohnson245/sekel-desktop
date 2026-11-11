@@ -18,6 +18,7 @@ Sentry.init({
 // before electron-squirrel-startup's spawnUpdate fires and we quit — otherwise
 // the keys leak after uninstall.
 import { registerSpkgFileAssociation, unregisterSpkgFileAssociation } from './main/fileAssociations';
+import { isAuthCallbackUrl } from './lib/deepLink';
 if (process.platform === 'win32' && process.argv[1] === '--squirrel-uninstall') {
     try { unregisterSpkgFileAssociation(); } catch { /* best effort */ }
 }
@@ -48,11 +49,14 @@ if (!gotSingleInstanceLock) {
 let pendingDeepLink: string | null = null;
 let mainWindowRef: import('electron').BrowserWindow | null = null;
 
+// Only the auth callback is a valid deep link today. Anything else arriving
+// via the protocol handler is dropped here rather than forwarded.
 function extractDeepLink(argv: string[]): string | null {
-    return argv.find(a => typeof a === 'string' && a.startsWith(`${DEEP_LINK_PROTOCOL}://`)) ?? null;
+    return argv.find(a => isAuthCallbackUrl(a)) ?? null;
 }
 
 function deliverDeepLink(url: string) {
+    if (!isAuthCallbackUrl(url)) return;
     if (mainWindowRef && !mainWindowRef.isDestroyed()) {
         mainWindowRef.webContents.send('deep-link', url);
         if (mainWindowRef.isMinimized()) mainWindowRef.restore();
