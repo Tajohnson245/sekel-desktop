@@ -11,6 +11,7 @@ import { InvalidApkgError } from '../main/import/types';
 // ── Fixture helpers ───────────────────────────────────────────────────────────
 
 interface ColDbOptions {
+    crt?: number;
     models?: Record<string, unknown>;
     decks?: Record<string, unknown>;
     dconf?: Record<string, unknown>;
@@ -35,6 +36,8 @@ interface ColDbOptions {
         reps: number;
         lapses: number;
         mod: number;
+        odue?: number;
+        odid?: number;
     }>;
     revlog?: Array<{
         id: number;
@@ -195,8 +198,8 @@ async function makeAnkiColDb(opts: ColDbOptions = {}): Promise<string> {
 
     db.prepare(`
         INSERT INTO col (id, crt, mod, scm, ver, dty, usn, ls, conf, models, decks, dconf, tags)
-        VALUES (1, 0, 0, 0, 11, 0, 0, 0, '{}', ?, ?, ?, '{}')
-    `).run(JSON.stringify(models), JSON.stringify(decks), JSON.stringify(dconf));
+        VALUES (1, ?, 0, 0, 11, 0, 0, 0, '{}', ?, ?, ?, '{}')
+    `).run(opts.crt ?? 0, JSON.stringify(models), JSON.stringify(decks), JSON.stringify(dconf));
 
     const notes = opts.notes ?? [DEFAULT_NOTE];
     const insertNote = db.prepare(
@@ -206,12 +209,12 @@ async function makeAnkiColDb(opts: ColDbOptions = {}): Promise<string> {
         insertNote.run(n.id, n.guid, n.mid, n.mod, n.tags, n.flds);
     }
 
-    const cards = opts.cards ?? [DEFAULT_CARD];
+    const cards: NonNullable<ColDbOptions['cards']> = opts.cards ?? [DEFAULT_CARD];
     const insertCard = db.prepare(
-        "INSERT INTO cards (id, nid, did, ord, mod, usn, type, queue, due, ivl, factor, reps, lapses, left, odue, odid, flags, data) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, '')",
+        "INSERT INTO cards (id, nid, did, ord, mod, usn, type, queue, due, ivl, factor, reps, lapses, left, odue, odid, flags, data) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, 0, '')",
     );
     for (const c of cards) {
-        insertCard.run(c.id, c.nid, c.did, c.ord, c.mod, c.type, c.queue, c.due, c.ivl, c.factor, c.reps, c.lapses);
+        insertCard.run(c.id, c.nid, c.did, c.ord, c.mod, c.type, c.queue, c.due, c.ivl, c.factor, c.reps, c.lapses, c.odue ?? 0, c.odid ?? 0);
     }
 
     const revlog = opts.revlog ?? [DEFAULT_REVLOG];
@@ -434,6 +437,84 @@ describe('cards and revlog', () => {
         expect(entry.ease).toBe(3);
         expect(entry.ivl).toBe(7);
         expect(typeof entry.factor).toBe('number');
+    });
+
+    it('reads the collection creation time (col.crt)', async () => {
+        const dbPath = await makeAnkiColDb({ crt: 1609459200 });
+        dbsToClean.push(dbPath);
+
+        const col = await parseAnkiDatabase(dbPath);
+
+        expect(col.crt).toBe(1609459200);
+    });
+
+    it('restores a filtered-deck review card to its home deck and original due', async () => {
+        const dbPath = await makeAnkiColDb({
+            decks: {
+                '2001': DEFAULT_DECK,
+                '2900': { id: 2900, name: 'Filtered Deck 1', conf: 1, mod: 0, collapsed: false, dyn: 1 },
+            },
+            // In the filtered deck: did/due/queue are temporary, odid/odue are the real values.
+            cards: [{ ...DEFAULT_CARD, did: 2900, type: 2, queue: 2, due: -100000, ivl: 30, odid: 2001, odue: 1500 }],
+        });
+        dbsToClean.push(dbPath);
+
+        const col = await parseAnkiDatabase(dbPath);
+
+        expect(col.cards[0].did).toBe(2001);
+        expect(col.cards[0].due).toBe(1500);
+        expect(col.cards[0].queue).toBe(2);
+    });
+
+    it('restores the queue of a filtered-deck learning card from its type and due', async () => {
+        const dbPath = await makeAnkiColDb({
+            decks: {
+                '2001': DEFAULT_DECK,
+                '2900': { id: 2900, name: 'Filtered Deck 1', conf: 1, mod: 0, collapsed: false, dyn: 1 },
+            },
+            cards: [
+                // Previewed in the filtered deck (queue 4); home due is a Unix timestamp.
+                { ...DEFAULT_CARD, id: 4001, did: 2900, type: 1, queue: 4, due: 7, odid: 2001, odue: 1700000000 },
+                // Interday relearning card; home due is a day number.
+                { ...DEFAULT_CARD, id: 4002, did: 2900, type: 3, queue: 2, due: 8, odid: 2001, odue: 1500 },
+            ],
+        });
+        dbsToClean.push(dbPath);
+
+        const col = await parseAnkiDatabase(dbPath);
+        const byId = new Map(col.cards.map(c => [c.id, c]));
+
+        expect(byId.get(4001)).toMatchObject({ did: 2001, due: 1700000000, queue: 1 });
+        expect(byId.get(4002)).toMatchObject({ did: 2001, due: 1500, queue: 3 });
+    });
+
+    it('keeps a suspended filtered-deck card suspended', async () => {
+        const dbPath = await makeAnkiColDb({
+            decks: {
+                '2001': DEFAULT_DECK,
+                '2900': { id: 2900, name: 'Filtered Deck 1', conf: 1, mod: 0, collapsed: false, dyn: 1 },
+            },
+            cards: [{ ...DEFAULT_CARD, did: 2900, type: 2, queue: -1, due: 3, odid: 2001, odue: 1500 }],
+        });
+        dbsToClean.push(dbPath);
+
+        const col = await parseAnkiDatabase(dbPath);
+
+        expect(col.cards[0]).toMatchObject({ did: 2001, due: 1500, queue: -1 });
+    });
+
+    it('leaves a filtered-deck card in the filtered deck when its home deck is not in the package', async () => {
+        const dbPath = await makeAnkiColDb({
+            decks: {
+                '2900': { id: 2900, name: 'Filtered Deck 1', conf: 1, mod: 0, collapsed: false, dyn: 1 },
+            },
+            cards: [{ ...DEFAULT_CARD, did: 2900, type: 2, queue: 2, due: 3, odid: 2001, odue: 1500 }],
+        });
+        dbsToClean.push(dbPath);
+
+        const col = await parseAnkiDatabase(dbPath);
+
+        expect(col.cards[0]).toMatchObject({ did: 2900, due: 1500, queue: 2 });
     });
 
     it('returns empty revlog array when no review history exists', async () => {

@@ -54,15 +54,30 @@ export function sanitizeNoteFields(fields: string | Record<string, unknown> | un
 }
 
 /**
+ * Inner text of an Anki template tag that is safe to shield from DOMPurify:
+ * an optional section sigil (#, ^, /) followed by a field reference with
+ * optional filters, e.g. `Front`, `#Tags`, `type:Back`, `cloze:Text`,
+ * `tts en_US voices=Apple_Samantha:Front`. Anki field names can't contain
+ * `"{}` and filters are plain words, so markup characters (`<`, `>`, quotes,
+ * backticks) mean it isn't a real reference.
+ */
+const TEMPLATE_TAG_INNER = /^\s*[#^/]?[^<>"`{}]+$/;
+
+/**
  * Sanitizes card template HTML (Anki qfmt/afmt or Sekel front/back templates).
  *
  * Preserves Anki template syntax like {{FieldName}}, {{#Conditional}}, {{FrontSide}},
  * and cloze patterns like {{c1::answer}} by temporarily replacing them before sanitization.
  */
 export function sanitizeTemplateHtml(html: string): string {
-    // Temporarily replace Anki template tags to protect them from DOMPurify
+    // Temporarily replace Anki template tags to protect them from DOMPurify.
+    // Only valid field/filter references are shielded: anything else that merely
+    // looks like a tag (e.g. `{{<img src=x onerror=…>}}`) stays in place so
+    // DOMPurify sanitizes it like any other markup — restoring it verbatim
+    // afterwards would smuggle the payload past the sanitizer.
     const placeholders: string[] = [];
-    const withPlaceholders = html.replace(/\{\{[^}]+\}\}/g, (match) => {
+    const withPlaceholders = html.replace(/\{\{([^}]+)\}\}/g, (match, inner: string) => {
+        if (!TEMPLATE_TAG_INNER.test(inner)) return match;
         const idx = placeholders.length;
         placeholders.push(match);
         return `__TMPL_${idx}__`;

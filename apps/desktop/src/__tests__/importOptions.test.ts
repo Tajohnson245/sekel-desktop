@@ -112,6 +112,7 @@ function makeCollection(opts: {
     for (const n of opts.notes ?? []) notes.set(n.id, n);
 
     return {
+        crt: 1609459200,
         decks,
         models,
         deckConfigs: new Map(),
@@ -148,6 +149,21 @@ describe('buildImportSummary', () => {
         const summary = buildImportSummary(collection, {}, []);
         expect(summary.deckCount).toBe(0);
         expect(summary.decks).toHaveLength(0);
+    });
+
+    it('lists the Default deck (id=1) when it holds cards, so they can be imported', () => {
+        const deck = makeDeck(2001, 'Science');
+        const notes = [makeNote(3001, 1001), makeNote(3002, 1001)];
+        const cards = [makeCard(4001, 3001, 1), makeCard(4002, 3002, 2001)];
+        const collection = makeCollection({ decks: [deck], models: [makeModel(1001, 'Basic')], notes, cards });
+
+        const summary = buildImportSummary(collection, {}, []);
+
+        expect(summary.deckCount).toBe(2);
+        const defaultDeck = summary.decks.find(d => d.ankiDeckId === 1);
+        expect(defaultDeck).toMatchObject({ name: 'Default', cardCount: 1 });
+        // Every counted card belongs to a listed deck.
+        expect(summary.decks.reduce((n, d) => n + d.cardCount, 0)).toBe(summary.cardCount);
     });
 
     it('marks hasConflict=true for decks whose anki_id exists in SEKEL', () => {
