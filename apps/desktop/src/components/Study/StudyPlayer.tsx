@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useUpdateCard } from '../../hooks/useDecks';
-import { useCompleteSession, useInsertReview } from '../../hooks/useSessions';
+import { useCompleteSession, useDeleteReview, useInsertReview } from '../../hooks/useSessions';
 import { useExamProfile } from '../../hooks/useExamProfile';
 import { useYieldScores } from '../../hooks/useYield';
 import { getSchedulingOptions } from '../../lib/fsrs';
@@ -28,6 +28,8 @@ interface RateSnapshot {
     index: number;
     rating: Rating;
     durationMs: number;
+    /** The review row written for this rating, deleted again on Undo. */
+    reviewId: string | null;
 }
 
 export interface StudyPlayerProps {
@@ -35,11 +37,16 @@ export interface StudyPlayerProps {
     source: StudySource;
     /** Heading shown in the top bar and post-session analytics (deck name or a cross-deck label). */
     title: string;
-    /** The card queue for this session (owned by the wrapper's hooks). */
+    /**
+     * The live card queue from the wrapper's query. The player snapshots it
+     * once per session (see `queue` below) and ignores later refetches.
+     */
     cards: CardWithNote[];
     isLoading: boolean;
-    /** Re-fetch the queue (used by "Study again"). */
-    refetch: () => void;
+    /** True while the queue query is (re)fetching — the snapshot waits for fresh data. */
+    isFetching: boolean;
+    /** Re-fetch the queue (used by "Study again"); resolves once fresh data is in. */
+    refetch: () => Promise<unknown>;
     /** Open a session row for this source; resolves to its id. */
     createSession: () => Promise<string>;
     /** Whether the current card's deck uses FSRS (per-card so cross-deck sessions can mix algorithms). */
@@ -56,7 +63,7 @@ export interface StudyPlayerProps {
  * goes) is injected; the engine itself is queue-agnostic.
  */
 export default function StudyPlayer({
-    source, title, cards, isLoading, refetch, createSession, resolveFsrs, onExit,
+    source, title, cards: liveCards, isLoading, isFetching, refetch, createSession, resolveFsrs, onExit,
 }: StudyPlayerProps) {
     const key = sourceKey(source);
     const showFocusChip = isFocusedSource(source);
@@ -67,6 +74,16 @@ export default function StudyPlayer({
     const updateCard = useUpdateCard();
     const completeSession = useCompleteSession();
     const insertReview = useInsertReview();
+    const deleteReview = useDeleteReview();
+
+    // ── Frozen queue ────────────────────────────────────────────────
+    // The queue is captured once per session from fresh query data and never
+    // replaced mid-session. Rating a card changes what the due-cards query
+    // returns (the card is no longer due), and swapping that shorter list in
+    // under `currentIndex` used to skip the next card.
+    const [queue, setQueue] = useState<CardWithNote[] | null>(null);
+    const [awaitingFresh, setAwaitingFresh] = useState(false);
+    const cards = useMemo(() => queue ?? [], [queue]);
     const { t } = useTranslation();
     const { showToast } = useToast();
     const minimalStudyView = useUiPrefsStore((s) => s.minimalStudyView);
@@ -80,11 +97,15 @@ export default function StudyPlayer({
     const [sessionId, setSessionId] = useState<string | null>(null);
     const [showExitConfirm, setShowExitConfirm] = useState(false);
     const lastRatedRef = useRef<RateSnapshot | null>(null);
-    // Guards against firing a second createSession() while the first is in flight
-    // (createSession is a fresh closure each render, so we can't lean on its identity).
-    const sessionStartedRef = useRef(false);
+    // One in-flight/settled createSession() per session, shared by the start-up
+    // effect and handleRate (createSession is a fresh closure each render, so we
+    // can't lean on its identity). Cleared on failure so the next rating retries.
+    const sessionPromiseRef = useRef<Promise<string> | null>(null);
     const createSessionRef = useRef(createSession);
     createSessionRef.current = createSession;
+    // Set while a rating is being saved: blocks key auto-repeat / double presses
+    // from writing two reviews for one card and skipping the next card.
+    const ratingInFlightRef = useRef(false);
 
     // Timer state
     const { profile } = useProfileStore();
@@ -97,7 +118,8 @@ export default function StudyPlayer({
 
     const currentCard: CardWithNote | undefined = cards[currentIndex];
     const isComplete = currentIndex >= cards.length && cards.length > 0;
-    const isEmpty = cards.length === 0 && !isLoading;
+    const isQueueLoading = queue === null;
+    const isEmpty = queue !== null && queue.length === 0;
     const fsrsEnabled = currentCard ? resolveFsrs(currentCard) : false;
 
     // ── Yield data overlay ──────────────────────────────────────────
@@ -110,26 +132,45 @@ export default function StudyPlayer({
     const currentYield = currentCard ? yieldMap.get(currentCard.id) : undefined;
 
     useEffect(() => {
+        setQueue(null);
+        setAwaitingFresh(false);
         setCurrentIndex(0);
         setReviewedCount(0);
         setAgainCount(0);
         setTotalDurationMs(0);
         setSessionId(null);
-        sessionStartedRef.current = false;
+        sessionPromiseRef.current = null;
         lastRatedRef.current = null;
     }, [key]);
 
+    // Snapshot the queue once the query has settled on fresh data. Waiting for
+    // !isFetching matters: a cached list from an earlier session is stale (every
+    // rating marks it so) and would still contain cards already reviewed.
     useEffect(() => {
-        if (cards.length > 0 && !isLoading && userId && !sessionStartedRef.current) {
-            sessionStartedRef.current = true;
-            createSessionRef.current()
-                .then((id) => setSessionId(id))
-                .catch(() => {
-                    sessionStartedRef.current = false;
-                    showToast(t('errors.session_create'), 'error');
-                });
+        if (queue !== null || isLoading || isFetching || awaitingFresh) return;
+        setQueue(liveCards);
+    }, [queue, isLoading, isFetching, awaitingFresh, liveCards]);
+
+    const ensureSession = useCallback((): Promise<string> => {
+        if (!sessionPromiseRef.current) {
+            const pending = createSessionRef.current().then((id) => {
+                // Ignore a late result from a session that has since been reset.
+                if (sessionPromiseRef.current === pending) setSessionId(id);
+                return id;
+            });
+            pending.catch(() => {
+                if (sessionPromiseRef.current === pending) sessionPromiseRef.current = null;
+            });
+            sessionPromiseRef.current = pending;
         }
-    }, [cards.length, isLoading, userId]);
+        return sessionPromiseRef.current;
+    }, []);
+
+    useEffect(() => {
+        if (queue && queue.length > 0 && userId) {
+            ensureSession().catch(() => showToast(t('errors.session_create'), 'error'));
+        }
+    }, [queue, userId]);
 
     // Fire threshold-shift notification once per session
     useEffect(() => {
@@ -177,23 +218,32 @@ export default function StudyPlayer({
     const handleUnreveal = useCallback(() => setIsRevealed(false), []);
 
     const handleRate = useCallback(async (rating: Rating) => {
-        if (!currentCard || !schedulingOptions) return;
+        if (!currentCard || !schedulingOptions || !userId) return;
+        if (ratingInFlightRef.current) return;
+        ratingInFlightRef.current = true;
+        try {
+            // Every rating must land in a session so it counts toward stats, plan
+            // progress and the new-card cap. If the session row failed to create
+            // earlier, retry now rather than silently dropping reviews.
+            let activeSessionId: string;
+            try {
+                activeSessionId = await ensureSession();
+            } catch {
+                showToast(t('errors.session_create'), 'error');
+                return;
+            }
 
-        const updates = schedulingOptions[rating];
-        const isLastCard = currentIndex + 1 >= cards.length;
-        const durationMs = Math.min(Date.now() - cardStartTimeRef.current, maxSeconds * 1000);
+            const updates = schedulingOptions[rating];
+            const isLastCard = currentIndex + 1 >= cards.length;
+            const durationMs = Math.min(Date.now() - cardStartTimeRef.current, maxSeconds * 1000);
 
-        // Snapshot for single-level Undo (spec §8, key U).
-        lastRatedRef.current = { card: currentCard, index: currentIndex, rating, durationMs };
+            await updateCard.mutateAsync({ cardId: currentCard.id, updates });
 
-        await updateCard.mutateAsync({ cardId: currentCard.id, updates });
-
-        if (sessionId && userId) {
-            await insertReview.mutateAsync({
+            const review = await insertReview.mutateAsync({
                 user_id: userId,
                 card_id: currentCard.id,
                 rating,
-                session_id: sessionId,
+                session_id: activeSessionId,
                 // Per-card deck attribution — correct for cross-deck sessions where
                 // the session row only holds a representative deck.
                 deck_id: currentCard.note.deck_id,
@@ -208,29 +258,36 @@ export default function StudyPlayer({
                 scheduled_days: updates.scheduled_days ?? 0,
             });
 
+            // Snapshot for single-level Undo (spec §8, key U).
+            lastRatedRef.current = { card: currentCard, index: currentIndex, rating, durationMs, reviewId: review?.id ?? null };
+
             // Cheap, fire-and-forget: lets the main process count reviews and
             // fire a cloud snapshot once the 25-review threshold is crossed.
             void window.electronAPI?.cloudBackup?.requestCheck()?.catch(() => { /* best effort */ });
-        }
 
-        if (isLastCard && sessionId) {
-            await completeSession.mutateAsync(sessionId);
-            window.electronAPI?.notify.streak(userId);
-        }
+            if (isLastCard) {
+                await completeSession.mutateAsync(activeSessionId);
+                window.electronAPI?.notify.streak(userId);
+            }
 
-        setReviewedCount((prev) => prev + 1);
-        if (rating === 'again') setAgainCount((prev) => prev + 1);
-        setTotalDurationMs((prev) => prev + durationMs);
-        setIsRevealed(false);
-        setCurrentIndex((prev) => prev + 1);
-    }, [currentCard, schedulingOptions, currentIndex, cards.length, maxSeconds, sessionId, userId, reviewedCount]);
+            setReviewedCount((prev) => prev + 1);
+            if (rating === 'again') setAgainCount((prev) => prev + 1);
+            setTotalDurationMs((prev) => prev + durationMs);
+            setIsRevealed(false);
+            setCurrentIndex((prev) => prev + 1);
+        } catch {
+            showToast(t('errors.generic', { defaultValue: 'Something went wrong — please try again' }), 'error');
+        } finally {
+            ratingInFlightRef.current = false;
+        }
+    }, [currentCard, schedulingOptions, currentIndex, cards.length, maxSeconds, userId, reviewedCount, ensureSession, showToast, t]);
 
     // Undo last rating (spec §8). Restores the previous card's pre-review FSRS
     // state from the local snapshot (scheduling writes absolute values, so this
     // is a clean revert) and steps the view back, revealed, for re-rating.
     const handleUndo = useCallback(async () => {
         const snap = lastRatedRef.current;
-        if (!snap || updateCard.isPending) return;
+        if (!snap || updateCard.isPending || ratingInFlightRef.current) return;
         // Guard: the previous card must still occupy its slot.
         if (cards[snap.index]?.id !== snap.card.id) {
             showToast(t('study.undo_unavailable', { defaultValue: "Can't undo — the list changed" }), 'error');
@@ -250,6 +307,11 @@ export default function StudyPlayer({
             learning_steps: c.learning_steps ?? 0,
         };
         await updateCard.mutateAsync({ cardId: c.id, updates: revert });
+        // Remove the review row too, so an undone rating doesn't linger in
+        // retention, lapse and plan-progress stats (re-rating writes a new one).
+        if (snap.reviewId && userId) {
+            await deleteReview.mutateAsync({ reviewId: snap.reviewId, userId }).catch(() => { /* card already reverted */ });
+        }
         setReviewedCount((p) => Math.max(0, p - 1));
         if (snap.rating === 'again') setAgainCount((p) => Math.max(0, p - 1));
         setTotalDurationMs((p) => Math.max(0, p - snap.durationMs));
@@ -257,7 +319,7 @@ export default function StudyPlayer({
         setIsRevealed(true);
         lastRatedRef.current = null;
         showToast(t('study.undo_done', { defaultValue: 'Undid last rating' }), 'success');
-    }, [cards, updateCard, showToast, t]);
+    }, [cards, updateCard, deleteReview, userId, showToast, t]);
 
     const requestExit = useCallback(() => {
         if (reviewedCount > 0 || isRevealed) setShowExitConfirm(true);
@@ -266,6 +328,9 @@ export default function StudyPlayer({
 
     // ── Consolidated study keyboard map (spec §8) ────────────────────
     useEffect(() => {
+        // Once the session is over (analytics screen) the study keys are inert —
+        // e.g. U must not pull the user back into a completed session.
+        if (isComplete) return;
         const onKeyDown = (e: KeyboardEvent) => {
             const tag = document.activeElement?.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
@@ -279,6 +344,8 @@ export default function StudyPlayer({
                 case '1': case '2': case '3': case '4': {
                     if (!isRevealed || !fsrsEnabled || !schedulingOptions) return;
                     e.preventDefault();
+                    // A held key auto-repeats; never let one press rate twice.
+                    if (e.repeat || ratingInFlightRef.current) return;
                     const map: Record<string, Rating> = { '1': 'again', '2': 'hard', '3': 'good', '4': 'easy' };
                     handleRate(map[e.key]);
                     break;
@@ -299,7 +366,7 @@ export default function StudyPlayer({
         };
         document.addEventListener('keydown', onKeyDown);
         return () => document.removeEventListener('keydown', onKeyDown);
-    }, [isRevealed, fsrsEnabled, schedulingOptions, handleReveal, handleUnreveal, handleRate, handleUndo, requestExit, showToast, t]);
+    }, [isComplete, isRevealed, fsrsEnabled, schedulingOptions, handleReveal, handleUnreveal, handleRate, handleUndo, requestExit, showToast, t]);
 
     // Auto-advance on timeout
     useEffect(() => {
@@ -318,8 +385,11 @@ export default function StudyPlayer({
 
     const handleStudyAgain = () => {
         setSessionId(null);
-        sessionStartedRef.current = false;
-        refetch();
+        sessionPromiseRef.current = null;
+        // Drop the finished queue and take a fresh snapshot once the refetch lands.
+        setQueue(null);
+        setAwaitingFresh(true);
+        void refetch().finally(() => setAwaitingFresh(false));
         setCurrentIndex(0);
         setReviewedCount(0);
         setAgainCount(0);
@@ -339,7 +409,7 @@ export default function StudyPlayer({
         return content;
     };
 
-    if (isLoading) {
+    if (isQueueLoading) {
         return (
             <div className="study-session" data-testid="study-session">
                 <div className="loading">{t('decks.loading')}</div>

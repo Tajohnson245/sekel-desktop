@@ -11,6 +11,7 @@ import type {
     InsertReviewParams,
     DateRangeDays,
 } from '@sekel/db';
+import type { PlanNewScope } from './types';
 
 // ── Re-export types (consumed by hooks and components) ──────────────────────
 export type {
@@ -36,13 +37,13 @@ export const createDeck = (deck: DeckInsert) => db().createDeck(deck);
 export const updateDeck = (id: string, updates: DeckUpdate) => db().updateDeck(id, updates);
 export const deleteDeck = (id: string) => db().deleteDeck(id);
 export const deleteDecks = (ids: string[]) => db().deleteDecks(ids);
-export const fetchDeckStats = (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => db().fetchDeckStats(deckId, userId, dailyNewLimit, dailyReviewLimit);
+export const fetchDeckStats = (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number, planScope?: PlanNewScope) => db().fetchDeckStats(deckId, userId, dailyNewLimit, dailyReviewLimit, planScope);
 export const fetchAllDueCardsCount = (userId: string, dailyNewLimit?: number, dailyReviewLimit?: number) => db().fetchAllDueCardsCount(userId, dailyNewLimit, dailyReviewLimit);
 export const fetchGlobalRetention = (userId: string, days?: number) => db().fetchGlobalRetention(userId, days);
 export const fetchDeckRetentionBatch = (deckIds: string[], userId: string, days?: number) => db().fetchDeckRetentionBatch(deckIds, userId, days);
 
 // ── Cards ────────────────────────────────────────────────────────────────────
-export const fetchDueCards = (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => db().fetchDueCards(deckId, userId, dailyNewLimit, dailyReviewLimit);
+export const fetchDueCards = (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number, examKey?: string, planScope?: PlanNewScope) => db().fetchDueCards(deckId, userId, dailyNewLimit, dailyReviewLimit, examKey, planScope);
 export const fetchDueCardsFocused = (deckId: string, systemKeys: string[], examKey: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => db().fetchDueCardsFocused(deckId, systemKeys, examKey, userId, dailyNewLimit, dailyReviewLimit);
 export const fetchDueCardsCrossDeck = (userId: string, deckIds: string[] | null, dailyNewLimit?: number, dailyReviewLimit?: number, examKey?: string, globalNewLimit?: number) => db().fetchDueCardsCrossDeck(userId, deckIds, dailyNewLimit, dailyReviewLimit, examKey, globalNewLimit);
 export const fetchDueCardsFocusedCrossDeck = (userId: string, deckIds: string[] | null, systemKeys: string[], examKey: string, dailyNewLimit?: number, dailyReviewLimit?: number) => db().fetchDueCardsFocusedCrossDeck(userId, deckIds, systemKeys, examKey, dailyNewLimit, dailyReviewLimit);
@@ -74,6 +75,7 @@ export const createDeckFromMissedCards = (userId: string, deckName: string, card
 
 // ── Reviews ───────────────────────────────────────────────────────────────────
 export const insertReview = (params: InsertReviewParams) => db().insertReview(params);
+export const deleteReview = (reviewId: string, userId: string) => db().deleteReview(reviewId, userId);
 export const fetchUserReviewHistory = (userId: string, days?: number) => db().fetchUserReviewHistory(userId, days);
 
 // ── Statistics ────────────────────────────────────────────────────────────────

@@ -31,9 +31,11 @@ import {
     createNoteType,
     createCard,
     insertReview,
+    deleteReview,
     createDeckSession,
     createStudySession,
     completeDeckSession,
+    fetchDueCards,
     fetchDueCardsCrossDeck,
     fetchDueCards as fetchDueCardsForDeck,
     updateCardAfterReview,
@@ -711,6 +713,67 @@ describe('cross-deck study', () => {
         // Budget 3, 1 already studied across the scope → 2 new remaining today.
         const cards = fetchDueCardsCrossDeck(USER, [deckA.id, deckB.id], 3, 200, 'step1', 3);
         expect(cards.filter(c => c.state === 'new')).toHaveLength(2);
+    });
+
+    it('per-deck study under a plan draws new cards from the plan-wide daily pool', () => {
+        const nt = seedNoteType();
+        const deckA = seedDeck('A');
+        const deckB = seedDeck('B');
+        const a1 = seedNewCard(deckA.id, nt.id); seedNewCard(deckA.id, nt.id); seedNewCard(deckA.id, nt.id);
+        seedNewCard(deckB.id, nt.id); seedNewCard(deckB.id, nt.id); seedNewCard(deckB.id, nt.id);
+        // Two new cards already studied today in deck A.
+        const sess = createDeckSession(USER, deckA.id);
+        const a2 = seedNewCard(deckA.id, nt.id);
+        for (const [i, c] of [a1, a2].entries()) {
+            insertReview({
+                user_id: USER, card_id: c.id, rating: 'good',
+                state_before: 'new', stability_before: 0, difficulty_before: 0,
+                state_after: 'learning', stability_after: 1, difficulty_after: 5,
+                scheduled_days: 0, session_id: sess.id, deck_id: deckA.id, review_index: i,
+            });
+            testDb.prepare(`UPDATE cards SET state = 'review', due = ? WHERE id = ?`).run(new Date(Date.now() + 86400000).toISOString(), c.id);
+        }
+
+        // Plan: 3 new/day across both decks. Studying deck B on its own may only
+        // serve the 1 new card left in the shared pool — not 3 more.
+        const scope = { deckIds: [deckA.id, deckB.id] };
+        expect(fetchDueCards(deckB.id, USER, 3, 200, 'step1', scope).filter(c => c.state === 'new')).toHaveLength(1);
+        expect(fetchDeckStats(deckB.id, USER, 3, 200, scope).newCount).toBe(1);
+        // Without a plan scope the old per-deck cap still applies (deck B studied none).
+        expect(fetchDueCards(deckB.id, USER, 3, 200, 'step1').filter(c => c.state === 'new')).toHaveLength(3);
+        // deckIds: null means the plan covers every deck.
+        expect(fetchDeckStats(deckB.id, USER, 3, 200, { deckIds: null }).newCount).toBe(1);
+    });
+
+    it('new cards in study queues carry their note format', () => {
+        const nt = seedNoteType();
+        const deck = seedDeck('A');
+        const note = createNote({ user_id: USER, deck_id: deck.id, note_type_id: nt.id, fields: { Front: 'Q', Back: 'A' }, tags: [] });
+        testDb.prepare(`UPDATE notes SET format = 'mcq' WHERE id = ?`).run(note.id);
+        createCard({
+            user_id: USER, note_id: note.id, template_index: 0, state: 'new', due: new Date().toISOString(),
+            stability: 0, difficulty: 0, elapsed_days: 0, scheduled_days: 0, reps: 0, lapses: 0, last_review: null,
+        });
+        const [limited] = fetchDueCards(deck.id, USER, 5, 200);
+        expect(limited.note.format).toBe('mcq');
+        const [pooled] = fetchDueCardsCrossDeck(USER, [deck.id], 5, 200, 'step1', 5);
+        expect(pooled.note.format).toBe('mcq');
+    });
+
+    it('deleteReview removes only the owner\'s review row', () => {
+        const nt = seedNoteType();
+        const deck = seedDeck('A');
+        const c = seedReviewCard(deck.id, nt.id);
+        const sess = createDeckSession(USER, deck.id);
+        const review = insertReview({
+            user_id: USER, card_id: c.id, rating: 'again',
+            state_before: 'review', stability_before: 5, difficulty_before: 5,
+            state_after: 'relearning', stability_after: 2, difficulty_after: 6,
+            scheduled_days: 0, session_id: sess.id, deck_id: deck.id, review_index: 0,
+        });
+        expect(deleteReview(review.id, 'someone-else')).toBe(false);
+        expect(deleteReview(review.id, USER)).toBe(true);
+        expect(testDb.prepare('SELECT COUNT(*) AS n FROM reviews WHERE id = ?').get(review.id)).toEqual({ n: 0 });
     });
 
     it('fetchDueCardsFocusedCrossDeck returns only weak-system cards, spanning decks', () => {

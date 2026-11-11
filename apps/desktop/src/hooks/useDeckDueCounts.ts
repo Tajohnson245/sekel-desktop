@@ -13,7 +13,7 @@ import type { DeckStats } from '../lib/queries';
 import { deckKeys, useDecks } from './useDecks';
 import { useAuthStore } from '../stores/authStore';
 import { useProfileStore } from '../stores/profileStore';
-import { useEffectivePlan } from './usePlan';
+import { useEffectivePlan, planNewScopeFor, planNewScopeKey } from './usePlan';
 
 /** Cards actionable *now* for a deck = review-state due + learning-step cards.
  *  Matches the long-standing DeckCard "cards due" definition; new cards are
@@ -41,7 +41,8 @@ export function useDeckDueCounts(): DeckDueCounts {
     const { data: decks = [] } = useDecks();
     const userId = useAuthStore((s) => s.user?.id);
     const profile = useProfileStore((s) => s.profile);
-    const planNewPerDay = useEffectivePlan().effectiveNewPerDay;
+    const effectivePlan = useEffectivePlan();
+    const planNewPerDay = effectivePlan.effectiveNewPerDay;
     const limitsEnabled = profile?.daily_limits_enabled ?? true;
     // Same limit precedence as useDeckStats / useDueCards so the badge matches
     // what a study session will actually serve.
@@ -49,11 +50,15 @@ export function useDeckDueCounts(): DeckDueCounts {
     const reviewLimit = limitsEnabled ? (profile?.daily_review_limit ?? 200) : undefined;
 
     const results = useQueries({
-        queries: decks.map((d) => ({
-            queryKey: [...deckKeys.stats(d.id), newLimit, reviewLimit],
-            queryFn: () => fetchDeckStats(d.id, userId, newLimit, reviewLimit),
-            enabled: !!userId,
-        })),
+        queries: decks.map((d) => {
+            // Plan-covered decks draw new cards from the plan's shared pool.
+            const planScope = planNewScopeFor(effectivePlan, d.id);
+            return {
+                queryKey: [...deckKeys.stats(d.id), newLimit, reviewLimit, planNewScopeKey(planScope)],
+                queryFn: () => fetchDeckStats(d.id, userId, newLimit, reviewLimit, planScope),
+                enabled: !!userId,
+            };
+        }),
     });
 
     const byDeck = new Map<string, DeckStats>();

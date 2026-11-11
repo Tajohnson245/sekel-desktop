@@ -5,6 +5,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import * as dbService from '../main/db/service';
 import type { DateRangeDays } from '@sekel/db';
+import type { PlanNewScope } from '../lib/types';
 import * as timeTravel from '../main/db/timeTravel';
 import { getDb } from '../main/db/index';
 import { readDeletedItems } from '../main/backup/deletionLog';
@@ -19,6 +20,15 @@ import {
     insertReviewRules,
     createDeckFromMissedCardsRules,
 } from './validation';
+
+/** Accepts only a well-formed { deckIds: string[] | null } from the renderer. */
+function sanitizePlanScope(scope: unknown): PlanNewScope | undefined {
+    if (!scope || typeof scope !== 'object') return undefined;
+    const { deckIds } = scope as { deckIds?: unknown };
+    if (deckIds === null) return { deckIds: null };
+    if (Array.isArray(deckIds) && deckIds.every((id) => typeof id === 'string')) return { deckIds: deckIds as string[] };
+    return undefined;
+}
 
 export function setupDatabaseHandlers(): void {
     // ── Decks ──────────────────────────────────────────────────────────────────
@@ -42,8 +52,8 @@ export function setupDatabaseHandlers(): void {
     instrumentedHandle('db:deleteDecks', (_e, ids: string[]) =>
         dbService.deleteDecks(ids));
 
-    instrumentedHandle('db:fetchDeckStats', (_e, deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) =>
-        dbService.fetchDeckStats(deckId, userId, dailyNewLimit, dailyReviewLimit));
+    instrumentedHandle('db:fetchDeckStats', (_e, deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number, planScope?: PlanNewScope) =>
+        dbService.fetchDeckStats(deckId, userId, dailyNewLimit, dailyReviewLimit, sanitizePlanScope(planScope)));
 
     instrumentedHandle('db:fetchAllDueCardsCount', (_e, userId: string, dailyNewLimit?: number, dailyReviewLimit?: number) =>
         dbService.fetchAllDueCardsCount(userId, dailyNewLimit, dailyReviewLimit));
@@ -74,8 +84,8 @@ export function setupDatabaseHandlers(): void {
         dbService.fetchMissRateTrend(userId, days as DateRangeDays));
 
     // ── Cards ──────────────────────────────────────────────────────────────────
-    instrumentedHandle('db:fetchDueCards', (_e, deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) =>
-        dbService.fetchDueCards(deckId, userId, dailyNewLimit, dailyReviewLimit));
+    instrumentedHandle('db:fetchDueCards', (_e, deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number, examKey?: string, planScope?: PlanNewScope) =>
+        dbService.fetchDueCards(deckId, userId, dailyNewLimit, dailyReviewLimit, examKey || undefined, sanitizePlanScope(planScope)));
 
     instrumentedHandle('db:fetchDueCardsFocused', (_e, deckId: string, systemKeys: string[], examKey: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) =>
         dbService.fetchDueCardsFocused(deckId, systemKeys, examKey, userId, dailyNewLimit, dailyReviewLimit));
@@ -138,6 +148,13 @@ export function setupDatabaseHandlers(): void {
     instrumentedHandle('db:insertReview', (_e, params) => {
         validate('db:insertReview', params, insertReviewRules);
         return dbService.insertReview(params);
+    });
+
+    instrumentedHandle('db:deleteReview', (_e, reviewId: string, userId: string) => {
+        if (typeof reviewId !== 'string' || !reviewId || typeof userId !== 'string' || !userId) {
+            throw new Error('IPC validation failed (db:deleteReview): reviewId and userId must be non-empty strings');
+        }
+        return dbService.deleteReview(reviewId, userId);
     });
 
     instrumentedHandle('db:fetchUserReviewHistory', (_e, userId: string, days?: number) =>

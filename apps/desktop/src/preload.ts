@@ -69,7 +69,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         updateDeck:            (id: string, updates: unknown) => ipcRenderer.invoke('db:updateDeck', id, updates),
         deleteDeck:            (id: string) => ipcRenderer.invoke('db:deleteDeck', id),
         deleteDecks:           (ids: string[]) => ipcRenderer.invoke('db:deleteDecks', ids),
-        fetchDeckStats:        (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => ipcRenderer.invoke('db:fetchDeckStats', deckId, userId, dailyNewLimit, dailyReviewLimit),
+        fetchDeckStats:        (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number, planScope?: unknown) => ipcRenderer.invoke('db:fetchDeckStats', deckId, userId, dailyNewLimit, dailyReviewLimit, planScope),
         fetchAllDueCardsCount: (userId: string, dailyNewLimit?: number, dailyReviewLimit?: number) => ipcRenderer.invoke('db:fetchAllDueCardsCount', userId, dailyNewLimit, dailyReviewLimit),
         fetchGlobalRetention:  (userId: string, days?: number) => ipcRenderer.invoke('db:fetchGlobalRetention', userId, days),
         fetchDeckRetentionBatch: (deckIds: string[], userId: string, days?: number) => ipcRenderer.invoke('db:fetchDeckRetentionBatch', deckIds, userId, days),
@@ -82,7 +82,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         fetchMissRateTrend:        (userId: string, days: number | null) => ipcRenderer.invoke('db:fetchMissRateTrend', userId, days),
         getIntelligenceSummary:    (userId: string) => ipcRenderer.invoke('db:get-intelligence-summary', userId),
         // Cards
-        fetchDueCards:         (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => ipcRenderer.invoke('db:fetchDueCards', deckId, userId, dailyNewLimit, dailyReviewLimit),
+        fetchDueCards:         (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number, examKey?: string, planScope?: unknown) => ipcRenderer.invoke('db:fetchDueCards', deckId, userId, dailyNewLimit, dailyReviewLimit, examKey, planScope),
         fetchDueCardsFocused:  (deckId: string, systemKeys: string[], examKey: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => ipcRenderer.invoke('db:fetchDueCardsFocused', deckId, systemKeys, examKey, userId, dailyNewLimit, dailyReviewLimit),
         fetchDueCardsCrossDeck: (userId: string, deckIds: string[] | null, dailyNewLimit?: number, dailyReviewLimit?: number, examKey?: string, globalNewLimit?: number) => ipcRenderer.invoke('db:fetchDueCardsCrossDeck', userId, deckIds, dailyNewLimit, dailyReviewLimit, examKey, globalNewLimit),
         fetchDueCardsFocusedCrossDeck: (userId: string, deckIds: string[] | null, systemKeys: string[], examKey: string, dailyNewLimit?: number, dailyReviewLimit?: number) => ipcRenderer.invoke('db:fetchDueCardsFocusedCrossDeck', userId, deckIds, systemKeys, examKey, dailyNewLimit, dailyReviewLimit),
@@ -103,6 +103,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         createNoteType:        (noteType: unknown) => ipcRenderer.invoke('db:createNoteType', noteType),
         // Reviews
         insertReview:          (params: unknown) => ipcRenderer.invoke('db:insertReview', params),
+        deleteReview:          (reviewId: string, userId: string) => ipcRenderer.invoke('db:deleteReview', reviewId, userId),
         fetchUserReviewHistory: (userId: string, days?: number) => ipcRenderer.invoke('db:fetchUserReviewHistory', userId, days),
         // Sessions
         createDeckSession:     (userId: string, deckId: string) => ipcRenderer.invoke('db:createDeckSession', userId, deckId),

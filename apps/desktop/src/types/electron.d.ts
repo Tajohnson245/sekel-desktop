@@ -11,6 +11,7 @@ import type {
     MissedSystemBreakdown, MissedCardStats, MissRateTrendPoint, DateRangeDays,
 } from '@sekel/db';
 import type { TimeTravelPreview, TimeTravelResult } from '../main/db/timeTravel';
+import type { PlanNewScope } from '../lib/types';
 
 export type AnkiFormat = 'legacy2' | 'legacy1';
 
@@ -234,7 +235,7 @@ interface ElectronDB {
     updateDeck:            (id: string, updates: DeckUpdate) => Promise<Deck>;
     deleteDeck:            (id: string) => Promise<void>;
     deleteDecks:           (ids: string[]) => Promise<void>;
-    fetchDeckStats:        (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => Promise<DeckStats>;
+    fetchDeckStats:        (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number, planScope?: PlanNewScope) => Promise<DeckStats>;
     fetchAllDueCardsCount: (userId: string, dailyNewLimit?: number, dailyReviewLimit?: number) => Promise<number>;
     fetchGlobalRetention:  (userId: string, days?: number) => Promise<number | null>;
     fetchDeckRetentionBatch: (deckIds: string[], userId: string, days?: number) => Promise<DeckRetentionRow[]>;
@@ -247,7 +248,7 @@ interface ElectronDB {
     fetchMissRateTrend:                  (userId: string, days: DateRangeDays) => Promise<MissRateTrendPoint[]>;
     getIntelligenceSummary:              (userId: string) => Promise<IntelligenceSummary>;
     // Cards
-    fetchDueCards:         (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => Promise<CardWithNote[]>;
+    fetchDueCards:         (deckId: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number, examKey?: string, planScope?: PlanNewScope) => Promise<CardWithNote[]>;
     fetchDueCardsFocused:  (deckId: string, systemKeys: string[], examKey: string, userId?: string, dailyNewLimit?: number, dailyReviewLimit?: number) => Promise<CardWithNote[]>;
     fetchDueCardsCrossDeck: (userId: string, deckIds: string[] | null, dailyNewLimit?: number, dailyReviewLimit?: number, examKey?: string, globalNewLimit?: number) => Promise<CardWithNote[]>;
     fetchDueCardsFocusedCrossDeck: (userId: string, deckIds: string[] | null, systemKeys: string[], examKey: string, dailyNewLimit?: number, dailyReviewLimit?: number) => Promise<CardWithNote[]>;
@@ -268,6 +269,7 @@ interface ElectronDB {
     createNoteType:        (noteType: NoteTypeInsert) => Promise<NoteType>;
     // Reviews
     insertReview:          (params: InsertReviewParams) => Promise<Review>;
+    deleteReview:          (reviewId: string, userId: string) => Promise<boolean>;
     fetchUserReviewHistory: (userId: string, days?: number) => Promise<ReviewDayCount[]>;
     // Sessions
     createDeckSession:     (userId: string, deckId: string) => Promise<DeckSession>;

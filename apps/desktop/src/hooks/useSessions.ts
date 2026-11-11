@@ -4,6 +4,7 @@ import {
     createStudySession,
     completeDeckSession,
     insertReview,
+    deleteReview,
     fetchSessionAnalytics,
     fetchUserReviewHistory,
     fetchAllDueCardsCount,
@@ -71,6 +72,7 @@ export function useCompleteSession() {
         onSuccess: (data) => {
             queryClient.invalidateQueries({ queryKey: ['sessions'] });
             queryClient.invalidateQueries({ queryKey: sessionKeys.analytics(data.id) });
+            markReviewDerivedDataStale(queryClient);
             if (userId) {
                 queryClient.invalidateQueries({ queryKey: intelligenceKeys.summary(userId) });
             }
@@ -78,9 +80,30 @@ export function useCompleteSession() {
     });
 }
 
+/**
+ * Review-derived numbers shown outside the study screen (dashboard, stats,
+ * plan progress). Marked stale — not refetched — after every review so they're
+ * fresh the moment the user navigates back, without re-querying per card.
+ */
+function markReviewDerivedDataStale(queryClient: ReturnType<typeof useQueryClient>) {
+    for (const queryKey of [['statistics'], ['reviewHistory'], ['globalDueCount'], ['globalRetention'], ['plan'], ['deckRetention']]) {
+        queryClient.invalidateQueries({ queryKey, refetchType: 'none' });
+    }
+}
+
 export function useInsertReview() {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (params: InsertReviewParams) => insertReview(params),
+        onSuccess: () => markReviewDerivedDataStale(queryClient),
+    });
+}
+
+export function useDeleteReview() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ reviewId, userId }: { reviewId: string; userId: string }) => deleteReview(reviewId, userId),
+        onSuccess: () => markReviewDerivedDataStale(queryClient),
     });
 }
 

@@ -50,7 +50,7 @@ export default function CrossDeckStudySession() {
     const useGlobalNewBudget = scope === 'plan' && !!activePlan;
     const dueResult = useDueCardsCrossDeck(deckIds, examKey, !isFocused, useGlobalNewBudget);
     const focusedResult = useDueCardsFocusedCrossDeck(deckIds, systemKeys, examKey, isFocused);
-    const { data: cards = [], isLoading, refetch } = isFocused ? focusedResult : dueResult;
+    const { data: cards = [], isLoading, isFetching, refetch } = isFocused ? focusedResult : dueResult;
 
     const createStudySession = useCreateStudySession();
 
@@ -71,7 +71,8 @@ export default function CrossDeckStudySession() {
             title={title}
             cards={cards}
             isLoading={isLoading}
-            refetch={() => { void refetch(); }}
+            isFetching={isFetching}
+            refetch={() => refetch()}
             createSession={() => {
                 // Store a representative deck (deck_id is NOT NULL): prefer the first
                 // in-scope card's deck, else the busiest deck, else any owned deck.
