@@ -140,7 +140,8 @@ jobs:
       #                    from the DB webhook), prune-backups (x-cron-secret
       #                    from pg_cron)
       #   verified JWT     backup-alert (main process, user JWT), delete-account
-      #                    (renderer, user JWT)
+      #                    (renderer, user JWT), ai-proxy (main process, user
+      #                    JWT), admin (renderer, user JWT + admin role)
       # Shared helpers live in supabase/functions/_shared/ and are bundled
       # into each function that imports them.
       - name: Deploy feedback-discord edge function
@@ -176,6 +177,20 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         working-directory: apps/desktop
         run: supabase functions deploy delete-account --project-ref uawkoueqectmkiyjcrtb
+
+      # Holds the OpenAI key for the app's AI features. Needs the
+      # OPENAI_API_KEY function secret; without it the function answers 503.
+      - name: Deploy ai-proxy edge function
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        working-directory: apps/desktop
+        run: supabase functions deploy ai-proxy --project-ref uawkoueqectmkiyjcrtb
+
+      - name: Deploy admin edge function
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        working-directory: apps/desktop
+        run: supabase functions deploy admin --project-ref uawkoueqectmkiyjcrtb
 
   release:
     needs: deploy-server
@@ -231,19 +246,20 @@ jobs:
       # Build and produce installer artifacts (unsigned). Windows artifacts get
       # signed in the next step by the official Azure Trusted Signing action.
       #
-      # All env vars below are read by electron-vite's loadEnv() merge with
+      # The env vars below are read by electron-vite's loadEnv() merge with
       # process.env (see apps/desktop/electron.vite.config.ts) and baked into
       # the main-process bundle via the define: block. The renderer picks up
       # VITE_-prefixed vars automatically through Vite's import.meta.env.
+      #
+      # Everything here ends up readable inside the installer, so only public
+      # values belong in this block. Server-only keys (OpenAI, Supabase service
+      # role) live in Supabase function secrets; the app reaches them through
+      # the ai-proxy and admin edge functions.
       - name: Build and make
         working-directory: apps/desktop
         env:
           VITE_SUPABASE_PROJECT_URL: ${{ secrets.VITE_SUPABASE_PROJECT_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          OPENAI_MODEL: ${{ secrets.OPENAI_MODEL }}
-          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           FORGE_ARCH: ${{ matrix.arch }}
         run: npm run make
 

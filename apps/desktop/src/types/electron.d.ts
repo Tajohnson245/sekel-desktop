@@ -498,14 +498,6 @@ interface ElectronExam {
 
 interface ElectronObs {
     getMetrics: () => Promise<import('@sekel/observability').MetricSnapshot>;
-    isAdmin:    (email: string) => Promise<boolean>;
-}
-
-interface ElectronAdmin {
-    getOverview:   (email: string) => Promise<import('../ipc/admin').AdminOverview>;
-    getUsers:      (email: string) => Promise<import('../ipc/admin').AdminUserRow[]>;
-    getUserDetail: (email: string, userId: string) => Promise<import('../ipc/admin').AdminUserDetail>;
-    getFeedback:   (email: string) => Promise<(import('@sekel/db').Feedback & { user_email: string })[]>;
 }
 
 // ── Plan Mode ─────────────────────────────────────────────────────────────────
@@ -679,7 +671,6 @@ interface ElectronAPI {
     import: ElectronImport;
     db: ElectronDB;
     obs: ElectronObs;
-    admin: ElectronAdmin;
     yield: ElectronYield;
     backup: ElectronBackup;
     cloudBackup: ElectronCloudBackup;

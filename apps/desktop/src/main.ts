@@ -112,7 +112,6 @@ import { setupCloudBackupHandlers } from './ipc/cloudBackup';
 import * as cloudBackup from './main/backup/cloudBackup';
 import { setupClassifyHandlers } from './ipc/classify';
 import { setupExamHandlers } from './ipc/exam';
-import { setupAdminHandlers } from './ipc/admin';
 import { setupPlanHandlers } from './ipc/plan';
 import { cleanupStaleTempDirs } from './main/import/tempCleanup';
 import { fetchMediaByFilename, abandonAllOpenSessions } from './main/db/service';
@@ -401,7 +400,6 @@ app.whenReady().then(() => {
         ['cloudBackup', setupCloudBackupHandlers],
         ['classify', setupClassifyHandlers],
         ['exam', setupExamHandlers],
-        ['admin', setupAdminHandlers],
         ['plan', setupPlanHandlers],
     ] as const;
     for (const [name, setup] of handlers) {
@@ -457,11 +455,6 @@ app.whenReady().then(() => {
 
     // Expose metrics snapshot for diagnostics
     instrumentedHandle('obs:getMetrics', () => metrics.getSnapshot());
-    instrumentedHandle('obs:isAdmin', (_e, email: string) =>
-        typeof process.env.ADMIN_EMAIL === 'string' &&
-        process.env.ADMIN_EMAIL.length > 0 &&
-        email === process.env.ADMIN_EMAIL,
-    );
 
     createWindow();
 

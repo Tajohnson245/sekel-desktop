@@ -101,7 +101,7 @@ where not (starts_with(storage_path, user_id::text||'/') and strpos(storage_path
 
 ## Known Limitations / Future Work
 
-- **Not fixed here, critical:** the prod `SUPABASE_SERVICE_ROLE_KEY` and `OPENAI_API_KEY` are compiled into every shipped installer (`electron.vite.config.ts` `define` + `release.yml` build env). Needs admin/AI calls moved to JWT-verified edge functions, then key rotation.
+- **Not fixed here, critical:** the prod `SUPABASE_SERVICE_ROLE_KEY` and `OPENAI_API_KEY` are compiled into every shipped installer (`electron.vite.config.ts` `define` + `release.yml` build env). Fixed in SEKEL-154 (see `server-side-ai-and-admin.md`), followed by key rotation.
 - avatars / backgrounds / feedback-screenshots INSERT policies still accept any object name (shipped clients always use the `${uid}-` prefix, so tightening later is safe).
 
 ---
