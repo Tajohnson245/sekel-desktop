@@ -52,6 +52,13 @@ function updateSekelDeps(pkg, nameToVersion) {
     if (!pkg[depType]) continue;
     for (const [dep, currentRange] of Object.entries(pkg[depType])) {
       if (dep.startsWith('@sekel/') && nameToVersion[dep]) {
+        // Wildcard / workspace specs track the local workspace package and
+        // must stay as-is. (Previously the "*" was treated as a prefix and
+        // rewritten to "*2.0.0", which semver reads as an exact pin.)
+        if (/^(\*|workspace:)/.test(currentRange)) {
+          pkg[depType][dep] = currentRange.startsWith('workspace:') ? currentRange : '*';
+          continue;
+        }
         // Preserve range prefix (^, ~, etc.) if present
         const prefix = currentRange.match(/^[^0-9]*/)?.[0] || '';
         pkg[depType][dep] = prefix + nameToVersion[dep];
@@ -194,7 +201,45 @@ function bumpApp(app, newVersion) {
     }
   }
 
+  syncLockfileWorkspaces(allPaths);
+
   console.log(`\nDone. To release, commit and push tag: ${app}/v${newVersion}`);
+}
+
+// Keep package-lock.json's workspace entries in step with the package.json
+// files we just rewrote. Surgical line edits (version + @sekel/* specs only)
+// rather than `npm install --package-lock-only`, which would also reformat
+// unrelated entries depending on the npm version running it.
+function syncLockfileWorkspaces(pkgPaths) {
+  const lockPath = path.join(ROOT, 'package-lock.json');
+  if (!fs.existsSync(lockPath)) return;
+  const raw = fs.readFileSync(lockPath, 'utf8');
+  const eol = raw.includes('\r\n') ? '\r\n' : '\n';
+  const lines = raw.split(eol);
+  let changed = 0;
+
+  for (const pkgPath of pkgPaths) {
+    let pkg;
+    try { pkg = readPackageJson(pkgPath); } catch { continue; }
+    const header = lines.findIndex((l) => l.trim() === `"${pkgPath}": {`);
+    if (header < 0) continue;
+    let end = lines.length;
+    for (let i = header + 1; i < lines.length; i++) {
+      if (/^ {8}}/.test(lines[i])) { end = i; break; }
+    }
+    const deps = { ...pkg.dependencies, ...pkg.devDependencies, ...pkg.peerDependencies };
+    for (let i = header + 1; i < end; i++) {
+      const ver = lines[i].match(/^(\s*"version": ")([^"]+)(",?)$/);
+      if (ver && ver[2] !== pkg.version) { lines[i] = `${ver[1]}${pkg.version}${ver[3]}`; changed++; continue; }
+      const dep = lines[i].match(/^(\s*"(@sekel\/[^"]+)": ")([^"]+)(",?)$/);
+      if (dep && deps[dep[2]] && deps[dep[2]] !== dep[3]) { lines[i] = `${dep[1]}${deps[dep[2]]}${dep[4]}`; changed++; }
+    }
+  }
+
+  if (changed > 0) {
+    fs.writeFileSync(lockPath, lines.join(eol));
+    console.log(`  Synced ${changed} workspace line(s) in package-lock.json`);
+  }
 }
 
 // CLI
