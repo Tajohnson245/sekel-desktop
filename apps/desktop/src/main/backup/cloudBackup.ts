@@ -25,7 +25,8 @@ import { createLogger, consoleTransport, metrics } from '@sekel/observability';
 import type { BackupSnapshot } from '@sekel/db';
 import { getDb } from '../db/index';
 import * as state from './cloudState';
-import { getAuthedClient } from './cloudClient';
+import { getAuthedClient, isSessionUsable } from './cloudClient';
+import { scopeSnapshotToUser } from './snapshotScope';
 import { sendBackupFailureAlert } from './cloudAlert';
 import type { BackupReason, CloudBackupSession, CloudSnapshotInfo } from './cloudTypes';
 
@@ -47,7 +48,12 @@ let idleTimer: ReturnType<typeof setInterval> | null = null;
 
 export function setSession(session: CloudBackupSession | null): void {
     state.setSession(session);
-    if (session) log.info('Cloud backup session set', { userId: session.userId });
+    if (session) {
+        log.info('Cloud backup session set', { userId: session.userId });
+        // First session of this run: everything written so far (startup
+        // migrations, seeding, backfills) predates the user's work.
+        if (changeBaseline === null) changeBaseline = currentChangeCount();
+    }
 }
 
 export function clearSession(): void {
@@ -62,9 +68,41 @@ function withinHourlyCap(now: Date): boolean {
     return now.getTime() - new Date(last).getTime() < MIN_INTERVAL_MS;
 }
 
-/** "Unsynced changes" proxy: reviews recorded since the last snapshot. */
+// ── Local write tracking ─────────────────────────────────────────────────────
+// Reviews were the only "unsynced work" signal, so importing a 30k-card deck,
+// generating AI cards, editing or deleting notes, or creating a plan never made
+// the idle/close triggers fire. SQLite's total_changes() counts every row
+// written on this connection; comparing it with the value at the last
+// snapshot catches all of those without instrumenting each write path.
+
+/** total_changes() at the last successful snapshot (or first session). */
+let changeBaseline: number | null = null;
+
+function currentChangeCount(): number | null {
+    try {
+        const row = getDb().prepare('SELECT total_changes() AS n').get() as { n: number } | undefined;
+        return row?.n ?? null;
+    } catch {
+        return null; // DB not initialised — nothing to compare
+    }
+}
+
+/** True when the local DB has been written to since the last snapshot. */
+export function hasLocalWritesSinceSnapshot(): boolean {
+    const now = currentChangeCount();
+    if (now === null) return false;
+    if (changeBaseline === null || now < changeBaseline) {
+        // Unknown baseline, or the connection was reopened (restore) and the
+        // counter restarted: re-anchor rather than guess.
+        changeBaseline = now;
+        return false;
+    }
+    return now > changeBaseline;
+}
+
+/** "Unsynced changes": reviews or any other local write since the last snapshot. */
 function hasUnsyncedChanges(): boolean {
-    return state.getReviewsSinceLastBackup() > 0;
+    return state.getReviewsSinceLastBackup() > 0 || hasLocalWritesSinceSnapshot();
 }
 
 /** Pure decision: should we snapshot right now for this reason? */
@@ -157,7 +195,7 @@ export function stopIdleMonitor(): void {
 export async function listCloudSnapshots(): Promise<CloudSnapshotInfo[]> {
     const session = state.getSession();
     if (!session) throw new Error('Not signed in');
-    const client = await getAuthedClient(session);
+    const client = getAuthedClient(session);
     const { data, error } = await client
         .from('backup_snapshots')
         .select('*')
@@ -187,20 +225,39 @@ function runSnapshot(reason: BackupReason): Promise<boolean> {
 async function doSnapshot(reason: BackupReason): Promise<boolean> {
     const session = state.getSession();
     if (!session) return false;
+    // Main never refreshes tokens itself (rotating the refresh token behind the
+    // renderer's back gets the renderer's session revoked → random logouts).
+    // An expired token just means "wait": the renderer auto-refreshes and pushes
+    // the new session; the review counter is kept for the next trigger.
+    if (!isSessionUsable(session, Date.now())) {
+        log.info('Cloud snapshot: access token expired — waiting for the renderer to refresh', { reason });
+        return false;
+    }
 
     const snapshotId = crypto.randomUUID();
     const tmpPath = path.join(app.getPath('temp'), `sekel-cloud-${snapshotId}.sqlite`);
 
     try {
-        // 1. WAL-safe consistent copy (never a raw file copy of a live WAL db).
+        // 1. WAL-safe consistent copy (never a raw file copy of a live WAL db),
+        //    then strip every other local account's rows from the copy — the
+        //    local DB is shared by everyone who has signed in on this machine.
         log.info('Cloud snapshot: begin', { reason, snapshotId });
+        // Writes made after this point aren't in the copy, so the baseline
+        // advances only to what the snapshot actually contains.
+        const changesInCopy = currentChangeCount();
         await getDb().backup(tmpPath);
+        const { removed } = scopeSnapshotToUser(tmpPath, session.userId);
         const bytes = fs.readFileSync(tmpPath);
-        const reviewCount = countReviews();
-        log.info('Cloud snapshot: local copy done', { bytes: bytes.byteLength });
+        const reviewCount = countReviews(session.userId);
+        log.info('Cloud snapshot: local copy done', { bytes: bytes.byteLength, otherAccountsRemoved: Object.keys(removed).length > 0 });
 
-        // 2. Per-user, RLS-scoped client.
-        const client = await getAuthedClient(session);
+        // 2. Per-user, RLS-scoped client. Bail if the account changed while the
+        //    copy was being prepared — never upload under a stale identity.
+        if (state.getSession()?.userId !== session.userId) {
+            log.info('Cloud snapshot: signed-in account changed mid-snapshot — skipped');
+            return false;
+        }
+        const client = getAuthedClient(session);
         const storagePath = `${session.userId}/${snapshotId}.sqlite`;
         log.info('Cloud snapshot: authed client ready');
 
@@ -224,6 +281,7 @@ async function doSnapshot(reason: BackupReason): Promise<boolean> {
         if (insertError) throw new Error(`Metadata insert failed: ${insertError.message}`);
 
         state.markSuccess(new Date());
+        if (changesInCopy !== null) changeBaseline = changesInCopy;
         metrics.increment('cloud_backup.snapshot_success_total');
         log.info('Cloud snapshot uploaded', { reason, bytes: bytes.byteLength, reviewCount });
         return true;
@@ -235,9 +293,9 @@ async function doSnapshot(reason: BackupReason): Promise<boolean> {
     }
 }
 
-function countReviews(): number | null {
+function countReviews(userId: string): number | null {
     try {
-        const row = getDb().prepare('SELECT COUNT(*) AS c FROM reviews').get() as { c: number } | undefined;
+        const row = getDb().prepare('SELECT COUNT(*) AS c FROM reviews WHERE user_id = ?').get(userId) as { c: number } | undefined;
         return row?.c ?? null;
     } catch {
         return null;
@@ -262,6 +320,36 @@ async function handleFailure(err: unknown, reason: BackupReason): Promise<void> 
         state.setFailureAlertSent(true);
         await sendBackupFailureAlert(state.getSession(), failures, errMsg(err));
     }
+}
+
+// ── Temp-file hygiene ────────────────────────────────────────────────────────
+
+const SNAPSHOT_TEMP_RE = /^sekel-cloud-[0-9a-f-]{36}\.sqlite(-wal|-shm|-journal)?$/i;
+const STALE_TEMP_MS = 60 * 60 * 1000;
+
+/**
+ * Deletes snapshot copies left in the temp dir by a run that quit mid-upload
+ * (the quit snapshot is cut off after 15 s, before its finally{} cleanup).
+ * Each is a full plaintext copy of the user's database. Run once at startup.
+ */
+export function sweepStaleSnapshotTemps(nowMs = Date.now()): number {
+    let removed = 0;
+    try {
+        const dir = app.getPath('temp');
+        for (const name of fs.readdirSync(dir)) {
+            if (!SNAPSHOT_TEMP_RE.test(name)) continue;
+            const full = path.join(dir, name);
+            try {
+                if (nowMs - fs.statSync(full).mtimeMs < STALE_TEMP_MS) continue; // may be in use
+                fs.unlinkSync(full);
+                removed++;
+            } catch { /* best effort */ }
+        }
+    } catch (err) {
+        log.warn('Snapshot temp sweep failed', { error: errMsg(err) });
+    }
+    if (removed > 0) log.info('Removed stale cloud snapshot temp files', { removed });
+    return removed;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

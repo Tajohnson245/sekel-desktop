@@ -18,6 +18,8 @@ interface ProfileState {
     uploadAvatar: (userId: string, file: File) => Promise<string | null>;
     uploadBackground: (userId: string, file: File) => Promise<string | null>;
     removeBackground: (userId: string) => Promise<void>;
+    /** Forget the loaded profile — called when the signed-in account changes. */
+    reset: () => void;
 }
 
 export const useProfileStore = create<ProfileState>((set, get) => ({
@@ -25,6 +27,8 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
     isLoading: false,
     error: null,
     hasAttemptedFetch: false,
+
+    reset: () => set({ profile: null, isLoading: false, error: null, hasAttemptedFetch: false }),
 
     fetchProfile: async (userId: string) => {
         const { isLoading, hasAttemptedFetch, profile } = get();

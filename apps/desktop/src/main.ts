@@ -100,7 +100,7 @@ import {
 } from '@sekel/observability';
 import { ALLOWED_PERMISSIONS, isExternalWebUrl, isTrustedRendererUrl } from './main/security';
 import { createMenu } from './menu';
-import { initDatabase } from './main/db/index';
+import { initDatabase, closeDatabase } from './main/db/index';
 import { setupAIHandlers } from './ipc/ai';
 import { setupAuthHandlers } from './ipc/auth';
 import { setupDocumentHandlers } from './ipc/document_parsing';
@@ -406,6 +406,7 @@ app.whenReady().then(() => {
         try { setup(); } catch (err) { log.error(`${name} handler setup failed`, { error: err instanceof Error ? err.message : String(err) }); }
     }
     cleanupStaleTempDirs().catch((err) => log.error('Temp cleanup failed', { error: err instanceof Error ? err.message : String(err) }));
+    cloudBackup.sweepStaleSnapshotTemps();
 
     // Check for updates only in production (packaged app, Windows only — the
     // R2 release feed currently only ships Squirrel.Windows artifacts).
@@ -499,6 +500,16 @@ app.on('before-quit', (event) => {
             cloudBackup.stopIdleMonitor();
             app.quit();
         });
+});
+
+// Last step of shutdown (after before-quit's closing snapshot has finished):
+// fold the WAL back into sekel.db and close it cleanly.
+app.on('will-quit', () => {
+    try {
+        closeDatabase();
+    } catch (err) {
+        log.warn('Database close on quit failed', { error: err instanceof Error ? err.message : String(err) });
+    }
 });
 
 app.on('window-all-closed', () => {

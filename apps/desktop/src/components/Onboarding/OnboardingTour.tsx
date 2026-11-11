@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '../UI';
 import { useAuthStore } from '../../stores/authStore';
 import { useProfileStore } from '../../stores/profileStore';
-import { useOnboardingStore, ONBOARDING_LOCALSTORAGE_KEY } from '../../stores/onboardingStore';
+import { useOnboardingStore, markOnboardingCompletedLocally } from '../../stores/onboardingStore';
 import { WelcomeSlides } from './WelcomeSlides';
 import { TourCard } from './TourCard';
 import './OnboardingTour.css';
@@ -70,11 +70,7 @@ export function OnboardingTour() {
     useEffect(() => {
         if (phase !== 'done' || persistedRef.current) return;
         persistedRef.current = true;
-        try {
-            localStorage.setItem(ONBOARDING_LOCALSTORAGE_KEY, '1');
-        } catch {
-            // ignore — localStorage unavailable
-        }
+        markOnboardingCompletedLocally(user?.id);
         if (user?.id) {
             upsertProfile(user.id, { onboarded_at: new Date().toISOString() }).catch(() => {
                 // Non-fatal: localStorage backup will keep the tour from re-firing.

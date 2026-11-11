@@ -7,7 +7,7 @@ import { Modal, Button, Input, useToast } from '../../UI';
 import { deckKeys, useDecks } from '../../../hooks/useDecks';
 import { useQueryClient } from '@tanstack/react-query';
 import { FeedbackSection } from '../FeedbackSection';
-import { useOnboardingStore, ONBOARDING_LOCALSTORAGE_KEY } from '../../../stores/onboardingStore';
+import { useOnboardingStore, clearOnboardingCompletedLocally } from '../../../stores/onboardingStore';
 import { useVisibleTourStepIds } from '../../Onboarding/useVisibleTourStepIds';
 
 export function AccountTab() {
@@ -70,7 +70,7 @@ export function AccountTab() {
     const visibleTourStepIds = useVisibleTourStepIds();
 
     const handleReplayTour = () => {
-        try { localStorage.removeItem(ONBOARDING_LOCALSTORAGE_KEY); } catch { /* ignore */ }
+        clearOnboardingCompletedLocally(user?.id);
         if (visibleTourStepIds.length > 0) startOnboarding(visibleTourStepIds);
     };
 

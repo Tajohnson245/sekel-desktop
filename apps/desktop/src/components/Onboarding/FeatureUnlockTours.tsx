@@ -5,7 +5,7 @@ import { useActivePlan } from '../../hooks/usePlan';
 import { useSekelIntelligence } from '../../hooks/useSekelIntelligence';
 import { useExamProfile } from '../../hooks/useExamProfile';
 import { useDecks } from '../../hooks/useDecks';
-import { useOnboardingStore, ONBOARDING_LOCALSTORAGE_KEY } from '../../stores/onboardingStore';
+import { useOnboardingStore, isOnboardingCompletedLocally } from '../../stores/onboardingStore';
 import { visibleStepIdsFor, FEATURE_TOUR_STEP_IDS } from './tourSteps';
 
 const FLAGS = {
@@ -52,7 +52,7 @@ export function FeatureUnlockTours() {
 
     const mainDone =
         !!profile?.onboarded_at ||
-        (() => { try { return localStorage.getItem(ONBOARDING_LOCALSTORAGE_KEY) === '1'; } catch { return false; } })();
+        isOnboardingCompletedLocally(userId);
 
     const ctx = useMemo(() => ({
         hasDecks: decks.length > 0,

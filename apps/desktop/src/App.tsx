@@ -1,6 +1,7 @@
 import { useLayoutEffect } from 'react';
 import { ThemeProvider } from './components/ThemeProvider';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from './lib/queryClient';
 import { RouterProvider } from 'react-router-dom';
 import { router } from './router';
 import { ProtectedRoute } from './components/Auth/ProtectedRoute';
@@ -25,14 +26,6 @@ function VisualCardSizeClass() {
     return null;
 }
 
-const queryClient = new QueryClient({
-    defaultOptions: {
-        queries: {
-            staleTime: 1000 * 60, // 1 minute
-            retry: 1,
-        },
-    },
-});
 
 export default function App() {
     return (
