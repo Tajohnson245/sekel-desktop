@@ -5,6 +5,13 @@ node_modules/
 .env
 .env.*
 !.env.example
+# Dotless variants (e.g. `env`, `env.development`) hold the same secrets —
+# service-role key, R2 upload keys, code-signing credentials. Never commit.
+/env
+/env.*
+**/env.local
+**/env.production
+**/env.development
 
 # OS
 .DS_Store
