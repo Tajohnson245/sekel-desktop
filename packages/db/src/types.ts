@@ -117,6 +117,8 @@ export interface Card {
     reps: number;
     lapses: number;
     last_review: string | null;
+    /** ts-fsrs (re)learning step index. Local SQLite only; absent on older rows/types. */
+    learning_steps?: number;
 
     created_at: string;
     updated_at: string;

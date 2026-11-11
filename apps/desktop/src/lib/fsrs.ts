@@ -70,7 +70,10 @@ function toFSRSCard(card: Card): FSRSCard {
         lapses: card.lapses,
         state: STATE_MAP[card.state],
         last_review: card.last_review ? new Date(card.last_review) : undefined,
-        learning_steps: 0, // managed by FSRS internally
+        // Which (re)learning step the card is on. Must round-trip through the
+        // DB: resetting it to 0 on every load re-scheduled a learning card rated
+        // Good onto the same step forever, so it never graduated.
+        learning_steps: card.learning_steps ?? 0,
     };
 }
 
@@ -85,6 +88,7 @@ function fromFSRSCard(fsrsCard: FSRSCard): CardUpdate {
         lapses: fsrsCard.lapses,
         state: STATE_REVERSE_MAP[fsrsCard.state],
         last_review: fsrsCard.last_review?.toISOString() ?? null,
+        learning_steps: fsrsCard.learning_steps,
     };
 }
 

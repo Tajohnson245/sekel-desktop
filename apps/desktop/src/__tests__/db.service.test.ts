@@ -35,6 +35,8 @@ import {
     createStudySession,
     completeDeckSession,
     fetchDueCardsCrossDeck,
+    fetchDueCards as fetchDueCardsForDeck,
+    updateCardAfterReview,
     fetchDueCardsFocusedCrossDeck,
     fetchDeckRetentionBatch,
     fetchDeckYieldMix,
@@ -883,3 +885,32 @@ describe('drafts', () => {
     });
 });
 
+// ── Learning-step persistence (SEKEL-153) ───────────────────────────────────────
+
+describe('learning_steps persistence', () => {
+    it('stores the FSRS learning step and returns it in study queues', () => {
+        const nt = seedNoteType();
+        const deck = seedDeck();
+        const note = seedNote(deck.id, nt.id);
+        const card = createCard({
+            user_id: USER, note_id: note.id, template_index: 0, state: 'new', due: new Date().toISOString(),
+            stability: 0, difficulty: 0, elapsed_days: 0, scheduled_days: 0, reps: 0, lapses: 0, last_review: null,
+        });
+        updateCardAfterReview(card.id, { state: 'learning', learning_steps: 1, due: new Date(Date.now() - 1000).toISOString() });
+        const [queued] = fetchDueCardsForDeck(deck.id, USER, 20, 200);
+        expect(queued.id).toBe(card.id);
+        expect(queued.learning_steps).toBe(1);
+    });
+
+    it('defaults existing rows to step 0', () => {
+        const nt = seedNoteType();
+        const deck = seedDeck();
+        const note = seedNote(deck.id, nt.id);
+        createCard({
+            user_id: USER, note_id: note.id, template_index: 0, state: 'learning', due: new Date().toISOString(),
+            stability: 1, difficulty: 5, elapsed_days: 0, scheduled_days: 0, reps: 1, lapses: 0, last_review: new Date().toISOString(),
+        });
+        const [queued] = fetchDueCardsForDeck(deck.id);
+        expect(queued.learning_steps).toBe(0);
+    });
+});

@@ -48,6 +48,51 @@ function makeReviewCard(overrides: Partial<Card> = {}): Card {
     });
 }
 
+// ── Learning-step progression (SEKEL-153) ───────────────────────────────────────
+
+describe('learning steps round-trip', () => {
+    /** Rate Good, persisting only what CardUpdate carries — exactly what the DB stores. */
+    function rateGoodAndReload(card: Card): Card {
+        const update = getSchedulingOptions(card).good;
+        return { ...card, ...update } as Card;
+    }
+
+    it('a new card rated Good repeatedly graduates to review instead of looping on the 10-minute step', () => {
+        let card = makeNewCard();
+        const states: string[] = [];
+        for (let i = 0; i < 4 && card.state !== 'review'; i++) {
+            card = rateGoodAndReload(card);
+            states.push(card.state);
+        }
+        expect(states).toEqual(['learning', 'review']);
+        expect(card.scheduled_days).toBeGreaterThanOrEqual(1);
+    });
+
+    it('labels learning-step intervals from the due time, not scheduled_days (was "0m")', async () => {
+        const { intervalDays } = await import('../components/Study/RatingButtons');
+        const now = Date.now();
+        const opts = getSchedulingOptions(makeNewCard());
+        expect(opts.good.scheduled_days).toBe(0);
+        expect(formatInterval(intervalDays(opts.good, now))).toBe('10m');
+        expect(formatInterval(intervalDays(opts.again, now))).toBe('1m');
+        expect(intervalDays({ scheduled_days: 3 })).toBe(3);
+    });
+
+    it('carries the step index in the CardUpdate so it can be stored', () => {
+        const update = getSchedulingOptions(makeNewCard()).good;
+        expect(update.state).toBe('learning');
+        expect(update.learning_steps).toBe(1);
+    });
+
+    it('cards loaded without a stored step (pre-migration rows) still progress', () => {
+        let card = makeNewCard({ state: 'learning', reps: 1, last_review: new Date(Date.now() - 600_000).toISOString() });
+        delete (card as Partial<Card>).learning_steps;
+        card = rateGoodAndReload(card);  // step 0 → step 1
+        card = rateGoodAndReload(card);  // step 1 → graduate
+        expect(card.state).toBe('review');
+    });
+});
+
 // ── createInitialCardState ─────────────────────────────────────────────────────
 
 describe('createInitialCardState', () => {
