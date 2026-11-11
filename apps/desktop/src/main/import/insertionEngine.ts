@@ -129,9 +129,19 @@ export function executeImport(
         if (prev === undefined || r.id > prev) lastReviewMsByCard.set(r.cid, r.id);
     }
 
+    // Group cards by deck once — filtering/finding per deck or per revlog row is
+    // O(decks × cards) / O(revlogs × cards) and freezes big collections.
+    const cardsByDeck = new Map<number, AnkiCard[]>();
+    for (const card of parsedData.cards) {
+        let group = cardsByDeck.get(card.did);
+        if (!group) { group = []; cardsByDeck.set(card.did, group); }
+        group.push(card);
+    }
+
     // Maps built during card insertion for use when inserting review logs
     const ankiCardIdToSekelCardId = new Map<number, string>();
     const ankiCardIdToSekelDeckId = new Map<number, string>();
+    const ankiCardIdToAnkiDeckId = new Map<number, number>();
     // Tracks which anki deck ids used 'keep' scheduling (only those get review logs)
     const keepSchedulingDeckIds = new Set<number>();
 
@@ -196,7 +206,7 @@ export function executeImport(
             }
 
             // All Anki cards belonging to this deck
-            const ankiCards = parsedData.cards.filter(c => c.did === ankiDeckId);
+            const ankiCards = cardsByDeck.get(ankiDeckId) ?? [];
 
             // Group cards by note id
             const cardsByNote = new Map<number, AnkiCard[]>();
@@ -292,6 +302,7 @@ export function executeImport(
                     result.cardsInserted++;
                     ankiCardIdToSekelCardId.set(ankiCard.id, cardId);
                     ankiCardIdToSekelDeckId.set(ankiCard.id, sekelDeckId);
+                    ankiCardIdToAnkiDeckId.set(ankiCard.id, ankiCard.did);
 
                     // Report progress every 100 cards
                     if (result.cardsInserted % 100 === 0) {
@@ -318,9 +329,8 @@ export function executeImport(
                 if (!sekelCardId) continue; // card was not imported (different deck or deselected)
 
                 const deckId = ankiCardIdToSekelDeckId.get(revlog.cid)!;
-                // Determine which anki deck this card belongs to — skip if 'fresh' scheduling
-                const ankiCard = parsedData.cards.find(c => c.id === revlog.cid);
-                if (!ankiCard || !keepSchedulingDeckIds.has(ankiCard.did)) continue;
+                // Skip cards whose anki deck used 'fresh' scheduling
+                if (!keepSchedulingDeckIds.has(ankiCardIdToAnkiDeckId.get(revlog.cid)!)) continue;
 
                 insertReviewLog.run(
                     randomUUID(),

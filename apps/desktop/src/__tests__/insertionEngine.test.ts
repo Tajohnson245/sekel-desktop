@@ -570,6 +570,47 @@ describe('executeImport — review log insertion', () => {
         expect(result.reviewsInserted).toBe(1);
     });
 
+    it('attaches review logs without scanning the card list per revlog row', () => {
+        const model = makeModel(1001);
+        const decks: AnkiDeck[] = [];
+        const notes: AnkiNote[] = [];
+        const cards: AnkiCard[] = [];
+        const revlog: AnkiReviewLog[] = [];
+        for (let d = 0; d < 20; d++) decks.push(makeDeck(2000 + d, `Deck ${d}`));
+        for (let i = 0; i < 2000; i++) {
+            notes.push(makeNote(10000 + i, 1001));
+            cards.push(makeCard(20000 + i, 10000 + i, 2000 + (i % 20), { type: 2, queue: 2, ivl: 5, due: 1000 }));
+            for (let r = 0; r < 5; r++) revlog.push(makeRevlog(1600000000000 + i * 10 + r, 20000 + i));
+        }
+        // Linear scans over the card list per deck / per revlog row made large
+        // imports O(revlogs × cards) inside one transaction.
+        const findSpy = vi.spyOn(cards, 'find');
+        const filterSpy = vi.spyOn(cards, 'filter');
+        const collection = makeCollection({ decks, models: [model], notes, cards, revlog });
+
+        const result = executeImport(
+            makeOptions(collection, decks.map(d => makeDeckOption(d.id, { scheduling: 'keep' }))),
+            USER,
+        );
+
+        expect(result.cardsInserted).toBe(2000);
+        expect(result.reviewsInserted).toBe(10000);
+        expect(findSpy).not.toHaveBeenCalled();
+        expect(filterSpy.mock.calls.length).toBeLessThanOrEqual(1);
+        // Reviews are attached to the right card.
+        const times = testDb.prepare(`
+            SELECT r.review_time FROM reviews r JOIN cards c ON c.id = r.card_id
+            WHERE c.anki_id = 20123 ORDER BY r.review_time
+        `).all() as { review_time: string }[];
+        expect(times.map(t => t.review_time)).toEqual(
+            [0, 1, 2, 3, 4].map(r => new Date(1600000000000 + 123 * 10 + r).toISOString()),
+        );
+        const perCard = testDb.prepare(
+            'SELECT MIN(cnt) AS lo, MAX(cnt) AS hi FROM (SELECT COUNT(*) AS cnt FROM reviews GROUP BY card_id)',
+        ).get() as { lo: number; hi: number };
+        expect(perCard).toEqual({ lo: 5, hi: 5 });
+    });
+
     it('sets review_time from revlog id (Unix ms timestamp)', () => {
         const model = makeModel(1001);
         const deck = makeDeck(2001, 'Test');
