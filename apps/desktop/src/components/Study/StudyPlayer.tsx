@@ -247,6 +247,7 @@ export default function StudyPlayer({
             reps: c.reps,
             lapses: c.lapses,
             last_review: c.last_review,
+            learning_steps: c.learning_steps ?? 0,
         };
         await updateCard.mutateAsync({ cardId: c.id, updates: revert });
         setReviewedCount((p) => Math.max(0, p - 1));

@@ -641,4 +641,12 @@ export const MIGRATIONS: string[] = [
     ALTER TABLE deck_sessions ADD COLUMN scope TEXT;
     ALTER TABLE deck_sessions ADD COLUMN system_keys TEXT;
     `,
+    // Migration — persist FSRS learning-step position (SEKEL-153). ts-fsrs v5
+    // tracks which (re)learning step a card is on in card.learning_steps; it
+    // was never stored, so every load restarted at step 0 and a learning card
+    // rated Good was re-scheduled to the same 10-minute step forever (only
+    // Easy graduated it). Existing learning cards start from step 0.
+    `
+    ALTER TABLE cards ADD COLUMN learning_steps INTEGER NOT NULL DEFAULT 0;
+    `,
 ];

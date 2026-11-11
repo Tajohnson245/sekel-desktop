@@ -581,6 +581,7 @@ export function buildCardWithNote(row: CardWithNoteRow): CardWithNote {
         reps: row.reps as number,
         lapses: row.lapses as number,
         last_review: row.last_review as string | null,
+        learning_steps: (row.learning_steps as number | null | undefined) ?? 0,
         created_at: row.created_at as string,
         updated_at: row.updated_at as string,
         note,
@@ -592,7 +593,7 @@ export const CARD_WITH_NOTE_SQL = `
         c.id, c.user_id, c.note_id, c.template_index,
         c.state, c.due, c.stability, c.difficulty,
         c.elapsed_days, c.scheduled_days, c.reps, c.lapses,
-        c.last_review, c.created_at, c.updated_at,
+        c.last_review, c.learning_steps, c.created_at, c.updated_at,
         c.anki_meta    AS card_anki_meta,
         n.id       AS note_id,
         n.deck_id  AS deck_id,
@@ -668,7 +669,7 @@ export function fetchDueCards(
                 c.id, c.user_id, c.note_id, c.template_index,
                 c.state, c.due, c.stability, c.difficulty,
                 c.elapsed_days, c.scheduled_days, c.reps, c.lapses,
-                c.last_review, c.created_at, c.updated_at,
+                c.last_review, c.learning_steps, c.created_at, c.updated_at,
                 c.anki_meta    AS card_anki_meta,
                 n.id       AS note_id,
                 n.deck_id  AS deck_id,
@@ -776,7 +777,7 @@ export function fetchDueCardsFocused(
                 c.id, c.user_id, c.note_id, c.template_index,
                 c.state, c.due, c.stability, c.difficulty,
                 c.elapsed_days, c.scheduled_days, c.reps, c.lapses,
-                c.last_review, c.created_at, c.updated_at,
+                c.last_review, c.learning_steps, c.created_at, c.updated_at,
                 c.anki_meta    AS card_anki_meta,
                 n.id       AS note_id,
                 n.deck_id  AS deck_id,
@@ -866,7 +867,7 @@ function fetchScopeNewCards(userId: string, deckIds: string[], examKey: string, 
             c.id, c.user_id, c.note_id, c.template_index,
             c.state, c.due, c.stability, c.difficulty,
             c.elapsed_days, c.scheduled_days, c.reps, c.lapses,
-            c.last_review, c.created_at, c.updated_at,
+            c.last_review, c.learning_steps, c.created_at, c.updated_at,
             c.anki_meta    AS card_anki_meta,
             n.id       AS note_id,
             n.deck_id  AS deck_id,
@@ -987,7 +988,7 @@ export function updateCardAfterReview(cardId: string, updates: Partial<Card>): C
 
     const allowed: (keyof Card)[] = [
         'state', 'due', 'stability', 'difficulty',
-        'elapsed_days', 'scheduled_days', 'reps', 'lapses', 'last_review',
+        'elapsed_days', 'scheduled_days', 'reps', 'lapses', 'last_review', 'learning_steps',
     ];
     for (const key of allowed) {
         if (key in updates) {

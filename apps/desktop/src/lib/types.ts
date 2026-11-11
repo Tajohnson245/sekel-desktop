@@ -111,6 +111,8 @@ export interface Card {
     reps: number;
     lapses: number;
     last_review: string | null;
+    /** ts-fsrs (re)learning step index; persisted locally (migration SEKEL-153). */
+    learning_steps?: number;
 
     created_at: string;
     updated_at: string;

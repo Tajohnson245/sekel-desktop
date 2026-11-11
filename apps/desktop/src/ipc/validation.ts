@@ -180,6 +180,11 @@ export const updateCardAfterReviewRules: Rule[] = [
         check: (v) => v === undefined || v === null || isNonEmptyString(v),
         message: "field 'last_review' must be a string (ISO date) or null",
     },
+    {
+        field: 'learning_steps',
+        check: (v) => v === undefined || (Number.isInteger(v) && (v as number) >= 0),
+        message: "field 'learning_steps' must be a non-negative integer",
+    },
 ];
 
 // ── Schema: insertReview ────────────────────────────────────────────

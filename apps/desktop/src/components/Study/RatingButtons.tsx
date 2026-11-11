@@ -20,6 +20,19 @@ const RATINGS: { rating: Rating; key: string }[] = [
     { rating: 'easy', key: '4' },
 ];
 
+/**
+ * Time until the card would be due after this rating. ts-fsrs reports
+ * scheduled_days = 0 for (re)learning steps, so labelling from it showed "0m"
+ * for the 1- and 10-minute steps; the due timestamp is exact.
+ */
+export function intervalDays(update: { due?: string; scheduled_days?: number }, nowMs = Date.now()): number {
+    if (update.due) {
+        const dueMs = new Date(update.due).getTime();
+        if (Number.isFinite(dueMs)) return Math.max(0, (dueMs - nowMs) / 86_400_000);
+    }
+    return update.scheduled_days ?? 0;
+}
+
 export default function RatingButtons({ options, onRate, isLoading, disabled = false }: RatingButtonsProps) {
     const { t } = useTranslation();
 
@@ -27,7 +40,7 @@ export default function RatingButtons({ options, onRate, isLoading, disabled = f
         <div className="rating-buttons" data-testid="rating-buttons">
             {RATINGS.map(({ rating, key }) => {
                 const update = options?.[rating];
-                const interval = update ? formatInterval(update.scheduled_days ?? 0) : '';
+                const interval = update ? formatInterval(intervalDays(update)) : '';
                 return (
                     <button
                         key={rating}
