@@ -6,7 +6,8 @@
  */
 
 import { instrumentedHandle, trackedCompletion, createLogger, consoleTransport } from '@sekel/observability';
-import { OpenAI } from "openai";
+import type { OpenAI } from "openai";
+import { createProxiedOpenAI, requireAiSession } from '../main/ai/openaiClient';
 
 const log = createLogger({ module: 'document-parsing', transports: [consoleTransport] });
 import mammoth from 'mammoth';
@@ -56,16 +57,14 @@ class PdfPageLimitError extends Error {
     }
 }
 
-// Lazy-initialize OpenAI client (avoids crash on startup when key is absent)
+// Lazy-initialized OpenAI client. Calls go through the ai-proxy edge function
+// as the signed-in user (see main/ai/openaiClient.ts).
 let _openai: OpenAI | null = null;
 
 function getOpenAI(): OpenAI {
+    requireAiSession();
     if (!_openai) {
-        const apiKey = process.env.OPENAI_API_KEY;
-        if (!apiKey) {
-            throw new Error('Missing OPENAI_API_KEY. Set it in your .env.local file.');
-        }
-        _openai = new OpenAI({ apiKey });
+        _openai = createProxiedOpenAI();
     }
     return _openai;
 }

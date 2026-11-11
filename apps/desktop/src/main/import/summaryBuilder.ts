@@ -28,10 +28,12 @@ export function buildImportSummary(
         cardCountByDeck.set(card.did, (cardCountByDeck.get(card.did) ?? 0) + 1);
     }
 
-    // Anki always includes a built-in "Default" deck with id=1.
-    // It is typically empty in exported packages and should not be shown to users.
+    // Anki always includes a built-in "Default" deck with id=1. It is typically
+    // empty in exported packages, so hide it then — but when it holds cards
+    // (e.g. a whole-collection export) list it, otherwise those cards would be
+    // silently dropped while still counted in cardCount.
     const decks: ImportSummaryDeck[] = Array.from(collection.decks.values())
-        .filter(d => d.id !== 1)
+        .filter(d => d.id !== 1 || (cardCountByDeck.get(d.id) ?? 0) > 0)
         .map(d => ({
             ankiDeckId: d.id,
             name: d.name,

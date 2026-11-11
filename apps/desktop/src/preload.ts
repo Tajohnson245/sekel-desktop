@@ -157,9 +157,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     backup: {
         list:           () => ipcRenderer.invoke('backup:list'),
         create:         () => ipcRenderer.invoke('backup:create'),
-        restore:        (filePath: string) => ipcRenderer.invoke('backup:restore', filePath),
+        restore:        (filename: string) => ipcRenderer.invoke('backup:restore', filename),
         delete:         (filename: string) => ipcRenderer.invoke('backup:delete', filename),
         getTotalSize:   () => ipcRenderer.invoke('backup:getTotalSize'),
+        restart:        () => ipcRenderer.invoke('backup:restart'),
         onCreated: (cb: (info: unknown) => void) => {
             const listener = (_event: unknown, info: unknown) => cb(info);
             ipcRenderer.on('backup:created', listener);
@@ -188,14 +189,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
     obs: {
         getMetrics: () => ipcRenderer.invoke('obs:getMetrics'),
-        isAdmin:    (email: string) => ipcRenderer.invoke('obs:isAdmin', email),
-    },
-
-    admin: {
-        getOverview:   (email: string) => ipcRenderer.invoke('admin:getOverview', email),
-        getUsers:      (email: string) => ipcRenderer.invoke('admin:getUsers', email),
-        getUserDetail: (email: string, userId: string) => ipcRenderer.invoke('admin:getUserDetail', email, userId),
-        getFeedback:   (email: string) => ipcRenderer.invoke('admin:getFeedback', email),
     },
 
     exam: {

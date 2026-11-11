@@ -1,23 +1,10 @@
-import { useEffect, useState } from 'react';
 import { useAuthStore } from '../stores/authStore';
+import { isAdminUser } from '../lib/adminApi';
 
-/** True when the signed-in user's email is an app admin (drives the sidebar
- *  Diagnostics item). Extracted from AppLayout so the sidebar can reuse it. */
+/** True when the signed-in user has the admin role (drives the sidebar
+ *  Diagnostics item). Only decides what UI to show: the admin edge function
+ *  checks the role again on every call. */
 export function useIsAdmin(): boolean {
-    const { user } = useAuthStore();
-    const [isAdmin, setIsAdmin] = useState(false);
-    useEffect(() => {
-        let cancelled = false;
-        if (user?.email) {
-            window.electronAPI.obs.isAdmin(user.email).then((v) => {
-                if (!cancelled) setIsAdmin(v);
-            });
-        } else {
-            setIsAdmin(false);
-        }
-        return () => {
-            cancelled = true;
-        };
-    }, [user?.email]);
-    return isAdmin;
+    const user = useAuthStore((s) => s.user);
+    return isAdminUser(user);
 }

@@ -1,0 +1,271 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import Database from 'better-sqlite3';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import JSZip from 'jszip';
+import { MIGRATIONS } from '../main/db/migrations';
+
+// ── In-memory test database ────────────────────────────────────────────────────
+
+let testDb: Database.Database;
+
+vi.mock('../main/db/index', () => ({
+    getDb: () => testDb,
+    initDatabase: vi.fn(),
+}));
+
+vi.mock('../main/db/syncPush', () => ({
+    pushRecord: vi.fn(),
+    deleteRecord: vi.fn(),
+}));
+
+import { buildAnkiDatabase } from '../main/export/builder';
+import { packageApkg } from '../main/export/packager';
+import { parseAnkiDatabase } from '../main/import/parser';
+import { executeImport } from '../main/import/insertionEngine';
+
+function setupDb(): Database.Database {
+    const db = new Database(':memory:');
+    db.pragma('foreign_keys = ON');
+    db.exec('CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY)');
+    for (let i = 0; i < MIGRATIONS.length; i++) {
+        db.exec(MIGRATIONS[i]);
+        db.prepare('INSERT INTO schema_version (version) VALUES (?)').run(i + 1);
+    }
+    return db;
+}
+
+const USER = 'user-test-export';
+const DAY_MS = 86400000;
+const NOW = '2026-01-01T00:00:00.000Z';
+
+// ── Sekel fixture builders ────────────────────────────────────────────────────
+
+function seedDeck(): { deckId: string; noteId: string } {
+    testDb.prepare(`
+        INSERT INTO decks (id, user_id, name, algorithm, anki_id, created_at, updated_at)
+        VALUES ('deck-1', ?, 'Bio', 'fsrs', 2001, ?, ?)
+    `).run(USER, NOW, NOW);
+    testDb.prepare(`
+        INSERT INTO note_types (id, user_id, name, fields, card_templates, anki_id, created_at, updated_at)
+        VALUES ('nt-1', ?, 'Basic', ?, ?, 1001, ?, ?)
+    `).run(
+        USER,
+        JSON.stringify([{ name: 'Front' }, { name: 'Back' }]),
+        JSON.stringify([{ name: 'Card 1', front_template: '{{Front}}', back_template: '{{Back}}' }]),
+        NOW, NOW,
+    );
+    testDb.prepare(`
+        INSERT INTO notes (id, user_id, deck_id, note_type_id, fields, tags, anki_id, anki_guid, created_at, updated_at)
+        VALUES ('note-1', ?, 'deck-1', 'nt-1', ?, '[]', 3001, 'guid-3001', ?, ?)
+    `).run(USER, JSON.stringify({ Front: 'Q', Back: 'A' }), NOW, NOW);
+    return { deckId: 'deck-1', noteId: 'note-1' };
+}
+
+let cardSeq = 0;
+function seedCard(opts: { state: string; due: string; ankiMeta?: Record<string, unknown> }): string {
+    cardSeq++;
+    const id = `card-${cardSeq}`;
+    testDb.prepare(`
+        INSERT INTO cards (id, user_id, note_id, template_index, state, due, stability, difficulty,
+                           elapsed_days, scheduled_days, reps, lapses, anki_id, anki_meta, created_at, updated_at)
+        VALUES (?, ?, 'note-1', 0, ?, ?, 10, 5, 10, 10, 3, 0, ?, ?, ?, ?)
+    `).run(id, USER, opts.state, opts.due, 4000 + cardSeq, opts.ankiMeta ? JSON.stringify(opts.ankiMeta) : null, NOW, NOW);
+    return id;
+}
+
+let reviewSeq = 0;
+function seedReview(cardId: string, reviewTime: string): void {
+    reviewSeq++;
+    testDb.prepare(`
+        INSERT INTO reviews (id, user_id, card_id, rating, review_time, state_before, stability_before,
+                             difficulty_before, state_after, stability_after, difficulty_after,
+                             scheduled_days, review_type, created_at)
+        VALUES (?, ?, ?, 'good', ?, 'review', 5, 5, 'review', 10, 5, 10, 1, ?)
+    `).run(`rev-${reviewSeq}`, USER, cardId, reviewTime, NOW);
+}
+
+const tmpDirs: string[] = [];
+function build(deckId: string): Database.Database {
+    const dbPath = buildAnkiDatabase(deckId, USER);
+    tmpDirs.push(path.dirname(dbPath));
+    return new Database(dbPath, { readonly: true });
+}
+
+beforeEach(() => { testDb = setupDb(); cardSeq = 0; reviewSeq = 0; });
+afterEach(() => {
+    testDb.close();
+    for (const dir of tmpDirs.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
+});
+
+// ── Tests ─────────────────────────────────────────────────────────────────────
+
+describe('buildAnkiDatabase — scheduling', () => {
+    type AnkiCardRow = { id: number; type: number; queue: number; due: number };
+
+    it('writes review dues as day numbers relative to the exported col.crt', () => {
+        const { deckId } = seedDeck();
+        const dueIso = '2027-03-15T13:45:00.000Z';
+        seedCard({ state: 'review', due: dueIso });
+
+        const anki = build(deckId);
+        const { crt } = anki.prepare('SELECT crt FROM col').get() as { crt: number };
+        const card = anki.prepare('SELECT type, queue, due FROM cards').get() as AnkiCardRow;
+        anki.close();
+
+        expect(card.type).toBe(2);
+        expect(card.queue).toBe(2);
+        // The Anki day the card is due on contains the Sekel due time.
+        const dayStart = crt * 1000 + card.due * DAY_MS;
+        expect(dayStart).toBeLessThanOrEqual(Date.parse(dueIso));
+        expect(Date.parse(dueIso)).toBeLessThan(dayStart + DAY_MS);
+    });
+
+    it('uses a fixed crt so the export is deterministic', () => {
+        const { deckId } = seedDeck();
+        seedCard({ state: 'review', due: '2027-03-15T13:45:00.000Z' });
+
+        const first = build(deckId);
+        const a = first.prepare('SELECT crt FROM col').get() as { crt: number };
+        first.close();
+        const second = build(deckId);
+        const b = second.prepare('SELECT crt FROM col').get() as { crt: number };
+        second.close();
+
+        expect(a.crt).toBe(b.crt);
+    });
+
+    it('writes learning dues as Unix seconds in the intraday learning queue', () => {
+        const { deckId } = seedDeck();
+        const dueIso = '2027-03-15T13:45:00.000Z';
+        seedCard({ state: 'learning', due: dueIso });
+
+        const anki = build(deckId);
+        const card = anki.prepare('SELECT type, queue, due FROM cards').get() as AnkiCardRow;
+        anki.close();
+
+        expect(card).toMatchObject({ type: 1, queue: 1, due: Date.parse(dueIso) / 1000 });
+    });
+
+    it('derives the queue from the current state, not a stale imported queue', () => {
+        const { deckId } = seedDeck();
+        // Imported as new (queue 0) and since studied in Sekel → now review.
+        seedCard({ state: 'review', due: '2027-03-15T13:45:00.000Z', ankiMeta: { queue: 0, mod: 1 } });
+
+        const anki = build(deckId);
+        const card = anki.prepare('SELECT type, queue FROM cards').get() as AnkiCardRow;
+        anki.close();
+
+        expect(card).toMatchObject({ type: 2, queue: 2 });
+    });
+
+    it('preserves a suspended queue from the original import', () => {
+        const { deckId } = seedDeck();
+        seedCard({ state: 'review', due: '2027-03-15T13:45:00.000Z', ankiMeta: { queue: -1, mod: 1 } });
+
+        const anki = build(deckId);
+        const card = anki.prepare('SELECT type, queue FROM cards').get() as AnkiCardRow;
+        anki.close();
+
+        expect(card).toMatchObject({ type: 2, queue: -1 });
+    });
+
+    it('round-trips review due dates through export → parse → import', async () => {
+        const { deckId } = seedDeck();
+        const dueIso = '2027-03-15T13:45:00.000Z';
+        const cardId = seedCard({ state: 'review', due: dueIso });
+        // Review history so 'keep' scheduling retains the review state.
+        seedReview(cardId, '2027-03-05T10:00:00.000Z');
+
+        const dbPath = buildAnkiDatabase(deckId, USER);
+        tmpDirs.push(path.dirname(dbPath));
+        const collection = await parseAnkiDatabase(dbPath);
+
+        // Re-import from scratch (cascade-deletes the deck's notes, cards, reviews).
+        testDb.prepare('DELETE FROM decks WHERE user_id = ?').run(USER);
+        executeImport({
+            parsedData: collection,
+            decks: [{ ankiDeckId: 2001, deckName: 'Bio', selected: true, scheduling: 'keep', algorithm: 'fsrs', conflict: null }],
+            hierarchyMode: 'subdecks',
+            mediaMap: {},
+            mediaFilePaths: [],
+            tempDir: '/tmp/test',
+            userId: USER,
+        }, USER);
+
+        const row = testDb.prepare('SELECT state, due, last_review FROM cards WHERE user_id = ?')
+            .get(USER) as { state: string; due: string; last_review: string };
+        expect(row.state).toBe('review');
+        expect(row.due.slice(0, 10)).toBe('2027-03-15');
+        expect(row.last_review).toBe('2027-03-05T10:00:00.000Z');
+    });
+});
+
+describe('buildAnkiDatabase — review log', () => {
+    it('gives reviews in the same millisecond distinct revlog ids', () => {
+        const { deckId } = seedDeck();
+        const a = seedCard({ state: 'review', due: '2027-03-15T00:00:00.000Z' });
+        const b = seedCard({ state: 'review', due: '2027-03-15T00:00:00.000Z' });
+        const t = '2026-05-01T12:00:00.000Z';
+        seedReview(a, t);
+        seedReview(b, t);
+        seedReview(b, t);
+        // A later review exactly 1 ms after the collision still gets its own id.
+        seedReview(a, '2026-05-01T12:00:00.001Z');
+
+        const anki = build(deckId);
+        const ids = (anki.prepare('SELECT id FROM revlog ORDER BY id').all() as { id: number }[]).map(r => r.id);
+        anki.close();
+
+        const base = Date.parse(t);
+        expect(ids).toEqual([base, base + 1, base + 2, base + 3]);
+    });
+});
+
+describe('packageApkg — media', () => {
+    async function packAndRead(deckId: string, dir: string): Promise<Record<string, string>> {
+        const dbPath = path.join(dir, 'collection.anki21');
+        fs.writeFileSync(dbPath, 'db');
+        const out = path.join(dir, 'out.apkg');
+        await packageApkg(dbPath, deckId, out);
+
+        const zip = await JSZip.loadAsync(fs.readFileSync(out));
+        const mediaMap = JSON.parse(await zip.file('media')!.async('string')) as Record<string, string>;
+        const contentByName: Record<string, string> = {};
+        for (const [key, name] of Object.entries(mediaMap)) {
+            expect(contentByName[name]).toBeUndefined(); // each filename packed once
+            contentByName[name] = await zip.file(key)!.async('string');
+        }
+        return contentByName;
+    }
+
+    it("packs only the deck owner's media, once per filename (newest existing copy)", async () => {
+        const { deckId } = seedDeck();
+        testDb.prepare("UPDATE notes SET fields = ? WHERE id = 'note-1'").run(
+            JSON.stringify({ Front: '<img src="img.png">', Back: 'A [sound:dup.mp3]' }),
+        );
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sekel-pack-test-'));
+        tmpDirs.push(dir);
+        const write = (name: string, content: string) => {
+            const p = path.join(dir, name);
+            fs.writeFileSync(p, content);
+            return p;
+        };
+        const insertMedia = testDb.prepare(`
+            INSERT INTO media (id, user_id, filename, file_path, file_hash, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `);
+        // Another local account's file with the same name must not leak in.
+        insertMedia.run('m1', 'user-someone-else', 'img.png', write('theirs.png', 'THEIRS'), 'h1', '2026-03-01T00:00:00.000Z');
+        insertMedia.run('m2', USER, 'img.png', write('mine.png', 'MINE'), 'h2', '2026-01-01T00:00:00.000Z');
+        // Same filename imported twice with different content, plus a newer row whose file is gone.
+        insertMedia.run('m3', USER, 'dup.mp3', write('dup-old.mp3', 'OLD'), 'h3', '2026-01-01T00:00:00.000Z');
+        insertMedia.run('m4', USER, 'dup.mp3', write('dup-new.mp3', 'NEW'), 'h4', '2026-02-01T00:00:00.000Z');
+        insertMedia.run('m5', USER, 'dup.mp3', path.join(dir, 'missing.mp3'), 'h5', '2026-03-01T00:00:00.000Z');
+
+        const contentByName = await packAndRead(deckId, dir);
+
+        expect(contentByName).toEqual({ 'img.png': 'MINE', 'dup.mp3': 'NEW' });
+    });
+});

@@ -6,7 +6,8 @@
  */
 
 import { instrumentedHandle, trackedCompletion, createLogger, consoleTransport } from '@sekel/observability';
-import { OpenAI } from 'openai';
+import type { OpenAI } from 'openai';
+import { createProxiedOpenAI, isBatchStoppingAiError, requireAiSession } from '../main/ai/openaiClient';
 
 const log = createLogger({ module: 'classify', transports: [consoleTransport] });
 import { getDb } from '../main/db/index';
@@ -15,16 +16,14 @@ import { yieldCteBody, toYieldLevel } from '../main/db/yieldSql';
 import type { SessionQueueCard } from '../types/electron';
 
 // ── OpenAI lazy singleton (same pattern as ai.ts) ──────────────────────────
+// Calls go through the ai-proxy edge function as the signed-in user.
 
 let _openai: OpenAI | null = null;
 
 function getOpenAI(): OpenAI {
+    requireAiSession();
     if (!_openai) {
-        const apiKey = process.env.OPENAI_API_KEY;
-        if (!apiKey) {
-            throw new Error('Missing OPENAI_API_KEY. Set it in your .env.local file.');
-        }
-        _openai = new OpenAI({ apiKey });
+        _openai = createProxiedOpenAI();
     }
     return _openai;
 }
@@ -249,7 +248,7 @@ export async function classifyCardsBatch(
     ).get(resolvedExamKey) as { id: number } | undefined;
     if (!examRow) throw new Error(`Exam not found: ${resolvedExamKey}`);
 
-    // Fail fast on a missing OPENAI_API_KEY rather than letting every card fail
+    // Fail fast when signed out rather than letting every card fail
     // individually (which used to return {classified:0, errors:N} and read as a
     // silent "success, 0 classified" in the UI).
     if (cardIds.length > 0) getOpenAI();
@@ -279,6 +278,15 @@ export async function classifyCardsBatch(
         } catch (err) {
             console.error(`[classify] failed for ${remaining[i]}:`, err);
             errors++;
+            // Signed out or out of today's AI allowance: every remaining card
+            // would fail the same way. Stop; a later run skips cards that are
+            // already classified.
+            if (isBatchStoppingAiError(err)) {
+                const notTried = remaining.length - i - 1;
+                errors += notTried;
+                console.warn(`[classify] stopping early: ${notTried} cards not attempted`);
+                break;
+            }
         }
         if (i < remaining.length - 1) {
             await new Promise(r => setTimeout(r, 200));

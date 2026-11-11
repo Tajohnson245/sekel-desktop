@@ -53,9 +53,22 @@ function discoverFiles(examKey: string | null): string[] {
     return match;
 }
 
+// CI (release.yml) sets TSX_VERSION so every child runs the same pinned tsx
+// instead of downloading `latest` while the prod service-role key is in the
+// environment. Locally, unset, this stays a plain `npx tsx`.
+function tsxArgs(): string[] {
+    const version = process.env.TSX_VERSION;
+    if (!version) return ['tsx'];
+    if (!/^\d+\.\d+\.\d+$/.test(version)) {
+        console.error(`Invalid TSX_VERSION: ${version}`);
+        process.exit(1);
+    }
+    return ['--yes', `tsx@${version}`];
+}
+
 function runFile(filePath: string): void {
     console.log(`\nRunning: ${path.basename(filePath)}`);
-    const result = spawnSync('npx', ['tsx', filePath], {
+    const result = spawnSync('npx', [...tsxArgs(), filePath], {
         stdio: 'inherit',
         shell: true,
         env: { ...process.env },

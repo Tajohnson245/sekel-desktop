@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/electron/main';
-import { app, autoUpdater, BrowserWindow, dialog, ipcMain, protocol, shell } from 'electron';
+import { app, autoUpdater, BrowserWindow, dialog, ipcMain, protocol, session, shell } from 'electron';
 
 Sentry.init({
     dsn: 'https://cacb0014cc3c9ce493a71a738929f415@o4511351709171712.ingest.us.sentry.io/4511351710285824',
@@ -18,6 +18,7 @@ Sentry.init({
 // before electron-squirrel-startup's spawnUpdate fires and we quit — otherwise
 // the keys leak after uninstall.
 import { registerSpkgFileAssociation, unregisterSpkgFileAssociation } from './main/fileAssociations';
+import { isAuthCallbackUrl } from './lib/deepLink';
 if (process.platform === 'win32' && process.argv[1] === '--squirrel-uninstall') {
     try { unregisterSpkgFileAssociation(); } catch { /* best effort */ }
 }
@@ -48,11 +49,14 @@ if (!gotSingleInstanceLock) {
 let pendingDeepLink: string | null = null;
 let mainWindowRef: import('electron').BrowserWindow | null = null;
 
+// Only the auth callback is a valid deep link today. Anything else arriving
+// via the protocol handler is dropped here rather than forwarded.
 function extractDeepLink(argv: string[]): string | null {
-    return argv.find(a => typeof a === 'string' && a.startsWith(`${DEEP_LINK_PROTOCOL}://`)) ?? null;
+    return argv.find(a => isAuthCallbackUrl(a)) ?? null;
 }
 
 function deliverDeepLink(url: string) {
+    if (!isAuthCallbackUrl(url)) return;
     if (mainWindowRef && !mainWindowRef.isDestroyed()) {
         mainWindowRef.webContents.send('deep-link', url);
         if (mainWindowRef.isMinimized()) mainWindowRef.restore();
@@ -91,8 +95,10 @@ import {
     createRingBufferTransport,
     initCrashReporter,
     initIpcInstrumentation,
+    instrumentedHandle,
     metrics,
 } from '@sekel/observability';
+import { ALLOWED_PERMISSIONS, isExternalWebUrl, isTrustedRendererUrl } from './main/security';
 import { createMenu } from './menu';
 import { initDatabase } from './main/db/index';
 import { setupAIHandlers } from './ipc/ai';
@@ -106,7 +112,6 @@ import { setupCloudBackupHandlers } from './ipc/cloudBackup';
 import * as cloudBackup from './main/backup/cloudBackup';
 import { setupClassifyHandlers } from './ipc/classify';
 import { setupExamHandlers } from './ipc/exam';
-import { setupAdminHandlers } from './ipc/admin';
 import { setupPlanHandlers } from './ipc/plan';
 import { cleanupStaleTempDirs } from './main/import/tempCleanup';
 import { fetchMediaByFilename, abandonAllOpenSessions } from './main/db/service';
@@ -182,7 +187,46 @@ initCrashReporter({
     showErrorDialog: (title, message) => dialog.showErrorBox(title, message),
 });
 
-initIpcInstrumentation(ipcMain, log);
+// ---------------------------------------------------------------------------
+// Trust boundary. The renderer uses a memory router, so the window never
+// legitimately navigates away from index.html. Any navigation elsewhere (a
+// link inside an imported card, a redirect) would re-run the preload and hand
+// the foreign page the full window.electronAPI — so it is blocked, and IPC
+// from any frame that isn't our own page is refused.
+// ---------------------------------------------------------------------------
+
+const RENDERER_FILE = path.join(__dirname, '../renderer/index.html');
+// The dev-server override is only honoured for unpackaged builds; otherwise an
+// env var could point a shipped app at a remote page with full IPC access.
+const DEV_SERVER_URL = app.isPackaged ? undefined : process.env.ELECTRON_RENDERER_URL;
+const isTrustedUrl = (url: string): boolean =>
+    isTrustedRendererUrl(url, { rendererFile: RENDERER_FILE, devServerUrl: DEV_SERVER_URL });
+
+initIpcInstrumentation(ipcMain, log, {
+    validateSender: (event) => isTrustedUrl(event?.senderFrame?.url ?? ''),
+});
+
+app.on('web-contents-created', (_event, contents) => {
+    contents.on('will-navigate', (event) => {
+        if (isTrustedUrl(event.url)) return;
+        event.preventDefault();
+        log.warn('Blocked in-window navigation', { url: event.url });
+        if (isExternalWebUrl(event.url)) shell.openExternal(event.url);
+    });
+    contents.on('will-redirect', (event) => {
+        if (isTrustedUrl(event.url)) return;
+        event.preventDefault();
+        log.warn('Blocked in-window redirect', { url: event.url });
+    });
+    contents.on('will-attach-webview', (event) => event.preventDefault());
+    // window.open() / target="_blank" links go to the user's default browser
+    // instead of a new BrowserWindow. Used by the update modal's release-notes
+    // links and by links inside card content.
+    contents.setWindowOpenHandler(({ url }) => {
+        if (isExternalWebUrl(url)) shell.openExternal(url);
+        return { action: 'deny' };
+    });
+});
 
 const createWindow = () => {
     const store = new Store();
@@ -229,16 +273,8 @@ const createWindow = () => {
     // unsynced reviews (subject to the 1/hour cap).
     cloudBackup.startIdleMonitor(mainWindow);
 
-    // Route any window.open() / target="_blank" link clicks to the user's
-    // default browser instead of letting Electron open a new BrowserWindow.
-    // Used by the auto-update modal's release-notes links (GitHub PRs etc.),
-    // and any future external links rendered into the UI.
-    mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-        if (url.startsWith('http://') || url.startsWith('https://')) {
-            shell.openExternal(url);
-        }
-        return { action: 'deny' };
-    });
+    // Navigation, redirect and window.open() handling for this window is
+    // installed globally in the 'web-contents-created' handler above.
 
     // Save window state on close
     mainWindow.on('close', () => {
@@ -247,10 +283,10 @@ const createWindow = () => {
         if (mainWindowRef === mainWindow) mainWindowRef = null;
     });
 
-    if (process.env.ELECTRON_RENDERER_URL) {
-        mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL);
+    if (DEV_SERVER_URL) {
+        mainWindow.loadURL(DEV_SERVER_URL);
     } else {
-        mainWindow.loadFile(path.join(__dirname, '../renderer/index.html'));
+        mainWindow.loadFile(RENDERER_FILE);
     }
 
     createMenu();
@@ -280,9 +316,17 @@ app.whenReady().then(() => {
         log.warn('Failed to register .spkg file association', { error: err instanceof Error ? err.message : String(err) });
     }
 
+    // Deny every renderer permission request (camera, microphone, geolocation,
+    // device access…) except the few the UI actually uses. Electron grants
+    // these by default, which would let any injected page use them silently.
+    session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) => {
+        callback(ALLOWED_PERMISSIONS.has(permission));
+    });
+    session.defaultSession.setPermissionCheckHandler((_wc, permission) => ALLOWED_PERMISSIONS.has(permission));
+
     // Renderer asks for the cold-start deep link once it mounts. Returning
     // here also clears the buffer so we don't redeliver on reload.
-    ipcMain.handle('deep-link:get-initial', () => {
+    instrumentedHandle('deep-link:get-initial', () => {
         const url = pendingDeepLink;
         pendingDeepLink = null;
         return url;
@@ -356,7 +400,6 @@ app.whenReady().then(() => {
         ['cloudBackup', setupCloudBackupHandlers],
         ['classify', setupClassifyHandlers],
         ['exam', setupExamHandlers],
-        ['admin', setupAdminHandlers],
         ['plan', setupPlanHandlers],
     ] as const;
     for (const [name, setup] of handlers) {
@@ -406,17 +449,12 @@ app.whenReady().then(() => {
         });
     }
 
-    ipcMain.handle('update:install', () => {
+    instrumentedHandle('update:install', () => {
         autoUpdater.quitAndInstall();
     });
 
     // Expose metrics snapshot for diagnostics
-    ipcMain.handle('obs:getMetrics', () => metrics.getSnapshot());
-    ipcMain.handle('obs:isAdmin', (_e, email: string) =>
-        typeof process.env.ADMIN_EMAIL === 'string' &&
-        process.env.ADMIN_EMAIL.length > 0 &&
-        email === process.env.ADMIN_EMAIL,
-    );
+    instrumentedHandle('obs:getMetrics', () => metrics.getSnapshot());
 
     createWindow();
 

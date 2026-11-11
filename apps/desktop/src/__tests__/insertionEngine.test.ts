@@ -106,7 +106,12 @@ function makeRevlog(id: number, cid: number, opts: Partial<AnkiReviewLog> = {}):
     };
 }
 
+// 2021-01-01T00:00:00Z — a realistic collection creation time, well after 2006.
+const DEFAULT_CRT = 1609459200;
+const DAY_MS = 86400000;
+
 function makeCollection(opts: {
+    crt?: number;
     decks?: AnkiDeck[];
     models?: AnkiModel[];
     notes?: AnkiNote[];
@@ -121,6 +126,7 @@ function makeCollection(opts: {
     const notes = new Map<number, AnkiNote>();
     for (const n of opts.notes ?? []) notes.set(n.id, n);
     return {
+        crt: opts.crt ?? DEFAULT_CRT,
         decks,
         models,
         deckConfigs: new Map(),
@@ -171,6 +177,47 @@ describe('executeImport — basic insertion', () => {
         const decks = testDb.prepare("SELECT * FROM decks WHERE user_id = ?").all(USER) as { anki_id: number }[];
         expect(decks).toHaveLength(1);
         expect(decks[0].anki_id).toBe(2001);
+    });
+
+    it("imports cards in Anki's built-in Default deck (id=1)", () => {
+        const collection = makeCollection({
+            models: [makeModel(1001)],
+            notes: [makeNote(3001, 1001)],
+            cards: [makeCard(4001, 3001, 1)],
+        });
+
+        const result = executeImport(makeOptions(collection, [
+            makeDeckOption(1, { deckName: 'Default' }),
+        ]), USER);
+
+        expect(result.decksCreated).toBe(1);
+        expect(result.cardsInserted).toBe(1);
+        const deck = testDb.prepare('SELECT name, anki_id FROM decks WHERE user_id = ?').get(USER);
+        expect(deck).toEqual({ name: 'Default', anki_id: 1 });
+    });
+
+    it('re-importing a Default deck merges into it instead of aborting', () => {
+        const first = makeCollection({
+            models: [makeModel(1001)],
+            notes: [makeNote(3001, 1001)],
+            cards: [makeCard(4001, 3001, 1)],
+        });
+        executeImport(makeOptions(first, [makeDeckOption(1, { deckName: 'Default' })]), USER);
+
+        // Every Anki collection's Default deck has id=1; the renderer doesn't
+        // flag it as a conflict, so conflict stays null.
+        const second = makeCollection({
+            models: [makeModel(1001)],
+            notes: [makeNote(3001, 1001), makeNote(3002, 1001)],
+            cards: [makeCard(4001, 3001, 1), makeCard(4002, 3002, 1)],
+        });
+        const result = executeImport(makeOptions(second, [makeDeckOption(1, { deckName: 'Default' })]), USER);
+
+        expect(result.decksCreated).toBe(0);
+        expect(result.notesSkipped).toBe(1);
+        expect(result.notesInserted).toBe(1);
+        const count = testDb.prepare('SELECT COUNT(*) AS n FROM cards WHERE user_id = ?').get(USER);
+        expect(count).toEqual({ n: 2 });
     });
 
     it('returns zero counts when no decks are selected', () => {
@@ -325,6 +372,141 @@ describe('executeImport — conflict strategies', () => {
     });
 });
 
+describe('executeImport — note identity (anki_guid)', () => {
+    /** Cloze-style note 3001 with sibling cards split across two decks. */
+    function splitSiblingCollection(opts: { revlog?: AnkiReviewLog[] } = {}) {
+        const model: AnkiModel = {
+            ...makeModel(1001, 'Cloze'),
+            type: 1,
+            tmpls: [{ ord: 0, name: 'Cloze', qfmt: '{{cloze:Text}}', afmt: '{{cloze:Text}}' }],
+        };
+        // "Leeches" sorts before "Science::Bio" (shallower), so it's processed first.
+        const home = makeDeck(2002, 'Science::Bio');
+        const leeches = makeDeck(2001, 'Leeches');
+        const note = makeNote(3001, 1001);
+        const c1 = makeCard(4001, 3001, 2002, { ord: 0 });
+        const c2 = makeCard(4002, 3001, 2001, { ord: 1 });
+        const c3 = makeCard(4003, 3001, 2002, { ord: 2 });
+        return makeCollection({
+            decks: [home, leeches],
+            models: [model],
+            notes: [note],
+            cards: [c2, c1, c3],
+            revlog: opts.revlog,
+        });
+    }
+
+    it('inserts a note once when its sibling cards span two decks', () => {
+        const collection = splitSiblingCollection();
+
+        const result = executeImport(makeOptions(collection, [
+            makeDeckOption(2001),
+            makeDeckOption(2002),
+        ]), USER);
+
+        expect(result.notesInserted).toBe(1);
+        expect(result.cardsInserted).toBe(3);
+        type Row = { anki_id: number; note_id: string; deck_anki_id: number };
+        const rows = testDb.prepare(`
+            SELECT c.anki_id, c.note_id, d.anki_id AS deck_anki_id
+            FROM cards c JOIN notes n ON n.id = c.note_id JOIN decks d ON d.id = n.deck_id
+            WHERE c.user_id = ? ORDER BY c.anki_id
+        `).all(USER) as Row[];
+        expect(new Set(rows.map(r => r.note_id)).size).toBe(1);
+        // The note (and so all its cards) lives in the deck of its lowest-ord card.
+        expect(rows.map(r => r.deck_anki_id)).toEqual([2002, 2002, 2002]);
+    });
+
+    it('imports only the selected sibling cards when one of the decks is deselected', () => {
+        const collection = splitSiblingCollection();
+
+        const result = executeImport(makeOptions(collection, [
+            makeDeckOption(2001),
+            makeDeckOption(2002, { selected: false }),
+        ]), USER);
+
+        expect(result.notesInserted).toBe(1);
+        expect(result.cardsInserted).toBe(1);
+        const deck = testDb.prepare(`
+            SELECT d.anki_id FROM notes n JOIN decks d ON d.id = n.deck_id WHERE n.user_id = ?
+        `).get(USER) as { anki_id: number };
+        expect(deck.anki_id).toBe(2001);
+    });
+
+    it('keeps per-deck scheduling and reviews for sibling cards in a different deck', () => {
+        const collection = splitSiblingCollection({ revlog: [makeRevlog(1700000000000, 4002)] });
+        collection.cards = collection.cards.map(c =>
+            c.id === 4002 ? { ...c, type: 2, queue: 2, ivl: 9, due: 1000 } : c,
+        );
+
+        const result = executeImport(makeOptions(collection, [
+            makeDeckOption(2001, { scheduling: 'keep' }),
+            makeDeckOption(2002, { scheduling: 'fresh' }),
+        ]), USER);
+
+        expect(result.reviewsInserted).toBe(1);
+        const card = testDb.prepare('SELECT state FROM cards WHERE anki_id = 4002').get() as { state: string };
+        expect(card.state).toBe('review');
+        // The review is attributed to the Sekel deck the card actually lives in.
+        const review = testDb.prepare(`
+            SELECT d.anki_id FROM reviews r JOIN decks d ON d.id = r.deck_id
+        `).get() as { anki_id: number };
+        expect(review.anki_id).toBe(2002);
+    });
+
+    it('lets a second local account import the same deck', () => {
+        const OTHER = 'user-test-other';
+        const build = () => makeCollection({
+            decks: [makeDeck(2001, 'Shared')],
+            models: [makeModel(1001)],
+            notes: [makeNote(3001, 1001)],
+            cards: [makeCard(4001, 3001, 2001)],
+        });
+
+        executeImport(makeOptions(build(), [makeDeckOption(2001)]), USER);
+        const second = executeImport(makeOptions(build(), [makeDeckOption(2001)]), OTHER);
+
+        expect(second.notesInserted).toBe(1);
+        expect(second.cardsInserted).toBe(1);
+        const owners = testDb.prepare("SELECT user_id FROM notes WHERE anki_guid = 'guid-3001' ORDER BY user_id")
+            .all() as { user_id: string }[];
+        expect(owners.map(o => o.user_id)).toEqual([OTHER, USER].sort());
+    });
+
+    it('skips (instead of aborting on) a note the user already has in another deck', () => {
+        // First package: note 3001 lives in deck 2001.
+        executeImport(makeOptions(makeCollection({
+            decks: [makeDeck(2001, 'Old')],
+            models: [makeModel(1001)],
+            notes: [makeNote(3001, 1001)],
+            cards: [makeCard(4001, 3001, 2001)],
+        }), [makeDeckOption(2001)]), USER);
+
+        // Second package: same note (guid) now in a different deck, plus a new note.
+        const result = executeImport(makeOptions(makeCollection({
+            decks: [makeDeck(2005, 'New')],
+            models: [makeModel(1001)],
+            notes: [makeNote(3001, 1001), makeNote(3002, 1001)],
+            cards: [makeCard(4001, 3001, 2005), makeCard(4002, 3002, 2005)],
+        }), [makeDeckOption(2005)]), USER);
+
+        expect(result.notesSkipped).toBe(1);
+        expect(result.notesInserted).toBe(1);
+        expect(result.cardsInserted).toBe(1);
+    });
+
+    it('enforces anki_guid uniqueness per user, not globally', () => {
+        const insert = testDb.prepare(`
+            INSERT INTO notes (id, user_id, deck_id, note_type_id, anki_guid, created_at, updated_at)
+            VALUES (?, ?, 'deck', 'nt', 'same-guid', 'now', 'now')
+        `);
+        testDb.pragma('foreign_keys = OFF');
+        insert.run('n1', 'user-a');
+        expect(() => insert.run('n2', 'user-b')).not.toThrow();
+        expect(() => insert.run('n3', 'user-a')).toThrow(/UNIQUE constraint failed/);
+    });
+});
+
 describe('executeImport — scheduling', () => {
     it('fresh: all cards inserted with state=new and zero stability', () => {
         const model = makeModel(1001);
@@ -372,6 +554,91 @@ describe('executeImport — scheduling', () => {
         const cards = testDb.prepare("SELECT state, stability FROM cards WHERE user_id = ?").all(USER) as CardRow[];
         expect(cards[0].state).toBe('new');
         expect(cards[0].stability).toBe(0);
+    });
+});
+
+describe('executeImport — due dates (keep scheduling)', () => {
+    type CardRow = { state: string; due: string; last_review: string | null; anki_meta: string };
+
+    /** Imports a single card (with one revlog entry) and returns its row. */
+    function importOne(card: Partial<AnkiCard>, opts: { crt?: number; revlogIds?: number[]; scheduling?: 'keep' | 'fresh' } = {}): CardRow {
+        const collection = makeCollection({
+            crt: opts.crt,
+            decks: [makeDeck(2001, 'Bio')],
+            models: [makeModel(1001)],
+            notes: [makeNote(3001, 1001)],
+            cards: [makeCard(4001, 3001, 2001, card)],
+            revlog: (opts.revlogIds ?? [1700000000000]).map(id => makeRevlog(id, 4001)),
+        });
+        executeImport(makeOptions(collection, [makeDeckOption(2001, { scheduling: opts.scheduling ?? 'keep' })]), USER);
+        return testDb.prepare('SELECT state, due, last_review, anki_meta FROM cards WHERE user_id = ?').get(USER) as CardRow;
+    }
+
+    it('review card due is a day number relative to col.crt, not 2006-01-01', () => {
+        const row = importOne({ type: 2, queue: 2, ivl: 30, due: 1000 });
+        expect(row.state).toBe('review');
+        expect(row.due).toBe(new Date(DEFAULT_CRT * 1000 + 1000 * DAY_MS).toISOString());
+        expect(row.due).toBe('2023-09-28T00:00:00.000Z');
+    });
+
+    it('a review card due today in Anki is due today, not ~15 years overdue', () => {
+        const crt = Math.floor(Date.UTC(2021, 0, 1) / 1000);
+        const todayDays = Math.floor((Date.now() - crt * 1000) / DAY_MS);
+        const row = importOne({ type: 2, queue: 2, ivl: 10, due: todayDays }, { crt });
+        const dueMs = Date.parse(row.due);
+        expect(Math.abs(dueMs - Date.now())).toBeLessThan(DAY_MS);
+    });
+
+    it('intraday learning card (queue 1) due is Unix seconds', () => {
+        const row = importOne({ type: 1, queue: 1, due: 1700000000 });
+        expect(row.state).toBe('learning');
+        expect(row.due).toBe(new Date(1700000000 * 1000).toISOString());
+    });
+
+    it('interday learning card (queue 3) due is a day number relative to col.crt', () => {
+        const row = importOne({ type: 3, queue: 3, due: 1200 });
+        expect(row.state).toBe('relearning');
+        expect(row.due).toBe(new Date(DEFAULT_CRT * 1000 + 1200 * DAY_MS).toISOString());
+    });
+
+    it('suspended review card keeps its crt-relative due and its queue in anki_meta', () => {
+        const row = importOne({ type: 2, queue: -1, ivl: 30, due: 1000 });
+        // Sekel has no suspended state: the card comes back active…
+        expect(row.state).toBe('review');
+        expect(row.due).toBe(new Date(DEFAULT_CRT * 1000 + 1000 * DAY_MS).toISOString());
+        // …but the original queue is preserved for export.
+        expect(JSON.parse(row.anki_meta).queue).toBe(-1);
+    });
+
+    it('buried intraday learning card keeps its Unix-seconds due', () => {
+        const row = importOne({ type: 1, queue: -3, due: 1700000000 });
+        expect(row.due).toBe(new Date(1700000000 * 1000).toISOString());
+    });
+
+    it('falls back to now for an out-of-range due instead of throwing', () => {
+        const before = Date.now();
+        const row = importOne({ type: 2, queue: 2, ivl: 30, due: 2_000_000_000 });
+        expect(Date.parse(row.due)).toBeGreaterThanOrEqual(before - 1000);
+    });
+
+    it('sets last_review to the latest revlog time for the card', () => {
+        const row = importOne(
+            { type: 2, queue: 2, ivl: 30, due: 1000 },
+            { revlogIds: [1690000000000, 1700000000000, 1695000000000] },
+        );
+        expect(row.last_review).toBe(new Date(1700000000000).toISOString());
+    });
+
+    it('leaves last_review null for cards imported fresh', () => {
+        const row = importOne({ type: 2, queue: 2, ivl: 30, due: 1000 }, { scheduling: 'fresh' });
+        expect(row.state).toBe('new');
+        expect(row.last_review).toBeNull();
+    });
+
+    it('leaves last_review null for a card that is new in Anki despite history', () => {
+        const row = importOne({ type: 0, queue: 0, due: 5 });
+        expect(row.state).toBe('new');
+        expect(row.last_review).toBeNull();
     });
 });
 
@@ -477,6 +744,47 @@ describe('executeImport — review log insertion', () => {
         ]), USER);
 
         expect(result.reviewsInserted).toBe(1);
+    });
+
+    it('attaches review logs without scanning the card list per revlog row', () => {
+        const model = makeModel(1001);
+        const decks: AnkiDeck[] = [];
+        const notes: AnkiNote[] = [];
+        const cards: AnkiCard[] = [];
+        const revlog: AnkiReviewLog[] = [];
+        for (let d = 0; d < 20; d++) decks.push(makeDeck(2000 + d, `Deck ${d}`));
+        for (let i = 0; i < 2000; i++) {
+            notes.push(makeNote(10000 + i, 1001));
+            cards.push(makeCard(20000 + i, 10000 + i, 2000 + (i % 20), { type: 2, queue: 2, ivl: 5, due: 1000 }));
+            for (let r = 0; r < 5; r++) revlog.push(makeRevlog(1600000000000 + i * 10 + r, 20000 + i));
+        }
+        // Linear scans over the card list per deck / per revlog row made large
+        // imports O(revlogs × cards) inside one transaction.
+        const findSpy = vi.spyOn(cards, 'find');
+        const filterSpy = vi.spyOn(cards, 'filter');
+        const collection = makeCollection({ decks, models: [model], notes, cards, revlog });
+
+        const result = executeImport(
+            makeOptions(collection, decks.map(d => makeDeckOption(d.id, { scheduling: 'keep' }))),
+            USER,
+        );
+
+        expect(result.cardsInserted).toBe(2000);
+        expect(result.reviewsInserted).toBe(10000);
+        expect(findSpy).not.toHaveBeenCalled();
+        expect(filterSpy.mock.calls.length).toBeLessThanOrEqual(1);
+        // Reviews are attached to the right card.
+        const times = testDb.prepare(`
+            SELECT r.review_time FROM reviews r JOIN cards c ON c.id = r.card_id
+            WHERE c.anki_id = 20123 ORDER BY r.review_time
+        `).all() as { review_time: string }[];
+        expect(times.map(t => t.review_time)).toEqual(
+            [0, 1, 2, 3, 4].map(r => new Date(1600000000000 + 123 * 10 + r).toISOString()),
+        );
+        const perCard = testDb.prepare(
+            'SELECT MIN(cnt) AS lo, MAX(cnt) AS hi FROM (SELECT COUNT(*) AS cnt FROM reviews GROUP BY card_id)',
+        ).get() as { lo: number; hi: number };
+        expect(perCard).toEqual({ lo: 5, hi: 5 });
     });
 
     it('sets review_time from revlog id (Unix ms timestamp)', () => {

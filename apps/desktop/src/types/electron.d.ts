@@ -341,6 +341,8 @@ export interface SekelImportResult {
     reviewsInserted: number;
     sessionsInserted: number;
     mediaExtracted: number;
+    /** Non-fatal problems (e.g. media files that were skipped). */
+    warnings: string[];
 }
 
 export interface BackupInfo {
@@ -348,20 +350,27 @@ export interface BackupInfo {
     filePath: string;
     timestamp: string;
     sizeBytes: number;
+    /** 'manual' = user-created (never pruned); 'auto' = app restore point (newest 10 kept). */
+    kind: 'manual' | 'auto';
 }
 
 export interface RestoreResult {
     success: boolean;
     safetyBackup?: BackupInfo;
     error?: string;
+    /** True when the restore failed after the swap and the previous data was put back. */
+    rolledBack?: boolean;
 }
 
 interface ElectronBackup {
     list:           () => Promise<BackupInfo[]>;
     create:         () => Promise<BackupInfo | null>;
-    restore:        (filePath: string) => Promise<RestoreResult>;
+    /** Restores the backup with this filename (from list()); paths are rejected. */
+    restore:        (filename: string) => Promise<RestoreResult>;
     delete:         (filename: string) => Promise<boolean>;
     getTotalSize:   () => Promise<number>;
+    /** Relaunch the app (used right after a successful restore). */
+    restart:        () => Promise<void>;
     onCreated:      (cb: (info: BackupInfo) => void) => () => void;
     onOpenRestore:  (cb: () => void) => () => void;
 }
@@ -498,14 +507,6 @@ interface ElectronExam {
 
 interface ElectronObs {
     getMetrics: () => Promise<import('@sekel/observability').MetricSnapshot>;
-    isAdmin:    (email: string) => Promise<boolean>;
-}
-
-interface ElectronAdmin {
-    getOverview:   (email: string) => Promise<import('../ipc/admin').AdminOverview>;
-    getUsers:      (email: string) => Promise<import('../ipc/admin').AdminUserRow[]>;
-    getUserDetail: (email: string, userId: string) => Promise<import('../ipc/admin').AdminUserDetail>;
-    getFeedback:   (email: string) => Promise<(import('@sekel/db').Feedback & { user_email: string })[]>;
 }
 
 // ── Plan Mode ─────────────────────────────────────────────────────────────────
@@ -679,7 +680,6 @@ interface ElectronAPI {
     import: ElectronImport;
     db: ElectronDB;
     obs: ElectronObs;
-    admin: ElectronAdmin;
     yield: ElectronYield;
     backup: ElectronBackup;
     cloudBackup: ElectronCloudBackup;

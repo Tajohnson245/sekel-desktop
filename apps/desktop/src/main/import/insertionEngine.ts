@@ -24,15 +24,20 @@ import type {
     AnkiReviewLog,
 } from './types';
 import { sanitizeNoteFields, sanitizeTemplateHtml } from './sanitizeFields';
+import { queueFromType } from './parser';
 
-// Anki stores review-card due dates as "days since 2006-01-01 UTC"
-const ANKI_EPOCH_MS = 1136073600000;
+const MS_PER_DAY = 86400000;
+/** Largest magnitude a JS Date can represent. */
+const MAX_DATE_MS = 8.64e15;
 
 export interface ImportResult {
     decksCreated: number;
     decksSkipped: number;
     notesInserted: number;
-    /** Notes skipped during merge because they already exist in the collection. */
+    /**
+     * Notes skipped because the user already has a note with the same Anki guid
+     * (merge-mode re-imports, or the note was imported earlier via another deck).
+     */
     notesSkipped: number;
     cardsInserted: number;
     reviewsInserted: number;
@@ -116,17 +121,35 @@ export function executeImport(
     const totalCards = parsedData.cards.filter(c => selectedOptions.has(c.did)).length;
     const totalRevlogs = parsedData.revlog.length;
 
-    // Cards that actually have review history. In 'keep' mode, a card with no
-    // history starts as new regardless of its Anki type, so shared/prebuilt decks
-    // (whose cards may carry type=review with no personal revlog) don't import as a
-    // wall of spuriously-due cards. (SEKEL-138)
-    const cardsWithHistory = new Set<number>(parsedData.revlog.map(r => r.cid));
+    // Latest review (revlog id = Unix ms) per card that actually has review
+    // history. In 'keep' mode, a card with no history starts as new regardless of
+    // its Anki type, so shared/prebuilt decks (whose cards may carry type=review
+    // with no personal revlog) don't import as a wall of spuriously-due cards.
+    // (SEKEL-138)
+    const lastReviewMsByCard = new Map<number, number>();
+    for (const r of parsedData.revlog) {
+        const prev = lastReviewMsByCard.get(r.cid);
+        if (prev === undefined || r.id > prev) lastReviewMsByCard.set(r.cid, r.id);
+    }
+
+    // Group cards by deck once — filtering/finding per deck or per revlog row is
+    // O(decks × cards) / O(revlogs × cards) and freezes big collections.
+    const cardsByDeck = new Map<number, AnkiCard[]>();
+    for (const card of parsedData.cards) {
+        let group = cardsByDeck.get(card.did);
+        if (!group) { group = []; cardsByDeck.set(card.did, group); }
+        group.push(card);
+    }
 
     // Maps built during card insertion for use when inserting review logs
     const ankiCardIdToSekelCardId = new Map<number, string>();
     const ankiCardIdToSekelDeckId = new Map<number, string>();
+    const ankiCardIdToAnkiDeckId = new Map<number, number>();
     // Tracks which anki deck ids used 'keep' scheduling (only those get review logs)
     const keepSchedulingDeckIds = new Set<number>();
+    // Anki deck id → Sekel deck id for every deck whose cards get imported
+    // (skipped decks are absent). Iteration order follows sortedDeckIds.
+    const importedDeckIds = new Map<number, string>();
 
     const tx = db.transaction(() => {
         onProgress?.('inserting-decks', `Creating ${sortedDeckIds.length} deck(s)`, 30);
@@ -181,122 +204,130 @@ export function executeImport(
             }
 
             nameToSekelId.set(ankiDeck.name, sekelDeckId);
+            importedDeckIds.set(ankiDeckId, sekelDeckId);
             if (opt.scheduling === 'keep') keepSchedulingDeckIds.add(ankiDeckId);
+        }
 
-            // Report note type / notes progress once per deck
-            if (result.cardsInserted === 0) {
-                onProgress?.('inserting-notes', `Importing notes and cards...`, 35);
-            }
+        onProgress?.('inserting-notes', `Importing notes and cards...`, 35);
 
-            // All Anki cards belonging to this deck
-            const ankiCards = parsedData.cards.filter(c => c.did === ankiDeckId);
-
-            // Group cards by note id
-            const cardsByNote = new Map<number, AnkiCard[]>();
-            for (const card of ankiCards) {
+        // Group the cards of every imported deck by note. A note's cards can span
+        // several Anki decks (cloze siblings split by a Leech or filtered deck,
+        // per-template deck overrides), but Sekel ties decks to notes, not cards —
+        // so each note is inserted ONCE and all of its imported cards attach to it.
+        const cardsByNote = new Map<number, AnkiCard[]>();
+        for (const ankiDeckId of importedDeckIds.keys()) {
+            for (const card of cardsByDeck.get(ankiDeckId) ?? []) {
                 let group = cardsByNote.get(card.nid);
                 if (!group) { group = []; cardsByNote.set(card.nid, group); }
                 group.push(card);
             }
+        }
 
-            const now = new Date().toISOString();
+        const now = new Date().toISOString();
 
-            for (const [ankiNoteId, cards] of cardsByNote) {
-                const ankiNote = parsedData.notes.get(ankiNoteId);
-                if (!ankiNote) continue;
+        for (const [ankiNoteId, cards] of cardsByNote) {
+            const ankiNote = parsedData.notes.get(ankiNoteId);
+            if (!ankiNote) continue;
 
-                // Merge mode: skip notes already imported (identified by anki_guid)
-                if (opt.conflict === 'merge' && existing) {
-                    if (findNoteByGuid.get(userId, ankiNote.guid)) {
-                        result.notesSkipped++;
-                        continue;
-                    }
-                }
+            // Skip notes this user already has (anki_guid is unique per user):
+            // merge-mode re-imports, or a note already imported via another deck
+            // or package. Inserting it again would abort the whole import.
+            if (findNoteByGuid.get(userId, ankiNote.guid)) {
+                result.notesSkipped++;
+                continue;
+            }
 
-                // Ensure NoteType exists (upsert by anki_id)
-                let noteType = noteTypeCache.get(ankiNote.mid);
-                if (!noteType) {
-                    const model = parsedData.models.get(ankiNote.mid);
-                    if (!model) continue;
-                    noteType = createNoteType({
-                        user_id: userId,
-                        name: model.name,
-                        anki_id: model.id,
-                        fields: model.flds.map(f => ({ name: f.name })),
-                        card_templates: model.tmpls.map(t => ({
-                            name: t.name,
-                            front_template: sanitizeTemplateHtml(t.qfmt),
-                            back_template: sanitizeTemplateHtml(t.afmt),
-                        })),
-                        anki_meta: JSON.stringify({
-                            css: model.css,
-                            type: model.type,
-                            mod: model.mod,
-                            fields: model.flds.map(f => ({ name: f.name, sticky: f.sticky, font: f.font, size: f.size })),
-                            templates: model.tmpls.map(t => ({ name: t.name, bqfmt: t.bqfmt, bafmt: t.bafmt })),
-                        }),
-                    });
-                    noteTypeCache.set(ankiNote.mid, noteType);
-                }
+            // Ensure NoteType exists (upsert by anki_id)
+            let noteType = noteTypeCache.get(ankiNote.mid);
+            if (!noteType) {
+                const model = parsedData.models.get(ankiNote.mid);
+                if (!model) continue;
+                noteType = createNoteType({
+                    user_id: userId,
+                    name: model.name,
+                    anki_id: model.id,
+                    fields: model.flds.map(f => ({ name: f.name })),
+                    card_templates: model.tmpls.map(t => ({
+                        name: t.name,
+                        front_template: sanitizeTemplateHtml(t.qfmt),
+                        back_template: sanitizeTemplateHtml(t.afmt),
+                    })),
+                    anki_meta: JSON.stringify({
+                        css: model.css,
+                        type: model.type,
+                        mod: model.mod,
+                        fields: model.flds.map(f => ({ name: f.name, sticky: f.sticky, font: f.font, size: f.size })),
+                        templates: model.tmpls.map(t => ({ name: t.name, bqfmt: t.bqfmt, bafmt: t.bafmt })),
+                    }),
+                });
+                noteTypeCache.set(ankiNote.mid, noteType);
+            }
 
-                // Insert note (with anki_id + anki_guid for future dedup/sync)
-                const noteId = randomUUID();
-                insertNote.run(
-                    noteId,
+            // The note lives in the deck of its lowest-ord card (the first
+            // template / cloze, i.e. where Anki users normally "keep" the note).
+            cards.sort((a, b) => a.ord - b.ord || a.id - b.id);
+            const sekelDeckId = importedDeckIds.get(cards[0].did)!;
+
+            // Insert note (with anki_id + anki_guid for future dedup/sync)
+            const noteId = randomUUID();
+            insertNote.run(
+                noteId,
+                userId,
+                sekelDeckId,
+                noteType.id,
+                sanitizeNoteFields(ankiNote.fields),
+                JSON.stringify(ankiNote.tags),
+                ankiNoteId,
+                ankiNote.guid,
+                JSON.stringify({ mod: ankiNote.mod }),
+                now,
+                now,
+            );
+            result.notesInserted++;
+
+            // Insert one Sekel card per Anki card (preserves multi-template notes).
+            // Scheduling follows the options chosen for the card's own Anki deck.
+            for (const ankiCard of cards) {
+                const opt = selectedOptions.get(ankiCard.did)!;
+                const cardId = randomUUID();
+                const { state, due, stability, difficulty, scheduledDays, easeFactor, lastReview } =
+                    mapScheduling(ankiCard, opt, parsedData.crt, lastReviewMsByCard.get(ankiCard.id));
+
+                insertCard.run(
+                    cardId,
                     userId,
-                    sekelDeckId,
-                    noteType.id,
-                    sanitizeNoteFields(ankiNote.fields),
-                    JSON.stringify(ankiNote.tags),
-                    ankiNoteId,
-                    ankiNote.guid,
-                    JSON.stringify({ mod: ankiNote.mod }),
+                    noteId,
+                    ankiCard.ord,        // template_index
+                    state,
+                    due,
+                    stability,
+                    difficulty,
+                    Math.max(ankiCard.ivl, 0),  // elapsed_days
+                    scheduledDays,
+                    ankiCard.reps,
+                    ankiCard.lapses,
+                    lastReview,
+                    ankiCard.id,         // anki_id
+                    JSON.stringify({ queue: ankiCard.queue, mod: ankiCard.mod }),
+                    easeFactor,
                     now,
                     now,
                 );
-                result.notesInserted++;
+                result.cardsInserted++;
+                ankiCardIdToSekelCardId.set(ankiCard.id, cardId);
+                ankiCardIdToSekelDeckId.set(ankiCard.id, sekelDeckId);
+                ankiCardIdToAnkiDeckId.set(ankiCard.id, ankiCard.did);
 
-                // Insert one Sekel card per Anki card (preserves multi-template notes)
-                for (const ankiCard of cards) {
-                    const cardId = randomUUID();
-                    const { state, due, stability, difficulty, scheduledDays, easeFactor } =
-                        mapScheduling(ankiCard, opt, cardsWithHistory.has(ankiCard.id));
-
-                    insertCard.run(
-                        cardId,
-                        userId,
-                        noteId,
-                        ankiCard.ord,        // template_index
-                        state,
-                        due,
-                        stability,
-                        difficulty,
-                        Math.max(ankiCard.ivl, 0),  // elapsed_days
-                        scheduledDays,
-                        ankiCard.reps,
-                        ankiCard.lapses,
-                        null,                // last_review
-                        ankiCard.id,         // anki_id
-                        JSON.stringify({ queue: ankiCard.queue, mod: ankiCard.mod }),
-                        easeFactor,
-                        now,
-                        now,
+                // Report progress every 100 cards
+                if (result.cardsInserted % 100 === 0) {
+                    const cardPercent = totalCards > 0
+                        ? 35 + Math.round((result.cardsInserted / totalCards) * 45)
+                        : 35;
+                    onProgress?.(
+                        'inserting-cards',
+                        `${result.cardsInserted.toLocaleString()} / ${totalCards.toLocaleString()} cards`,
+                        Math.min(cardPercent, 80),
                     );
-                    result.cardsInserted++;
-                    ankiCardIdToSekelCardId.set(ankiCard.id, cardId);
-                    ankiCardIdToSekelDeckId.set(ankiCard.id, sekelDeckId);
-
-                    // Report progress every 100 cards
-                    if (result.cardsInserted % 100 === 0) {
-                        const cardPercent = totalCards > 0
-                            ? 35 + Math.round((result.cardsInserted / totalCards) * 45)
-                            : 35;
-                        onProgress?.(
-                            'inserting-cards',
-                            `${result.cardsInserted.toLocaleString()} / ${totalCards.toLocaleString()} cards`,
-                            Math.min(cardPercent, 80),
-                        );
-                    }
                 }
             }
         }
@@ -311,9 +342,8 @@ export function executeImport(
                 if (!sekelCardId) continue; // card was not imported (different deck or deselected)
 
                 const deckId = ankiCardIdToSekelDeckId.get(revlog.cid)!;
-                // Determine which anki deck this card belongs to — skip if 'fresh' scheduling
-                const ankiCard = parsedData.cards.find(c => c.id === revlog.cid);
-                if (!ankiCard || !keepSchedulingDeckIds.has(ankiCard.did)) continue;
+                // Skip cards whose anki deck used 'fresh' scheduling
+                if (!keepSchedulingDeckIds.has(ankiCardIdToAnkiDeckId.get(revlog.cid)!)) continue;
 
                 insertReviewLog.run(
                     randomUUID(),
@@ -378,15 +408,26 @@ interface SchedulingValues {
     difficulty: number;
     scheduledDays: number;
     easeFactor: number | null;
+    lastReview: string | null;
 }
 
-function mapScheduling(ankiCard: AnkiCard, opt: ImportOptionsDeck, hasHistory: boolean): SchedulingValues {
+/**
+ * @param crt          Collection creation time (col.crt, Unix seconds).
+ * @param lastReviewMs Latest revlog id (Unix ms) for this card, or undefined
+ *                     when the card has no review history.
+ */
+function mapScheduling(
+    ankiCard: AnkiCard,
+    opt: ImportOptionsDeck,
+    crt: number,
+    lastReviewMs: number | undefined,
+): SchedulingValues {
     const now = new Date().toISOString();
 
     // Reset to new when the user chose 'fresh', OR (in 'keep' mode) when the card
     // has no review history — "no data → new". Cards with real history keep their
     // schedule below.
-    if (opt.scheduling === 'fresh' || !hasHistory) {
+    if (opt.scheduling === 'fresh' || lastReviewMs === undefined) {
         return {
             state: 'new',
             due: now,
@@ -394,12 +435,13 @@ function mapScheduling(ankiCard: AnkiCard, opt: ImportOptionsDeck, hasHistory: b
             difficulty: 0,
             scheduledDays: 0,
             easeFactor: null,
+            lastReview: null,
         };
     }
 
     // Keep scheduling: map Anki state + compute due date
     const state = mapAnkiState(ankiCard.type);
-    const due = computeDue(ankiCard, now);
+    const due = computeDue(ankiCard, crt, now);
     const ivl = Math.max(ankiCard.ivl, 0);
 
     // FSRS approximation: stability ≈ interval, difficulty derived from ease factor
@@ -417,6 +459,8 @@ function mapScheduling(ankiCard: AnkiCard, opt: ImportOptionsDeck, hasHistory: b
         difficulty,
         scheduledDays: ivl,
         easeFactor,
+        // A card reset to new in Anki has no "last review" for scheduling purposes.
+        lastReview: state === 'new' ? null : toIsoOr(lastReviewMs, null),
     };
 }
 
@@ -471,18 +515,35 @@ function mapFactorToDifficulty(factor: number): number {
     return Math.max(0, Math.min(10, (3500 - factor) / 200));
 }
 
-function computeDue(ankiCard: AnkiCard, now: string): string {
-    if (ankiCard.type === 0) return now;
+/**
+ * Converts an Anki card's `due` into an ISO timestamp. The unit depends on the
+ * queue, not the type: intraday learning (1) and preview (4) store Unix
+ * seconds; review (2) and interday learning (3) store days since the
+ * collection was created (col.crt). Filtered-deck cards were already restored
+ * to their home-deck due by the parser.
+ */
+function computeDue(ankiCard: AnkiCard, crt: number, now: string): string {
+    // Sekel has no suspended/buried state, so such cards come back active
+    // (anki_meta.queue keeps the original for export). Their `due` keeps the
+    // units of the queue they'd be restored to.
+    const queue = ankiCard.queue < 0
+        ? queueFromType(ankiCard.type, ankiCard.due)
+        : ankiCard.queue;
 
-    if (ankiCard.type === 2) {
-        // Review: due is days since Anki epoch (2006-01-01)
-        return new Date(ANKI_EPOCH_MS + ankiCard.due * 86400000).toISOString();
+    switch (queue) {
+        case 1:
+        case 4:
+            return ankiCard.due > 0 ? toIsoOr(ankiCard.due * 1000, now) : now;
+        case 2:
+        case 3:
+            return toIsoOr(crt * 1000 + ankiCard.due * MS_PER_DAY, now);
+        default:
+            return now;
     }
+}
 
-    if ((ankiCard.type === 1 || ankiCard.type === 3) && ankiCard.due > 0) {
-        // Learning/relearning: due is Unix timestamp in seconds
-        return new Date(ankiCard.due * 1000).toISOString();
-    }
-
-    return now;
+/** ISO string for a Unix-ms value, or `fallback` when it isn't a valid date. */
+function toIsoOr<T extends string | null>(ms: number | undefined, fallback: T): string | T {
+    if (ms === undefined || !Number.isFinite(ms) || Math.abs(ms) > MAX_DATE_MS) return fallback;
+    return new Date(ms).toISOString();
 }

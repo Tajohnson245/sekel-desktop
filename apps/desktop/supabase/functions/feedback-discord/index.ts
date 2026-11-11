@@ -11,6 +11,7 @@
 //   - SUPABASE_SERVICE_ROLE_KEY
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.95.3';
+import { sharedSecretMatches, trustedPublicObjectUrl } from '../_shared/security.ts';
 
 interface FeedbackRecord {
     id: string;
@@ -64,9 +65,7 @@ function formatTicketId(n: number): string {
 }
 
 Deno.serve(async (req) => {
-    const expectedSecret = Deno.env.get('WEBHOOK_SECRET');
-    const incomingSecret = req.headers.get('x-webhook-secret');
-    if (!expectedSecret || incomingSecret !== expectedSecret) {
+    if (!(await sharedSecretMatches(req, 'x-webhook-secret', Deno.env.get('WEBHOOK_SECRET')))) {
         return new Response('forbidden', { status: 403 });
     }
 
@@ -133,8 +132,14 @@ Deno.serve(async (req) => {
         });
     }
 
-    if (fb.screenshot_url) {
-        fields.push({ name: 'Screenshot', value: fb.screenshot_url, inline: false });
+    // screenshot_url is client-written. Only link or embed it if it points at
+    // our own feedback-screenshots bucket.
+    const screenshotUrl = trustedPublicObjectUrl(fb.screenshot_url, 'feedback-screenshots');
+    if (screenshotUrl) {
+        fields.push({ name: 'Screenshot', value: screenshotUrl, inline: false });
+    } else if (fb.screenshot_url) {
+        console.warn('omitting untrusted screenshot_url', { id: fb.id });
+        fields.push({ name: 'Screenshot', value: '(omitted: not a project storage URL)', inline: false });
     }
 
     const embed: Record<string, unknown> = {
@@ -145,8 +150,8 @@ Deno.serve(async (req) => {
         timestamp:   fb.created_at,
         footer:      { text: `Row ID: ${fb.id}` },
     };
-    if (fb.screenshot_url) {
-        embed.image = { url: fb.screenshot_url };
+    if (screenshotUrl) {
+        embed.image = { url: screenshotUrl };
     }
 
     const discordRes = await fetch(discordUrl, {

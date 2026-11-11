@@ -135,13 +135,25 @@ export interface AnkiCard {
     id: number;
     /** Note id — maps to AnkiNote.id. */
     nid: number;
-    /** Deck id — maps to AnkiDeck.id. */
+    /**
+     * Deck id — maps to AnkiDeck.id. For a card sitting in a filtered deck this
+     * is already its home deck (Anki's `odid`), resolved by the parser.
+     */
     did: number;
     /** Template ordinal — maps to AnkiModel.tmpls[ord]. */
     ord: number;
     /** 0=new, 1=learning, 2=review, 3=relearning */
     type: number;
+    /**
+     * -3/-2=buried, -1=suspended, 0=new, 1=intraday learning, 2=review,
+     * 3=interday learning, 4=preview.
+     */
     queue: number;
+    /**
+     * Meaning depends on `queue`: new → position, intraday learning → epoch
+     * seconds, review / interday learning → days since the collection's `crt`.
+     * For filtered-deck cards this is already the home-deck due (`odue`).
+     */
     due: number;
     ivl: number;
     factor: number;
@@ -166,6 +178,11 @@ export interface AnkiReviewLog {
 }
 
 export interface AnkiCollection {
+    /**
+     * Collection creation time (col.crt), Unix seconds. Review and interday
+     * learning card `due` values are day numbers relative to this.
+     */
+    crt: number;
     models: Map<number, AnkiModel>;
     decks: Map<number, AnkiDeck>;
     deckConfigs: Map<number, AnkiDeckConfig>;
@@ -218,9 +235,14 @@ export interface ImportOptionsPayload {
     decks: ImportOptionsDeck[];
     /** How to handle the Anki deck hierarchy during import. */
     hierarchyMode: 'subdecks' | 'individual';
+    /** Echoed back by the renderer but ignored by main, which uses its own cached map. */
     mediaMap: Record<string, string>;
+    /** Echoed back by the renderer but ignored by main. */
     mediaFilePaths: string[];
-    /** tempDir from ApkgImportResult — used as cache key for AnkiCollection lookup. */
+    /**
+     * tempDir from ApkgImportResult — used only as the cache key for main's
+     * import session (collection + media map). Never trusted as a path.
+     */
     tempDir: string;
     /** Sekel user id — needed by Phase 6 to write to the correct user's rows. */
     userId: string;

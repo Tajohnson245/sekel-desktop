@@ -34,6 +34,7 @@
 // inside the Resend dashboard template, including case).
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.95.3';
+import { sharedSecretMatches, trustedPublicObjectUrl } from '../_shared/security.ts';
 
 interface FeedbackRecord {
     id: string;
@@ -100,9 +101,7 @@ function escapeHtml(s: string): string {
 }
 
 Deno.serve(async (req) => {
-    const expectedSecret = Deno.env.get('WEBHOOK_SECRET');
-    const incomingSecret = req.headers.get('x-webhook-secret');
-    if (!expectedSecret || incomingSecret !== expectedSecret) {
+    if (!(await sharedSecretMatches(req, 'x-webhook-secret', Deno.env.get('WEBHOOK_SECRET')))) {
         return new Response('forbidden', { status: 403 });
     }
 
@@ -166,11 +165,17 @@ Deno.serve(async (req) => {
           </div>`
         : '';
 
-    const screenshotRow = fb.screenshot_url
+    // screenshot_url is client-written. Only link it if it points at our own
+    // feedback-screenshots bucket; otherwise drop the row.
+    const screenshotUrl = trustedPublicObjectUrl(fb.screenshot_url, 'feedback-screenshots');
+    if (fb.screenshot_url && !screenshotUrl) {
+        console.warn('omitting untrusted screenshot_url', { id: fb.id });
+    }
+    const screenshotRow = screenshotUrl
         ? `<div class="receipt-row">
             <span class="receipt-row-label">Screenshot</span>
             <span class="receipt-row-value">
-              <a href="${escapeHtml(fb.screenshot_url)}" class="screenshot-link">View screenshot &rarr;</a>
+              <a href="${escapeHtml(screenshotUrl)}" class="screenshot-link">View screenshot &rarr;</a>
             </span>
           </div>`
         : '';

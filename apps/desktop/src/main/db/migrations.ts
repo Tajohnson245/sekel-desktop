@@ -641,6 +641,62 @@ export const MIGRATIONS: string[] = [
     ALTER TABLE deck_sessions ADD COLUMN scope TEXT;
     ALTER TABLE deck_sessions ADD COLUMN system_keys TEXT;
     `,
+    // Migration — scope Anki note-guid uniqueness to the user (SEKEL-145).
+    // Migration 003 made notes.anki_guid unique across ALL users, so a second
+    // local account importing the same shared deck aborted with
+    // "UNIQUE constraint failed: notes.anki_guid". Rows that satisfied the
+    // global index trivially satisfy the per-user one.
+    `
+    DROP INDEX IF EXISTS idx_notes_anki_guid;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_notes_user_anki_guid
+        ON notes(user_id, anki_guid) WHERE anki_guid IS NOT NULL;
+    `,
+    // Migration — repair due dates of Anki review cards imported before
+    // SEKEL-145. The importer treated Anki's review due (days since the
+    // collection's creation, col.crt) as days since 2006-01-01, so those cards
+    // came in years overdue. col.crt was never stored, so the due is rebuilt
+    // from the imported Anki review log instead (rows with no session and an
+    // Anki review_type): latest scheduling review (learn/review/relearn/
+    // filtered with a positive interval) + its interval. Manual/rescheduled
+    // entries (types 4/5) are ignored — their interval isn't the due offset.
+    // Only cards carrying the old formula's exact signature are touched:
+    // Anki-imported, review state, never reviewed in Sekel (last_review NULL —
+    // the old importer always wrote NULL and any Sekel review sets it), and a
+    // due at exactly midnight UTC. last_review is backfilled from the same log.
+    // Learning-state cards are left alone (their dues were either correct or
+    // already in the past, i.e. due now).
+    `
+    UPDATE cards
+       SET due = (
+               SELECT strftime('%Y-%m-%dT%H:%M:%fZ', r.review_time, '+' || r.scheduled_days || ' days')
+                 FROM reviews r
+                WHERE r.card_id = cards.id
+                  AND r.session_id IS NULL
+                  AND r.review_type IN (0, 1, 2, 3)
+                  AND r.scheduled_days > 0
+                ORDER BY r.review_time DESC
+                LIMIT 1
+           ),
+           last_review = (
+               SELECT MAX(r.review_time)
+                 FROM reviews r
+                WHERE r.card_id = cards.id
+                  AND r.session_id IS NULL
+                  AND r.review_type IN (0, 1, 2, 3)
+           ),
+           updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+     WHERE anki_id IS NOT NULL
+       AND state = 'review'
+       AND last_review IS NULL
+       AND due LIKE '____-__-__T00:00:00.000Z'
+       AND EXISTS (
+               SELECT 1 FROM reviews r
+                WHERE r.card_id = cards.id
+                  AND r.session_id IS NULL
+                  AND r.review_type IN (0, 1, 2, 3)
+                  AND r.scheduled_days > 0
+           );
+    `,
     // Migration — persist FSRS learning-step position (SEKEL-153). ts-fsrs v5
     // tracks which (re)learning step a card is on in card.learning_steps; it
     // was never stored, so every load restarted at step 0 and a learning card
