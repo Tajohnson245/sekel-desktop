@@ -179,6 +179,47 @@ describe('executeImport — basic insertion', () => {
         expect(decks[0].anki_id).toBe(2001);
     });
 
+    it("imports cards in Anki's built-in Default deck (id=1)", () => {
+        const collection = makeCollection({
+            models: [makeModel(1001)],
+            notes: [makeNote(3001, 1001)],
+            cards: [makeCard(4001, 3001, 1)],
+        });
+
+        const result = executeImport(makeOptions(collection, [
+            makeDeckOption(1, { deckName: 'Default' }),
+        ]), USER);
+
+        expect(result.decksCreated).toBe(1);
+        expect(result.cardsInserted).toBe(1);
+        const deck = testDb.prepare('SELECT name, anki_id FROM decks WHERE user_id = ?').get(USER);
+        expect(deck).toEqual({ name: 'Default', anki_id: 1 });
+    });
+
+    it('re-importing a Default deck merges into it instead of aborting', () => {
+        const first = makeCollection({
+            models: [makeModel(1001)],
+            notes: [makeNote(3001, 1001)],
+            cards: [makeCard(4001, 3001, 1)],
+        });
+        executeImport(makeOptions(first, [makeDeckOption(1, { deckName: 'Default' })]), USER);
+
+        // Every Anki collection's Default deck has id=1; the renderer doesn't
+        // flag it as a conflict, so conflict stays null.
+        const second = makeCollection({
+            models: [makeModel(1001)],
+            notes: [makeNote(3001, 1001), makeNote(3002, 1001)],
+            cards: [makeCard(4001, 3001, 1), makeCard(4002, 3002, 1)],
+        });
+        const result = executeImport(makeOptions(second, [makeDeckOption(1, { deckName: 'Default' })]), USER);
+
+        expect(result.decksCreated).toBe(0);
+        expect(result.notesSkipped).toBe(1);
+        expect(result.notesInserted).toBe(1);
+        const count = testDb.prepare('SELECT COUNT(*) AS n FROM cards WHERE user_id = ?').get(USER);
+        expect(count).toEqual({ n: 2 });
+    });
+
     it('returns zero counts when no decks are selected', () => {
         const model = makeModel(1001);
         const deck = makeDeck(2001, 'Science');
