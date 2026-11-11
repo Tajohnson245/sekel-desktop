@@ -1119,6 +1119,8 @@
         "new_done": "Vous avez terminé les nouvelles cartes du jour ({{done}}/{{target}}) — les nouvelles cartes reprennent demain.",
         "new_left": "Encore {{count}} nouvelles cartes aujourd'hui.",
         "nothing_due": "Rien à réviser pour l'instant",
-        "finish_learning": "Terminer l'apprentissage ({{count}}) →"
+        "finish_learning": "Terminer l'apprentissage ({{count}}) →",
+        "exam_today": "{{exam}} a lieu aujourd'hui",
+        "exam_passed": "{{exam}} est passé"
     }
 }

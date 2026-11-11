@@ -1119,6 +1119,8 @@
         "new_done": "今天的新卡片已完成（{{done}}/{{target}}）——明天继续学习新卡片。",
         "new_left": "今天还剩 {{count}} 张新卡片。",
         "nothing_due": "当前没有到期卡片",
-        "finish_learning": "完成学习（{{count}}）→"
+        "finish_learning": "完成学习（{{count}}）→",
+        "exam_today": "{{exam}} 就在今天",
+        "exam_passed": "{{exam}} 已结束"
     }
 }
