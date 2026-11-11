@@ -1,20 +1,49 @@
 /**
  * Card Classification Service
  *
- * Classifies flashcards into an exam blueprint taxonomy using GPT-4.1 Mini.
- * Writes results to the card_classifications table in SQLite.
+ * Maps flashcards onto an exam blueprint (systems / topics) with GPT-4.1 Mini
+ * and stores the result in the card_classifications table in SQLite.
+ *
+ * Two steps (prompts and answer checking live in main/ai/classification.ts):
+ *   1. Deck screening: one request per deck with ~25 evenly spread notes asks
+ *      whether the cards are material this exam tests. Decks below the
+ *      relevance threshold are skipped and reported in `skippedDecks`, unless
+ *      the caller passes `skipRelevanceCheck` ("Classify anyway").
+ *   2. Classification: 10 cards per request, with the deck name. Each card is
+ *      marked exam-relevant or not; only relevant cards get systems/topics.
+ *      Off-exam cards are stored as a row with no system, so they're not
+ *      re-sent next time and are counted as "not related".
+ *
+ * Every write replaces the card's previous rows for that exam, so re-running
+ * never leaves stale classifications behind.
  */
 
 import { instrumentedHandle, trackedCompletion, createLogger, consoleTransport } from '@sekel/observability';
 import type { OpenAI } from 'openai';
 import { createProxiedOpenAI, isBatchStoppingAiError, requireAiSession } from '../main/ai/openaiClient';
+import {
+    CLASSIFIER_VERSION,
+    CLASSIFY_BATCH_SIZE,
+    MIN_NOTES_TO_SCREEN,
+    SCREEN_SAMPLE_SIZE,
+    buildClassificationMessages,
+    buildScreeningMessages,
+    cardTextFromFields,
+    isConfidentlyMapped,
+    isDeckRelevant,
+    parseClassificationResponse,
+    parseScreeningResponse,
+    pickEvenlySpaced,
+    type CardOutcome,
+    type TaxonomySystem,
+} from '../main/ai/classification';
 
 const log = createLogger({ module: 'classify', transports: [consoleTransport] });
 import { getDb } from '../main/db/index';
 import { CARD_WITH_NOTE_SQL, buildCardWithNote, getSystemPerformanceNeeds, fetchDeckYieldMix } from '../main/db/service';
-import { yieldCteBody, toYieldLevel } from '../main/db/yieldSql';
+import { yieldCteBody, toYieldLevel, MIN_YIELD_CONFIDENCE } from '../main/db/yieldSql';
 import { daysUntilExamLocal } from '../lib/planMath';
-import type { SessionQueueCard } from '../types/electron';
+import type { BatchClassifyResult, SkippedDeck, SessionQueueCard } from '../types/electron';
 
 // ── OpenAI lazy singleton (same pattern as ai.ts) ──────────────────────────
 // Calls go through the ai-proxy edge function as the signed-in user.
@@ -30,45 +59,26 @@ function getOpenAI(): OpenAI {
 }
 
 const MODEL = 'gpt-4.1-mini';
+const MODEL_VERSION = `${MODEL}#${CLASSIFIER_VERSION}`;
+/** SQLite's default limit on bound parameters is 999; stay well under it. */
+const SQL_CHUNK = 500;
 
-const SYSTEM_PROMPT =
-    'You are a medical education content classifier. Your job is to classify flashcard content into a structured exam blueprint taxonomy. You will be given a flashcard (front and back) and a blueprint taxonomy. Return ONLY a JSON object. If the card maps cleanly to one system, return: { exam_key, system_key, topic_key, confidence, reasoning }. If the card spans multiple systems, return: { exam_key, multi_system: true, classifications: [{ system_key, topic_key, confidence, split_weight, reasoning }] } where split_weight values sum to 1.0. Confidence reflects how cleanly the card maps (0.0–1.0). If the card is off-blueprint, return system_key: \'other\' with confidence < 0.3. Never return markdown, code blocks, or any text outside the JSON object.';
-
-// ── Types ───────────────────────────────────────────────────────────────────
-
-interface SingleClassification {
-    exam_key: string;
-    system_key: string;
-    topic_key: string;
-    confidence: number;
-    reasoning: string;
+export interface ClassifyBatchOptions {
+    /** Classify every deck even if screening says it isn't exam material. */
+    skipRelevanceCheck?: boolean;
 }
 
-interface MultiClassification {
-    exam_key: string;
-    multi_system: true;
-    classifications: Array<{
-        system_key: string;
-        topic_key: string;
-        confidence: number;
-        split_weight: number;
-        reasoning: string;
-    }>;
+// ── Exam context ────────────────────────────────────────────────────────────
+
+interface ExamContext {
+    examId: number;
+    examKey: string;
+    examLabel: string;
+    taxonomy: TaxonomySystem[];
+    systemIds: Map<string, number>;
+    /** `${system_key}/${topic_key}` → topic id */
+    topicIds: Map<string, number>;
 }
-
-type ClassificationResponse = SingleClassification | MultiClassification;
-
-interface TaxonomySystem {
-    system_key: string;
-    label: string;
-    topics: Array<{
-        topic_key: string;
-        label: string;
-        physician_task: string | null;
-    }>;
-}
-
-// ── Helpers ─────────────────────────────────────────────────────────────────
 
 /**
  * Look up the primary exam key for the user who owns a given card.
@@ -86,216 +96,328 @@ function resolveExamKeyForCard(cardId: string): string {
     return row?.exam_key ?? 'step1';
 }
 
-function fetchCardContent(cardId: string): { front: string; back: string } {
-    const row = getDb().prepare(`
-        SELECT n.fields AS note_fields
-        FROM cards c
-        JOIN notes n ON c.note_id = n.id
-        WHERE c.id = ?
-    `).get(cardId) as { note_fields: string } | undefined;
-
-    if (!row) throw new Error(`Card not found: ${cardId}`);
-
-    const fields = JSON.parse(row.note_fields) as Record<string, string>;
-    const front = fields.Front ?? fields.front ?? Object.values(fields)[0] ?? '';
-    const back = fields.Back ?? fields.back ?? Object.values(fields)[1] ?? '';
-    return { front, back };
-}
-
-function loadBlueprintTaxonomy(examKey: string): { examId: number; taxonomy: TaxonomySystem[] } {
+function loadExamContext(examKey: string): ExamContext {
     const examRow = getDb().prepare(
-        'SELECT id FROM blueprint_exams WHERE exam_key = ?'
-    ).get(examKey) as { id: number } | undefined;
-
+        'SELECT id, label FROM blueprint_exams WHERE exam_key = ?'
+    ).get(examKey) as { id: number; label: string } | undefined;
     if (!examRow) throw new Error(`Exam not found: ${examKey}`);
 
     const rows = getDb().prepare(`
-        SELECT
-            bs.system_key, bs.label AS system_label,
-            bt.topic_key, bt.label AS topic_label, bt.physician_task
+        SELECT bs.id AS system_id, bs.system_key, bs.label AS system_label,
+               bt.id AS topic_id, bt.topic_key, bt.label AS topic_label
         FROM blueprint_systems bs
         LEFT JOIN blueprint_topics bt ON bt.system_id = bs.id
         WHERE bs.exam_id = ?
         ORDER BY bs.system_key, bt.topic_key
     `).all(examRow.id) as Array<{
-        system_key: string;
-        system_label: string;
-        topic_key: string | null;
-        topic_label: string | null;
-        physician_task: string | null;
+        system_id: number; system_key: string; system_label: string;
+        topic_id: number | null; topic_key: string | null; topic_label: string | null;
     }>;
 
-    const systemMap = new Map<string, TaxonomySystem>();
-    for (const row of rows) {
-        let sys = systemMap.get(row.system_key);
+    const systems = new Map<string, TaxonomySystem>();
+    const systemIds = new Map<string, number>();
+    const topicIds = new Map<string, number>();
+    for (const r of rows) {
+        let sys = systems.get(r.system_key);
         if (!sys) {
-            sys = { system_key: row.system_key, label: row.system_label, topics: [] };
-            systemMap.set(row.system_key, sys);
+            sys = { system_key: r.system_key, label: r.system_label, topics: [] };
+            systems.set(r.system_key, sys);
+            systemIds.set(r.system_key, r.system_id);
         }
-        if (row.topic_key) {
-            sys.topics.push({
-                topic_key: row.topic_key,
-                label: row.topic_label!,
-                physician_task: row.physician_task,
-            });
+        if (r.topic_key && r.topic_id !== null) {
+            sys.topics.push({ topic_key: r.topic_key, label: r.topic_label ?? r.topic_key });
+            topicIds.set(`${r.system_key}/${r.topic_key}`, r.topic_id);
         }
     }
-
-    const taxonomy = Array.from(systemMap.values());
+    const taxonomy = [...systems.values()];
     if (taxonomy.length === 0) throw new Error(`No systems found for exam: ${examKey}`);
-
-    return { examId: examRow.id, taxonomy };
+    return { examId: examRow.id, examKey, examLabel: examRow.label, taxonomy, systemIds, topicIds };
 }
 
-function resolveSystemId(examId: number, systemKey: string): number | null {
-    if (systemKey === 'other') return null;
-    const row = getDb().prepare(
-        'SELECT id FROM blueprint_systems WHERE exam_id = ? AND system_key = ?'
-    ).get(examId, systemKey) as { id: number } | undefined;
-    return row?.id ?? null;
+// ── Card loading ────────────────────────────────────────────────────────────
+
+interface CardRow {
+    cardId: string;
+    deckId: string;
+    deckName: string;
+    fields: string;
 }
 
-function resolveTopicId(systemId: number | null, topicKey: string): number | null {
-    if (!systemId) return null;
-    const row = getDb().prepare(
-        'SELECT id FROM blueprint_topics WHERE system_id = ? AND topic_key = ?'
-    ).get(systemId, topicKey) as { id: number } | undefined;
-    return row?.id ?? null;
+function chunks<T>(items: T[], size: number): T[][] {
+    const out: T[][] = [];
+    for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+    return out;
 }
 
-function upsertClassification(
-    cardId: string,
-    examId: number,
-    response: ClassificationResponse,
-): void {
-    const now = new Date().toISOString();
+/** Cards with their deck, in the order given. Unknown ids are dropped. */
+function loadCardRows(cardIds: string[]): CardRow[] {
+    const byId = new Map<string, CardRow>();
+    for (const part of chunks(cardIds, SQL_CHUNK)) {
+        const rows = getDb().prepare(`
+            SELECT c.id AS card_id, n.deck_id, d.name AS deck_name, n.fields
+            FROM cards c
+            JOIN notes n ON n.id = c.note_id
+            JOIN decks d ON d.id = n.deck_id
+            WHERE c.id IN (${part.map(() => '?').join(',')})
+        `).all(...part) as Array<{ card_id: string; deck_id: string; deck_name: string; fields: string }>;
+        for (const r of rows) byId.set(r.card_id, { cardId: r.card_id, deckId: r.deck_id, deckName: r.deck_name, fields: r.fields });
+    }
+    return cardIds.map((id) => byId.get(id)).filter((r): r is CardRow => r !== undefined);
+}
+
+/** An evenly spread sample of a deck's notes (notes, so a cloze's siblings don't repeat). */
+function loadDeckSample(deckId: string, size: number): { totalNotes: number; fields: string[] } {
     const db = getDb();
+    const { n } = db.prepare('SELECT COUNT(*) AS n FROM notes WHERE deck_id = ?').get(deckId) as { n: number };
+    const picks = pickEvenlySpaced(n, size).map((i) => i + 1);
+    if (picks.length === 0) return { totalNotes: n, fields: [] };
+    const rows = db.prepare(`
+        SELECT fields FROM (
+            SELECT fields, ROW_NUMBER() OVER (ORDER BY created_at, id) AS rn
+            FROM notes WHERE deck_id = ?
+        ) WHERE rn IN (${picks.map(() => '?').join(',')})
+        ORDER BY rn
+    `).all(deckId, ...picks) as Array<{ fields: string }>;
+    return { totalNotes: n, fields: rows.map((r) => r.fields) };
+}
 
-    const isMulti = 'multi_system' in response && response.multi_system === true;
+// ── Storage ─────────────────────────────────────────────────────────────────
 
-    const upsert = db.prepare(`
+/** Replaces the card's rows for this exam with the outcome (mapped or off-exam). */
+function storeOutcome(cardId: string, ctx: ExamContext, outcome: Extract<CardOutcome, { kind: 'mapped' | 'off_exam' }>, now: string): void {
+    const db = getDb();
+    const insert = db.prepare(`
         INSERT INTO card_classifications
             (card_id, exam_id, system_id, topic_id, confidence, split_weight, classified_at, model_version)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(card_id, exam_id, system_id) DO UPDATE SET
-            topic_id      = excluded.topic_id,
-            confidence    = excluded.confidence,
-            split_weight  = excluded.split_weight,
-            classified_at = excluded.classified_at,
-            model_version = excluded.model_version
     `);
-
-    const deleteExisting = db.prepare(
-        'DELETE FROM card_classifications WHERE card_id = ? AND exam_id = ?'
-    );
-
-    if (isMulti) {
-        const multi = response as MultiClassification;
-        db.transaction(() => {
-            deleteExisting.run(cardId, examId);
-            for (const c of multi.classifications) {
-                const systemId = resolveSystemId(examId, c.system_key);
-                const topicId = resolveTopicId(systemId, c.topic_key);
-                upsert.run(cardId, examId, systemId, topicId, c.confidence, c.split_weight, now, MODEL);
-            }
-        })();
-    } else {
-        const single = response as SingleClassification;
-        const systemId = resolveSystemId(examId, single.system_key);
-        const topicId = resolveTopicId(systemId, single.topic_key);
-        upsert.run(cardId, examId, systemId, topicId, single.confidence, 1.0, now, MODEL);
-    }
+    db.transaction(() => {
+        db.prepare('DELETE FROM card_classifications WHERE card_id = ? AND exam_id = ?').run(cardId, ctx.examId);
+        if (outcome.kind === 'off_exam') {
+            insert.run(cardId, ctx.examId, null, null, 0, 1.0, now, MODEL_VERSION);
+            return;
+        }
+        for (const c of outcome.classifications) {
+            const systemId = ctx.systemIds.get(c.systemKey) ?? null;
+            const topicId = c.topicKey ? ctx.topicIds.get(`${c.systemKey}/${c.topicKey}`) ?? null : null;
+            insert.run(cardId, ctx.examId, systemId, topicId, c.confidence, c.splitWeight, now, MODEL_VERSION);
+        }
+    })();
 }
 
-// ── Core Functions ──────────────────────────────────────────────────────────
+/** Deletes classifications for these cards and exam. Returns how many cards had any. */
+function clearClassifications(cardIds: string[], examId: number): number {
+    const db = getDb();
+    let cards = 0;
+    for (const part of chunks(cardIds, SQL_CHUNK)) {
+        const marks = part.map(() => '?').join(',');
+        const { n } = db.prepare(
+            `SELECT COUNT(DISTINCT card_id) AS n FROM card_classifications WHERE exam_id = ? AND card_id IN (${marks})`
+        ).get(examId, ...part) as { n: number };
+        db.prepare(`DELETE FROM card_classifications WHERE exam_id = ? AND card_id IN (${marks})`).run(examId, ...part);
+        cards += n;
+    }
+    return cards;
+}
 
-async function classifyCard(
-    cardId: string,
-    examKey?: string,
-): Promise<ClassificationResponse> {
-    const resolvedExamKey = examKey ?? resolveExamKeyForCard(cardId);
-    const { front, back } = fetchCardContent(cardId);
-    const { examId, taxonomy } = loadBlueprintTaxonomy(resolvedExamKey);
+// ── AI calls ────────────────────────────────────────────────────────────────
 
+/**
+ * Screens a deck. Returns null when the deck is too small to judge or the
+ * reply was unusable (the per-card check still protects those cards).
+ * Throws on request errors so the caller can decide whether to stop.
+ */
+async function screenDeck(deckId: string, deckName: string, ctx: ExamContext): Promise<Omit<SkippedDeck, 'cardCount'> & { isRelevant: boolean } | null> {
+    const sample = loadDeckSample(deckId, SCREEN_SAMPLE_SIZE);
+    if (sample.totalNotes < MIN_NOTES_TO_SCREEN) return null;
+    const cards = sample.fields.map((f) => cardTextFromFields(f));
+
+    const response = await trackedCompletion({
+        operation: 'classify-screen',
+        logger: log,
+        call: getOpenAI().chat.completions.create({
+            model: MODEL,
+            temperature: 0,
+            response_format: { type: 'json_object' },
+            messages: buildScreeningMessages({
+                examLabel: ctx.examLabel,
+                scope: ctx.taxonomy.map((s) => s.label),
+                deckName,
+                cards,
+            }),
+        }),
+    });
+    const parsed = parseScreeningResponse(response.choices[0]?.message?.content, cards.length);
+    if (!parsed) {
+        log.warn('Deck screening reply unusable; classifying with the per-card check only', { deckId });
+        return null;
+    }
+    return {
+        deckId,
+        deckName,
+        sampled: parsed.judged,
+        relevant: parsed.relevant,
+        subject: parsed.subject,
+        isRelevant: isDeckRelevant(parsed),
+    };
+}
+
+async function classifyChunk(rows: CardRow[], deckName: string, ctx: ExamContext): Promise<CardOutcome[]> {
     const response = await trackedCompletion({
         operation: 'classify',
         logger: log,
         call: getOpenAI().chat.completions.create({
             model: MODEL,
-            messages: [
-                { role: 'system', content: SYSTEM_PROMPT },
-                {
-                    role: 'user',
-                    content: `Card Front: ${front}\nCard Back: ${back}\n\nBlueprint Taxonomy:\n${JSON.stringify(taxonomy)}`,
-                },
-            ],
+            temperature: 0,
             response_format: { type: 'json_object' },
+            messages: buildClassificationMessages({
+                examLabel: ctx.examLabel,
+                deckName,
+                taxonomy: ctx.taxonomy,
+                cards: rows.map((r) => cardTextFromFields(r.fields)),
+            }),
         }),
     });
-
-    const raw = JSON.parse(response.choices[0].message.content || '{}') as ClassificationResponse;
-    upsertClassification(cardId, examId, raw);
-    return raw;
+    return parseClassificationResponse(response.choices[0]?.message?.content, rows.length, ctx.taxonomy);
 }
+
+// ── Batch entry point ───────────────────────────────────────────────────────
 
 export async function classifyCardsBatch(
     cardIds: string[],
     examKey?: string,
     force: boolean = false,
-): Promise<{ classified: number; skipped: number; errors: number }> {
-    const resolvedExamKey = examKey ?? (cardIds.length > 0 ? resolveExamKeyForCard(cardIds[0]) : 'step1');
-    const examRow = getDb().prepare(
-        'SELECT id FROM blueprint_exams WHERE exam_key = ?'
-    ).get(resolvedExamKey) as { id: number } | undefined;
-    if (!examRow) throw new Error(`Exam not found: ${resolvedExamKey}`);
+    options: ClassifyBatchOptions = {},
+): Promise<BatchClassifyResult> {
+    const result: BatchClassifyResult = {
+        classified: 0, notRelated: 0, skipped: 0, errors: 0, skippedDecks: [], stoppedEarly: false,
+    };
+    const uniqueIds = [...new Set(cardIds)];
+    if (uniqueIds.length === 0) return result;
+
+    const ctx = loadExamContext(examKey ?? resolveExamKeyForCard(uniqueIds[0]));
 
     // Fail fast when signed out rather than letting every card fail
-    // individually (which used to return {classified:0, errors:N} and read as a
-    // silent "success, 0 classified" in the UI).
-    if (cardIds.length > 0) getOpenAI();
+    // individually (which used to read as a silent "0 classified" in the UI).
+    getOpenAI();
 
-    let remaining = cardIds;
-    let skipped = 0;
-
-    if (!force && cardIds.length > 0) {
-        const placeholders = cardIds.map(() => '?').join(',');
-        const existing = getDb().prepare(
-            `SELECT DISTINCT card_id FROM card_classifications WHERE card_id IN (${placeholders}) AND exam_id = ?`
-        ).all(...cardIds, examRow.id) as Array<{ card_id: string }>;
-
-        const existingSet = new Set(existing.map(r => r.card_id));
-        remaining = cardIds.filter(id => !existingSet.has(id));
-        skipped = cardIds.length - remaining.length;
+    let remaining = uniqueIds;
+    if (!force) {
+        const existing = new Set<string>();
+        for (const part of chunks(uniqueIds, SQL_CHUNK)) {
+            const rows = getDb().prepare(
+                `SELECT DISTINCT card_id FROM card_classifications WHERE exam_id = ? AND card_id IN (${part.map(() => '?').join(',')})`
+            ).all(ctx.examId, ...part) as Array<{ card_id: string }>;
+            rows.forEach((r) => existing.add(r.card_id));
+        }
+        remaining = uniqueIds.filter((id) => !existing.has(id));
+        result.skipped = uniqueIds.length - remaining.length;
     }
 
-    let classified = 0;
-    let errors = 0;
+    const rows = loadCardRows(remaining);
+    result.errors += remaining.length - rows.length; // ids that no longer exist
 
-    for (let i = 0; i < remaining.length; i++) {
-        console.log(`[classify] ${i + 1}/${remaining.length}: ${remaining[i]}`);
-        try {
-            await classifyCard(remaining[i], resolvedExamKey);
-            classified++;
-        } catch (err) {
-            console.error(`[classify] failed for ${remaining[i]}:`, err);
-            errors++;
-            // Signed out or out of today's AI allowance: every remaining card
-            // would fail the same way. Stop; a later run skips cards that are
-            // already classified.
-            if (isBatchStoppingAiError(err)) {
-                const notTried = remaining.length - i - 1;
-                errors += notTried;
-                console.warn(`[classify] stopping early: ${notTried} cards not attempted`);
-                break;
+    const byDeck = new Map<string, CardRow[]>();
+    for (const r of rows) {
+        const list = byDeck.get(r.deckId) ?? [];
+        list.push(r);
+        byDeck.set(r.deckId, list);
+    }
+
+    const now = () => new Date().toISOString();
+    let notAttempted = rows.length;
+
+    try {
+        for (const [deckId, deckRows] of byDeck) {
+            const deckName = deckRows[0].deckName;
+
+            if (!options.skipRelevanceCheck) {
+                let screening: Awaited<ReturnType<typeof screenDeck>> = null;
+                try {
+                    screening = await screenDeck(deckId, deckName, ctx);
+                } catch (err) {
+                    if (isBatchStoppingAiError(err)) throw err;
+                    log.warn('Deck screening failed; classifying with the per-card check only', {
+                        deckId, error: err instanceof Error ? err.message : String(err),
+                    });
+                }
+                if (screening && !screening.isRelevant) {
+                    const info: SkippedDeck = {
+                        deckId,
+                        deckName,
+                        cardCount: deckRows.length,
+                        sampled: screening.sampled,
+                        relevant: screening.relevant,
+                        subject: screening.subject,
+                    };
+                    result.skippedDecks.push(info);
+                    // A forced re-run means "redo from scratch": drop the deck's
+                    // old classifications too, so earlier mistakes don't linger.
+                    if (force) clearClassifications(deckRows.map((r) => r.cardId), ctx.examId);
+                    notAttempted -= deckRows.length;
+                    log.info('Deck skipped: not exam material', {
+                        deckId, sampled: info.sampled, relevant: info.relevant, subject: info.subject,
+                    });
+                    continue;
+                }
+            }
+
+            for (const chunk of chunks(deckRows, CLASSIFY_BATCH_SIZE)) {
+                let outcomes: CardOutcome[];
+                try {
+                    outcomes = await classifyChunk(chunk, deckName, ctx);
+                } catch (err) {
+                    if (isBatchStoppingAiError(err)) throw err;
+                    log.error('Classification request failed', {
+                        deckId, cards: chunk.length, error: err instanceof Error ? err.message : String(err),
+                    });
+                    result.errors += chunk.length;
+                    notAttempted -= chunk.length;
+                    continue;
+                }
+                const stamp = now();
+                outcomes.forEach((outcome, i) => {
+                    if (outcome.kind === 'invalid') {
+                        result.errors++;
+                        log.warn('Card not classified', { cardId: chunk[i].cardId, reason: outcome.reason });
+                        return;
+                    }
+                    storeOutcome(chunk[i].cardId, ctx, outcome, stamp);
+                    if (isConfidentlyMapped(outcome)) result.classified++;
+                    else result.notRelated++;
+                });
+                notAttempted -= chunk.length;
             }
         }
-        if (i < remaining.length - 1) {
-            await new Promise(r => setTimeout(r, 200));
-        }
+    } catch (err) {
+        // Signed out or out of today's AI allowance: every remaining request
+        // would fail the same way. Stop; a later run skips finished cards.
+        result.stoppedEarly = true;
+        result.errors += notAttempted;
+        log.warn('Classification stopped early', {
+            notAttempted, error: err instanceof Error ? err.message : String(err),
+        });
     }
 
-    console.log(`[classify] Done. classified=${classified} skipped=${skipped} errors=${errors}`);
-    return { classified, skipped, errors };
+    log.info('Classification batch done', {
+        examKey: ctx.examKey,
+        classified: result.classified,
+        notRelated: result.notRelated,
+        skipped: result.skipped,
+        errors: result.errors,
+        skippedDecks: result.skippedDecks.length,
+    });
+    return result;
+}
+
+/** Removes a deck's classifications for an exam (its own cards, not subdecks). */
+export function clearDeckClassifications(deckId: string, examKey: string): { clearedCards: number } {
+    const exam = getDb().prepare('SELECT id FROM blueprint_exams WHERE exam_key = ?').get(examKey) as { id: number } | undefined;
+    if (!exam) throw new Error(`Exam not found: ${examKey}`);
+    const ids = (getDb().prepare(`
+        SELECT c.id FROM cards c JOIN notes n ON n.id = c.note_id WHERE n.deck_id = ?
+    `).all(deckId) as Array<{ id: string }>).map((r) => r.id);
+    return { clearedCards: clearClassifications(ids, exam.id) };
 }
 
 // ── Yield Scores ────────────────────────────────────────────────────────────
@@ -493,30 +615,62 @@ function buildSessionQueue(userId: string, examKey: string, limit = 200): Sessio
 
 // ── Per-deck classification count ────────────────────────────────────────────
 
-function getDeckClassificationCount(deckId: string, examKey: string): { classified: number; total: number } {
+/**
+ * classified  = cards mapped to a blueprint system with enough confidence to
+ *               get a yield level (the same rule toYieldLevel uses);
+ * notRelated  = cards that were checked but aren't exam material (off-exam,
+ *               or only low-confidence matches);
+ * total       = all of the deck's own cards.
+ */
+export function getDeckClassificationCount(
+    deckId: string,
+    examKey: string,
+): { classified: number; notRelated: number; total: number } {
     const row = getDb().prepare(`
+        WITH per_card AS (
+            SELECT
+                c.id,
+                MAX(CASE WHEN cc.card_id IS NOT NULL THEN 1 ELSE 0 END) AS checked,
+                MAX(CASE WHEN cc.system_id IS NOT NULL AND cc.confidence >= ? THEN 1 ELSE 0 END) AS mapped
+            FROM cards c
+            JOIN notes n ON c.note_id = n.id
+            JOIN blueprint_exams be ON be.exam_key = ?
+            LEFT JOIN card_classifications cc
+                ON cc.card_id = c.id AND cc.exam_id = be.id
+            WHERE n.deck_id = ?
+            GROUP BY c.id
+        )
         SELECT
-            COUNT(DISTINCT c.id)       AS total,
-            COUNT(DISTINCT cc.card_id) AS classified
-        FROM cards c
-        JOIN notes n ON c.note_id = n.id
-        JOIN blueprint_exams be ON be.exam_key = ?
-        LEFT JOIN card_classifications cc
-            ON cc.card_id = c.id AND cc.exam_id = be.id
-        WHERE n.deck_id = ?
-    `).get(examKey, deckId) as { total: number; classified: number } | undefined;
+            COUNT(*) AS total,
+            COALESCE(SUM(mapped), 0) AS classified,
+            COALESCE(SUM(CASE WHEN checked = 1 AND mapped = 0 THEN 1 ELSE 0 END), 0) AS not_related
+        FROM per_card
+    `).get(MIN_YIELD_CONFIDENCE, examKey, deckId) as { total: number; classified: number; not_related: number } | undefined;
 
-    return { classified: row?.classified ?? 0, total: row?.total ?? 0 };
+    return {
+        classified: row?.classified ?? 0,
+        notRelated: row?.not_related ?? 0,
+        total: row?.total ?? 0,
+    };
 }
 
 // ── IPC Registration ────────────────────────────────────────────────────────
 
 export function setupClassifyHandlers(): void {
+    // A single card is too small to screen as a deck; the per-card check applies.
     instrumentedHandle('yield:classify-card', (_e, cardId: string, examKey?: string) =>
-        classifyCard(cardId, examKey));
+        classifyCardsBatch([String(cardId)], examKey, true, { skipRelevanceCheck: true }));
 
-    instrumentedHandle('yield:classify-batch', (_e, cardIds: string[], examKey?: string, force?: boolean) =>
-        classifyCardsBatch(cardIds, examKey, force));
+    instrumentedHandle('yield:classify-batch', (_e, cardIds: string[], examKey?: string, force?: boolean, options?: ClassifyBatchOptions) =>
+        classifyCardsBatch(
+            Array.isArray(cardIds) ? cardIds.map(String) : [],
+            examKey,
+            force === true,
+            { skipRelevanceCheck: options?.skipRelevanceCheck === true },
+        ));
+
+    instrumentedHandle('yield:clear-deck-classifications', (_e, deckId: string, examKey: string) =>
+        clearDeckClassifications(String(deckId), String(examKey)));
 
     instrumentedHandle('yield:get-scores', (_e, examKey: string, cardIds?: string[]) =>
         getYieldScores(examKey, cardIds));

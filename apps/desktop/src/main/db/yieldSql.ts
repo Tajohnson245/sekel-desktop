@@ -84,12 +84,18 @@ export type YieldLevel = 'high' | 'medium' | 'low' | 'unclassified';
 export const YIELD_LEVEL_ORDER: Record<YieldLevel, number> = { high: 0, medium: 1, low: 2, unclassified: 3 };
 
 /**
+ * A classification below this confidence doesn't count: the card gets no yield
+ * level and isn't counted as classified (see getDeckClassificationCount).
+ */
+export const MIN_YIELD_CONFIDENCE = 0.5;
+
+/**
  * Bucket a normalized 0–100 yield score into a level. A card the model mapped with
- * low confidence (<0.5) is "unclassified" regardless of score. Thresholds are set
- * against the normalized scale: ≥66 high, ≥33 medium, else low.
+ * low confidence (<MIN_YIELD_CONFIDENCE) is "unclassified" regardless of score.
+ * Thresholds are set against the normalized scale: ≥66 high, ≥33 medium, else low.
  */
 export function toYieldLevel(score: number | null, confidence: number | null): YieldLevel {
-    if (score === null || confidence === null || confidence < 0.5) return 'unclassified';
+    if (score === null || confidence === null || confidence < MIN_YIELD_CONFIDENCE) return 'unclassified';
     if (score >= 66) return 'high';
     if (score >= 33) return 'medium';
     return 'low';
