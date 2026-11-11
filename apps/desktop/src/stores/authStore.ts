@@ -1,13 +1,13 @@
 import * as Sentry from '@sentry/electron/renderer';
 import { create } from 'zustand';
 import { supabase } from '../lib/supabase';
+import { deleteAccountViaEdgeFunction } from '../lib/accountDeletion';
 import { Session, User } from '@supabase/supabase-js';
 import {
     getSession,
     onAuthStateChange,
     signOut as authSignOut,
     updatePassword as authUpdatePassword,
-    deleteAccount as authDeleteAccount,
 } from '@sekel/db';
 
 function syncSentryUser(user: User | null) {
@@ -123,8 +123,19 @@ export const useAuthStore = create<AuthState>((set) => ({
     deleteAccount: async () => {
         set({ isLoading: true, error: null });
         try {
-            const { error } = await authDeleteAccount(supabase);
+            // The delete-account edge function removes Storage objects and
+            // the auth user. It falls back to the delete_own_account RPC only
+            // if the function can't be reached.
+            const { error, usedFallback } = await deleteAccountViaEdgeFunction(supabase);
             if (error) throw error;
+            if (usedFallback) {
+                // The account is gone but Storage objects may be left behind;
+                // flag it so they can be cleaned up.
+                Sentry.captureMessage('delete-account edge function unreachable; used delete_own_account RPC', {
+                    level: 'warning',
+                    tags: { feature: 'account-delete' },
+                });
+            }
             await authSignOut(supabase);
             set({ session: null, user: null });
         } catch (err: unknown) {
