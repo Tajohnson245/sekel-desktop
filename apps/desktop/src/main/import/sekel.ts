@@ -181,7 +181,7 @@ export async function importSekelFile(
 
     // Safety backup before any writes — gives the user a restore point if the
     // import produces unexpected results (e.g. duplicate cards, wrong scheduling).
-    await createBackup();
+    await createBackup('auto');
 
     const db = getDb();
     const result: SekelImportResult = {
