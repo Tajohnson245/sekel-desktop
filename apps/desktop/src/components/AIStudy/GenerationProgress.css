@@ -1,0 +1,274 @@
+/* ── Card shuffle loader ──────────────────────────────────────────────────
+   Three cards, one 6s cycle each, offset by 2s so they always sit in
+   different slots. Per card:
+
+     0.00–1.30s  front: loading bar fills
+     1.30–1.45s  front: bar full (brief hold)
+     1.45–2.00s  slides off to the side, then tucks in at the back
+     2.00–3.45s  back (bar resets here, out of sight)
+     3.45–4.00s  moves up to the middle
+     4.00–5.45s  middle
+     5.45–6.00s  moves up to the front
+
+   Card 2 starts 4s in (middle) and card 3 starts 2s in (back) through
+   negative delays. It loops at a fixed pace and never tracks real
+   progress. Only transform, opacity and z-index animate.
+   ──────────────────────────────────────────────────────────────────────── */
+
+.card-shuffle {
+    --cs-cycle: 6s;
+    --cs-step: 2s;
+    display: flex;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.card-shuffle--large {
+    --cs-w: 176px;
+    --cs-h: 116px;
+    --cs-peek: 12px;
+    --cs-radius: 12px;
+    --cs-pad: 16px;
+    --cs-line-h: 7px;
+    --cs-gap: 8px;
+    --cs-bar-h: 6px;
+    --cs-out-x: 85%;
+    --cs-out-y: -10%;
+    --cs-out-rot: 7deg;
+}
+
+.card-shuffle--compact {
+    --cs-w: 56px;
+    --cs-h: 38px;
+    --cs-peek: 5px;
+    --cs-radius: 6px;
+    --cs-pad: 6px;
+    --cs-line-h: 3px;
+    --cs-gap: 3px;
+    --cs-bar-h: 3px;
+    --cs-out-x: 60%;
+    --cs-out-y: -12%;
+    --cs-out-rot: 8deg;
+    /* Room on the right for the card that slides off, so it never covers
+       the label next to it or gets clipped by the settings panel. */
+    padding-right: calc(var(--cs-w) * 0.66);
+}
+
+.card-shuffle__deck {
+    position: relative;
+    width: var(--cs-w);
+    height: calc(var(--cs-h) + var(--cs-peek) * 2);
+    isolation: isolate;
+}
+
+.card-shuffle__card {
+    --cs-delay: 0s;
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: var(--cs-w);
+    height: var(--cs-h);
+    box-sizing: border-box;
+    padding: var(--cs-pad);
+    display: flex;
+    flex-direction: column;
+    gap: var(--cs-gap);
+    background: var(--panel-2, var(--secondary));
+    border: 1px solid color-mix(in srgb, var(--mist) 28%, transparent);
+    border-radius: var(--cs-radius);
+    box-shadow: var(--shadow-md);
+    transform-origin: 50% 0%;
+    will-change: transform;
+    animation:
+        card-shuffle-move var(--cs-cycle) cubic-bezier(0.4, 0, 0.2, 1) infinite,
+        card-shuffle-z var(--cs-cycle) step-end infinite;
+    animation-delay: var(--cs-delay);
+}
+
+/* Dims the cards further back toward the panel colour. An overlay rather
+   than card opacity, so stacked cards never show through each other. */
+.card-shuffle__card::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    background: var(--secondary);
+    opacity: 0;
+    pointer-events: none;
+    animation: card-shuffle-dim var(--cs-cycle) cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    animation-delay: var(--cs-delay);
+}
+
+/* Static slots double as the reduced-motion frame. */
+.card-shuffle__card:nth-child(1) {
+    z-index: 3;
+}
+
+.card-shuffle__card:nth-child(2) {
+    --cs-delay: calc(var(--cs-step) * -2);
+    z-index: 2;
+    transform: translate(0, calc(var(--cs-peek) * -1)) rotate(0deg) scale(0.92);
+}
+
+.card-shuffle__card:nth-child(2)::after {
+    opacity: 0.3;
+}
+
+.card-shuffle__card:nth-child(3) {
+    --cs-delay: calc(var(--cs-step) * -1);
+    z-index: 1;
+    transform: translate(0, calc(var(--cs-peek) * -2)) rotate(0deg) scale(0.84);
+}
+
+.card-shuffle__card:nth-child(3)::after {
+    opacity: 0.55;
+}
+
+.card-shuffle__line {
+    display: block;
+    width: 78%;
+    height: var(--cs-line-h);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--mist) 24%, transparent);
+}
+
+.card-shuffle__line--short {
+    width: 52%;
+}
+
+.card-shuffle__bar {
+    display: block;
+    margin-top: auto;
+    height: var(--cs-bar-h);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--mist) 18%, transparent);
+    overflow: hidden;
+}
+
+.card-shuffle__fill {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--teal, var(--primary));
+    transform-origin: left center;
+    transform: scaleX(0);
+    animation: card-shuffle-fill var(--cs-cycle) ease-in-out infinite;
+    animation-delay: var(--cs-delay);
+}
+
+.card-shuffle__card:nth-child(1) .card-shuffle__fill {
+    transform: scaleX(0.6);
+}
+
+@keyframes card-shuffle-move {
+    0%, 24.167% {
+        transform: translate(0, 0) rotate(0deg) scale(1);
+    }
+    28.75% {
+        transform: translate(var(--cs-out-x), var(--cs-out-y)) rotate(var(--cs-out-rot)) scale(1);
+    }
+    33.333%, 57.5% {
+        transform: translate(0, calc(var(--cs-peek) * -2)) rotate(0deg) scale(0.84);
+    }
+    66.667%, 90.833% {
+        transform: translate(0, calc(var(--cs-peek) * -1)) rotate(0deg) scale(0.92);
+    }
+    100% {
+        transform: translate(0, 0) rotate(0deg) scale(1);
+    }
+}
+
+/* step-end holds each value until the next keyframe. The outgoing card drops
+   below the others at the peak of its slide, while it's off to the side. */
+@keyframes card-shuffle-z {
+    0%      { z-index: 3; }
+    28.75%  { z-index: 0; }
+    33.333% { z-index: 1; }
+    62.083% { z-index: 2; }
+    95.417% { z-index: 3; }
+    100%    { z-index: 3; }
+}
+
+@keyframes card-shuffle-dim {
+    0%, 28.75%       { opacity: 0; }
+    33.333%, 57.5%   { opacity: 0.55; }
+    66.667%, 90.833% { opacity: 0.3; }
+    100%             { opacity: 0; }
+}
+
+/* Fills in two spurts with a short stall, like a real load. Stays full while
+   the card slides away and resets once it's hidden at the back. */
+@keyframes card-shuffle-fill {
+    0%            { transform: scaleX(0); }
+    9%            { transform: scaleX(0.42); }
+    14%           { transform: scaleX(0.58); }
+    21.667%       { transform: scaleX(1); }
+    33.333%       { transform: scaleX(1); }
+    33.334%, 100% { transform: scaleX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .card-shuffle__card,
+    .card-shuffle__card::after,
+    .card-shuffle__fill {
+        animation: none;
+    }
+}
+
+/* ── Real progress bar ────────────────────────────────────────────────────
+   Thin determinate bar under the stack, driven by `ai-progress` events.
+   ──────────────────────────────────────────────────────────────────────── */
+
+.ai-progress {
+    margin-top: 0.625rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.ai-progress__label {
+    font-family: var(--font-body, 'Outfit', sans-serif);
+    font-size: 0.78rem;
+    color: var(--mist);
+    letter-spacing: 0.01em;
+}
+
+.ai-progress__track {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border, var(--stroke));
+    overflow: hidden;
+}
+
+.ai-progress__fill {
+    height: 100%;
+    background: var(--teal, var(--primary));
+    border-radius: 2px;
+    transition: width 0.3s ease;
+    min-width: 4px;
+}
+
+.ai-progress__fill--indeterminate {
+    width: 30%;
+    animation: ai-progress-slide 1.4s ease-in-out infinite;
+}
+
+@keyframes ai-progress-slide {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(400%); }
+}
+
+/* Settings panel: compact stack and the bar on one full-width row. */
+.ai-progress-inline {
+    flex: 1 1 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.ai-progress-inline .ai-progress {
+    flex: 1;
+    min-width: 0;
+    margin-top: 0;
+}

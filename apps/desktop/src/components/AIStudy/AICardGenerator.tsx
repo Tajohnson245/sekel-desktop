@@ -11,6 +11,7 @@ import { DEFAULT_NOTE_TYPES } from '../../lib/types';
 import DeckEditor from '../Deck/DeckEditor';
 import { Button, Input, Select, ImageUpload, useToast } from '../UI';
 import { sanitize } from '../../lib/sanitize';
+import { CardShuffleStack, GenerationProgressBar, InlineGenerationProgress } from './GenerationProgress';
 import './AICardGenerator.css';
 
 // All card formats supported by the generation pipeline. Exported so the
@@ -309,9 +310,7 @@ export default function AICardGenerator({ extractedText, contextSummary, context
         return (
             <div className="ai-generator">
                 <div className="ai-auto-generating">
-                    <div className="ai-auto-generating__icon" aria-hidden="true">
-                        <Sparkles size={28} />
-                    </div>
+                    <CardShuffleStack size="large" />
                     <h2 className="ai-auto-generating__title">{t('ai.auto_generating_title')}</h2>
                     <p className="ai-auto-generating__subtitle text-muted">
                         {t('ai.auto_generating_subtitle')}
@@ -388,7 +387,7 @@ export default function AICardGenerator({ extractedText, contextSummary, context
                             </Button>
 
                             {isGenerating && (
-                                <GenerationProgressBar progress={progress} />
+                                <InlineGenerationProgress progress={progress} />
                             )}
                         </div>
 
@@ -591,45 +590,5 @@ export default function AICardGenerator({ extractedText, contextSummary, context
                 )
             }
         </div >
-    );
-}
-
-// ── Progress bar ─────────────────────────────────────────────────────────────
-// Shows a determinate bar driven by `ai-progress` events. When no event has
-// arrived yet (cold start) or when the legacy non-streaming generator is in
-// use, falls back to an indeterminate animated bar with a generic label.
-
-const PHASE_LABELS: Record<AIProgress['phase'], string> = {
-    chunking:   'Analyzing your document…',
-    generating: 'Generating cards',
-    refining:   'Refining cards…',
-    done:       'Finishing up…',
-};
-
-function GenerationProgressBar({ progress }: { progress: AIProgress | null }) {
-    if (!progress) {
-        return (
-            <div className="ai-progress" aria-live="polite">
-                <div className="ai-progress__label">Working on it…</div>
-                <div className="ai-progress__track">
-                    <div className="ai-progress__fill ai-progress__fill--indeterminate" />
-                </div>
-            </div>
-        );
-    }
-
-    const pct = progress.total > 0
-        ? Math.min(100, Math.round((progress.current / progress.total) * 100))
-        : 0;
-
-    return (
-        <div className="ai-progress" aria-live="polite">
-            <div className="ai-progress__label">
-                {PHASE_LABELS[progress.phase]}
-            </div>
-            <div className="ai-progress__track">
-                <div className="ai-progress__fill" style={{ width: `${pct}%` }} />
-            </div>
-        </div>
     );
 }
