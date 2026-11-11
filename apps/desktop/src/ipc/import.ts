@@ -20,16 +20,27 @@ import type { ImportProgress, ImportResult, ImportStage } from '../types/electro
 
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
-interface CacheEntry {
-    collection: AnkiCollection;
+/**
+ * Main-owned state for one in-flight .apkg import, keyed by the temp dir that
+ * processApkgFile() created. The renderer echoes tempDir / dbFilePath / mediaMap
+ * back to us, but those values are never trusted: tempDir is only used as a
+ * lookup key into this map, and the DB path + media map come from here.
+ */
+interface ImportSession {
+    dbFilePath: string;
+    mediaMap: Record<string, string>;
+    /** Populated by import:get-summary, consumed by import:confirm. */
+    collection?: AnkiCollection;
     cachedAt: number;
 }
 
-// In-memory cache: tempDir → AnkiCollection (with TTL).
-// Populated by import:get-summary and consumed by import:confirm.
-const collectionCache = new Map<string, CacheEntry>();
+// In-memory cache: tempDir → ImportSession (with TTL).
+// Populated by import:process-apkg, extended by import:get-summary and
+// consumed by import:confirm.
+const importSessions = new Map<string, ImportSession>();
 
-// Cancellation flags: tempDir → cancelled. Set by import:cancel handler.
+// Cancellation flags: tempDir → cancelled. Created by import:confirm,
+// flipped by import:cancel.
 const cancellationFlags = new Map<string, boolean>();
 
 function sendProgress(sender: WebContents, progress: ImportProgress): void {
@@ -53,11 +64,19 @@ export function setupImportHandlers(): void {
 
     // Runs the full extraction + format detection + validation pipeline for a given .apkg path
     instrumentedHandle('import:process-apkg', async (_event, filePath: string) => {
-        return processApkgFile(filePath);
+        const result = await processApkgFile(filePath);
+        importSessions.set(result.tempDir, {
+            dbFilePath: result.dbFilePath,
+            mediaMap: result.mediaMap,
+            cachedAt: Date.now(),
+        });
+        return result;
     });
 
     // Parses the Anki database, caches the AnkiCollection, performs conflict detection,
     // and returns a renderer-safe ImportSummary (no Maps, fully JSON-serializable).
+    // Only tempDir and userId are read from args; the DB path and media map are the
+    // ones main cached in import:process-apkg.
     instrumentedHandle(
         'import:get-summary',
         async (
@@ -70,8 +89,15 @@ export function setupImportHandlers(): void {
                 tempDir: string;
             },
         ): Promise<ImportSummary> => {
-            const collection = await parseAnkiDatabase(args.dbFilePath);
-            collectionCache.set(args.tempDir, { collection, cachedAt: Date.now() });
+            const session = importSessions.get(args.tempDir);
+            if (!session) {
+                throw new Error(
+                    '[import] Unknown import session. Was import:process-apkg called first?',
+                );
+            }
+            const collection = await parseAnkiDatabase(session.dbFilePath);
+            session.collection = collection;
+            session.cachedAt = Date.now();
 
             try {
                 const ankiDeckIds = Array.from(collection.decks.values())
@@ -79,44 +105,49 @@ export function setupImportHandlers(): void {
                     .map(d => d.id);
                 const existingDecks = fetchDecksByAnkiIds(args.userId, ankiDeckIds);
 
-                return buildImportSummary(collection, args.mediaMap, existingDecks);
+                return buildImportSummary(collection, session.mediaMap, existingDecks);
             } catch (err) {
-                collectionCache.delete(args.tempDir);
+                session.collection = undefined;
                 throw err;
             }
         },
     );
 
-    // Cancels an in-progress import for a given tempDir.
+    // Cancels an in-progress import for a given tempDir. Only flips a flag that
+    // import:confirm created, so arbitrary keys never accumulate.
     instrumentedHandle('import:cancel', (_event, tempDir: string) => {
-        cancellationFlags.set(tempDir, true);
+        if (cancellationFlags.has(tempDir)) cancellationFlags.set(tempDir, true);
     });
 
-    // Cleans up cached collection and temp directory for an abandoned import.
+    // Cleans up cached state and the temp directory for an abandoned import.
+    // removeTempDir() refuses anything that isn't an import temp dir.
     instrumentedHandle('import:cleanup', async (_event, tempDir: string) => {
-        collectionCache.delete(tempDir);
-        cancellationFlags.delete(tempDir);
+        importSessions.delete(tempDir);
+        // An import:confirm still running for this dir owns its cleanup.
+        if (cancellationFlags.has(tempDir)) return;
         await removeTempDir(tempDir);
     });
 
     // Receives ImportOptionsPayload from the renderer, runs Phases 5 & 6,
     // emits progress events, and returns counts. Cleans up temp dir in finally.
+    // payload.mediaMap / mediaFilePaths are ignored in favour of main's cached map.
     instrumentedHandle(
         'import:confirm',
         async (event, payload: ImportOptionsPayload): Promise<ImportResult> => {
-            const entry = collectionCache.get(payload.tempDir);
-            if (!entry) {
+            const session = importSessions.get(payload.tempDir);
+            if (!session?.collection) {
                 throw new Error(
                     '[import] No cached collection found for tempDir. ' +
                     'Was import:get-summary called first?',
                 );
             }
-            collectionCache.delete(payload.tempDir);
-            const collection = entry.collection;
+            importSessions.delete(payload.tempDir);
+            const collection = session.collection;
+            const mediaMap = session.mediaMap;
             cancellationFlags.set(payload.tempDir, false);
 
             const importId = randomUUID();
-            const mediaCount = Object.keys(payload.mediaMap).length;
+            const mediaCount = Object.keys(mediaMap).length;
 
             let mediaResult: Awaited<ReturnType<typeof extractMedia>> | null = null;
             let insertResult: ReturnType<typeof executeImport> | null = null;
@@ -134,7 +165,7 @@ export function setupImportHandlers(): void {
 
                 mediaResult = await extractMedia(
                     payload.tempDir,
-                    payload.mediaMap,
+                    mediaMap,
                     payload.userId,
                     importId,
                     (processed, total) => {
@@ -157,7 +188,7 @@ export function setupImportHandlers(): void {
                 checkCancelled(payload.tempDir);
 
                 insertResult = executeImport(
-                    { ...payload, parsedData: collection },
+                    { ...payload, mediaMap, parsedData: collection },
                     payload.userId,
                     (stage, detail, percent) => {
                         checkCancelled(payload.tempDir);
@@ -215,13 +246,13 @@ export function setupImportHandlers(): void {
         },
     );
 
-    // Periodic sweep: evict cache entries older than CACHE_TTL_MS.
+    // Periodic sweep: evict cache entries older than CACHE_TTL_MS. Keys only ever
+    // come from processApkgFile(), and removeTempDir() re-validates them anyway.
     const sweepInterval = setInterval(() => {
         const now = Date.now();
-        for (const [key, entry] of collectionCache) {
+        for (const [key, entry] of importSessions) {
             if (now - entry.cachedAt > CACHE_TTL_MS) {
-                collectionCache.delete(key);
-                cancellationFlags.delete(key);
+                importSessions.delete(key);
                 removeTempDir(key).catch(() => {});
             }
         }

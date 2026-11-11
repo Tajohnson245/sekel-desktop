@@ -7,8 +7,20 @@ import { randomUUID } from 'node:crypto';
 import Database from 'better-sqlite3';
 import JSZip from 'jszip';
 
-import { processApkgFile, detectFormat, validateAnkiDb } from '../main/import/apkg';
-import { cleanupStaleTempDirs, makeTempDirPath, removeTempDir } from '../main/import/tempCleanup';
+import {
+    processApkgFile,
+    detectFormat,
+    validateAnkiDb,
+    parseMediaFile,
+    isSafeMediaKey,
+    isSafeMediaFilename,
+} from '../main/import/apkg';
+import {
+    cleanupStaleTempDirs,
+    isImportTempDir,
+    makeTempDirPath,
+    removeTempDir,
+} from '../main/import/tempCleanup';
 import {
     UnsupportedFormatError,
     InvalidApkgError,
@@ -215,6 +227,138 @@ describe('processApkgFile', () => {
         expect(after.length).toBeLessThanOrEqual(before.length);
 
         await fsPromises.unlink(apkgPath).catch(() => { /* ignore */ });
+    });
+});
+
+// ── media map validation (path traversal) ─────────────────────────────────────
+
+describe('media map validation', () => {
+    it('isSafeMediaKey accepts only decimal keys', () => {
+        expect(isSafeMediaKey('0')).toBe(true);
+        expect(isSafeMediaKey('1234')).toBe(true);
+        for (const bad of ['', '..', '../0', '..\\..\\Pictures\\id.jpg', 'C:\\x', '/etc/passwd', '0/1', '1e3', ' 1', '-1']) {
+            expect(isSafeMediaKey(bad)).toBe(false);
+        }
+    });
+
+    it('isSafeMediaFilename rejects separators, "..", colons, NUL and non-strings', () => {
+        expect(isSafeMediaFilename('image.jpg')).toBe(true);
+        expect(isSafeMediaFilename('paste-1234 (1).png')).toBe(true);
+        for (const bad of ['', '..', 'a/b.jpg', 'a\\b.jpg', '..\\x.jpg', 'C:x.jpg', 'x.jpg:stream', 'x\0.jpg', 'a..b.jpg']) {
+            expect(isSafeMediaFilename(bad)).toBe(false);
+        }
+        expect(isSafeMediaFilename(42)).toBe(false);
+        expect(isSafeMediaFilename(null)).toBe(false);
+    });
+
+    async function withMediaJson(json: string, fn: (dir: string) => Promise<void>): Promise<void> {
+        const dir = makeTempDirPath();
+        await fsPromises.mkdir(dir);
+        try {
+            await fsPromises.writeFile(path.join(dir, 'media'), json);
+            await fn(dir);
+        } finally {
+            await removeTempDir(dir);
+        }
+    }
+
+    it('parseMediaFile drops traversal keys and unsafe filenames with a warning', async () => {
+        const json = JSON.stringify({
+            '0': 'ok.jpg',
+            '..\\..\\Pictures\\id.jpg': 'id.jpg',
+            '../../.ssh/id_rsa': 'key.jpg',
+            '1': '..\\..\\evil.jpg',
+            '2': 'also-ok.mp3',
+            '3': 7,
+        });
+        await withMediaJson(json, async (dir) => {
+            const result = await parseMediaFile(dir, new Set(['media']));
+            expect(result.mediaMap).toEqual({ '0': 'ok.jpg', '2': 'also-ok.mp3' });
+            expect(result.mediaFilePaths).toEqual([path.join(dir, '0'), path.join(dir, '2')]);
+            expect(result.warnings).toHaveLength(1);
+            expect(result.warnings[0]).toMatch(/4 media entries/);
+        });
+    });
+
+    it('parseMediaFile treats non-object JSON as unparseable', async () => {
+        for (const json of ['["0"]', 'null', '"str"', '{not json']) {
+            await withMediaJson(json, async (dir) => {
+                const result = await parseMediaFile(dir, new Set(['media']));
+                expect(result.mediaMap).toEqual({});
+                expect(result.warnings[0]).toMatch(/could not be parsed/);
+            });
+        }
+    });
+
+    it('processApkgFile never returns a traversal key from a crafted .apkg', async () => {
+        const zip = new JSZip();
+        zip.file('collection.anki21', await makeAnkiDb());
+        zip.file('media', JSON.stringify({ '0': 'a.jpg', '..\\..\\Pictures\\id.jpg': 'id.jpg' }));
+        zip.file('0', Buffer.from('fake'));
+        const apkgPath = path.join(os.tmpdir(), `sekel-fixture-${randomUUID()}.apkg`);
+        await fsPromises.writeFile(apkgPath, await zip.generateAsync({ type: 'nodebuffer' }));
+        try {
+            const result = await processApkgFile(apkgPath);
+            dirsToClean.push(result.tempDir);
+            expect(result.mediaMap).toEqual({ '0': 'a.jpg' });
+            for (const p of result.mediaFilePaths) {
+                expect(path.dirname(p)).toBe(result.tempDir);
+            }
+        } finally {
+            await fsPromises.unlink(apkgPath).catch(() => { /* ignore */ });
+        }
+    });
+});
+
+// ── removeTempDir confinement ─────────────────────────────────────────────────
+
+describe('isImportTempDir / removeTempDir', () => {
+    it('accepts paths produced by makeTempDirPath()', () => {
+        expect(isImportTempDir(makeTempDirPath())).toBe(true);
+    });
+
+    it('rejects anything that is not a direct sekel-import-{uuid} child of os.tmpdir()', () => {
+        const uuid = randomUUID();
+        const cases: unknown[] = [
+            '',
+            undefined,
+            42,
+            os.tmpdir(),
+            os.homedir(),
+            path.join(os.tmpdir(), 'other-dir'),
+            path.join(os.tmpdir(), 'sekel-import-not-a-uuid'),
+            path.join(os.tmpdir(), `sekel-import-${uuid}`, 'nested'),
+            path.join(os.tmpdir(), `sekel-import-${uuid}`, '..', '..'),
+            path.join(os.homedir(), `sekel-import-${uuid}`),
+            `\\\\server\\share\\sekel-import-${uuid}`,
+        ];
+        for (const c of cases) {
+            expect(isImportTempDir(c)).toBe(false);
+        }
+    });
+
+    it('refuses to delete a directory outside the import temp namespace', async () => {
+        const victim = path.join(os.tmpdir(), `not-an-import-${randomUUID()}`);
+        await fsPromises.mkdir(victim);
+        await fsPromises.writeFile(path.join(victim, 'keep.txt'), 'keep');
+        try {
+            await removeTempDir(victim);
+            expect(fs.existsSync(path.join(victim, 'keep.txt'))).toBe(true);
+
+            // A traversal that starts inside an import dir must not escape either.
+            await removeTempDir(path.join(makeTempDirPath(), '..', path.basename(victim)));
+            expect(fs.existsSync(path.join(victim, 'keep.txt'))).toBe(true);
+        } finally {
+            await fsPromises.rm(victim, { recursive: true, force: true });
+        }
+    });
+
+    it('still removes a real import temp dir', async () => {
+        const dir = makeTempDirPath();
+        await fsPromises.mkdir(dir);
+        await fsPromises.writeFile(path.join(dir, 'x'), 'x');
+        await removeTempDir(dir);
+        expect(fs.existsSync(dir)).toBe(false);
     });
 });
 

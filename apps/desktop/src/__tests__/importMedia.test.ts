@@ -254,6 +254,45 @@ describe('extractMedia', () => {
         );
     });
 
+    it.each([
+        ['..\\..\\Pictures\\id.jpg'],
+        ['../../Pictures/id.jpg'],
+        ['..'],
+        [''],
+    ])('refuses to read or copy a media key that escapes tempDir (%j)', async (badKey) => {
+        mockReadFile.mockResolvedValue(Buffer.from('secret'));
+
+        const result = await extractMedia(
+            TEMP_DIR,
+            { [badKey]: 'id.jpg' },
+            USER_A,
+            IMPORT_ID,
+        );
+
+        expect(result.extracted).toBe(0);
+        expect(result.mediaRecords).toHaveLength(0);
+        expect(result.warnings).toHaveLength(1);
+        expect(result.warnings[0]).toMatch(/unsafe media key/);
+        expect(mockReadFile).not.toHaveBeenCalled();
+        expect(mockCopyFile).not.toHaveBeenCalled();
+    });
+
+    it('still processes safe keys alongside a rejected one', async () => {
+        mockReadFile.mockResolvedValue(Buffer.from('fine'));
+
+        const result = await extractMedia(
+            TEMP_DIR,
+            { '0': 'ok.png', '../../x': 'bad.png' },
+            USER_A,
+            IMPORT_ID,
+        );
+
+        expect(result.extracted).toBe(1);
+        expect(result.mediaRecords[0].filename).toBe('ok.png');
+        expect(mockReadFile).toHaveBeenCalledTimes(1);
+        expect(mockReadFile).toHaveBeenCalledWith(path.join(TEMP_DIR, '0'));
+    });
+
     it('does not copy or insert when all files in the batch are duplicates', async () => {
         const content = Buffer.from('shared content');
         mockReadFile.mockResolvedValue(content);

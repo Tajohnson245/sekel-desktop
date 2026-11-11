@@ -91,17 +91,19 @@ export function BackupTab() {
         if (!restoreTarget) return;
         setRestoring(true);
         try {
-            const result = await window.electronAPI.backup.restore(restoreTarget.filePath);
+            const result = await window.electronAPI.backup.restore(restoreTarget.filename);
             if (result.success) {
                 showToast(t('backup.restore_success'), 'success');
                 setRestoreTarget(null);
-                await loadBackupData();
+                // Relaunch so all in-memory state matches the restored database.
+                setTimeout(() => { void window.electronAPI.backup.restart(); }, 1200);
             } else {
                 showToast(result.error || t('backup.restore_error'), 'error');
+                setRestoring(false);
+                await loadBackupData();
             }
         } catch {
             showToast(t('backup.restore_error'), 'error');
-        } finally {
             setRestoring(false);
         }
     };

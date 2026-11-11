@@ -10,7 +10,7 @@ import { app } from 'electron';
 import { createLogger, consoleTransport, metrics } from '@sekel/observability';
 // Type-only (erased): main never require()s @sekel/db at runtime — see cloudBackup.ts.
 import type { BackupSnapshot } from '@sekel/db';
-import { restoreFromBackup } from './restore';
+import { restoreFromTrustedPath } from './restore';
 import { getAuthedClient } from './cloudClient';
 import * as state from './cloudState';
 import type { CloudRestoreResult } from './cloudTypes';
@@ -55,8 +55,9 @@ export async function restoreCloudSnapshot(snapshotId: string): Promise<CloudRes
         tmpPath = path.join(app.getPath('temp'), `sekel-restore-${snapshotId}.sqlite`);
         fs.writeFileSync(tmpPath, buf);
 
-        // Reuse the battle-tested local restore (creates a safety backup first).
-        const result = await restoreFromBackup(tmpPath);
+        // Reuse the local restore (validates, creates a safety backup first).
+        // tmpPath is main-chosen, so the trusted-path entry point is correct here.
+        const result = await restoreFromTrustedPath(tmpPath);
         if (result.success) {
             metrics.increment('cloud_backup.restore_success_total');
             log.info('Cloud snapshot restored', { snapshotId, bytes: buf.byteLength });

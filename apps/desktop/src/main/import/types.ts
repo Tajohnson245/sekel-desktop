@@ -218,9 +218,14 @@ export interface ImportOptionsPayload {
     decks: ImportOptionsDeck[];
     /** How to handle the Anki deck hierarchy during import. */
     hierarchyMode: 'subdecks' | 'individual';
+    /** Echoed back by the renderer but ignored by main, which uses its own cached map. */
     mediaMap: Record<string, string>;
+    /** Echoed back by the renderer but ignored by main. */
     mediaFilePaths: string[];
-    /** tempDir from ApkgImportResult — used as cache key for AnkiCollection lookup. */
+    /**
+     * tempDir from ApkgImportResult — used only as the cache key for main's
+     * import session (collection + media map). Never trusted as a path.
+     */
     tempDir: string;
     /** Sekel user id — needed by Phase 6 to write to the correct user's rows. */
     userId: string;

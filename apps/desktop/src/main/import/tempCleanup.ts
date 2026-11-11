@@ -4,6 +4,7 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 
 const TEMP_DIR_PREFIX = 'sekel-import-';
+const TEMP_DIR_NAME_RE = /^sekel-import-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Returns a fresh (not yet created) temp dir path: {os.tmpdir()}/sekel-import-{uuid} */
 export function makeTempDirPath(): string {
@@ -11,10 +12,31 @@ export function makeTempDirPath(): string {
 }
 
 /**
- * Removes a temp dir. Silent if the path does not exist.
+ * True only for paths shaped exactly like makeTempDirPath() output: a direct
+ * child of os.tmpdir() named sekel-import-{uuid}. Temp dir paths round-trip
+ * through the renderer, so every path we are asked to delete is checked here.
+ */
+export function isImportTempDir(dirPath: unknown): dirPath is string {
+    if (typeof dirPath !== 'string' || dirPath.length === 0) return false;
+    const resolved = path.resolve(dirPath);
+    const parent = path.dirname(resolved);
+    const tmpRoot = path.resolve(os.tmpdir());
+    const sameParent = process.platform === 'win32'
+        ? parent.toLowerCase() === tmpRoot.toLowerCase()
+        : parent === tmpRoot;
+    return sameParent && TEMP_DIR_NAME_RE.test(path.basename(resolved));
+}
+
+/**
+ * Removes an import temp dir. Silent if the path does not exist.
+ * Refuses (and logs) anything that is not an import temp dir — see isImportTempDir.
  * Used in processApkgFile()'s finally/catch block and by Phase 3 after import.
  */
 export async function removeTempDir(dirPath: string): Promise<void> {
+    if (!isImportTempDir(dirPath)) {
+        console.warn('[import] refusing to remove non-import temp path:', dirPath);
+        return;
+    }
     try {
         await fs.rm(dirPath, { recursive: true, force: true });
     } catch (err) {
