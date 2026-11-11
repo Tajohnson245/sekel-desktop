@@ -3,6 +3,7 @@ import { app } from 'electron';
 import path from 'node:path';
 import { MIGRATIONS } from './migrations';
 import { backfillPlanCoverage } from './backfill';
+import { prunePlanDeckScopes } from './planDeckScope';
 import {
     STEP1_BLUEPRINT,
     STEP2CK_BLUEPRINT,
@@ -46,38 +47,22 @@ export function initDatabase(): Database.Database {
 
 /**
  * Prune deck UUIDs from plans.deck_filter that no longer exist in the decks
- * table. Idempotent and cheap — iterates only plans with non-null deck_filter
- * and updates only when an orphan is found. Runs on every app boot.
+ * table, and archive any active plan left with no decks in scope (including one
+ * already stuck at '[]' from before empty scopes were archived). Idempotent and
+ * cheap — iterates only plans with non-null deck_filter and writes only when
+ * something changes. Runs on every app boot.
  */
 function cleanupOrphanPlanDeckFilters(database: Database.Database): void {
-    const rows = database.prepare(
-        `SELECT id, deck_filter FROM plans WHERE deck_filter IS NOT NULL`
-    ).all() as { id: string; deck_filter: string }[];
-    if (rows.length === 0) return;
-
     const liveDeckIds = new Set(
         (database.prepare('SELECT id FROM decks').all() as { id: string }[]).map(r => r.id)
     );
 
-    const update = database.prepare(
-        `UPDATE plans SET deck_filter = ?, updated_at = ? WHERE id = ?`
-    );
-    const now = new Date().toISOString();
-    let pruned = 0;
+    const { plansUpdated, plansArchived } = database.transaction(() =>
+        prunePlanDeckScopes(database, id => liveDeckIds.has(id)))();
 
-    for (const row of rows) {
-        let filter: string[];
-        try { filter = JSON.parse(row.deck_filter) as string[]; }
-        catch { continue; }
-        if (!Array.isArray(filter)) continue;
-        const kept = filter.filter(id => liveDeckIds.has(id));
-        if (kept.length !== filter.length) {
-            update.run(JSON.stringify(kept), now, row.id);
-            pruned++;
-        }
+    if (plansUpdated > 0 || plansArchived > 0) {
+        log.info('Pruned orphan deck refs from plan filters', { plansUpdated, plansArchived });
     }
-
-    if (pruned > 0) log.info('Pruned orphan deck refs from plan filters', { plansUpdated: pruned });
 }
 
 export function getDb(): Database.Database {

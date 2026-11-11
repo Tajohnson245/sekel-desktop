@@ -4,6 +4,7 @@ import { logDeckDeletion, logNoteDeletion, logAllNotesInDeckDeletion, logAllDeck
 import { getRetrievability } from '../../lib/fsrs';
 import { daysUntilExamLocal } from '../../lib/planMath';
 import { localDateKey, localWeekKey } from '../../lib/localDate';
+import { prunePlanDeckScopes } from './planDeckScope';
 import type {
     Deck, DeckInsert, DeckUpdate,
     Note, NoteInsert, NoteUpdate,
@@ -105,32 +106,15 @@ export function updateDeck(id: string, updates: DeckUpdate): Deck {
 }
 
 /**
- * Prune deleted deck UUIDs from every plan's deck_filter JSON column.
+ * Prune deleted deck UUIDs from every plan's deck_filter JSON column, archiving
+ * an active plan whose last scoped deck was deleted (see prunePlanDeckScopes).
  * Must run inside the same transaction as the deck DELETE so plans never
  * observe a stale filter pointing at a missing deck. Caller passes the open db.
  */
 function prunePlanDeckFilters(db: ReturnType<typeof getDb>, removedDeckIds: string[]): void {
     if (removedDeckIds.length === 0) return;
     const removed = new Set(removedDeckIds);
-    const rows = db.prepare(
-        `SELECT id, deck_filter FROM plans WHERE deck_filter IS NOT NULL`
-    ).all() as { id: string; deck_filter: string }[];
-
-    const update = db.prepare(
-        `UPDATE plans SET deck_filter = ?, updated_at = ? WHERE id = ?`
-    );
-    const now = new Date().toISOString();
-
-    for (const row of rows) {
-        let filter: string[];
-        try { filter = JSON.parse(row.deck_filter) as string[]; }
-        catch { continue; }
-        if (!Array.isArray(filter)) continue;
-        const pruned = filter.filter(id => !removed.has(id));
-        if (pruned.length !== filter.length) {
-            update.run(JSON.stringify(pruned), now, row.id);
-        }
-    }
+    prunePlanDeckScopes(db, id => !removed.has(id));
 }
 
 export function deleteDeck(id: string): void {
@@ -825,9 +809,13 @@ export function fetchDueCardsFocused(
 
 // ── Cross-deck study (SEKEL-137) ────────────────────────────────────────────
 
-/** Deck IDs owned by the user, narrowed to a scope set when one is supplied. */
+/**
+ * Deck IDs owned by the user, narrowed to a scope set when one is supplied.
+ * null = every owned deck; an EMPTY array is an empty scope (a plan whose scoped
+ * decks were all deleted) and stays empty rather than widening to every deck.
+ */
 function resolveScopeDeckIds(userId: string, deckIds: string[] | null): string[] {
-    if (deckIds && deckIds.length > 0) return deckIds;
+    if (deckIds) return deckIds;
     const rows = getDb().prepare('SELECT id FROM decks WHERE user_id = ?').all(userId) as { id: string }[];
     return rows.map(r => r.id);
 }

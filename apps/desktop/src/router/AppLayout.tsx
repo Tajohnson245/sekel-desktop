@@ -53,7 +53,11 @@ function RebalanceBanner() {
     // highest daysMissed the user has already acted on; the banner only returns
     // when they miss MORE days than that. Both actions below also mutate the
     // plan so the detector itself stops firing — this is the belt-and-suspenders.
-    const ackKey = userId && examKey ? `sekel-rebalance-ack-${userId}-${examKey}` : null;
+    // Keyed by the evaluation window too: accepting a rate restarts the window (and
+    // daysMissed from 0), so an ack from the previous window must not hide it.
+    const ackKey = userId && examKey && delta
+        ? `sekel-rebalance-ack-${userId}-${examKey}-${delta.evaluatedSince}`
+        : null;
     const ackDaysMissed = (() => {
         if (!ackKey) return -1;
         try { const v = localStorage.getItem(ackKey); return v == null ? -1 : parseInt(v, 10); }

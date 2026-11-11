@@ -13,6 +13,7 @@ import { randomUUID } from 'crypto';
 import { getDb } from './index';
 import { getSystemPerformanceNeeds } from './service';
 import { buildWeeklyProjection, daysUntilExamLocal, MINUTES_PER_NEW_CARD, MINUTES_PER_REVIEW } from '../../lib/planMath';
+import { localDateKey } from '../../lib/localDate';
 import { yieldCteBody, toYieldLevel, YIELD_LEVEL_ORDER } from './yieldSql';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -38,7 +39,7 @@ export interface PlanResult {
      *  live preview projects with the same timings the snapshot was built with. */
     minutesPerNewCard: number;
     minutesPerReview: number;
-    /** Deck IDs this plan was scoped to; null = all decks. */
+    /** Deck IDs this plan was scoped to; null = all decks, [] = no decks. */
     deckFilter: string[] | null;
     generatedAt: string;
 }
@@ -72,6 +73,9 @@ export interface RebalanceDelta {
     daysMissed: number;
     availableDaysRemaining: number;
     canExtendTimeline: boolean;
+    /** Start of the evaluation window (ISO): when the current rate took effect.
+     *  daysMissed only counts days after this, so it resets when a rate is accepted. */
+    evaluatedSince: string;
 }
 
 export interface Plan {
@@ -85,7 +89,7 @@ export interface Plan {
     suggestedPerDay: number;
     /** Full PlanResult snapshot at commit time. */
     snapshot: PlanResult;
-    /** Deck IDs this plan was scoped to; null = all decks. */
+    /** Deck IDs this plan was scoped to; null = all decks, [] = no decks. */
     deckFilter: string[] | null;
     status: 'active' | 'archived';
     activatedAt: string;
@@ -138,6 +142,32 @@ type PlanRow = {
     updated_at: string;
 };
 
+/** plans.deck_filter → scope. NULL = all decks; '[]' = NO decks (kept distinct —
+ *  an empty scope must never widen to "all decks"). */
+function parseDeckFilter(raw: string | null): string[] | null {
+    return raw ? JSON.parse(raw) as string[] : null;
+}
+
+/**
+ * SQL fragment restricting `column` to a plan's deck scope: null → no restriction
+ * (all decks); [] → matches nothing; otherwise `AND column IN (…)`.
+ */
+function deckScopeClause(column: string, deckFilter: string[] | null): { sql: string; params: string[] } {
+    if (deckFilter === null) return { sql: '', params: [] };
+    if (deckFilter.length === 0) return { sql: 'AND 0', params: [] };
+    return { sql: `AND ${column} IN (${deckFilter.map(() => '?').join(',')})`, params: deckFilter };
+}
+
+/** The user's primary exam key — the exam getActivePlan / the study queue resolve to. */
+function resolvePrimaryExamKey(userId: string): string | undefined {
+    return (getDb().prepare(`
+        SELECT be.exam_key
+        FROM user_exam_profiles uep
+        JOIN blueprint_exams be ON be.id = uep.exam_id
+        WHERE uep.user_id = ? AND uep.is_primary = 1
+    `).get(userId) as { exam_key: string } | undefined)?.exam_key;
+}
+
 function rowToPlan(row: PlanRow): Plan {
     return {
         id:              row.id,
@@ -147,7 +177,7 @@ function rowToPlan(row: PlanRow): Plan {
         cardsPerDay:     row.cards_per_day,
         suggestedPerDay: row.suggested_per_day,
         snapshot:        JSON.parse(row.snapshot) as PlanResult,
-        deckFilter:      row.deck_filter ? JSON.parse(row.deck_filter) as string[] : null,
+        deckFilter:      parseDeckFilter(row.deck_filter),
         status:          row.status as 'active' | 'archived',
         activatedAt:     row.activated_at,
         createdAt:       row.created_at,
@@ -160,9 +190,18 @@ function rowToPlan(row: PlanRow): Plan {
 const EXAM_DATE_SENTINEL = '9999-12-31';
 /** Reviews with fewer than this many measured durations fall back to model defaults. */
 const MIN_DURATION_SAMPLES = 20;
+/** New-card allowance behind the daily time budget (and the no-plan default cap). */
+const DEFAULT_DAILY_NEW_LIMIT = 20;
 
-export function computePlan(userId: string, examKey: string, deckIds?: string[], cardsPerDay?: number): PlanResult | null {
-    const deckFilter = deckIds && deckIds.length > 0 ? deckIds : null;
+/**
+ * @param deckIds plan scope — undefined/null = all decks; an EMPTY array is a real,
+ *   empty scope (e.g. every scoped deck was deleted) and yields no cards rather
+ *   than silently widening to all decks.
+ * @param cardsPerDay committed rate (plan creation / active-plan live view). When
+ *   omitted the result is a fresh suggestion.
+ */
+export function computePlan(userId: string, examKey: string, deckIds?: string[] | null, cardsPerDay?: number): PlanResult | null {
+    const deckFilter = deckIds ?? null;
     const db = getDb();
 
     // 1. Exam profile — must exist and have a real date
@@ -180,12 +219,31 @@ export function computePlan(userId: string, examKey: string, deckIds?: string[],
 
     if (!examRow || examRow.exam_date === EXAM_DATE_SENTINEL) return null;
 
-    // 2. User profile for daily limits
-    const profileRow = db.prepare(
-        'SELECT daily_new_limit, daily_review_limit FROM user_profiles WHERE id = ?'
-    ).get(userId) as { daily_new_limit: number | null; daily_review_limit: number | null } | undefined;
+    // 1b. Available days until exam — LOCAL calendar days (see daysUntilExamLocal).
+    //     Exam day itself still counts as one study day (clamped to ≥1). Once the
+    //     exam has PASSED there is no study window left, so nothing is recommended:
+    //       • a fresh suggestion (no committed rate) returns null — the creation
+    //         panel asks for a new exam date and rebalance stays quiet;
+    //       • a committed plan's live view still recomputes the current unseen pool
+    //         and system coverage, over a 0-day window (no projected coverage, empty
+    //         projection, recommendedNewPerDay 0) instead of clamping to 1 day and
+    //         recommending up to 100 new cards/day.
+    const daysUntilExam    = daysUntilExamLocal(examRow.exam_date);
+    const examPassed       = daysUntilExam < 0;
+    const hasCommittedRate = cardsPerDay != null && cardsPerDay > 0;
+    if (examPassed && !hasCommittedRate) return null;
+    const availableDays = examPassed ? 0 : Math.max(1, daysUntilExam);
 
-    const dailyNewLimit    = profileRow?.daily_new_limit    ?? 20;
+    // 2. Daily limits behind the time budget. user_profiles.daily_new_limit is NOT
+    //    used: locally it is only ever written by plan code (create / reactivate /
+    //    accept-rate / one-session override) and never mirrored from the user's
+    //    settings, so reading it made each recommendation feed on the previously
+    //    committed (or overridden) rate. daily_review_limit is never written locally.
+    const profileRow = db.prepare(
+        'SELECT daily_review_limit FROM user_profiles WHERE id = ?'
+    ).get(userId) as { daily_review_limit: number | null } | undefined;
+
+    const dailyNewLimit    = DEFAULT_DAILY_NEW_LIMIT;
     const dailyReviewLimit = profileRow?.daily_review_limit ?? 200;
 
     // 2b. Calibrated per-card time from the user's own measured review durations, so
@@ -212,11 +270,6 @@ export function computePlan(userId: string, examKey: string, deckIds?: string[],
 
     const dailyTimeBudgetMinutes = Math.round(dailyNewLimit * minutesPerNewCard + dailyReviewLimit * minutesPerReview);
 
-    // 3. Available days until exam — LOCAL calendar days (see daysUntilExamLocal).
-    //    Clamped to ≥1 so the projection math stays well-defined even on/after exam
-    //    day (a today-or-past exam yields daysUntil ≤ 0).
-    const availableDays = Math.max(1, daysUntilExamLocal(examRow.exam_date));
-
     // 4. Unseen cards with yield levels via inline yield-score CTE
     type UnseenRow = {
         card_id: string;
@@ -228,7 +281,9 @@ export function computePlan(userId: string, examKey: string, deckIds?: string[],
     const yieldCte = `WITH yield_cte AS (${yieldCteBody()})`;
 
     let unseenRows: UnseenRow[];
-    if (deckFilter) {
+    if (deckFilter && deckFilter.length === 0) {
+        unseenRows = []; // empty scope — no decks, no cards
+    } else if (deckFilter) {
         const placeholders = deckFilter.map(() => '?').join(',');
         unseenRows = db.prepare(`
             ${yieldCte}
@@ -262,21 +317,24 @@ export function computePlan(userId: string, examKey: string, deckIds?: string[],
     // 5. Recommended new per day — the max rate whose projected PEAK daily load
     //    (over the whole study window, calibrated to the user's timings) still fits
     //    their daily time budget. Peak rises monotonically with the rate, so break
-    //    on the first rate that overshoots.
-    const maxNeeded = unseenTotal > 0 ? Math.ceil(unseenTotal / availableDays) : 100;
-    let recommendedNewPerDay = 5;
-    for (let n = 5; n <= 100; n++) {
-        const { peakMinutes } = buildWeeklyProjection(n, unseenTotal, availableDays, 16, cal);
-        if (peakMinutes <= dailyTimeBudgetMinutes) recommendedNewPerDay = n;
-        else break;
+    //    on the first rate that overshoots. Nothing to recommend once the exam passed.
+    let recommendedNewPerDay = 0;
+    if (!examPassed) {
+        const maxNeeded = unseenTotal > 0 ? Math.ceil(unseenTotal / availableDays) : 100;
+        recommendedNewPerDay = 5;
+        for (let n = 5; n <= 100; n++) {
+            const { peakMinutes } = buildWeeklyProjection(n, unseenTotal, availableDays, 16, cal);
+            if (peakMinutes <= dailyTimeBudgetMinutes) recommendedNewPerDay = n;
+            else break;
+        }
+        recommendedNewPerDay = Math.min(recommendedNewPerDay, maxNeeded, 100);
     }
-    recommendedNewPerDay = Math.min(recommendedNewPerDay, maxNeeded, 100);
 
     // When a committed rate is supplied (plan creation), coverage / system breakdown /
     // weekly projection are all computed for THAT rate; recommendedNewPerDay stays the
     // suggestion. Without it (suggestion preview) effectiveRate === recommendedNewPerDay,
     // so this is a no-op for the live suggestion path.
-    const effectiveRate = cardsPerDay != null && cardsPerDay > 0 ? cardsPerDay : recommendedNewPerDay;
+    const effectiveRate = hasCommittedRate ? cardsPerDay : recommendedNewPerDay;
 
     // 6. Projected coverage — sort by yield priority, take first projectedCoverageCount
     const projectedCoverageCount = Math.min(unseenTotal, effectiveRate * availableDays);
@@ -310,7 +368,9 @@ export function computePlan(userId: string, examKey: string, deckIds?: string[],
              ORDER BY cc2.split_weight DESC LIMIT 1) AS system_key
         FROM card_classifications cc WHERE cc.exam_id = ? GROUP BY cc.card_id`;
     let seenRows: SeenRow[];
-    if (deckFilter) {
+    if (deckFilter && deckFilter.length === 0) {
+        seenRows = []; // empty scope
+    } else if (deckFilter) {
         const ph = deckFilter.map(() => '?').join(',');
         seenRows = db.prepare(`
             SELECT dom.system_key, COUNT(*) AS seen
@@ -376,12 +436,29 @@ export function computePlan(userId: string, examKey: string, deckIds?: string[],
     };
 }
 
+// ── user_profiles mirror ──────────────────────────────────────────────────────
+
+/** Mirror a committed rate into user_profiles.daily_new_limit and clear any
+ *  one-session override. Callers run it inside their plan-write transaction. */
+function mirrorCommittedRate(userId: string, rate: number, now: string): void {
+    getDb().prepare(`
+        INSERT INTO user_profiles (id, daily_new_limit, plan_override_expires_at, created_at, updated_at)
+        VALUES (?, ?, NULL, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+            daily_new_limit          = excluded.daily_new_limit,
+            plan_override_expires_at = NULL,
+            updated_at               = excluded.updated_at
+    `).run(userId, rate, now, now);
+}
+
 // ── createPlan ────────────────────────────────────────────────────────────────
 
 /**
  * Commit a plan.  Archives any currently-active plan for the same exam,
  * inserts the new plan as 'active', and updates user_profiles.daily_new_limit
- * so fetchDueCards picks up the committed rate immediately.
+ * so fetchDueCards picks up the committed rate immediately. The three writes are
+ * one transaction — a failure can't leave the exam with no active plan, or with
+ * a plan whose rate isn't mirrored.
  */
 export function createPlan(
     userId: string,
@@ -400,32 +477,27 @@ export function createPlan(
     // client snapshot's deck scope is consumed; fall back to it if a fresh compute
     // isn't available (e.g. exam date cleared between preview and commit).
     const committedSnapshot =
-        computePlan(userId, examKey, snapshot.deckFilter ?? undefined, cardsPerDay) ?? snapshot;
-
-    db.prepare(`
-        UPDATE plans SET status = 'archived', updated_at = ?
-        WHERE user_id = ? AND exam_key = ? AND status = 'active'
-    `).run(now, userId, examKey);
+        computePlan(userId, examKey, snapshot.deckFilter, cardsPerDay) ?? snapshot;
 
     const deckFilterJson = committedSnapshot.deckFilter ? JSON.stringify(committedSnapshot.deckFilter) : null;
 
-    db.prepare(`
-        INSERT INTO plans
-            (id, user_id, exam_key, name, cards_per_day, suggested_per_day,
-             snapshot, deck_filter, status, activated_at, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)
-    `).run(id, userId, examKey, name, cardsPerDay, committedSnapshot.recommendedNewPerDay,
-           JSON.stringify(committedSnapshot), deckFilterJson, now, now, now);
+    db.transaction(() => {
+        db.prepare(`
+            UPDATE plans SET status = 'archived', updated_at = ?
+            WHERE user_id = ? AND exam_key = ? AND status = 'active'
+        `).run(now, userId, examKey);
 
-    // Mirror committed rate into user_profiles so session card cap is immediate
-    db.prepare(`
-        INSERT INTO user_profiles (id, daily_new_limit, plan_override_expires_at, created_at, updated_at)
-        VALUES (?, ?, NULL, ?, ?)
-        ON CONFLICT(id) DO UPDATE SET
-            daily_new_limit          = excluded.daily_new_limit,
-            plan_override_expires_at = NULL,
-            updated_at               = excluded.updated_at
-    `).run(userId, cardsPerDay, now, now);
+        db.prepare(`
+            INSERT INTO plans
+                (id, user_id, exam_key, name, cards_per_day, suggested_per_day,
+                 snapshot, deck_filter, status, activated_at, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)
+        `).run(id, userId, examKey, name, cardsPerDay, committedSnapshot.recommendedNewPerDay,
+               JSON.stringify(committedSnapshot), deckFilterJson, now, now, now);
+
+        // Mirror committed rate into user_profiles so session card cap is immediate
+        mirrorCommittedRate(userId, cardsPerDay, now);
+    })();
 
     return {
         id, userId, examKey, name, cardsPerDay,
@@ -448,12 +520,7 @@ export function getActivePlan(userId: string, examKey?: string): ActivePlanResul
     // When no examKey is given, scope to the user's primary exam profile.
     // This prevents a stale/leftover active plan from a different (or removed)
     // exam from leaking onto the dashboard.
-    const resolvedExamKey = examKey ?? (db.prepare(`
-        SELECT be.exam_key
-        FROM user_exam_profiles uep
-        JOIN blueprint_exams be ON be.id = uep.exam_id
-        WHERE uep.user_id = ? AND uep.is_primary = 1
-    `).get(userId) as { exam_key: string } | undefined)?.exam_key;
+    const resolvedExamKey = examKey ?? resolvePrimaryExamKey(userId);
 
     if (!resolvedExamKey) return null;
 
@@ -477,7 +544,7 @@ export function getActivePlan(userId: string, examKey?: string): ActivePlanResul
     // studied since commit, cards re-classified) instead of the frozen commit-time
     // snapshot. Falls back to null when a recompute isn't possible; callers then use
     // plan.snapshot. History (listPlans) always reads the frozen snapshot.
-    const liveView = computePlan(userId, resolvedExamKey, plan.deckFilter ?? undefined, plan.cardsPerDay);
+    const liveView = computePlan(userId, resolvedExamKey, plan.deckFilter, plan.cardsPerDay);
 
     return {
         plan,
@@ -548,102 +615,182 @@ export function fetchPlansReferencingDecks(
 
 /**
  * Archives the current active plan (if any) and reactivates the requested plan.
- * Updates activated_at so rebalance detection uses the new activation date.
+ * Updates activated_at so rebalance detection uses the new activation date. All
+ * writes are one transaction.
+ *
+ * Returns null (no-op) for a plan whose deck scope is empty — every deck it was
+ * scoped to has been deleted, so there's nothing left to study (deck deletion
+ * archives such plans; reactivating would just recreate an empty active plan).
  */
 export function reactivatePlan(userId: string, planId: string): Plan | null {
     const db  = getDb();
     const now = new Date().toISOString();
 
-    const row = db.prepare(
-        'SELECT * FROM plans WHERE id = ? AND user_id = ?'
-    ).get(planId, userId) as PlanRow | undefined;
+    return db.transaction((): Plan | null => {
+        const row = db.prepare(
+            'SELECT * FROM plans WHERE id = ? AND user_id = ?'
+        ).get(planId, userId) as PlanRow | undefined;
 
-    if (!row) return null;
+        if (!row) return null;
+        const deckFilter = parseDeckFilter(row.deck_filter);
+        if (deckFilter && deckFilter.length === 0) return null;
 
-    // Archive current active for same exam
-    db.prepare(`
-        UPDATE plans SET status = 'archived', updated_at = ?
-        WHERE user_id = ? AND exam_key = ? AND status = 'active' AND id != ?
-    `).run(now, userId, row.exam_key, planId);
+        // Archive current active for same exam
+        db.prepare(`
+            UPDATE plans SET status = 'archived', updated_at = ?
+            WHERE user_id = ? AND exam_key = ? AND status = 'active' AND id != ?
+        `).run(now, userId, row.exam_key, planId);
 
-    // Reactivate, resetting activated_at so rebalance window starts fresh
-    db.prepare(`
-        UPDATE plans SET status = 'active', activated_at = ?, updated_at = ?
-        WHERE id = ? AND user_id = ?
-    `).run(now, now, planId, userId);
+        // Reactivate, resetting activated_at so rebalance window starts fresh
+        db.prepare(`
+            UPDATE plans SET status = 'active', activated_at = ?, updated_at = ?
+            WHERE id = ? AND user_id = ?
+        `).run(now, now, planId, userId);
 
-    // Mirror rate back to user_profiles and clear any stale override
-    db.prepare(`
-        INSERT INTO user_profiles (id, daily_new_limit, plan_override_expires_at, created_at, updated_at)
-        VALUES (?, ?, NULL, ?, ?)
-        ON CONFLICT(id) DO UPDATE SET
-            daily_new_limit          = excluded.daily_new_limit,
-            plan_override_expires_at = NULL,
-            updated_at               = excluded.updated_at
-    `).run(userId, row.cards_per_day, now, now);
+        // Mirror rate back to user_profiles and clear any stale override
+        mirrorCommittedRate(userId, row.cards_per_day, now);
 
-    return rowToPlan({ ...row, status: 'active', activated_at: now, updated_at: now });
+        return rowToPlan({ ...row, status: 'active', activated_at: now, updated_at: now });
+    })();
+}
+
+// ── Rate changes / overrides ──────────────────────────────────────────────────
+
+/**
+ * Commit a new rate to the exam's active plan (rebalance "accept") and mirror it
+ * to user_profiles.daily_new_limit, clearing any live override — one transaction.
+ *
+ * Bumping plans.updated_at here is what marks "the current rate took effect":
+ * getPlanRebalanceDelta only judges days after it, so days already missed under
+ * the old rate aren't re-judged against the new one.
+ */
+export function updatePlanRate(userId: string, examKey: string, newRate: number): void {
+    const db   = getDb();
+    const now  = new Date().toISOString();
+    const rate = Math.max(1, Math.round(newRate));
+
+    db.transaction(() => {
+        db.prepare(`
+            UPDATE plans SET cards_per_day = ?, updated_at = ?
+            WHERE user_id = ? AND exam_key = ? AND status = 'active'
+        `).run(rate, now, userId, examKey);
+
+        mirrorCommittedRate(userId, rate, now);
+    })();
+}
+
+/**
+ * Clear a one-session override: restore the committed rate of the active plan for
+ * `examKey` (default: the user's primary exam — the plan getActivePlan and the
+ * study queue use), not whichever active plan was activated most recently across
+ * all exams. Falls back to the default limit when that exam has no active plan.
+ */
+export function clearPlanOverride(userId: string, examKey?: string): void {
+    const db  = getDb();
+    const now = new Date().toISOString();
+
+    db.transaction(() => {
+        const resolvedExamKey = examKey ?? resolvePrimaryExamKey(userId);
+        const activeRow = resolvedExamKey
+            ? db.prepare(`
+                SELECT cards_per_day FROM plans
+                WHERE user_id = ? AND exam_key = ? AND status = 'active'
+                ORDER BY activated_at DESC LIMIT 1
+            `).get(userId, resolvedExamKey) as { cards_per_day: number } | undefined
+            : undefined;
+
+        mirrorCommittedRate(userId, activeRow?.cards_per_day ?? DEFAULT_DAILY_NEW_LIMIT, now);
+    })();
 }
 
 // ── Rebalance detection ───────────────────────────────────────────────────────
 
+/**
+ * "You missed N days — your plan adjusted to M new cards/day." Returns null when
+ * there's nothing to say: no active plan, exam today / passed / unset, no new cards
+ * studied yet under the current rate, no missed days, nothing left unseen in scope,
+ * or a recomputed rate within ±1 of the committed one.
+ *
+ * Days are LOCAL calendar days. A day counts as missed when fewer than the
+ * committed number of new cards (within the plan's deck scope) were introduced.
+ */
 export function getPlanRebalanceDelta(userId: string, examKey: string): RebalanceDelta | null {
     const db = getDb();
 
     const activeRow = db.prepare(`
-        SELECT cards_per_day, activated_at FROM plans
+        SELECT cards_per_day, activated_at, updated_at, deck_filter FROM plans
         WHERE user_id = ? AND exam_key = ? AND status = 'active'
         ORDER BY activated_at DESC LIMIT 1
-    `).get(userId, examKey) as { cards_per_day: number; activated_at: string } | undefined;
+    `).get(userId, examKey) as
+        { cards_per_day: number; activated_at: string; updated_at: string; deck_filter: string | null } | undefined;
 
     if (!activeRow) return null;
 
+    // On or after exam day there's no window left to rebalance into.
+    const examRow = db.prepare(`
+        SELECT uep.exam_date
+        FROM user_exam_profiles uep
+        JOIN blueprint_exams be ON be.id = uep.exam_id
+        WHERE uep.user_id = ? AND be.exam_key = ? AND uep.is_primary = 1
+    `).get(userId, examKey) as { exam_date: string } | undefined;
+    if (!examRow || examRow.exam_date === EXAM_DATE_SENTINEL) return null;
+    if (daysUntilExamLocal(examRow.exam_date) <= 0) return null;
+
     const previousNewPerDay = activeRow.cards_per_day;
-    const activatedAt       = activeRow.activated_at;
+    const deckFilter        = parseDeckFilter(activeRow.deck_filter);
+
+    // Judge only days since the CURRENT rate took effect: activation, or the last
+    // change to the plan's commitment — accepting a rebalanced rate (updatePlanRate)
+    // or its deck scope being pruned — both of which bump updated_at. Otherwise an
+    // accepted higher rate re-judged every earlier day against itself.
+    const evaluatedSince = activeRow.updated_at > activeRow.activated_at
+        ? activeRow.updated_at
+        : activeRow.activated_at;
+
+    // New cards introduced since then, within the plan's deck scope.
+    const scope = deckScopeClause('deck_id', deckFilter);
+    const newReviewTimes = (db.prepare(`
+        SELECT review_time FROM reviews
+        WHERE user_id = ? AND review_time >= ? AND state_before = 'new' ${scope.sql}
+        ORDER BY review_time ASC
+    `).all(userId, evaluatedSince, ...scope.params) as { review_time: string }[]).map(r => r.review_time);
 
     // A plan that has never been studied shouldn't accumulate "missed" days —
-    // those days never had a study commitment in practice. Anchor the walk to
-    // MAX(activated_at, first_review_date) so missed days only count *after*
-    // the user actually started reviewing under this plan.
-    const firstReviewRow = db.prepare(`
-        SELECT MIN(review_time) AS first_review
-        FROM reviews
-        WHERE user_id = ? AND review_time >= ? AND state_before = 'new'
-    `).get(userId, activatedAt) as { first_review: string | null } | undefined;
+    // those days never had a study commitment in practice. Anchor the walk to the
+    // first new-card review so missed days only count *after* the user actually
+    // started reviewing under this rate.
+    if (newReviewTimes.length === 0) return null;
 
-    if (!firstReviewRow?.first_review) return null;
+    // Per LOCAL-day new-card counts (SQLite's DATE() would bucket by UTC and push a
+    // west-of-UTC user's evening session into the next day).
+    const studiedMap = new Map<string, number>();
+    for (const t of newReviewTimes) {
+        const key = localDateKey(new Date(t));
+        studiedMap.set(key, (studiedMap.get(key) ?? 0) + 1);
+    }
 
-    // Per-day new card counts since the plan was activated
-    type DayRow = { review_date: string; new_count: number };
-    const studiedDays = db.prepare(`
-        SELECT DATE(review_time) AS review_date, COUNT(*) AS new_count
-        FROM reviews
-        WHERE user_id = ? AND review_time >= ? AND state_before = 'new'
-        GROUP BY DATE(review_time)
-    `).all(userId, activatedAt) as DayRow[];
-
-    const studiedMap = new Map(studiedDays.map(r => [r.review_date, r.new_count]));
-
-    // Walk from day after first review to yesterday, count missed days
-    const startDate = new Date(firstReviewRow.first_review);
-    startDate.setHours(0, 0, 0, 0);
-    startDate.setDate(startDate.getDate() + 1);
+    // Walk local days from the day after the first review up to yesterday.
+    const cursor = new Date(newReviewTimes[0]);
+    cursor.setHours(0, 0, 0, 0);
+    cursor.setDate(cursor.getDate() + 1);
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     let daysMissed = 0;
-    const cursor   = new Date(startDate);
     while (cursor < today) {
-        const dateStr = cursor.toISOString().slice(0, 10);
-        if ((studiedMap.get(dateStr) ?? 0) < previousNewPerDay) daysMissed++;
+        if ((studiedMap.get(localDateKey(cursor)) ?? 0) < previousNewPerDay) daysMissed++;
         cursor.setDate(cursor.getDate() + 1);
     }
 
     if (daysMissed === 0) return null;
 
-    const freshPlan = computePlan(userId, examKey);
+    // Recompute over the plan's own deck scope, not every deck.
+    const freshPlan = computePlan(userId, examKey, deckFilter);
     if (!freshPlan) return null;
+
+    // Scope fully introduced → nothing to catch up on (and no "100/day" fallback).
+    if (freshPlan.unseenTotal === 0) return null;
 
     // Only surface the banner when the new rate differs by more than 1
     if (Math.abs(freshPlan.recommendedNewPerDay - previousNewPerDay) <= 1) return null;
@@ -654,6 +801,7 @@ export function getPlanRebalanceDelta(userId: string, examKey: string): Rebalanc
         daysMissed,
         availableDaysRemaining: freshPlan.availableDays,
         canExtendTimeline:      freshPlan.availableDays > 7,
+        evaluatedSince,
     };
 }
 
@@ -691,41 +839,38 @@ export function getPlanProgress(
 ): PlanProgress {
     const db = getDb();
 
-    // Deck filter clause — reviews table has deck_id directly
-    const reviewDeckClause = deckFilter && deckFilter.length > 0
-        ? `AND deck_id IN (${deckFilter.map(() => '?').join(',')})`
-        : '';
+    // Deck filter clause — reviews table has deck_id directly. An empty filter ('[]'
+    // — every scoped deck deleted) matches nothing rather than every deck.
+    const { sql: reviewDeckClause, params: deckParams } = deckScopeClause('deck_id', deckFilter);
 
     // New cards introduced since plan activation
-    const sinceParams: (string | number | null)[] = [userId, activatedAt, ...(deckFilter ?? [])];
     const sinceRow = db.prepare(`
         SELECT COUNT(DISTINCT card_id) AS cnt
         FROM reviews
         WHERE user_id = ? AND state_before = 'new' AND review_time >= ?
         ${reviewDeckClause}
-    `).get(...sinceParams) as { cnt: number };
+    `).get(userId, activatedAt, ...deckParams) as { cnt: number };
 
     // New cards introduced today
     const midnight = new Date();
     midnight.setHours(0, 0, 0, 0);
-    const todayParams: (string | number | null)[] = [userId, midnight.toISOString(), ...(deckFilter ?? [])];
     const todayRow = db.prepare(`
         SELECT COUNT(DISTINCT card_id) AS cnt
         FROM reviews
         WHERE user_id = ? AND state_before = 'new' AND review_time >= ?
         ${reviewDeckClause}
-    `).get(...todayParams) as { cnt: number };
+    `).get(userId, midnight.toISOString(), ...deckParams) as { cnt: number };
 
     // Current unseen count — cards still untouched
     let currentUnseen: number;
-    if (deckFilter && deckFilter.length > 0) {
-        const placeholders = deckFilter.map(() => '?').join(',');
+    if (deckFilter) {
+        const unseenScope = deckScopeClause('n.deck_id', deckFilter);
         const unseenRow = db.prepare(`
             SELECT COUNT(*) AS cnt
             FROM cards c
             JOIN notes n ON n.id = c.note_id
-            WHERE c.user_id = ? AND c.state = 'new' AND n.deck_id IN (${placeholders})
-        `).get(userId, ...deckFilter) as { cnt: number };
+            WHERE c.user_id = ? AND c.state = 'new' ${unseenScope.sql}
+        `).get(userId, ...unseenScope.params) as { cnt: number };
         currentUnseen = unseenRow.cnt;
     } else {
         const unseenRow = db.prepare(`
@@ -769,13 +914,13 @@ export function getPlanProgress(
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
     const activityToday = toCounts(
-        activityStmt.get(userId, midnight.toISOString(), ...(deckFilter ?? [])) as ActivityRow
+        activityStmt.get(userId, midnight.toISOString(), ...deckParams) as ActivityRow
     );
     const activityLast7Days = toCounts(
-        activityStmt.get(userId, sevenDaysAgo.toISOString(), ...(deckFilter ?? [])) as ActivityRow
+        activityStmt.get(userId, sevenDaysAgo.toISOString(), ...deckParams) as ActivityRow
     );
     const activitySincePlanStart = toCounts(
-        activityStmt.get(userId, activatedAt, ...(deckFilter ?? [])) as ActivityRow
+        activityStmt.get(userId, activatedAt, ...deckParams) as ActivityRow
     );
 
     return {

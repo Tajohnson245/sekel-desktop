@@ -18,9 +18,14 @@ vi.mock('../main/backup/deletionLog', () => ({
 }));
 
 import {
+    createDeck,
+    deleteDeck,
+    deleteDecks,
+    fetchDueCardsCrossDeck,
     fetchMissRateTrend,
     getIntelligenceSummary,
 } from '../main/db/service';
+import { prunePlanDeckScopes } from '../main/db/planDeckScope';
 
 const U  = 'u1';
 const TS = '2026-01-01T00:00:00.000Z';
@@ -45,6 +50,19 @@ function review(at: Date, rating: 'again' | 'good') {
                   VALUES (?, ?, ?, ?, ?, 'review', 5, 5, 'review', 6, 5, 3, ?)`)
         .run(id, U, `card-${id}`, rating, at.toISOString(), at.toISOString());
 }
+
+function insertPlan(id: string, deckFilter: string[] | null, status: 'active' | 'archived' = 'active') {
+    h.db.prepare(`INSERT INTO plans (id, user_id, exam_key, name, cards_per_day, suggested_per_day,
+                      snapshot, deck_filter, status, activated_at, created_at, updated_at)
+                  VALUES (?, ?, 'step1', ?, 10, 10, '{}', ?, ?, ?, ?, ?)`)
+        .run(id, U, id, deckFilter ? JSON.stringify(deckFilter) : null, status, TS, TS, TS);
+}
+
+const plan = (id: string) =>
+    h.db.prepare('SELECT status, deck_filter FROM plans WHERE id = ?').get(id) as { status: string; deck_filter: string | null };
+
+const newDeck = (name: string) =>
+    createDeck({ user_id: U, name, description: null, algorithm: 'fsrs', parent_id: null, anki_id: null });
 
 beforeAll(() => {
     expect(new Date(2026, 0, 15).getTimezoneOffset()).toBe(300); // TZ override took effect
@@ -119,5 +137,60 @@ describe('getIntelligenceSummary — daysUntilExam', () => {
         expect(getIntelligenceSummary(U).daysUntilExam).toBe(0);
         vi.setSystemTime(new Date(2026, 2, 12, 9, 0));
         expect(getIntelligenceSummary(U).daysUntilExam).toBe(-2);
+    });
+});
+
+// ── Empty deck scope ────────────────────────────────────────────────────────
+
+describe('cross-deck scope: [] is an empty scope, not "all decks"', () => {
+    it('fetchDueCardsCrossDeck([]) returns nothing; null still pools every deck', () => {
+        const deck = newDeck('A');
+        h.db.prepare(`INSERT INTO note_types (id, user_id, name, created_at, updated_at) VALUES ('nt', ?, 'Basic', ?, ?)`).run(U, TS, TS);
+        h.db.prepare(`INSERT INTO notes (id, user_id, deck_id, note_type_id, created_at, updated_at) VALUES ('n1', ?, ?, 'nt', ?, ?)`)
+            .run(U, deck.id, TS, TS);
+        h.db.prepare(`INSERT INTO cards (id, user_id, note_id, state, due, stability, difficulty, created_at, updated_at)
+                      VALUES ('c1', ?, 'n1', 'review', ?, 10, 5, ?, ?)`).run(U, '2026-03-01T00:00:00.000Z', TS, TS);
+
+        expect(fetchDueCardsCrossDeck(U, [], 20, 200, 'step1', 20)).toEqual([]);
+        expect(fetchDueCardsCrossDeck(U, [])).toEqual([]);
+        expect(fetchDueCardsCrossDeck(U, null)).toHaveLength(1);
+    });
+});
+
+describe('deck deletion archives a plan left with no decks in scope', () => {
+    it('archives the active plan when its last scoped deck is deleted', () => {
+        const a = newDeck('A');
+        insertPlan('p', [a.id]);
+        deleteDeck(a.id);
+        expect(plan('p')).toEqual({ status: 'archived', deck_filter: '[]' });
+    });
+
+    it('keeps a partially-pruned plan active, and leaves all-deck (NULL) plans alone', () => {
+        const a = newDeck('A');
+        const b = newDeck('B');
+        insertPlan('partial', [a.id, b.id]);
+        insertPlan('all', null);
+        deleteDecks([a.id]);
+        expect(plan('partial')).toEqual({ status: 'active', deck_filter: JSON.stringify([b.id]) });
+        expect(plan('all')).toEqual({ status: 'active', deck_filter: null });
+    });
+});
+
+describe('prunePlanDeckScopes (shared by deck deletion and the boot cleanup)', () => {
+    it('archives an active plan already stuck at "[]" and reports what changed', () => {
+        insertPlan('stuck', []);                     // legacy: emptied before this fix
+        insertPlan('history', ['gone'], 'archived'); // archived plans are only pruned
+        insertPlan('fine', ['live']);
+
+        const res = prunePlanDeckScopes(h.db, id => id === 'live');
+        expect(res).toEqual({ plansUpdated: 1, plansArchived: 1 });
+        expect(plan('stuck').status).toBe('archived');
+        expect(plan('history')).toEqual({ status: 'archived', deck_filter: '[]' });
+        expect(plan('fine')).toEqual({ status: 'active', deck_filter: JSON.stringify(['live']) });
+    });
+
+    it('is a no-op when nothing needs pruning', () => {
+        insertPlan('fine', ['live']);
+        expect(prunePlanDeckScopes(h.db, () => true)).toEqual({ plansUpdated: 0, plansArchived: 0 });
     });
 });
