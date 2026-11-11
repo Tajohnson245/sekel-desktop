@@ -1,7 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
+import JSZip from 'jszip';
 import { MIGRATIONS } from '../main/db/migrations';
 
 // ── In-memory test database ────────────────────────────────────────────────────
@@ -19,6 +21,7 @@ vi.mock('../main/db/syncPush', () => ({
 }));
 
 import { buildAnkiDatabase } from '../main/export/builder';
+import { packageApkg } from '../main/export/packager';
 import { parseAnkiDatabase } from '../main/import/parser';
 import { executeImport } from '../main/import/insertionEngine';
 
@@ -217,5 +220,52 @@ describe('buildAnkiDatabase — review log', () => {
 
         const base = Date.parse(t);
         expect(ids).toEqual([base, base + 1, base + 2, base + 3]);
+    });
+});
+
+describe('packageApkg — media', () => {
+    async function packAndRead(deckId: string, dir: string): Promise<Record<string, string>> {
+        const dbPath = path.join(dir, 'collection.anki21');
+        fs.writeFileSync(dbPath, 'db');
+        const out = path.join(dir, 'out.apkg');
+        await packageApkg(dbPath, deckId, out);
+
+        const zip = await JSZip.loadAsync(fs.readFileSync(out));
+        const mediaMap = JSON.parse(await zip.file('media')!.async('string')) as Record<string, string>;
+        const contentByName: Record<string, string> = {};
+        for (const [key, name] of Object.entries(mediaMap)) {
+            expect(contentByName[name]).toBeUndefined(); // each filename packed once
+            contentByName[name] = await zip.file(key)!.async('string');
+        }
+        return contentByName;
+    }
+
+    it("packs only the deck owner's media, once per filename (newest existing copy)", async () => {
+        const { deckId } = seedDeck();
+        testDb.prepare("UPDATE notes SET fields = ? WHERE id = 'note-1'").run(
+            JSON.stringify({ Front: '<img src="img.png">', Back: 'A [sound:dup.mp3]' }),
+        );
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sekel-pack-test-'));
+        tmpDirs.push(dir);
+        const write = (name: string, content: string) => {
+            const p = path.join(dir, name);
+            fs.writeFileSync(p, content);
+            return p;
+        };
+        const insertMedia = testDb.prepare(`
+            INSERT INTO media (id, user_id, filename, file_path, file_hash, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `);
+        // Another local account's file with the same name must not leak in.
+        insertMedia.run('m1', 'user-someone-else', 'img.png', write('theirs.png', 'THEIRS'), 'h1', '2026-03-01T00:00:00.000Z');
+        insertMedia.run('m2', USER, 'img.png', write('mine.png', 'MINE'), 'h2', '2026-01-01T00:00:00.000Z');
+        // Same filename imported twice with different content, plus a newer row whose file is gone.
+        insertMedia.run('m3', USER, 'dup.mp3', write('dup-old.mp3', 'OLD'), 'h3', '2026-01-01T00:00:00.000Z');
+        insertMedia.run('m4', USER, 'dup.mp3', write('dup-new.mp3', 'NEW'), 'h4', '2026-02-01T00:00:00.000Z');
+        insertMedia.run('m5', USER, 'dup.mp3', path.join(dir, 'missing.mp3'), 'h5', '2026-03-01T00:00:00.000Z');
+
+        const contentByName = await packAndRead(deckId, dir);
+
+        expect(contentByName).toEqual({ 'img.png': 'MINE', 'dup.mp3': 'NEW' });
     });
 });
