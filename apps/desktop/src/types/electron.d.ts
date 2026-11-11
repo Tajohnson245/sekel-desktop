@@ -341,6 +341,8 @@ export interface SekelImportResult {
     reviewsInserted: number;
     sessionsInserted: number;
     mediaExtracted: number;
+    /** Non-fatal problems (e.g. media files that were skipped). */
+    warnings: string[];
 }
 
 export interface BackupInfo {
