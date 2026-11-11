@@ -9,6 +9,55 @@ permissions:
   contents: write
 
 jobs:
+  # Gate: nothing touches prod (migrations, edge functions, R2) until the
+  # tagged commit passes lint, typecheck and the unit/component test suites,
+  # and the tag matches version.json. CircleCI runs the same checks on branch
+  # pushes but never on tags, so without this a release could ship code no
+  # check ever ran against.
+  verify:
+    name: Verify (version, lint, typecheck, tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Validate tag matches version.json
+        shell: bash
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#desktop/v}"
+          EXPECTED=$(node -p "require('./scripts/version.json').desktop")
+          if [ "$EXPECTED" != "$TAG_VERSION" ]; then
+            echo "ERROR: Tag version ($TAG_VERSION) does not match version.json ($EXPECTED)"
+            exit 1
+          fi
+          node scripts/bump.js --check
+
+      # CI=true makes the desktop postinstall skip the Electron-targeted
+      # better-sqlite3 rebuild, so the unit tests get a Node-ABI binary.
+      - name: Install dependencies
+        run: npm ci
+
+      # Lock file is generated on Windows and lacks Linux rollup binaries.
+      - name: Install Rollup native binary
+        run: npm install --no-save rollup
+        working-directory: apps/desktop
+
+      - name: Lint
+        run: npx turbo run lint --filter=@sekel/desktop
+
+      - name: Type check
+        run: npx turbo run typecheck --filter=@sekel/desktop
+
+      - name: Unit tests (desktop)
+        run: npx turbo run test:unit --filter=@sekel/desktop
+
+      - name: Component tests
+        run: npx turbo run test --filter=@sekel/components
+
   # Apply pending migrations + deploy edge functions to the prod Supabase
   # project BEFORE the desktop installer is built and uploaded. This couples
   # the server schema/functions to the client release: by the time the new
@@ -29,6 +78,7 @@ jobs:
   #                               (Settings → Database → Connection string)
   deploy-server:
     name: Deploy server-side (Supabase)
+    needs: verify
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -164,7 +214,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          # Node 20 reached end-of-life in April 2026; match the verify job.
+          node-version: '22'
           cache: npm
 
       - name: Extract version from tag
@@ -233,6 +284,11 @@ jobs:
 
       # Create the draft GitHub Release if it doesn't exist yet (idempotent
       # across matrix jobs -- whichever runs first wins, others no-op).
+      #
+      # --target pins the v<X.Y.Z> tag (created when the draft is published)
+      # to the commit being built. Without it GitHub defaults to the default
+      # branch, and because the release branch isn't merged to main until
+      # after this workflow, every v-tag pointed at the PREVIOUS release.
       - name: Ensure GitHub Release exists
         shell: bash
         env:
@@ -240,7 +296,7 @@ jobs:
         run: |
           TAG="v${{ steps.version.outputs.version }}"
           if ! gh release view "$TAG" >/dev/null 2>&1; then
-            gh release create "$TAG" --draft --title "$TAG" --notes "" || \
+            gh release create "$TAG" --draft --title "$TAG" --notes "" --target "$GITHUB_SHA" || \
               gh release view "$TAG" >/dev/null  # tolerate race -- another job created it
           fi
 
@@ -266,6 +322,14 @@ jobs:
 
       # Upload to Cloudflare R2 with the same per-platform/per-arch layout
       # the prior publisher-s3 keyResolver produced: <platform>/<arch>/<filename>.
+      #
+      # Squirrel's RELEASES manifest is deliberately NOT uploaded here: it is
+      # what makes installed Windows clients auto-update, so it is published
+      # by the final promote-update-feed job, only after every platform built
+      # and the release notes are on R2. Uploading it here meant (a) a release
+      # whose macOS/Linux build failed still auto-updated Windows users while
+      # the GitHub release stayed a draft, and (b) clients could update before
+      # notes/v<X.Y.Z>.md existed and show the fallback text.
       - name: Upload artifacts to Cloudflare R2
         shell: bash
         env:
@@ -280,14 +344,36 @@ jobs:
           cd apps/desktop/out/make
           find . -type f \
             \( -name "*.exe" -o -name "*.zip" -o -name "*.nupkg" \
-               -o -name "RELEASES" -o -name "*.deb" -o -name "*.rpm" \
-               -o -name "*.dmg" \) \
+               -o -name "*.deb" -o -name "*.rpm" -o -name "*.dmg" \) \
             -print0 | while IFS= read -r -d '' f; do
               base=$(basename "$f")
               echo "Uploading $f -> s3://sekel-releases/$PLATFORM/$ARCH/$base"
               aws s3 cp "$f" "s3://sekel-releases/$PLATFORM/$ARCH/$base" \
                 --endpoint-url "$ENDPOINT"
             done
+
+      # Hand the Squirrel RELEASES manifest to promote-update-feed.
+      - name: Stage Squirrel RELEASES manifest (Windows only)
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: |
+          set -e
+          mkdir -p "$RUNNER_TEMP/update-feed"
+          MANIFEST=$(find apps/desktop/out/make -type f -name RELEASES | head -n 1)
+          if [ -z "$MANIFEST" ]; then
+            echo "ERROR: Squirrel RELEASES manifest not found under out/make"
+            exit 1
+          fi
+          cp "$MANIFEST" "$RUNNER_TEMP/update-feed/RELEASES"
+
+      - name: Upload RELEASES manifest artifact (Windows only)
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: squirrel-releases-win32-${{ matrix.arch }}
+          path: ${{ runner.temp }}/update-feed/RELEASES
+          if-no-files-found: error
+          retention-days: 7
 
   # Two distinct audiences, two distinct outputs:
   #   1. The GitHub Release page (engineers / maintainers): keeps the
@@ -326,8 +412,10 @@ jobs:
           # name v${version} (not desktop/v${version}) — see "Ensure GitHub
           # Release exists" above.
           TAG="v${GITHUB_REF_NAME#desktop/v}"
+          # target_commitish: the tag doesn't exist until the draft is
+          # published below, so tell GitHub which commit the notes cover.
           gh api -X POST "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
-            -f tag_name="$TAG" --jq '.body' > /tmp/release_notes.md
+            -f tag_name="$TAG" -f target_commitish="$GITHUB_SHA" --jq '.body' > /tmp/release_notes.md
           if [ ! -s /tmp/release_notes.md ]; then
             echo "Release $TAG" > /tmp/release_notes.md
           fi
@@ -384,3 +472,37 @@ jobs:
             --endpoint-url "$ENDPOINT" \
             --content-type "text/markdown; charset=utf-8" \
             --cache-control "public, max-age=300"
+
+  # Last step of a release: publish Squirrel's RELEASES manifest, which is
+  # what installed Windows clients poll (every 10 min) to discover an update.
+  # Runs only when every platform build succeeded (needs: release) AND the
+  # notes are on R2 (needs: publish-notes), so users never auto-update into a
+  # half-published release or a modal without notes. The .nupkg it points at
+  # was already uploaded by the Windows build job.
+  #
+  # Re-running just this job (or the whole workflow) is safe: the manifest is
+  # overwritten with identical content.
+  promote-update-feed:
+    name: Promote Windows auto-update feed
+    needs: [release, publish-notes]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download RELEASES manifest
+        uses: actions/download-artifact@v4
+        with:
+          name: squirrel-releases-win32-x64
+          path: ${{ runner.temp }}/update-feed
+
+      - name: Upload RELEASES to Cloudflare R2
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+        shell: bash
+        run: |
+          set -e
+          ENDPOINT="https://10b526ce06de458a7e43834f97953694.r2.cloudflarestorage.com"
+          echo "Contents of RELEASES:"
+          cat "$RUNNER_TEMP/update-feed/RELEASES"
+          aws s3 cp "$RUNNER_TEMP/update-feed/RELEASES" "s3://sekel-releases/win32/x64/RELEASES" \
+            --endpoint-url "$ENDPOINT"

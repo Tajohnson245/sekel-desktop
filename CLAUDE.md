@@ -84,7 +84,7 @@ Full reference: `.claude/skills/github-workflows/references/naming-conventions.m
 The pipeline is largely automated via two workflows:
 
 - **`bump-version.yml`** (manual `workflow_dispatch`) — runs `scripts/bump.js`, commits the version change, creates annotated `desktop/v<X.Y.Z>` tag, pushes both.
-- **`release.yml`** (triggered by `desktop/v*.*.*` tag push) — matrix-builds installers (win-x64, macOS-arm64/x64, linux-x64), Azure Trusted Signing for Windows, uploads to GitHub Release + Cloudflare R2 (the auto-update endpoint), and publishes auto-generated release notes mirrored to R2.
+- **`release.yml`** (triggered by `desktop/v*.*.*` tag push) — job order: `verify` (tag ↔ version.json, lint, typecheck, unit + component tests; nothing touches prod if this fails) → `deploy-server` → `release` (matrix-builds installers for win-x64, macOS-arm64/x64, linux-x64; Azure Trusted Signing for Windows; uploads to GitHub Release + Cloudflare R2) → `publish-notes` (GitHub release notes + CHANGELOG mirror to R2) → `promote-update-feed` (uploads Squirrel's `win32/x64/RELEASES` last — this is the moment Windows clients start auto-updating, so it only happens once every platform built and the notes are live).
 
 ### Per-release sequence
 
