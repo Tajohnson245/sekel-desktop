@@ -38,7 +38,7 @@ export default function StudySession() {
         examKey,
     );
 
-    const { data: cards = [], isLoading, refetch } = focusSystemKeys.length > 0
+    const { data: cards = [], isLoading, isFetching, refetch } = focusSystemKeys.length > 0
         ? focusedCardsResult
         : mode === 'due' ? dueCardsResult : allCardsResult;
 
@@ -52,7 +52,8 @@ export default function StudySession() {
             title={deck?.name ?? ''}
             cards={cards}
             isLoading={isLoading}
-            refetch={() => { void refetch(); }}
+            isFetching={isFetching}
+            refetch={() => refetch()}
             createSession={() => createSession.mutateAsync({ userId, deckId }).then((s) => s.id)}
             resolveFsrs={() => deck?.algorithm === 'fsrs'}
             onExit={() => goToDeck(deckId)}

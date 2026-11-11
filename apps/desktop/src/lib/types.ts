@@ -354,6 +354,14 @@ export const DEFAULT_NOTE_TYPES: Omit<NoteType, 'id' | 'user_id' | 'anki_id' |'c
     },
 ];
 
+/**
+ * An active plan's shared new-card pool, passed to per-deck queries for decks
+ * the plan covers. deckIds: the plan's deck filter (null = every deck).
+ */
+export interface PlanNewScope {
+    deckIds: string[] | null;
+}
+
 // ─────────────────────────────────────────────────────────────────
 // Statistics Types (for dedicated statistics page)
 // ─────────────────────────────────────────────────────────────────

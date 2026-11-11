@@ -25,7 +25,8 @@ import {
 import type { Deck, DeckInsert, DeckUpdate, Card } from '../lib/types';
 import { useAuthStore } from '../stores/authStore';
 import { useProfileStore } from '../stores/profileStore';
-import { useEffectivePlan } from './usePlan';
+import { useEffectivePlan, planNewScopeFor, planNewScopeKey } from './usePlan';
+import { useExamProfile } from './useExamProfile';
 
 // ─────────────────────────────────────────────────────────────────
 // Query Keys
@@ -40,6 +41,12 @@ export const deckKeys = {
     cards: (id: string) => ['decks', id, 'cards'] as const,
     classificationCount: (id: string, examKey: string) => ['decks', id, 'classification-count', examKey] as const,
 };
+
+/** Per-deck study queue queries (['decks', id, 'due-cards' | 'due-cards-focused' | 'all-cards', …]). */
+export function isStudyQueueKey(queryKey: readonly unknown[]): boolean {
+    return queryKey[0] === 'decks'
+        && (queryKey[2] === 'due-cards' || queryKey[2] === 'due-cards-focused' || queryKey[2] === 'all-cards');
+}
 
 /** Stable cache key for a cross-deck scope: null → every deck, else the sorted id set. */
 function scopeKey(deckIds: string[] | null): string {
@@ -78,15 +85,17 @@ export function useDeck(id: string | null) {
 export function useDeckStats(deckId: string | null) {
     const userId = useAuthStore((s) => s.user?.id);
     const profile = useProfileStore((s) => s.profile);
-    const planNewPerDay = useEffectivePlan().effectiveNewPerDay;
+    const effectivePlan = useEffectivePlan();
+    const planNewPerDay = effectivePlan.effectiveNewPerDay;
     const limitsEnabled = profile?.daily_limits_enabled ?? true;
     // An active plan's rate caps new cards (same precedence as useDueCards), so the
     // deck-list badge matches what the study session will actually serve.
     const newLimit = planNewPerDay ?? (limitsEnabled ? (profile?.daily_new_limit ?? 20) : undefined);
     const reviewLimit = limitsEnabled ? (profile?.daily_review_limit ?? 200) : undefined;
+    const planScope = planNewScopeFor(effectivePlan, deckId);
     return useQuery<DeckStats>({
-        queryKey: [...deckKeys.stats(deckId ?? ''), newLimit, reviewLimit],
-        queryFn: () => fetchDeckStats(deckId!, userId, newLimit, reviewLimit),
+        queryKey: [...deckKeys.stats(deckId ?? ''), newLimit, reviewLimit, planNewScopeKey(planScope)],
+        queryFn: () => fetchDeckStats(deckId!, userId, newLimit, reviewLimit, planScope),
         enabled: !!deckId && !!userId,
     });
 }
@@ -94,14 +103,20 @@ export function useDeckStats(deckId: string | null) {
 export function useDueCards(deckId: string | null) {
     const userId = useAuthStore((s) => s.user?.id);
     const profile = useProfileStore((s) => s.profile);
-    const planNewPerDay = useEffectivePlan().effectiveNewPerDay;
+    const effectivePlan = useEffectivePlan();
+    const planNewPerDay = effectivePlan.effectiveNewPerDay;
+    const examKey = useExamProfile().data?.exam_key;
     const limitsEnabled = profile?.daily_limits_enabled ?? true;
     // Plan limit takes precedence over Supabase profile when a plan is active
     const newLimit = planNewPerDay ?? (limitsEnabled ? (profile?.daily_new_limit ?? 20) : undefined);
     const reviewLimit = limitsEnabled ? (profile?.daily_review_limit ?? 200) : undefined;
+    // A plan's "N new/day" is one pool across its decks, not N per deck.
+    const planScope = planNewScopeFor(effectivePlan, deckId);
     return useQuery<CardWithNote[]>({
-        queryKey: [...deckKeys.dueCards(deckId ?? ''), newLimit, reviewLimit],
-        queryFn: () => fetchDueCards(deckId!, userId, newLimit, reviewLimit),
+        queryKey: [...deckKeys.dueCards(deckId ?? ''), newLimit, reviewLimit, examKey ?? '', planNewScopeKey(planScope)],
+        // examKey drives high-yield-first ordering of new cards for the user's
+        // own exam (previously always Step 1).
+        queryFn: () => fetchDueCards(deckId!, userId, newLimit, reviewLimit, examKey, planScope),
         enabled: !!deckId && !!userId,
     });
 }
@@ -300,7 +315,18 @@ export function useUpdateCard() {
         mutationFn: ({ cardId, updates }: { cardId: string; updates: Partial<Card> }) =>
             updateCardAfterReview(cardId, updates),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['decks'] });
+            // Everything card-derived is now out of date: mark all deck and
+            // study queries stale so the next screen that mounts them refetches…
+            queryClient.invalidateQueries({ queryKey: deckKeys.all, refetchType: 'none' });
+            queryClient.invalidateQueries({ queryKey: ['study'], refetchType: 'none' });
+            // …but only refetch the visible counts right away. Study queues are
+            // left alone: StudyPlayer freezes its queue at session start, and
+            // re-reading it after every rating used to shrink the list under
+            // the player's index and skip cards.
+            queryClient.invalidateQueries({
+                queryKey: deckKeys.all,
+                predicate: (query) => !isStudyQueueKey(query.queryKey),
+            });
         },
     });
 }

@@ -22,6 +22,7 @@ import {
     type PlanActivityCounts,
 } from '../lib/queries';
 import { useAuthStore } from '../stores/authStore';
+import type { PlanNewScope } from '../lib/types';
 
 export const planKeys = {
     suggestion:         (userId: string, examKey: string, deckKey: string) => ['plan', 'suggestion', userId, examKey, deckKey] as const,
@@ -98,11 +99,13 @@ export interface EffectivePlan {
     hasOverride:        boolean;
     /** Override expiry when an override is currently live; null otherwise. */
     overrideExpiresAt:  string | null;
+    /** Decks the plan covers (null = every deck). Meaningless without an active plan. */
+    scopeDeckIds:       string[] | null;
 }
 
 export function deriveEffectivePlan(result: ActivePlanResult | null | undefined): EffectivePlan {
     if (!result) {
-        return { activePlanId: null, effectiveNewPerDay: null, hasOverride: false, overrideExpiresAt: null };
+        return { activePlanId: null, effectiveNewPerDay: null, hasOverride: false, overrideExpiresAt: null, scopeDeckIds: null };
     }
     const { plan, overrideExpiresAt, currentDailyNewLimit } = result;
     const overrideLive = overrideExpiresAt !== null && new Date(overrideExpiresAt) > new Date();
@@ -111,7 +114,27 @@ export function deriveEffectivePlan(result: ActivePlanResult | null | undefined)
         effectiveNewPerDay: overrideLive ? currentDailyNewLimit : plan.cardsPerDay,
         hasOverride:        overrideLive,
         overrideExpiresAt:  overrideLive ? overrideExpiresAt : null,
+        scopeDeckIds:       plan.deckFilter,
     };
+}
+
+/**
+ * When an active plan covers `deckId`, the deck's new cards come out of the
+ * plan's single shared daily pool ("20 new/day" = 20 across all plan decks),
+ * so per-deck study and its badges must subtract new cards already studied
+ * today in *any* plan deck. Returns undefined when no plan governs the deck.
+ */
+export function planNewScopeFor(effective: EffectivePlan, deckId: string | null | undefined): PlanNewScope | undefined {
+    if (!deckId || !effective.activePlanId || effective.effectiveNewPerDay == null) return undefined;
+    const ids = effective.scopeDeckIds;
+    if (ids !== null && !ids.includes(deckId)) return undefined;
+    return { deckIds: ids };
+}
+
+/** Stable query-key fragment for a plan new-card scope. */
+export function planNewScopeKey(scope: PlanNewScope | undefined): string {
+    if (!scope) return 'deck';
+    return scope.deckIds === null ? 'plan:all' : `plan:${[...scope.deckIds].sort().join(',')}`;
 }
 
 /** Derives the effective daily-new cap from the user's active plan (primary exam). */

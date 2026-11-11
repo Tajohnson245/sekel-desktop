@@ -19,6 +19,7 @@ import type { DeckStats, TodaySummary, CardCountsByMaturity, RetentionByMaturity
 import type { MissedSystemBreakdown, MissedTopicRow, MissedCardStats, MissRateTrendPoint, DateRangeDays } from '@sekel/db';
 import type { CardWithNote } from '@sekel/db';
 import type { InsertReviewParams, ReviewDayCount } from '@sekel/db';
+import type { PlanNewScope } from '../../lib/types';
 
 // ── JSON helpers ──────────────────────────────────────────────────────────────
 
@@ -225,6 +226,15 @@ function countStudiedToday(deckId: string, userId: string): { newStudied: number
  * countStudiedToday). Mirrors getPlanProgress.studiedToday so the study cap and the
  * plan's progress card reconcile.
  */
+/**
+ * New cards already studied today that count against `deckId`'s new-card cap:
+ * the whole plan pool when a plan governs the deck, else just this deck.
+ */
+function newStudiedTodayForCap(deckId: string, userId: string, planScope?: PlanNewScope): number {
+    if (planScope) return countNewStudiedTodayAcrossScope(userId, resolveScopeDeckIds(userId, planScope.deckIds));
+    return countStudiedToday(deckId, userId).newStudied;
+}
+
 function countNewStudiedTodayAcrossScope(userId: string, deckIds: string[]): number {
     if (deckIds.length === 0) return 0;
     const ph = deckIds.map(() => '?').join(',');
@@ -240,6 +250,7 @@ export function fetchDeckStats(
     userId?: string,
     dailyNewLimit?: number,
     dailyReviewLimit?: number,
+    planScope?: PlanNewScope,
 ): DeckStats {
     const now = new Date().toISOString();
     const db = getDb();
@@ -266,7 +277,8 @@ export function fetchDeckStats(
     let newCount = newTotal;
     if (userId && dailyNewLimit != null && dailyReviewLimit != null) {
         const studied = countStudiedToday(deckId, userId);
-        newCount = Math.min(newTotal, Math.max(0, dailyNewLimit - studied.newStudied));
+        const newStudied = planScope ? newStudiedTodayForCap(deckId, userId, planScope) : studied.newStudied;
+        newCount = Math.min(newTotal, Math.max(0, dailyNewLimit - newStudied));
         reviewCount = Math.min(reviewCount, Math.max(0, dailyReviewLimit - studied.reviewStudied));
     }
 
@@ -622,6 +634,7 @@ export function fetchDueCards(
     dailyNewLimit?: number,
     dailyReviewLimit?: number,
     examKey = 'step1',
+    planScope?: PlanNewScope,
 ): CardWithNote[] {
     const now = new Date().toISOString();
     const db = getDb();
@@ -639,7 +652,8 @@ export function fetchDueCards(
     }
 
     const studied = countStudiedToday(deckId, userId);
-    const remainingNew = Math.max(0, dailyNewLimit - studied.newStudied);
+    const newStudied = planScope ? newStudiedTodayForCap(deckId, userId, planScope) : studied.newStudied;
+    const remainingNew = Math.max(0, dailyNewLimit - newStudied);
     const remainingReview = Math.max(0, dailyReviewLimit - studied.reviewStudied);
 
     // Learning/relearning: always shown (no limit), ordered by due date
@@ -675,6 +689,7 @@ export function fetchDueCards(
                 n.note_type_id,
                 n.fields   AS note_fields,
                 n.tags     AS note_tags,
+                n.format   AS note_format,
                 n.anki_meta AS note_anki_meta,
                 n.created_at AS note_created_at,
                 n.updated_at AS note_updated_at,
@@ -783,6 +798,7 @@ export function fetchDueCardsFocused(
                 n.note_type_id,
                 n.fields   AS note_fields,
                 n.tags     AS note_tags,
+                n.format   AS note_format,
                 n.anki_meta AS note_anki_meta,
                 n.created_at AS note_created_at,
                 n.updated_at AS note_updated_at,
@@ -873,6 +889,7 @@ function fetchScopeNewCards(userId: string, deckIds: string[], examKey: string, 
             n.note_type_id,
             n.fields   AS note_fields,
             n.tags     AS note_tags,
+            n.format   AS note_format,
             n.anki_meta AS note_anki_meta,
             n.created_at AS note_created_at,
             n.updated_at AS note_updated_at,
@@ -1158,6 +1175,16 @@ export function insertReview(params: InsertReviewParams): Review {
         now,
     );
     return getDb().prepare('SELECT * FROM reviews WHERE id = ?').get(id) as Review;
+}
+
+/**
+ * Removes a review row written moments ago — used by the study session's
+ * Undo so an undone rating doesn't linger in retention, lapse and plan stats.
+ * Scoped to the owner; returns whether a row was deleted.
+ */
+export function deleteReview(reviewId: string, userId: string): boolean {
+    const result = getDb().prepare('DELETE FROM reviews WHERE id = ? AND user_id = ?').run(reviewId, userId);
+    return result.changes > 0;
 }
 
 export function fetchUserReviewHistory(userId: string, days = 365): ReviewDayCount[] {
