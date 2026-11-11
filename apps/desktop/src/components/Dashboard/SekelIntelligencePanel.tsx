@@ -136,7 +136,10 @@ export default function SekelIntelligencePanel({ intelligence, onStartFocused, o
                 <div className="intel-panel__header-right">
                     {(daysUntilExam !== null || examLabel) && (
                         <span className="intel-panel__exam-chip">
-                            {examLabel}{daysUntilExam !== null ? ` · ${daysUntilExam}d` : ''}
+                            {examLabel}
+                            {daysUntilExam === null ? ''
+                                : daysUntilExam > 0 ? ` · ${daysUntilExam}d`
+                                : daysUntilExam === 0 ? ' · today' : ' · passed'}
                         </span>
                     )}
                     <button

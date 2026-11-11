@@ -11,6 +11,8 @@ import { Notification, BrowserWindow } from 'electron';
 import { instrumentedHandle } from '@sekel/observability';
 import { fetchAllDueCardsCount, fetchUserReviewHistory } from '../main/db/service';
 import { getDb } from '../main/db/index';
+import { daysUntilExamLocal } from '../lib/planMath';
+import { localDateKey } from '../lib/localDate';
 import type { ReviewDayCount } from '@sekel/db';
 
 // ── State ────────────────────────────────────────────────────────────────────
@@ -36,7 +38,8 @@ function calculateStreak(history: ReviewDayCount[]): number {
     for (let i = 0; i <= 365; i++) {
         const d = new Date(today);
         d.setDate(d.getDate() - i);
-        const dateStr = d.toISOString().slice(0, 10);
+        // History is keyed by LOCAL date (fetchUserReviewHistory) — match it.
+        const dateStr = localDateKey(d);
 
         if (reviewDates.has(dateStr)) {
             streak++;
@@ -189,14 +192,14 @@ function computeMultiplier(
     if (examDate === EXAM_DATE_SENTINEL) return { multiplier: 1.0, daysUntilExam: null };
 
     if (sessionMode === 'triage') {
-        const days = Math.floor((new Date(examDate).getTime() - Date.now()) / 86_400_000);
-        return { multiplier: 2.5, daysUntilExam: days };
+        return { multiplier: 2.5, daysUntilExam: daysUntilExamLocal(examDate) };
     }
     if (sessionMode === 'mixed') {
         return { multiplier: 1.0, daysUntilExam: null };
     }
 
-    const daysUntilExam = Math.floor((new Date(examDate).getTime() - Date.now()) / 86_400_000);
+    // Whole LOCAL calendar days (0 = exam day) — see daysUntilExamLocal.
+    const daysUntilExam = daysUntilExamLocal(examDate);
     let multiplier = 1.0;
     if (daysUntilExam < 7)        multiplier = 2.5;
     else if (daysUntilExam < 30)  multiplier = 2.0;

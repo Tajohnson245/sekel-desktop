@@ -11,6 +11,8 @@ import { useTodaySummary, useCardCountsByMaturity } from '../../hooks/useStatist
 import { useDecks, useDeckStats, useDeckClassificationCount } from '../../hooks/useDecks';
 import { useDeckDueCounts } from '../../hooks/useDeckDueCounts';
 import { isExamDateSet } from '../../lib/queries';
+import { daysUntilExamLocal } from '../../lib/planMath';
+import { localDateKey } from '../../lib/localDate';
 import { getGreeting } from '../../lib/timeOfDay';
 import { useAppNavigation } from '../../hooks/useAppNavigation';
 import type { Deck } from '../../lib/types';
@@ -29,7 +31,8 @@ function computeStreak(history: ReviewDayCount[]): number {
     for (let i = 0; i <= 365; i++) {
         const d = new Date(today);
         d.setDate(d.getDate() - i);
-        const dateStr = d.toISOString().slice(0, 10);
+        // History is keyed by LOCAL date (fetchUserReviewHistory) — match it.
+        const dateStr = localDateKey(d);
         if (reviewDates.has(dateStr)) {
             streak++;
         } else if (i === 0) {
@@ -185,9 +188,9 @@ export default function Dashboard() {
     const intelligenceEnabled = profile?.intelligence_enabled ?? true;
 
     const hasExamDate = examProfile != null && isExamDateSet(examProfile.exam_date);
-    const daysUntilExam = hasExamDate
-        ? Math.floor((new Date(examProfile!.exam_date).getTime() - Date.now()) / 86_400_000)
-        : null;
+    // Whole LOCAL calendar days: 0 on exam day, negative once it has passed.
+    const daysUntilExam = hasExamDate ? daysUntilExamLocal(examProfile!.exam_date) : null;
+    const examPassed = daysUntilExam !== null && daysUntilExam < 0;
 
     const streak = computeStreak(reviewHistory);
     const completedToday = todaySummary?.totalReviews ?? 0;
@@ -217,7 +220,8 @@ export default function Dashboard() {
     // Prefer the live-recomputed view (current exam date / unseen pool / classifications);
     // fall back to the frozen commit-time snapshot when a recompute isn't available.
     const planView = activePlanResult ? (activePlanResult.liveView ?? activePlanResult.plan.snapshot) : null;
-    const projectedCoverage = planView
+    // No "projected by exam day" figure once the exam is behind us.
+    const projectedCoverage = planView && !examPassed
         ? Math.round(planView.projectedCoverage * 100)
         : null;
     const newToday = todaySummary?.newCount ?? null;
@@ -245,7 +249,14 @@ export default function Dashboard() {
                     <div className="exam-hero__main">
                         <span className="exam-hero__blueprint">{examProfile!.exam_label}</span>
                         <div className="exam-hero__countdown">
-                            {daysUntilExam} <span className="exam-hero__countdown-unit">days until exam</span>
+                            {daysUntilExam! > 0 ? (
+                                <>
+                                    {daysUntilExam}{' '}
+                                    <span className="exam-hero__countdown-unit">
+                                        {daysUntilExam === 1 ? 'day' : 'days'} until exam
+                                    </span>
+                                </>
+                            ) : daysUntilExam === 0 ? 'Exam day' : 'Exam passed'}
                         </div>
                         <div className="exam-hero__pace">
                             {onPace ? 'On pace' : 'Behind plan'}
@@ -379,7 +390,7 @@ export default function Dashboard() {
                                     )}
                                     <div className="db-plan-stat">
                                         <span className="db-plan-stat__value">
-                                            {projectedCoverage}%
+                                            {projectedCoverage !== null ? `${projectedCoverage}%` : '—'}
                                         </span>
                                         <span className="db-plan-stat__label">proj. coverage</span>
                                     </div>

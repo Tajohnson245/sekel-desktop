@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { isExamDateSet } from '../../lib/queries';
+import { daysUntilExamLocal } from '../../lib/planMath';
 import './UrgencyChip.css';
 
 interface UrgencyChipProps {
@@ -29,7 +30,7 @@ export default function UrgencyChip({ examDate, sessionMode }: UrgencyChipProps)
 
     if (!isExamDateSet(examDate)) return null;
 
-    const daysUntilExam = Math.floor((new Date(examDate).getTime() - Date.now()) / 86_400_000);
+    const daysUntilExam = daysUntilExamLocal(examDate);
 
     // Override for fixed-mode profiles
     if (sessionMode === 'triage') {
