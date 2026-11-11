@@ -148,11 +148,13 @@ describe('migration: repair pre-SEKEL-145 Anki review due dates', () => {
         seedCard({ id: 'c6' });                                            // only Sekel reviews
         for (const id of ['c1', 'c2', 'c3', 'c4', 'c5']) seedReview(id, '2023-02-01T10:00:00.000Z', 30);
         seedReview('c6', '2023-02-01T10:00:00.000Z', 30, null, 'session-1');
-        const before = db.prepare('SELECT * FROM cards ORDER BY id').all();
+        // Explicit columns: later migrations may add columns to cards.
+        const snapshot = () => db.prepare('SELECT id, state, due, last_review, updated_at FROM cards ORDER BY id').all();
+        const before = snapshot();
 
         applyFrom(db, idx);
 
-        expect(db.prepare('SELECT * FROM cards ORDER BY id').all()).toEqual(before);
+        expect(snapshot()).toEqual(before);
     });
 
     it('leaves an affected card alone when it has no usable Anki review', () => {
