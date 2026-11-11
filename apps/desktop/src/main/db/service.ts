@@ -2,6 +2,9 @@ import { randomUUID } from 'node:crypto';
 import { getDb } from './index';
 import { logDeckDeletion, logNoteDeletion, logAllNotesInDeckDeletion, logAllDecksDeletion } from '../backup/deletionLog';
 import { getRetrievability } from '../../lib/fsrs';
+import { daysUntilExamLocal } from '../../lib/planMath';
+import { localDateKey, localWeekKey } from '../../lib/localDate';
+import { prunePlanDeckScopes } from './planDeckScope';
 import type {
     Deck, DeckInsert, DeckUpdate,
     Note, NoteInsert, NoteUpdate,
@@ -104,32 +107,15 @@ export function updateDeck(id: string, updates: DeckUpdate): Deck {
 }
 
 /**
- * Prune deleted deck UUIDs from every plan's deck_filter JSON column.
+ * Prune deleted deck UUIDs from every plan's deck_filter JSON column, archiving
+ * an active plan whose last scoped deck was deleted (see prunePlanDeckScopes).
  * Must run inside the same transaction as the deck DELETE so plans never
  * observe a stale filter pointing at a missing deck. Caller passes the open db.
  */
 function prunePlanDeckFilters(db: ReturnType<typeof getDb>, removedDeckIds: string[]): void {
     if (removedDeckIds.length === 0) return;
     const removed = new Set(removedDeckIds);
-    const rows = db.prepare(
-        `SELECT id, deck_filter FROM plans WHERE deck_filter IS NOT NULL`
-    ).all() as { id: string; deck_filter: string }[];
-
-    const update = db.prepare(
-        `UPDATE plans SET deck_filter = ?, updated_at = ? WHERE id = ?`
-    );
-    const now = new Date().toISOString();
-
-    for (const row of rows) {
-        let filter: string[];
-        try { filter = JSON.parse(row.deck_filter) as string[]; }
-        catch { continue; }
-        if (!Array.isArray(filter)) continue;
-        const pruned = filter.filter(id => !removed.has(id));
-        if (pruned.length !== filter.length) {
-            update.run(JSON.stringify(pruned), now, row.id);
-        }
-    }
+    prunePlanDeckScopes(db, id => !removed.has(id));
 }
 
 export function deleteDeck(id: string): void {
@@ -840,9 +826,13 @@ export function fetchDueCardsFocused(
 
 // ── Cross-deck study (SEKEL-137) ────────────────────────────────────────────
 
-/** Deck IDs owned by the user, narrowed to a scope set when one is supplied. */
+/**
+ * Deck IDs owned by the user, narrowed to a scope set when one is supplied.
+ * null = every owned deck; an EMPTY array is an empty scope (a plan whose scoped
+ * decks were all deleted) and stays empty rather than widening to every deck.
+ */
 function resolveScopeDeckIds(userId: string, deckIds: string[] | null): string[] {
-    if (deckIds && deckIds.length > 0) return deckIds;
+    if (deckIds) return deckIds;
     const rows = getDb().prepare('SELECT id FROM decks WHERE user_id = ?').all(userId) as { id: string }[];
     return rows.map(r => r.id);
 }
@@ -1882,34 +1872,36 @@ export function fetchMissRateTrend(userId: string, days: DateRangeDays): MissRat
     const dateFilter = sinceISO ? `AND review_time >= ?` : '';
     const params = sinceISO ? [userId, sinceISO] : [userId];
 
-    // Use daily buckets for bounded ranges, weekly for all-time
-    const dateBucket = days == null
-        ? `strftime('%Y-W%W', review_time)`
-        : `DATE(review_time)`;
-
-    type TrendRow = {
-        review_date: string;
-        total_reviews: number;
-        miss_count: number;
-    };
+    // Daily buckets for bounded ranges, weekly ('YYYY-Www', same numbering as
+    // strftime('%Y-W%W')) for all-time — both by the user's LOCAL calendar. Bucketed
+    // in JS because SQLite's DATE()/strftime() use UTC, which files a west-of-UTC
+    // user's evening reviews under the next day.
+    const bucketOf = days == null ? localWeekKey : localDateKey;
 
     const rows = db.prepare(`
-        SELECT ${dateBucket}                                          AS review_date,
-               COUNT(*)                                              AS total_reviews,
-               SUM(CASE WHEN rating = 'again' THEN 1 ELSE 0 END)    AS miss_count
+        SELECT review_time, rating
         FROM reviews
         WHERE user_id = ?
         ${dateFilter}
-        GROUP BY ${dateBucket}
-        ORDER BY review_date ASC
-    `).all(...params) as TrendRow[];
+    `).all(...params) as { review_time: string; rating: string }[];
 
-    return rows.map(r => ({
-        date: r.review_date,
-        totalReviews: r.total_reviews,
-        missCount: r.miss_count,
-        missRate: r.total_reviews > 0 ? (r.miss_count / r.total_reviews) * 100 : 0,
-    }));
+    const buckets = new Map<string, { total: number; misses: number }>();
+    for (const r of rows) {
+        const key = bucketOf(new Date(r.review_time));
+        const b = buckets.get(key) ?? { total: 0, misses: 0 };
+        b.total++;
+        if (r.rating === 'again') b.misses++;
+        buckets.set(key, b);
+    }
+
+    return [...buckets.entries()]
+        .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+        .map(([date, b]) => ({
+            date,
+            totalReviews: b.total,
+            missCount: b.misses,
+            missRate: b.total > 0 ? (b.misses / b.total) * 100 : 0,
+        }));
 }
 
 // ── SEKEL Intelligence ────────────────────────────────────────────────────────
@@ -1978,9 +1970,11 @@ export function getIntelligenceSummary(userId: string): IntelligenceSummary {
         LIMIT 1
     `).get(userId) as ExamRow | undefined;
 
+    // Whole LOCAL calendar days: 0 on exam day, negative once it has passed (the UI
+    // renders those as "exam day" / "exam passed" rather than a count).
     const SENTINEL = '9999-12-31';
     const daysUntilExam = examRow && examRow.exam_date !== SENTINEL
-        ? Math.max(0, Math.floor((new Date(examRow.exam_date).getTime() - Date.now()) / 86_400_000))
+        ? daysUntilExamLocal(examRow.exam_date)
         : null;
 
     if (!examRow) {

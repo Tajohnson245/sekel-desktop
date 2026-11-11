@@ -560,7 +560,8 @@ export interface PlanResult {
      *  review durations (falls back to model defaults). */
     minutesPerNewCard: number;
     minutesPerReview: number;
-    /** Deck IDs this plan was scoped to; null = all decks. */
+    /** Deck IDs this plan was scoped to; null = all decks, [] = no decks (every
+     *  scoped deck deleted — never treated as "all"). */
     deckFilter: string[] | null;
     generatedAt: string;
 }
@@ -571,6 +572,9 @@ export interface RebalanceDelta {
     daysMissed: number;
     availableDaysRemaining: number;
     canExtendTimeline: boolean;
+    /** Start of the evaluation window (ISO): when the current rate took effect.
+     *  daysMissed only counts days after this, so it resets when a rate is accepted. */
+    evaluatedSince: string;
 }
 
 export interface Plan {
@@ -584,7 +588,7 @@ export interface Plan {
     suggestedPerDay: number;
     /** Full PlanResult snapshot at commit time. */
     snapshot: PlanResult;
-    /** Deck IDs this plan was scoped to; null = all decks. */
+    /** Deck IDs this plan was scoped to; null = all decks, [] = no decks. */
     deckFilter: string[] | null;
     status: 'active' | 'archived';
     activatedAt: string;

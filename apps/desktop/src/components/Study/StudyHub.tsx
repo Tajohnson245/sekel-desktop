@@ -146,7 +146,13 @@ export default function StudyHub() {
                 {daysUntilExam !== null && examLabel && (
                     <div className="study-hub__exam-chip">
                         <Calendar size={14} />
-                        <span>{daysUntilExam} {t('studyHub.days_until', { defaultValue: 'days until' })} {examLabel}</span>
+                        <span>
+                            {daysUntilExam > 0
+                                ? `${daysUntilExam} ${t('studyHub.days_until', { defaultValue: 'days until' })} ${examLabel}`
+                                : daysUntilExam === 0
+                                    ? t('studyHub.exam_today', { defaultValue: '{{exam}} is today', exam: examLabel })
+                                    : t('studyHub.exam_passed', { defaultValue: '{{exam}} has passed', exam: examLabel })}
+                        </span>
                     </div>
                 )}
             </div>

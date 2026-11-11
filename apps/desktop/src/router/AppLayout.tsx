@@ -7,6 +7,7 @@ import { useProfileStore } from '../stores/profileStore';
 import { useExamProfile, useUpdateExamProfile } from '../hooks/useExamProfile';
 import { useActivePlan, usePlanRebalance, useClearPlanOverride, useUpdatePlanRate } from '../hooks/usePlan';
 import { useToast } from '../components/UI';
+import { addDaysToDateKey } from '../lib/localDate';
 import DocumentsPage from '../components/AIStudy/DocumentsPage';
 import { DeckEditorProvider } from '../contexts/DeckEditorContext';
 import UpdateAvailableModal from '../components/Update/UpdateAvailableModal';
@@ -52,7 +53,11 @@ function RebalanceBanner() {
     // highest daysMissed the user has already acted on; the banner only returns
     // when they miss MORE days than that. Both actions below also mutate the
     // plan so the detector itself stops firing — this is the belt-and-suspenders.
-    const ackKey = userId && examKey ? `sekel-rebalance-ack-${userId}-${examKey}` : null;
+    // Keyed by the evaluation window too: accepting a rate restarts the window (and
+    // daysMissed from 0), so an ack from the previous window must not hide it.
+    const ackKey = userId && examKey && delta
+        ? `sekel-rebalance-ack-${userId}-${examKey}-${delta.evaluatedSince}`
+        : null;
     const ackDaysMissed = (() => {
         if (!ackKey) return -1;
         try { const v = localStorage.getItem(ackKey); return v == null ? -1 : parseInt(v, 10); }
@@ -89,9 +94,9 @@ function RebalanceBanner() {
         if (!examKey || !examProfile?.exam_date) return;
         const ratio = delta.previousNewPerDay > 0 ? delta.newNewPerDay / delta.previousNewPerDay : 1;
         const extraDays = Math.max(1, Math.ceil(delta.availableDaysRemaining * (ratio - 1)));
-        const base = new Date(examProfile.exam_date);
-        base.setDate(base.getDate() + extraDays);
-        const newExamDate = base.toISOString().slice(0, 10);
+        // Calendar-date arithmetic from the date's own parts — a UTC parse +
+        // toISOString() round-trip lost a day across a DST change.
+        const newExamDate = addDaysToDateKey(examProfile.exam_date, extraDays);
         recordAck(delta.daysMissed);
         setDismissed(true);
         updateExam.mutate(

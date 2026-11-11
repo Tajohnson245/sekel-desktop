@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { computeTier, daysUntilNextShift } from '../Study/UrgencyChip';
 import { isExamDateSet } from '../../lib/queries';
+import { daysUntilExamLocal } from '../../lib/planMath';
 import type { UserExamProfile } from '../../hooks/useExamProfile';
 import './SessionModeBriefing.css';
 
@@ -18,7 +19,7 @@ export function getTierKey(examProfile: UserExamProfile | null | undefined): str
     if (!examProfile || !isExamDateSet(examProfile.exam_date)) return 'standard';
     if (examProfile.session_mode === 'mixed') return 'mixed';
     if (examProfile.session_mode === 'triage') return 'triage';
-    const days = Math.floor((new Date(examProfile.exam_date).getTime() - Date.now()) / 86_400_000);
+    const days = daysUntilExamLocal(examProfile.exam_date);
     if (days < 7)    return 'final_sprint';
     if (days < 30)   return 'intensive';
     if (days < 90)   return 'focused';
@@ -47,7 +48,7 @@ export default function SessionModeBriefing({ deckName, dueCount, examProfile, o
     let shiftLine: string | null = null;
     if (examProfile && isExamDateSet(examProfile.exam_date) &&
         examProfile.session_mode !== 'mixed' && examProfile.session_mode !== 'triage') {
-        const days = Math.floor((new Date(examProfile.exam_date).getTime() - Date.now()) / 86_400_000);
+        const days = daysUntilExamLocal(examProfile.exam_date);
         const tier = computeTier(days);
         const shift = daysUntilNextShift(days);
         if (shift !== null) {

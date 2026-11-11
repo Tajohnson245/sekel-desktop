@@ -13,6 +13,7 @@ const log = createLogger({ module: 'classify', transports: [consoleTransport] })
 import { getDb } from '../main/db/index';
 import { CARD_WITH_NOTE_SQL, buildCardWithNote, getSystemPerformanceNeeds, fetchDeckYieldMix } from '../main/db/service';
 import { yieldCteBody, toYieldLevel } from '../main/db/yieldSql';
+import { daysUntilExamLocal } from '../lib/planMath';
 import type { SessionQueueCard } from '../types/electron';
 
 // ── OpenAI lazy singleton (same pattern as ai.ts) ──────────────────────────
@@ -414,18 +415,16 @@ function computeTimeMultiplier(
     if (!profileRow) return { timeMultiplier: 1.0, daysUntilExam: null };
 
     if (profileRow.session_mode === 'triage') {
-        const examDate = new Date(profileRow.exam_date);
-        const days = Math.floor((examDate.getTime() - Date.now()) / 86_400_000);
-        return { timeMultiplier: 2.5, daysUntilExam: days };
+        return { timeMultiplier: 2.5, daysUntilExam: daysUntilExamLocal(profileRow.exam_date) };
     }
 
     if (profileRow.session_mode === 'mixed') {
         return { timeMultiplier: 1.0, daysUntilExam: null };
     }
 
-    // session_mode = 'auto' or any other value — use step function
-    const examDate = new Date(profileRow.exam_date);
-    const daysUntilExam = Math.floor((examDate.getTime() - Date.now()) / 86_400_000);
+    // session_mode = 'auto' or any other value — use step function.
+    // Whole LOCAL calendar days (0 = exam day) — see daysUntilExamLocal.
+    const daysUntilExam = daysUntilExamLocal(profileRow.exam_date);
 
     let timeMultiplier = 1.0;
     if (daysUntilExam < 7)        timeMultiplier = 2.5;

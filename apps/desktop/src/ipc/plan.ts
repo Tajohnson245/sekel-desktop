@@ -13,6 +13,8 @@ import {
     getPlanProgress,
     getPlanById,
     fetchPlansReferencingDecks,
+    updatePlanRate,
+    clearPlanOverride,
 } from '../main/db/planService';
 import { exportPlanToFile } from '../main/plan/exportService';
 
@@ -97,48 +99,14 @@ export function setupPlanHandlers(): void {
     );
 
     // ── Commit a new committed rate to the active plan (rebalance "accept") ───
-    // Persists the recomputed higher rate as the plan's cards_per_day so the
-    // rebalance detector no longer fires for the already-missed days; also
-    // mirrors it to user_profiles.daily_new_limit and clears any live override.
-    instrumentedHandle('plan:updateRate', (_e, userId: string, examKey: string, newRate: number) => {
-        const db  = getDb();
-        const now = new Date().toISOString();
-        const rate = Math.max(1, Math.round(newRate));
+    // Persists the recomputed rate as the plan's cards_per_day and restarts the
+    // rebalance evaluation window from now, so already-missed days aren't re-judged
+    // against it; also mirrors it to user_profiles.daily_new_limit and clears any
+    // live override. Atomic (see updatePlanRate).
+    instrumentedHandle('plan:updateRate', (_e, userId: string, examKey: string, newRate: number) =>
+        updatePlanRate(userId, examKey, newRate));
 
-        db.prepare(`
-            UPDATE plans SET cards_per_day = ?, updated_at = ?
-            WHERE user_id = ? AND exam_key = ? AND status = 'active'
-        `).run(rate, now, userId, examKey);
-
-        db.prepare(`
-            INSERT INTO user_profiles (id, daily_new_limit, plan_override_expires_at, created_at, updated_at)
-            VALUES (?, ?, NULL, ?, ?)
-            ON CONFLICT(id) DO UPDATE SET
-                daily_new_limit          = excluded.daily_new_limit,
-                plan_override_expires_at = NULL,
-                updated_at               = excluded.updated_at
-        `).run(userId, rate, now, now);
-    });
-
-    // ── Clear override — restore active plan's committed rate ─────────────────
-    instrumentedHandle('plan:clearOverride', (_e, userId: string) => {
-        const db  = getDb();
-        const now = new Date().toISOString();
-
-        // Read committed rate from the active plan (fall back to 20)
-        const activeRow = db.prepare(
-            "SELECT cards_per_day FROM plans WHERE user_id = ? AND status = 'active' ORDER BY activated_at DESC LIMIT 1"
-        ).get(userId) as { cards_per_day: number } | undefined;
-
-        const planRate = activeRow?.cards_per_day ?? 20;
-
-        db.prepare(`
-            INSERT INTO user_profiles (id, daily_new_limit, plan_override_expires_at, created_at, updated_at)
-            VALUES (?, ?, NULL, ?, ?)
-            ON CONFLICT(id) DO UPDATE SET
-                daily_new_limit          = excluded.daily_new_limit,
-                plan_override_expires_at = NULL,
-                updated_at               = excluded.updated_at
-        `).run(userId, planRate, now, now);
-    });
+    // ── Clear override — restore the primary exam's active plan rate ──────────
+    instrumentedHandle('plan:clearOverride', (_e, userId: string, examKey?: string) =>
+        clearPlanOverride(userId, examKey));
 }
