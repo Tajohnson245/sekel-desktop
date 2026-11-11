@@ -143,6 +143,9 @@
     },
     "dashboard": {
         "welcome": "Welcome back, {{name}}!",
+        "greeting_morning": "Good morning",
+        "greeting_afternoon": "Good afternoon",
+        "greeting_evening": "Good evening",
         "total_decks": "Total Decks",
         "cards_due": "Cards Due",
         "due_reviews": "Due Reviews",
@@ -442,6 +445,7 @@
         "notifications_desc": "Get notified when you have cards due for review",
         "reminder_times": "Reminder Times",
         "add_reminder": "Add reminder",
+        "intelligence_desc": "Personalized study insights based on your exam blueprint",
         "daily_limits": "Daily Study Limits",
         "daily_limits_desc": "Limit how many new and review cards you see each day. Turn off to let the scheduling algorithm decide. Cards you're currently learning are always shown.",
         "new_cards_per_day": "New cards/day",
@@ -939,7 +943,15 @@
         "setup_exam": "Set Up Exam",
         "switch_complete": "Exam switched! Re-classifying cards in the background.",
         "date_saved": "Exam date updated",
-        "mode_saved": "Session mode updated"
+        "mode_saved": "Session mode updated",
+        "remove_confirm_with_plan": "Remove exam? Your active study plan will be archived.",
+        "remove_confirm": "Remove exam configuration?",
+        "removed_plan_archived": "Exam removed and plan archived",
+        "removed": "Exam configuration removed",
+        "remove_error": "Failed to remove exam configuration",
+        "update_date_title": "Update exam date?",
+        "update_date_button": "Update date",
+        "update_date_desc": "Your study plan will rebalance to fit the new exam date. Daily targets may change."
     },
     "classify": {
         "section_title": "Classify Cards",
@@ -949,6 +961,7 @@
         "running": "Classifying...",
         "force_reclassify": "Re-classify already classified cards",
         "success": "Done — {{classified}} classified, {{skipped}} skipped.",
+        "failed": "{{count}} failed",
         "no_cards": "This deck has no cards to classify.",
         "error": "Classification failed. Please try again.",
         "no_exam_hint": "Set up your exam above to enable card classification.",
@@ -1103,6 +1116,8 @@
         "caught_up": "You're caught up for today",
         "caught_up_desc": "Today's new cards and due reviews are done.",
         "caught_up_learning": "{{count}} cards are still finishing their learning steps.",
+        "new_done": "You've done today's new cards ({{done}}/{{target}}) — new cards resume tomorrow.",
+        "new_left": "{{count}} new cards left today.",
         "nothing_due": "Nothing due right now",
         "finish_learning": "Finish learning ({{count}}) →"
     }
