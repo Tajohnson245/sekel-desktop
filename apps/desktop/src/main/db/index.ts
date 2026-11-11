@@ -90,6 +90,21 @@ export function getDbPath(): string {
     return path.join(app.getPath('userData'), 'sekel.db');
 }
 
+/**
+ * Checkpoints the WAL into sekel.db and closes the connection. Called on quit
+ * so the main file is self-contained (no -wal/-shm left beside it) — which is
+ * what a user copying the file, or a restore/backup tool, expects to find.
+ */
+export function closeDatabase(): void {
+    if (!db || !db.open) return;
+    try {
+        db.pragma('wal_checkpoint(TRUNCATE)');
+    } catch (err) {
+        log.warn('WAL checkpoint on close failed', { error: err instanceof Error ? err.message : String(err) });
+    }
+    db.close();
+}
+
 function runMigrations(database: Database.Database): void {
     database.exec(`
         CREATE TABLE IF NOT EXISTS schema_version (
