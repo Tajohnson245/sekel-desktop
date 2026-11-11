@@ -19,6 +19,8 @@ interface PersistedState {
     consecutiveFailures: number;
     /** Whether a Discord alert has already fired for the current failure streak. */
     failureAlertSent: boolean;
+    /** Account the counters above belong to. Reset when a different user signs in. */
+    counterOwnerUserId: string | null;
 }
 
 const DEFAULTS: PersistedState = {
@@ -26,6 +28,7 @@ const DEFAULTS: PersistedState = {
     reviewsSinceLastBackup: 0,
     consecutiveFailures: 0,
     failureAlertSent: false,
+    counterOwnerUserId: null,
 };
 
 // Dedicated store file so keys never collide with the default window-state
@@ -87,6 +90,13 @@ let session: CloudBackupSession | null = null;
 
 export function setSession(next: CloudBackupSession | null): void {
     session = next;
+    // The trigger counters, hourly cap and failure streak are per account: a
+    // different user signing in on this machine must not inherit the previous
+    // user's "backed up 10 minutes ago" (delaying their first snapshot) or
+    // their review count / failure streak.
+    if (next && store().get('counterOwnerUserId', null) !== next.userId) {
+        store().set({ ...DEFAULTS, counterOwnerUserId: next.userId });
+    }
 }
 
 export function getSession(): CloudBackupSession | null {

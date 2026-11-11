@@ -25,7 +25,8 @@ import { createLogger, consoleTransport, metrics } from '@sekel/observability';
 import type { BackupSnapshot } from '@sekel/db';
 import { getDb } from '../db/index';
 import * as state from './cloudState';
-import { getAuthedClient } from './cloudClient';
+import { getAuthedClient, isSessionUsable } from './cloudClient';
+import { scopeSnapshotToUser } from './snapshotScope';
 import { sendBackupFailureAlert } from './cloudAlert';
 import type { BackupReason, CloudBackupSession, CloudSnapshotInfo } from './cloudTypes';
 
@@ -157,7 +158,7 @@ export function stopIdleMonitor(): void {
 export async function listCloudSnapshots(): Promise<CloudSnapshotInfo[]> {
     const session = state.getSession();
     if (!session) throw new Error('Not signed in');
-    const client = await getAuthedClient(session);
+    const client = getAuthedClient(session);
     const { data, error } = await client
         .from('backup_snapshots')
         .select('*')
@@ -187,20 +188,36 @@ function runSnapshot(reason: BackupReason): Promise<boolean> {
 async function doSnapshot(reason: BackupReason): Promise<boolean> {
     const session = state.getSession();
     if (!session) return false;
+    // Main never refreshes tokens itself (rotating the refresh token behind the
+    // renderer's back gets the renderer's session revoked → random logouts).
+    // An expired token just means "wait": the renderer auto-refreshes and pushes
+    // the new session; the review counter is kept for the next trigger.
+    if (!isSessionUsable(session, Date.now())) {
+        log.info('Cloud snapshot: access token expired — waiting for the renderer to refresh', { reason });
+        return false;
+    }
 
     const snapshotId = crypto.randomUUID();
     const tmpPath = path.join(app.getPath('temp'), `sekel-cloud-${snapshotId}.sqlite`);
 
     try {
-        // 1. WAL-safe consistent copy (never a raw file copy of a live WAL db).
+        // 1. WAL-safe consistent copy (never a raw file copy of a live WAL db),
+        //    then strip every other local account's rows from the copy — the
+        //    local DB is shared by everyone who has signed in on this machine.
         log.info('Cloud snapshot: begin', { reason, snapshotId });
         await getDb().backup(tmpPath);
+        const { removed } = scopeSnapshotToUser(tmpPath, session.userId);
         const bytes = fs.readFileSync(tmpPath);
-        const reviewCount = countReviews();
-        log.info('Cloud snapshot: local copy done', { bytes: bytes.byteLength });
+        const reviewCount = countReviews(session.userId);
+        log.info('Cloud snapshot: local copy done', { bytes: bytes.byteLength, otherAccountsRemoved: Object.keys(removed).length > 0 });
 
-        // 2. Per-user, RLS-scoped client.
-        const client = await getAuthedClient(session);
+        // 2. Per-user, RLS-scoped client. Bail if the account changed while the
+        //    copy was being prepared — never upload under a stale identity.
+        if (state.getSession()?.userId !== session.userId) {
+            log.info('Cloud snapshot: signed-in account changed mid-snapshot — skipped');
+            return false;
+        }
+        const client = getAuthedClient(session);
         const storagePath = `${session.userId}/${snapshotId}.sqlite`;
         log.info('Cloud snapshot: authed client ready');
 
@@ -235,9 +252,9 @@ async function doSnapshot(reason: BackupReason): Promise<boolean> {
     }
 }
 
-function countReviews(): number | null {
+function countReviews(userId: string): number | null {
     try {
-        const row = getDb().prepare('SELECT COUNT(*) AS c FROM reviews').get() as { c: number } | undefined;
+        const row = getDb().prepare('SELECT COUNT(*) AS c FROM reviews WHERE user_id = ?').get(userId) as { c: number } | undefined;
         return row?.c ?? null;
     } catch {
         return null;

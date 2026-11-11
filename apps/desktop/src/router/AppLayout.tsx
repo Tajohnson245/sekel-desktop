@@ -13,7 +13,7 @@ import UpdateAvailableModal from '../components/Update/UpdateAvailableModal';
 import { OnboardingTour } from '../components/Onboarding/OnboardingTour';
 import { FeatureUnlockTours } from '../components/Onboarding/FeatureUnlockTours';
 import { useVisibleTourStepIds } from '../components/Onboarding/useVisibleTourStepIds';
-import { useOnboardingStore, ONBOARDING_LOCALSTORAGE_KEY } from '../stores/onboardingStore';
+import { useOnboardingStore, isOnboardingCompletedLocally, clearOnboardingCompletedLocally } from '../stores/onboardingStore';
 import { useGlobalKeyboard } from '../hooks/useGlobalKeyboard';
 import Sidebar from './Sidebar';
 
@@ -155,10 +155,10 @@ export default function AppLayout() {
     useEffect(() => {
         if (typeof window.electronAPI?.tour?.onReplay !== 'function') return;
         return window.electronAPI.tour.onReplay(() => {
-            try { localStorage.removeItem(ONBOARDING_LOCALSTORAGE_KEY); } catch { /* ignore */ }
+            clearOnboardingCompletedLocally(userId);
             if (visibleTourStepIds.length > 0) startOnboarding(visibleTourStepIds);
         });
-    }, [startOnboarding, visibleTourStepIds]);
+    }, [startOnboarding, visibleTourStepIds, userId]);
 
     // Fetch the profile as soon as we have a user, regardless of route.
     useEffect(() => {
@@ -171,10 +171,7 @@ export default function AppLayout() {
         if (!user) return;
         if (!hasAttemptedProfileFetch || isProfileLoading) return;
         if (onboardingPhase !== 'idle') return;
-        const completedLocally = (() => {
-            try { return localStorage.getItem(ONBOARDING_LOCALSTORAGE_KEY) === '1'; }
-            catch { return false; }
-        })();
+        const completedLocally = isOnboardingCompletedLocally(user.id);
         const needsTour = !profile || !profile.onboarded_at;
         if (needsTour && !completedLocally && visibleTourStepIds.length > 0) {
             startOnboarding(visibleTourStepIds);

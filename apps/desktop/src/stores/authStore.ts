@@ -9,6 +9,9 @@ import {
     updatePassword as authUpdatePassword,
     deleteAccount as authDeleteAccount,
 } from '@sekel/db';
+import { queryClient } from '../lib/queryClient';
+import { useProfileStore } from './profileStore';
+import { useOnboardingStore } from './onboardingStore';
 
 function syncSentryUser(user: User | null) {
     if (user) {
@@ -36,6 +39,31 @@ function syncCloudBackupSession(session: Session | null) {
           })
         : api.clearSession();
     void Promise.resolve(promise).catch(() => { /* best effort */ });
+}
+
+/** The account the renderer's caches currently belong to (undefined = not yet known). */
+let cachedForUserId: string | null | undefined;
+
+/**
+ * Drop everything cached for the previous account whenever the signed-in
+ * account changes (sign-out, or a different user signing in on this machine).
+ * Many query keys aren't user-scoped and the profile store skipped refetching
+ * once loaded, so the next user briefly saw the previous user's decks, drafts
+ * and profile, studied with their limits, and got their reminder schedule.
+ */
+function handleAccountChange(nextUserId: string | null) {
+    const previous = cachedForUserId;
+    cachedForUserId = nextUserId;
+    if (previous === undefined || previous === nextUserId) return;
+
+    queryClient.clear();
+    useProfileStore.getState().reset();
+    useOnboardingStore.getState().reset();
+    // Stop the previous user's study reminders; the next user's profile load
+    // reconfigures the scheduler with their own settings.
+    void Promise.resolve(
+        window.electronAPI?.notify?.configure({ userId: nextUserId ?? '', enabled: false, reminderTimes: [] }),
+    ).catch(() => { /* best effort */ });
 }
 
 interface AuthState {
@@ -77,11 +105,13 @@ export const useAuthStore = create<AuthState>((set) => ({
         try {
             set({ isLoading: true });
             const { data: { session } } = await getSession(supabase);
+            handleAccountChange(session?.user?.id ?? null);
             set({ session, user: session?.user ?? null });
             syncSentryUser(session?.user ?? null);
             syncCloudBackupSession(session);
 
             onAuthStateChange(supabase, (_event, session) => {
+                handleAccountChange(session?.user?.id ?? null);
                 set({ session, user: session?.user ?? null, isLoading: false });
                 syncSentryUser(session?.user ?? null);
                 syncCloudBackupSession(session);
@@ -101,6 +131,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             }
             const { error } = await authSignOut(supabase);
             if (error) throw error;
+            handleAccountChange(null);
             set({ session: null, user: null, recoveryMode: false });
         } catch (err: unknown) {
             set({ error: err instanceof Error ? err.message : String(err) });
@@ -126,6 +157,7 @@ export const useAuthStore = create<AuthState>((set) => ({
             const { error } = await authDeleteAccount(supabase);
             if (error) throw error;
             await authSignOut(supabase);
+            handleAccountChange(null);
             set({ session: null, user: null });
         } catch (err: unknown) {
             set({ error: err instanceof Error ? err.message : String(err) });

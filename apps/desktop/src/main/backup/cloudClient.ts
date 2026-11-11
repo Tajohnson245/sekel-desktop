@@ -2,38 +2,35 @@
  * Builds a Supabase client authenticated as the signed-in user, from the
  * session the renderer pushed to main. RLS then scopes every Storage and table
  * operation to that user's own data.
+ *
+ * The client only *uses* the access token (sent as a bearer header); it never
+ * calls setSession/refreshSession. Refreshing in main rotated the refresh token
+ * without telling the renderer, whose next refresh then presented a revoked
+ * token — Supabase's reuse detection could kill the session and log the user
+ * out at random. The renderer owns refresh and re-pushes the session on every
+ * TOKEN_REFRESHED, so main just waits for a fresh token when this one expires.
  */
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import * as state from './cloudState';
 import type { CloudBackupSession } from './cloudTypes';
 
-/**
- * setSession refreshes the access token when it has expired; any rotated tokens
- * are persisted back to the in-memory session so the next call (including a
- * snapshot fired at quit) stays valid.
- */
-export async function getAuthedClient(session: CloudBackupSession): Promise<SupabaseClient> {
+/** Seconds of headroom so a token doesn't expire mid-upload. */
+const EXPIRY_SKEW_S = 60;
+
+/** False when the access token is known to be expired (or about to be). */
+export function isSessionUsable(session: CloudBackupSession, nowMs: number): boolean {
+    if (!session.accessToken) return false;
+    if (session.expiresAt == null) return true; // unknown expiry — let the server decide
+    return session.expiresAt - EXPIRY_SKEW_S > nowMs / 1000;
+}
+
+export function getAuthedClient(session: CloudBackupSession): SupabaseClient {
     const url = process.env.VITE_SUPABASE_PROJECT_URL;
     const anon = process.env.VITE_SUPABASE_ANON_KEY;
     if (!url || !anon) throw new Error('Supabase config missing in main process');
 
-    const client = createClient(url, anon, {
-        auth: { persistSession: false, autoRefreshToken: false },
+    return createClient(url, anon, {
+        auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+        global: { headers: { Authorization: `Bearer ${session.accessToken}` } },
     });
-    const { data, error } = await client.auth.setSession({
-        access_token: session.accessToken,
-        refresh_token: session.refreshToken,
-    });
-    if (error) throw new Error(`Auth setSession failed: ${error.message}`);
-
-    if (data.session) {
-        state.setSession({
-            userId: session.userId,
-            accessToken: data.session.access_token,
-            refreshToken: data.session.refresh_token,
-            expiresAt: data.session.expires_at,
-        });
-    }
-    return client;
 }
