@@ -5,6 +5,7 @@ import { computeTier, daysUntilNextShift } from '../Study/UrgencyChip';
 import { isExamDateSet } from '../../lib/queries';
 import { daysUntilExamLocal } from '../../lib/planMath';
 import type { UserExamProfile } from '../../hooks/useExamProfile';
+import { setUiValue, writeLocal } from '../../lib/uiState';
 import './SessionModeBriefing.css';
 
 interface Props {
@@ -63,7 +64,9 @@ export default function SessionModeBriefing({ deckName, dueCount, examProfile, o
 
     function handleBegin() {
         if (dontShowAgain) {
-            localStorage.setItem(`sekel_briefing_v1_${tierKey}`, '1');
+            // Follows the user to their other computers (ui_state.briefings_seen).
+            writeLocal(`sekel_briefing_v1_${tierKey}`, '1');
+            setUiValue('briefings_seen', tierKey, true);
         }
         onBegin();
     }

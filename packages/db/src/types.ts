@@ -386,6 +386,12 @@ export interface UserProfile {
     auto_advance_on_timeout: boolean;
     intelligence_enabled: boolean;
     onboarded_at: string | null;
+    /**
+     * Small per-user UI state that follows the user between computers
+     * (SEKEL-157; see apps/desktop/src/lib/uiState.ts). Optional: absent on
+     * servers without the column yet.
+     */
+    ui_state?: Record<string, unknown> | null;
     created_at: string;
     updated_at: string;
 }

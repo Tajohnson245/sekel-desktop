@@ -1,20 +1,13 @@
 import { create } from 'zustand';
+import { useProfileStore } from './profileStore';
+import { getUiValue, readLocal, setUiValue, writeLocal } from '../lib/uiState';
 
 /**
- * Local UI preferences that don't need to sync across devices (pure display
- * choices). Persisted to localStorage so they survive restarts/logins on the
- * same machine. If cross-device sync is ever wanted, these can be promoted to
- * user_profiles columns like the other study prefs.
+ * Display preferences. They follow the user between computers through
+ * user_profiles.ui_state (lib/uiState.ts); localStorage keeps them available
+ * before the profile loads and offline.
  */
 const MINIMAL_STUDY_VIEW_KEY = 'sekel-minimal-study-view';
-
-function readBool(key: string): boolean {
-    try {
-        return localStorage.getItem(key) === '1';
-    } catch {
-        return false;
-    }
-}
 
 interface UiPrefsState {
     /** Hide the study session chrome (footer stats + shortcut hints + the
@@ -24,13 +17,20 @@ interface UiPrefsState {
 }
 
 export const useUiPrefsStore = create<UiPrefsState>((set) => ({
-    minimalStudyView: readBool(MINIMAL_STUDY_VIEW_KEY),
+    minimalStudyView: readLocal(MINIMAL_STUDY_VIEW_KEY) === '1',
     setMinimalStudyView: (value) => {
-        try {
-            localStorage.setItem(MINIMAL_STUDY_VIEW_KEY, value ? '1' : '0');
-        } catch {
-            /* ignore */
-        }
+        writeLocal(MINIMAL_STUDY_VIEW_KEY, value ? '1' : '0');
+        setUiValue('minimal_study_view', undefined, value);
         set({ minimalStudyView: value });
     },
 }));
+
+// When the profile loads (or another device changed it), adopt its value.
+useProfileStore.subscribe((state, prev) => {
+    if (state.profile === prev.profile) return;
+    const v = getUiValue('minimal_study_view');
+    if (typeof v === 'boolean' && v !== useUiPrefsStore.getState().minimalStudyView) {
+        writeLocal(MINIMAL_STUDY_VIEW_KEY, v ? '1' : '0');
+        useUiPrefsStore.setState({ minimalStudyView: v });
+    }
+});

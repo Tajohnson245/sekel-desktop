@@ -24,7 +24,17 @@ export function ProfileTab() {
 
     const handleSave = (section: 'personal' | 'career') => {
         if (!user?.id) return;
-        upsertProfile(user.id, formData).then(() => {
+        // Send only the fields edited here. formData starts as a copy of the
+        // whole profile; saving all of it would overwrite settings changed in
+        // the meantime (e.g. on another computer) with this screen's old copy.
+        const changes: Record<string, unknown> = {};
+        for (const [key, value] of Object.entries(formData)) {
+            if (profile?.[key as keyof UserProfile] !== value) changes[key] = value;
+        }
+        const save = Object.keys(changes).length > 0
+            ? upsertProfile(user.id, changes as Partial<UserProfile>)
+            : Promise.resolve();
+        save.then(() => {
             if (section === 'personal') setIsEditingPersonal(false);
             if (section === 'career') setIsEditingCareer(false);
         });

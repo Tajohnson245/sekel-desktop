@@ -800,6 +800,25 @@
         "error": "Erreur lors de l'envoi des commentaires",
         "validation_error": "Veuillez remplir tous les champs obligatoires"
     },
+    "sync": {
+        "title": "Synchronisation cloud",
+        "description": "Conserve vos paquets, cartes, révisions et votre progression dans votre compte Sekel, en sécurité et sur chaque ordinateur où vous vous connectez.",
+        "state_signed_out": "Connectez-vous pour synchroniser.",
+        "state_disabled": "La synchronisation cloud n'est pas encore activée pour votre compte.",
+        "state_unavailable": "La synchronisation cloud n'est pas encore disponible.",
+        "state_idle": "À jour",
+        "state_syncing_uploading": "Envoi des modifications… ({{count}})",
+        "state_syncing_downloading": "Téléchargement des modifications… ({{count}})",
+        "state_syncing_restoring": "Remplacement de votre bibliothèque cloud par la sauvegarde restaurée… ({{count}})",
+        "state_offline": "Le cloud est injoignable. Nouvelle tentative automatique.",
+        "state_error": "La synchronisation a rencontré un problème. Nouvelle tentative automatique.",
+        "last_synced": "Dernière synchronisation : {{time}}",
+        "pending_one": "{{count}} modification en attente d’envoi",
+        "pending_other": "{{count}} modifications en attente d’envoi",
+        "failed_one": "{{count}} modification n'a pas pu être envoyée",
+        "failed_other": "{{count}} modifications n'ont pas pu être envoyées",
+        "sync_now": "Synchroniser maintenant"
+    },
     "backup": {
         "title": "Sauvegardes",
         "description": "Créez des sauvegardes manuelles de votre base de données à tout moment et restaurez à partir de n'importe quel instantané précédent.",
@@ -835,6 +854,7 @@
         "cloud_restore_confirm_title": "Restaurer depuis une sauvegarde cloud",
         "cloud_restore_confirm": "Restaurer et redémarrer",
         "cloud_restore_warning": "La restauration téléchargera cet instantané et remplacera votre base de données actuelle. Une sauvegarde locale de sécurité sera d'abord créée.",
+        "restore_sync_note": "Avec la synchronisation cloud activée, vos autres ordinateurs reviendront aussi à cette sauvegarde.",
         "cloud_restore_danger": "Toutes les modifications effectuées depuis cette sauvegarde seront perdues. L'application redémarrera.",
         "cloud_restore_success": "Sauvegarde restaurée. Redémarrage...",
         "cloud_restore_error": "Échec de la restauration depuis la sauvegarde cloud",

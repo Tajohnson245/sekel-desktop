@@ -123,6 +123,7 @@ function UsersTab() {
                         <th style={{ textAlign: 'right' }}>Cards</th>
                         <th style={{ textAlign: 'right' }}>Reviews</th>
                         <th>Last Active</th>
+                        <th>Last Synced</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -149,6 +150,9 @@ function UsersTab() {
                                     : u.last_sign_in_at
                                     ? new Date(u.last_sign_in_at).toLocaleDateString()
                                     : '—'}
+                            </td>
+                            <td className="admin-date">
+                                {u.last_sync_at ? new Date(u.last_sync_at).toLocaleString() : '—'}
                             </td>
                         </tr>
                     ))}

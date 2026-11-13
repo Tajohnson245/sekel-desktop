@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { ChevronsRight } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
@@ -16,6 +17,7 @@ import { FeatureUnlockTours } from '../components/Onboarding/FeatureUnlockTours'
 import { useVisibleTourStepIds } from '../components/Onboarding/useVisibleTourStepIds';
 import { useOnboardingStore, isOnboardingCompletedLocally, clearOnboardingCompletedLocally } from '../stores/onboardingStore';
 import { useGlobalKeyboard } from '../hooks/useGlobalKeyboard';
+import { getUiValue, readLocal, setUiValue, writeLocal } from '../lib/uiState';
 import Sidebar from './Sidebar';
 
 /**
@@ -58,14 +60,20 @@ function RebalanceBanner() {
     const ackKey = userId && examKey && delta
         ? `sekel-rebalance-ack-${userId}-${examKey}-${delta.evaluatedSince}`
         : null;
+    // Acks follow the user between computers (ui_state.rebalance_acks), with
+    // the localStorage key as the offline / not-yet-loaded fallback.
+    const ackSyncKey = examKey && delta ? `${examKey}:${delta.evaluatedSince}` : null;
     const ackDaysMissed = (() => {
-        if (!ackKey) return -1;
-        try { const v = localStorage.getItem(ackKey); return v == null ? -1 : parseInt(v, 10); }
-        catch { return -1; }
+        if (!ackKey || !ackSyncKey) return -1;
+        const synced = getUiValue('rebalance_acks', ackSyncKey);
+        if (typeof synced === 'number') return synced;
+        const v = readLocal(ackKey);
+        return v == null ? -1 : parseInt(v, 10);
     })();
     const recordAck = (days: number) => {
-        if (!ackKey) return;
-        try { localStorage.setItem(ackKey, String(days)); } catch { /* ignore */ }
+        if (!ackKey || !ackSyncKey) return;
+        writeLocal(ackKey, String(days));
+        setUiValue('rebalance_acks', ackSyncKey, days);
     };
 
     const busy = updateRate.isPending || updateExam.isPending;
@@ -155,6 +163,14 @@ export default function AppLayout() {
     useEffect(() => {
         try { localStorage.setItem('sekel-sidebar-collapsed', sidebarCollapsed ? '1' : '0'); } catch { /* ignore */ }
     }, [sidebarCollapsed]);
+
+    // Cloud sync wrote changes pulled from another device: refresh what's on
+    // screen. (An open study session keeps its frozen queue.)
+    const queryClient = useQueryClient();
+    useEffect(() => {
+        if (typeof window.electronAPI?.sync?.onApplied !== 'function') return;
+        return window.electronAPI.sync.onApplied(() => { void queryClient.invalidateQueries(); });
+    }, [queryClient]);
 
     // Help → Replay Tour from the native app menu.
     useEffect(() => {
