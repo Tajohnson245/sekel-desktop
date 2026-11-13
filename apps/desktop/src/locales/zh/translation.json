@@ -800,6 +800,25 @@
         "error": "发送反馈时出错",
         "validation_error": "请填写所有必填字段"
     },
+    "sync": {
+        "title": "云同步",
+        "description": "将你的卡组、卡片、复习记录和学习进度保存在你的 Sekel 账户中，安全可靠，并在你登录的每台电脑上可用。",
+        "state_signed_out": "登录后即可同步。",
+        "state_disabled": "你的账户尚未开启云同步。",
+        "state_unavailable": "云同步暂不可用。",
+        "state_idle": "已是最新",
+        "state_syncing_uploading": "正在上传更改…（{{count}}）",
+        "state_syncing_downloading": "正在下载更改…（{{count}}）",
+        "state_syncing_restoring": "正在用恢复的备份替换你的云端资料库…（{{count}}）",
+        "state_offline": "无法连接到云端，将自动重试。",
+        "state_error": "同步时出现问题，将自动重试。",
+        "last_synced": "上次同步：{{time}}",
+        "pending_one": "{{count}} 项更改等待上传",
+        "pending_other": "{{count}} 项更改等待上传",
+        "failed_one": "{{count}} 项更改无法上传",
+        "failed_other": "{{count}} 项更改无法上传",
+        "sync_now": "立即同步"
+    },
     "backup": {
         "title": "备份",
         "description": "随时手动创建数据库备份，并从任何先前的快照中恢复。",
@@ -835,6 +854,7 @@
         "cloud_restore_confirm_title": "从云备份恢复",
         "cloud_restore_confirm": "恢复并重启",
         "cloud_restore_warning": "恢复将下载此快照并替换你当前的数据库。系统会先创建本地安全备份。",
+        "restore_sync_note": "开启云同步后，你的其他电脑也会恢复到此备份。",
         "cloud_restore_danger": "自该备份以来的所有更改都将丢失。应用将会重启。",
         "cloud_restore_success": "备份已恢复。正在重启...",
         "cloud_restore_error": "从云备份恢复失败",

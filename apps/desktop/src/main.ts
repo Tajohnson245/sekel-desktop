@@ -113,6 +113,8 @@ import * as cloudBackup from './main/backup/cloudBackup';
 import { setupClassifyHandlers } from './ipc/classify';
 import { setupExamHandlers } from './ipc/exam';
 import { setupPlanHandlers } from './ipc/plan';
+import { setupSyncHandlers } from './ipc/sync';
+import { fetchMissingMedia, flushSync, nudgeSync, startSync } from './main/sync/service';
 import { cleanupStaleTempDirs } from './main/import/tempCleanup';
 import { fetchMediaByFilename, abandonAllOpenSessions } from './main/db/service';
 import { pruneDeletedItems } from './main/backup/deletionLog';
@@ -273,6 +275,9 @@ const createWindow = () => {
     // unsynced reviews (subject to the 1/hour cap).
     cloudBackup.startIdleMonitor(mainWindow);
 
+    // Cloud sync: coming back to the app pulls what other devices changed.
+    mainWindow.on('focus', () => nudgeSync());
+
     // Navigation, redirect and window.open() handling for this window is
     // installed globally in the 'web-contents-created' handler above.
 
@@ -348,7 +353,8 @@ app.whenReady().then(() => {
 
     // Handle sekel-media://{userId}/{filename} — serves imported media files from disk.
     // URL format: sekel-media://user-id/original-filename.jpg
-    protocol.handle('sekel-media', (request) => {
+    // A file synced from another device is downloaded on first use.
+    protocol.handle('sekel-media', async (request) => {
         try {
             const url = new URL(request.url);
             const userId = decodeURIComponent(url.hostname);
@@ -368,6 +374,9 @@ app.whenReady().then(() => {
 
             // Read file directly and return with proper headers
             const filePath = record.file_path;
+            if (!fs.existsSync(filePath) && !(await fetchMissingMedia(record))) {
+                return new Response(null, { status: 404 });
+            }
             const fileBuffer = fs.readFileSync(filePath);
             const ext = path.extname(filePath).toLowerCase();
             const mimeMap: Record<string, string> = {
@@ -401,10 +410,14 @@ app.whenReady().then(() => {
         ['classify', setupClassifyHandlers],
         ['exam', setupExamHandlers],
         ['plan', setupPlanHandlers],
+        ['sync', setupSyncHandlers],
     ] as const;
     for (const [name, setup] of handlers) {
         try { setup(); } catch (err) { log.error(`${name} handler setup failed`, { error: err instanceof Error ? err.message : String(err) }); }
     }
+    // Cloud sync polls quietly; it does nothing until a user signs in and the
+    // server switch is on for them.
+    try { startSync(); } catch (err) { log.error('Sync start failed', { error: err instanceof Error ? err.message : String(err) }); }
     cleanupStaleTempDirs().catch((err) => log.error('Temp cleanup failed', { error: err instanceof Error ? err.message : String(err) }));
     cloudBackup.sweepStaleSnapshotTemps();
 
@@ -478,28 +491,30 @@ app.whenReady().then(() => {
     });
 });
 
-// Guards against re-entrancy: once the closing snapshot has run (or timed out)
+// Guards against re-entrancy: once the closing work has run (or timed out)
 // we let the quit proceed instead of deferring a second time.
-let closingSnapshotDone = false;
+let closingWorkDone = false;
 
 app.on('before-quit', (event) => {
+    if (closingWorkDone) return;
     try {
         abandonAllOpenSessions();
     } catch (err) {
         log.error('Failed to abandon open sessions on quit', { error: err instanceof Error ? err.message : String(err) });
     }
 
-    // Take a final cloud snapshot if there are unsynced reviews. snapshotOnClose
-    // is bounded by an internal timeout, so quit is never blocked indefinitely.
-    if (closingSnapshotDone || !cloudBackup.willSnapshotOnClose()) return;
+    // Push pending sync changes and take a final cloud snapshot if there are
+    // unsynced reviews. Both are bounded by timeouts, so quit never hangs.
     event.preventDefault();
-    cloudBackup.snapshotOnClose()
-        .catch((err) => log.error('Closing cloud snapshot failed', { error: err instanceof Error ? err.message : String(err) }))
-        .finally(() => {
-            closingSnapshotDone = true;
-            cloudBackup.stopIdleMonitor();
-            app.quit();
-        });
+    const snapshot = cloudBackup.willSnapshotOnClose()
+        ? cloudBackup.snapshotOnClose().catch((err) => log.error('Closing cloud snapshot failed', { error: err instanceof Error ? err.message : String(err) }))
+        : Promise.resolve();
+    const sync = flushSync().catch((err) => log.error('Closing sync push failed', { error: err instanceof Error ? err.message : String(err) }));
+    Promise.allSettled([snapshot, sync]).finally(() => {
+        closingWorkDone = true;
+        cloudBackup.stopIdleMonitor();
+        app.quit();
+    });
 });
 
 // Last step of shutdown (after before-quit's closing snapshot has finished):

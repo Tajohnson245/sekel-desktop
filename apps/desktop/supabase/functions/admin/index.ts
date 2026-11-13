@@ -50,9 +50,13 @@ function json(body: unknown, status = 200): Response {
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
+// Synced study tables (SEKEL-157) keep deleted rows as tombstones.
+const SYNCED_TABLES = new Set(['decks', 'cards', 'reviews', 'deck_sessions', 'notes', 'note_types']);
+
 async function countRows(table: string, userId?: string): Promise<number> {
     let q = db.from(table).select('*', { count: 'exact', head: true });
     if (userId) q = q.eq('user_id', userId);
+    if (SYNCED_TABLES.has(table)) q = q.is('deleted_at', null);
     const { count, error } = await q;
     if (error) {
         console.error('count failed', { table, error: error.message });
@@ -140,7 +144,7 @@ async function users() {
         id: string; first_name: string | null; last_name: string | null; medical_school: string | null;
         role: string | null; exam: string | null; location: string | null; created_at: string;
     };
-    type Stats = { user_id: string; deck_count: number; card_count: number; review_count: number; last_review_at: string | null };
+    type Stats = { user_id: string; deck_count: number; card_count: number; review_count: number; last_review_at: string | null; last_sync_at?: string | null };
 
     const [profiles, statsRes, authUsers] = await Promise.all([
         selectAll<Profile>(() => db.from('user_profiles').select('*').order('created_at', { ascending: false })),
@@ -171,6 +175,7 @@ async function users() {
             card_count: Number(s?.card_count ?? 0),
             review_count: Number(s?.review_count ?? 0),
             last_review_at: s?.last_review_at ?? null,
+            last_sync_at: s?.last_sync_at ?? null,
         };
     });
 }
@@ -189,7 +194,7 @@ async function userDetail(userId: string) {
         countRows('deck_sessions', userId),
         countRows('feedback', userId),
         selectAll<{ id: string; name: string; created_at: string }>(() =>
-            db.from('decks').select('id, name, created_at').eq('user_id', userId).order('created_at', { ascending: false })),
+            db.from('decks').select('id, name, created_at').eq('user_id', userId).is('deleted_at', null).order('created_at', { ascending: false })),
         selectAll<{ id: string; areas: string[] | null; description: string; created_at: string }>(() =>
             db.from('feedback').select('id, areas, description, created_at').eq('user_id', userId).order('created_at', { ascending: false })),
         db.rpc('admin_user_review_days', { p_user_id: userId, p_since: since }),

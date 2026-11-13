@@ -22,6 +22,7 @@
 import fs from 'node:fs';
 import Database from 'better-sqlite3';
 import { getDb, getDbPath, initDatabase } from '../db/index';
+import { markRestored } from '../sync/meta';
 import { MIGRATIONS } from '../db/migrations';
 import { createBackup, resolveBackupFile, type BackupInfo } from './service';
 import { createLogger, consoleTransport } from '@sekel/observability';
@@ -161,6 +162,13 @@ export async function restoreFromTrustedPath(
         swapInStagedFile(stagingPath, dbPath);
         swapped = true;
         initDatabase();
+        // Cloud sync makes the cloud match the restored library on its next
+        // cycle (force-push, then prune what the restore removed).
+        try {
+            markRestored(getDb());
+        } catch (err) {
+            log.warn('Could not flag the restore for cloud sync', { error: errMessage(err) });
+        }
         log.info('Restore completed successfully', { safetyBackup: safetyBackup.filename });
         return { success: true, safetyBackup };
     } catch (err) {

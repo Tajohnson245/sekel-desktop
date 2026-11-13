@@ -7,17 +7,23 @@ import { useExamProfile } from '../../hooks/useExamProfile';
 import { useDecks } from '../../hooks/useDecks';
 import { useOnboardingStore, isOnboardingCompletedLocally } from '../../stores/onboardingStore';
 import { visibleStepIdsFor, FEATURE_TOUR_STEP_IDS } from './tourSteps';
+import { getUiValue, readLocal, setUiValue, writeLocal } from '../../lib/uiState';
 
 const FLAGS = {
     intelligence: 'sekel:tour:intelligence',
     plan: 'sekel:tour:plan',
 } as const;
 
+// Seen-flags follow the user between computers (user_profiles.ui_state.tours_seen),
+// with the localStorage flag as the offline / not-yet-loaded fallback.
+const tourName = (key: string) => key.slice('sekel:tour:'.length);
+
 function isShown(key: string): boolean {
-    try { return localStorage.getItem(key) === 'shown'; } catch { return false; }
+    return getUiValue('tours_seen', tourName(key)) === true || readLocal(key) === 'shown';
 }
 function markShown(key: string): void {
-    try { localStorage.setItem(key, 'shown'); } catch { /* ignore */ }
+    writeLocal(key, 'shown');
+    setUiValue('tours_seen', tourName(key), true);
 }
 
 /**

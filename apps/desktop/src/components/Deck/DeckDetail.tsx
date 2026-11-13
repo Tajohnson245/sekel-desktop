@@ -13,6 +13,7 @@ import DeckEditor from './DeckEditor';
 import SessionModeBriefing, { getTierKey } from './SessionModeBriefing';
 import { Button, useToast } from '../UI';
 import { DEFAULT_NOTE_TYPES } from '../../lib/types';
+import { getUiValue, readLocal } from '../../lib/uiState';
 import './DeckDetail.css';
 
 export default function DeckDetail() {
@@ -156,7 +157,8 @@ export default function DeckDetail() {
                                 variant="primary"
                                 onClick={() => {
                                     const tierKey = getTierKey(examProfile);
-                                    const dismissed = localStorage.getItem(`sekel_briefing_v1_${tierKey}`);
+                                    const dismissed = getUiValue('briefings_seen', tierKey) === true
+                                        || readLocal(`sekel_briefing_v1_${tierKey}`) !== null;
                                     if (dismissed) {
                                         goToStudy(id, 'due');
                                     } else {

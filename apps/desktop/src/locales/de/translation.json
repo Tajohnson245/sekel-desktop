@@ -800,6 +800,25 @@
         "error": "Fehler beim Senden des Feedbacks",
         "validation_error": "Bitte füllen Sie alle Pflichtfelder aus"
     },
+    "sync": {
+        "title": "Cloud-Synchronisierung",
+        "description": "Hält deine Stapel, Karten, Wiederholungen und deinen Lernfortschritt in deinem Sekel-Konto – sicher und auf jedem Computer, auf dem du angemeldet bist.",
+        "state_signed_out": "Melde dich an, um zu synchronisieren.",
+        "state_disabled": "Die Cloud-Synchronisierung ist für dein Konto noch nicht aktiviert.",
+        "state_unavailable": "Die Cloud-Synchronisierung ist noch nicht verfügbar.",
+        "state_idle": "Auf dem neuesten Stand",
+        "state_syncing_uploading": "Änderungen werden hochgeladen… ({{count}})",
+        "state_syncing_downloading": "Änderungen werden heruntergeladen… ({{count}})",
+        "state_syncing_restoring": "Deine Cloud-Bibliothek wird durch das wiederhergestellte Backup ersetzt… ({{count}})",
+        "state_offline": "Die Cloud ist nicht erreichbar. Es wird automatisch erneut versucht.",
+        "state_error": "Bei der Synchronisierung ist ein Problem aufgetreten. Es wird automatisch erneut versucht.",
+        "last_synced": "Zuletzt synchronisiert: {{time}}",
+        "pending_one": "{{count}} Änderung wartet auf das Hochladen",
+        "pending_other": "{{count}} Änderungen warten auf das Hochladen",
+        "failed_one": "{{count}} Änderung konnte nicht hochgeladen werden",
+        "failed_other": "{{count}} Änderungen konnten nicht hochgeladen werden",
+        "sync_now": "Jetzt synchronisieren"
+    },
     "backup": {
         "title": "Sicherungen",
         "description": "Erstelle jederzeit manuelle Sicherungen deiner Datenbank und stelle sie aus jedem früheren Snapshot wieder her.",
@@ -835,6 +854,7 @@
         "cloud_restore_confirm_title": "Aus Cloud-Backup wiederherstellen",
         "cloud_restore_confirm": "Wiederherstellen & Neustart",
         "cloud_restore_warning": "Beim Wiederherstellen wird dieser Snapshot heruntergeladen und deine aktuelle Datenbank ersetzt. Zuvor wird ein lokales Sicherheits-Backup erstellt.",
+        "restore_sync_note": "Bei aktivierter Cloud-Synchronisierung werden auch deine anderen Computer auf dieses Backup zurückgesetzt.",
         "cloud_restore_danger": "Alle seit diesem Backup vorgenommenen Änderungen gehen verloren. Die App wird neu gestartet.",
         "cloud_restore_success": "Backup wiederhergestellt. Neustart...",
         "cloud_restore_error": "Wiederherstellung aus Cloud-Backup fehlgeschlagen",

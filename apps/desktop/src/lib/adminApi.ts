@@ -23,6 +23,8 @@ export interface AdminUserRow {
     card_count: number;
     review_count: number;
     last_review_at: string | null;
+    /** Last time any of the user's synced rows changed on the server (SEKEL-157). */
+    last_sync_at?: string | null;
 }
 
 export interface AdminOverview {

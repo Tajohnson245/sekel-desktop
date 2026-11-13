@@ -418,6 +418,18 @@ interface ElectronCloudBackup {
     restart:      () => Promise<void>;
 }
 
+/** Row-level cloud sync (main/sync). */
+export type { SyncStatus } from '../main/sync/types';
+
+interface ElectronSync {
+    getStatus: () => Promise<import('../main/sync/types').SyncStatus>;
+    /** Full cycle now (upload, then download). */
+    syncNow:   () => Promise<import('../main/sync/types').SyncStatus>;
+    onStatus:  (cb: (status: import('../main/sync/types').SyncStatus) => void) => () => void;
+    /** Changes pulled from another device were written locally (tables touched). */
+    onApplied: (cb: (tables: string[]) => void) => () => void;
+}
+
 export interface YieldScoreRow {
     cardId: string;
     yieldScore: number | null;
@@ -707,6 +719,7 @@ interface ElectronAPI {
     yield: ElectronYield;
     backup: ElectronBackup;
     cloudBackup: ElectronCloudBackup;
+    sync: ElectronSync;
     exam: ElectronExam;
     plan: ElectronPlan;
     update: ElectronUpdate;

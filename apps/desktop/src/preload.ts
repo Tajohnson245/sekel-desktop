@@ -191,6 +191,22 @@ contextBridge.exposeInMainWorld('electronAPI', {
         restore:      (snapshotId: string) => ipcRenderer.invoke('cloudBackup:restore', snapshotId) as Promise<{ success: boolean; error?: string; safetyBackup?: string }>,
         restart:      () => ipcRenderer.invoke('cloudBackup:restart'),
     },
+    // Row-level cloud sync (SEKEL-157).
+    sync: {
+        getStatus: () => ipcRenderer.invoke('sync:getStatus'),
+        syncNow:   () => ipcRenderer.invoke('sync:syncNow'),
+        onStatus:  (cb: (status: unknown) => void) => {
+            const listener = (_event: unknown, status: unknown) => cb(status);
+            ipcRenderer.on('sync:status', listener);
+            return () => { ipcRenderer.removeListener('sync:status', listener); };
+        },
+        // Pulled changes from another device were written locally.
+        onApplied: (cb: (tables: string[]) => void) => {
+            const listener = (_event: unknown, tables: string[]) => cb(tables);
+            ipcRenderer.on('sync:applied', listener);
+            return () => { ipcRenderer.removeListener('sync:applied', listener); };
+        },
+    },
 
     obs: {
         getMetrics: () => ipcRenderer.invoke('obs:getMetrics'),

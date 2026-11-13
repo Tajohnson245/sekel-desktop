@@ -835,6 +835,25 @@
         "success": "Cards redistributed successfully!",
         "error": "Failed to redistribute cards. Please try again."
     },
+    "sync": {
+        "title": "Cloud sync",
+        "description": "Keeps your decks, cards, reviews and study progress in your Sekel account, so they're safe and on every computer you sign in to.",
+        "state_signed_out": "Sign in to sync.",
+        "state_disabled": "Cloud sync isn't turned on for your account yet.",
+        "state_unavailable": "Cloud sync isn't available yet.",
+        "state_idle": "Up to date",
+        "state_syncing_uploading": "Uploading changes… ({{count}})",
+        "state_syncing_downloading": "Downloading changes… ({{count}})",
+        "state_syncing_restoring": "Replacing your cloud library with the restored backup… ({{count}})",
+        "state_offline": "Can't reach the cloud. Will retry automatically.",
+        "state_error": "Sync ran into a problem. Will retry automatically.",
+        "last_synced": "Last synced {{time}}",
+        "pending_one": "{{count}} change waiting to upload",
+        "pending_other": "{{count}} changes waiting to upload",
+        "failed_one": "{{count}} change couldn't be uploaded",
+        "failed_other": "{{count}} changes couldn't be uploaded",
+        "sync_now": "Sync now"
+    },
     "backup": {
         "title": "Backups",
         "description": "Create manual backups of your database at any time and restore from any previous snapshot.",
@@ -870,6 +889,7 @@
         "cloud_restore_confirm_title": "Restore from Cloud Backup",
         "cloud_restore_confirm": "Restore & Restart",
         "cloud_restore_warning": "Restoring will download this snapshot and replace your current database. A local safety backup will be created first.",
+        "restore_sync_note": "With cloud sync on, your other computers will be set back to this backup too.",
         "cloud_restore_danger": "Any changes made since this backup was created will be lost. The app will restart.",
         "cloud_restore_success": "Backup restored. Restarting...",
         "cloud_restore_error": "Failed to restore from cloud backup",

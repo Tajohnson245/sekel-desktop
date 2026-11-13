@@ -800,6 +800,25 @@
         "error": "Error al enviar los comentarios",
         "validation_error": "Por favor completa todos los campos obligatorios"
     },
+    "sync": {
+        "title": "Sincronización en la nube",
+        "description": "Guarda tus mazos, tarjetas, repasos y progreso de estudio en tu cuenta de Sekel, para que estén seguros y en cada ordenador donde inicies sesión.",
+        "state_signed_out": "Inicia sesión para sincronizar.",
+        "state_disabled": "La sincronización en la nube aún no está activada para tu cuenta.",
+        "state_unavailable": "La sincronización en la nube aún no está disponible.",
+        "state_idle": "Al día",
+        "state_syncing_uploading": "Subiendo cambios… ({{count}})",
+        "state_syncing_downloading": "Descargando cambios… ({{count}})",
+        "state_syncing_restoring": "Reemplazando tu biblioteca en la nube con la copia restaurada… ({{count}})",
+        "state_offline": "No se puede conectar con la nube. Se volverá a intentar automáticamente.",
+        "state_error": "La sincronización tuvo un problema. Se volverá a intentar automáticamente.",
+        "last_synced": "Última sincronización: {{time}}",
+        "pending_one": "{{count}} cambio pendiente de subir",
+        "pending_other": "{{count}} cambios pendientes de subir",
+        "failed_one": "{{count}} cambio no se pudo subir",
+        "failed_other": "{{count}} cambios no se pudieron subir",
+        "sync_now": "Sincronizar ahora"
+    },
     "backup": {
         "title": "Respaldos",
         "description": "Crea respaldos manuales de tu base de datos en cualquier momento y restaura desde cualquier instantánea anterior.",
@@ -835,6 +854,7 @@
         "cloud_restore_confirm_title": "Restaurar desde copia en la nube",
         "cloud_restore_confirm": "Restaurar y reiniciar",
         "cloud_restore_warning": "Al restaurar se descargará esta copia y se reemplazará tu base de datos actual. Primero se creará una copia de seguridad local.",
+        "restore_sync_note": "Con la sincronización en la nube activada, tus otros ordenadores también volverán a esta copia.",
         "cloud_restore_danger": "Se perderán todos los cambios realizados desde esta copia. La aplicación se reiniciará.",
         "cloud_restore_success": "Copia restaurada. Reiniciando...",
         "cloud_restore_error": "No se pudo restaurar desde la copia en la nube",

@@ -18,6 +18,7 @@
 // Storage naming (must match the clients; see profileStore.ts,
 // FeedbackSection.tsx, cloudBackup.ts and the storage policies):
 //   sekel-backups          `${userId}/${snapshotId}.sqlite`   folder
+//   sekel-media            `${userId}/${sha1}${ext}`          folder (cloud sync, SEKEL-157)
 //   card-media             `${userId}/...`                    folder (INSERT policy requires it)
 //   avatars                `${userId}-${ts}.${ext}`           bucket root, name prefix
 //   backgrounds            `${userId}-bg-${ts}.${ext}`        bucket root, name prefix
@@ -38,7 +39,7 @@ const corsHeaders = {
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-const FOLDER_BUCKETS = ['sekel-backups', 'card-media'] as const;
+const FOLDER_BUCKETS = ['sekel-backups', 'sekel-media', 'card-media'] as const;
 const PREFIX_BUCKETS = ['avatars', 'backgrounds', 'feedback-screenshots'] as const;
 const LIST_LIMIT = 1000;
 const REMOVE_CHUNK = 100;
@@ -66,7 +67,12 @@ async function listFolder(storage: Storage, bucket: string, folder: string): Pro
             offset,
             sortBy: { column: 'name', order: 'asc' },
         });
-        if (error) throw error;
+        if (error) {
+            // A bucket this project doesn't have (yet) holds nothing to delete;
+            // it mustn't block deleting the account.
+            if (/bucket not found/i.test(error.message)) return out;
+            throw error;
+        }
         const entries = data ?? [];
         if (entries.length === 0) break;
         for (const e of entries) {

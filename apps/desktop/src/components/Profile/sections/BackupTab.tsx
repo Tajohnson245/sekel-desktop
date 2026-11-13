@@ -3,6 +3,7 @@ import { Cloud, CloudUpload, Database, Download, HardDrive, Trash2, Upload } fro
 import { useTranslation } from 'react-i18next';
 import { Button, Modal, useToast } from '../../UI';
 import type { BackupInfo, CloudSnapshotInfo } from '../../../types/electron.d';
+import { CloudSyncSection } from './CloudSyncSection';
 
 function formatBytes(bytes: number): string {
     if (bytes < 1024) return `${bytes} B`;
@@ -186,6 +187,8 @@ export function BackupTab() {
 
     return (
         <>
+            <CloudSyncSection />
+
             {/* Backup Actions */}
             <section className="profile-section">
                 <div className="section-header">
@@ -393,6 +396,7 @@ export function BackupTab() {
                     <p style={{ marginTop: '0.75rem', fontWeight: 500, color: 'var(--danger)' }}>
                         {t('backup.restore_danger')}
                     </p>
+                    <p style={{ marginTop: '0.5rem' }}>{t('backup.restore_sync_note')}</p>
                 </div>
             </Modal>
 
@@ -422,6 +426,7 @@ export function BackupTab() {
                     <p style={{ marginTop: '0.75rem', fontWeight: 500, color: 'var(--danger)' }}>
                         {t('backup.cloud_restore_danger')}
                     </p>
+                    <p style={{ marginTop: '0.5rem' }}>{t('backup.restore_sync_note')}</p>
                 </div>
             </Modal>
         </>
