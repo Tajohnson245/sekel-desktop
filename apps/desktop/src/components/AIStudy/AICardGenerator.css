@@ -59,48 +59,7 @@
     color: var(--teal, var(--primary));
 }
 
-/* ── Generation progress bar ───────────────────────────────────────────────
-   Sits beneath the Generate button while a session is in flight.
-   ──────────────────────────────────────────────────────────────────────── */
-
-.ai-progress {
-    margin-top: 0.625rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.375rem;
-}
-
-.ai-progress__label {
-    font-family: var(--font-body, 'Outfit', sans-serif);
-    font-size: 0.78rem;
-    color: var(--mist);
-    letter-spacing: 0.01em;
-}
-
-.ai-progress__track {
-    height: 4px;
-    border-radius: 2px;
-    background: var(--border, var(--stroke));
-    overflow: hidden;
-}
-
-.ai-progress__fill {
-    height: 100%;
-    background: var(--teal, var(--primary));
-    border-radius: 2px;
-    transition: width 0.3s ease;
-    min-width: 4px;
-}
-
-.ai-progress__fill--indeterminate {
-    width: 30%;
-    animation: ai-progress-slide 1.4s ease-in-out infinite;
-}
-
-@keyframes ai-progress-slide {
-    0%   { transform: translateX(-100%); }
-    100% { transform: translateX(400%); }
-}
+/* Generation progress (card shuffle + stage text) lives in GenerationProgress.css. */
 
 .success-banner {
     display: flex;
@@ -433,54 +392,7 @@
     cursor: help !important;
 }
 
-/* ── One-shot auto-generating loading view ─────────────────────────────────
-   Shown only on the first generation pass kicked off by autoStart. Centers
-   a sparkle icon, title, subtitle, and the progress bar in a single card.
-   ──────────────────────────────────────────────────────────────────────── */
-
-.ai-auto-generating {
-    max-width: 520px;
-    margin: 3rem auto 0;
-    padding: 2.5rem 2.25rem;
-    background: var(--secondary);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    gap: 0.875rem;
-}
-
-.ai-auto-generating__icon {
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: var(--teal-soft);
-    color: var(--teal, var(--primary));
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.ai-auto-generating__title {
-    margin: 0;
-    font-size: 1.35rem;
-    font-weight: 600;
-    color: var(--fg);
-}
-
-.ai-auto-generating__subtitle {
-    margin: 0 0 0.5rem;
-    font-size: 0.95rem;
-    line-height: 1.5;
-    max-width: 360px;
-}
-
-.ai-auto-generating .ai-progress {
-    width: 100%;
-    margin-top: 0.25rem;
-}
+/* The first-generation loading screen lives in GenerationProgress.css. */
 
 /* ── Collapsible generation settings panel ─────────────────────────────────
    Wraps the deck picker, card count, generate button, and the format /

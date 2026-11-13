@@ -11,6 +11,7 @@ import { DEFAULT_NOTE_TYPES } from '../../lib/types';
 import DeckEditor from '../Deck/DeckEditor';
 import { Button, Input, Select, ImageUpload, useToast } from '../UI';
 import { sanitize } from '../../lib/sanitize';
+import { GenerationScreen, InlineGenerationProgress, stageLabelKey } from './GenerationProgress';
 import './AICardGenerator.css';
 
 // All card formats supported by the generation pipeline. Exported so the
@@ -40,9 +41,13 @@ interface AICardGeneratorProps {
     defaultFormats?: AIGenerationOptions['cardFormats'];
     /** Initial card count from the upload-page preflight settings. Overrides the estimate-derived default. */
     initialCardCount?: number;
+    /** Shows a Cancel button on the first-generation loading screen. The result of the in-flight run is discarded. */
+    onCancel?: () => void;
+    /** Extra line on the first-generation loading screen (e.g. files that failed to parse). */
+    loadingNote?: string;
 }
 
-export default function AICardGenerator({ extractedText, contextSummary, contextChunks, estimatedCardCount, userId, onComplete, initialDeckId, onCardCountChange, autoStart = false, defaultFormats, initialCardCount }: AICardGeneratorProps) {
+export default function AICardGenerator({ extractedText, contextSummary, contextChunks, estimatedCardCount, userId, onComplete, initialDeckId, onCardCountChange, autoStart = false, defaultFormats, initialCardCount, onCancel, loadingNote }: AICardGeneratorProps) {
     const { t, i18n } = useTranslation();
     const { showToast } = useToast();
     // Data hooks
@@ -73,8 +78,8 @@ export default function AICardGenerator({ extractedText, contextSummary, context
     const [cardCount, setCardCount] = useState(initialCardCount ?? Math.min(estimatedCardCount ?? 20, 100));
     const [successMessage, setSuccessMessage] = useState<string>('');
     const [showDeckEditor, setShowDeckEditor] = useState(false);
-    const [isGen, setIsGen] = useState(false);
     const [hasGenerated, setHasGenerated] = useState(false);
+    const cancelledRef = useRef(false);
     const [generationStats, setGenerationStats] = useState<{ generated: number; kept: number; filtered: number } | null>(null);
     const [progress, setProgress] = useState<AIProgress | null>(null);
     const [editing, setEditing] = useState<{ index: number; side: 'front' | 'back' } | null>(null);
@@ -88,6 +93,11 @@ export default function AICardGenerator({ extractedText, contextSummary, context
         return new Set();
     }, [autoStart, defaultFormats]);
     const [selectedFormats, setSelectedFormats] = useState<Set<AIGenerationOptions['cardFormats'][number]>>(initialFormats);
+
+    // Start in the generating state when the autoStart effect below is about
+    // to fire (same conditions), so the very first frame is the loading
+    // screen rather than a flash of the settings view.
+    const [isGen, setIsGen] = useState(() => autoStart && !!extractedText && initialFormats.size > 0);
     const [difficulty, setDifficulty] = useState<AIGenerationOptions['difficulty']>('detailed');
     const [customInstructions, setCustomInstructions] = useState('');
 
@@ -182,6 +192,9 @@ export default function AICardGenerator({ extractedText, contextSummary, context
                 });
             }
 
+            // Cancelled from the loading screen: drop the result silently.
+            if (cancelledRef.current) return;
+
             setCards(result);
             setGenerationStats(statsResult);
             setHasGenerated(true);
@@ -193,7 +206,7 @@ export default function AICardGenerator({ extractedText, contextSummary, context
                 );
             }
         } catch (_error) {
-            showToast(t('errors.generate_cards'), 'error');
+            if (!cancelledRef.current) showToast(t('errors.generate_cards'), 'error');
         } finally {
             setIsGen(false);
             setProgress(null);
@@ -302,23 +315,21 @@ export default function AICardGenerator({ extractedText, contextSummary, context
 
 
     // One-shot autostart loading view: shown only on the FIRST generation
-    // pass kicked off by autoStart, before any cards exist. Subsequent
-    // regenerations from the settings panel keep the cards in view while
-    // the new batch is generated.
+    // pass kicked off by autoStart, before any cards exist. It's the same
+    // screen DocumentsPage shows while analyzing, so the two read as one.
+    // Subsequent regenerations from the settings panel keep the cards in
+    // view while the new batch is generated.
     if (autoStart && isGenerating && cards.length === 0 && !hasGenerated) {
+        const handleCancel = onCancel && (() => {
+            cancelledRef.current = true;
+            onCancel();
+        });
         return (
-            <div className="ai-generator">
-                <div className="ai-auto-generating">
-                    <div className="ai-auto-generating__icon" aria-hidden="true">
-                        <Sparkles size={28} />
-                    </div>
-                    <h2 className="ai-auto-generating__title">{t('ai.auto_generating_title')}</h2>
-                    <p className="ai-auto-generating__subtitle text-muted">
-                        {t('ai.auto_generating_subtitle')}
-                    </p>
-                    <GenerationProgressBar progress={progress} />
-                </div>
-            </div>
+            <GenerationScreen
+                status={t(stageLabelKey(progress))}
+                note={loadingNote}
+                onCancel={handleCancel}
+            />
         );
     }
 
@@ -388,7 +399,7 @@ export default function AICardGenerator({ extractedText, contextSummary, context
                             </Button>
 
                             {isGenerating && (
-                                <GenerationProgressBar progress={progress} />
+                                <InlineGenerationProgress progress={progress} />
                             )}
                         </div>
 
@@ -591,45 +602,5 @@ export default function AICardGenerator({ extractedText, contextSummary, context
                 )
             }
         </div >
-    );
-}
-
-// ── Progress bar ─────────────────────────────────────────────────────────────
-// Shows a determinate bar driven by `ai-progress` events. When no event has
-// arrived yet (cold start) or when the legacy non-streaming generator is in
-// use, falls back to an indeterminate animated bar with a generic label.
-
-const PHASE_LABELS: Record<AIProgress['phase'], string> = {
-    chunking:   'Analyzing your document…',
-    generating: 'Generating cards',
-    refining:   'Refining cards…',
-    done:       'Finishing up…',
-};
-
-function GenerationProgressBar({ progress }: { progress: AIProgress | null }) {
-    if (!progress) {
-        return (
-            <div className="ai-progress" aria-live="polite">
-                <div className="ai-progress__label">Working on it…</div>
-                <div className="ai-progress__track">
-                    <div className="ai-progress__fill ai-progress__fill--indeterminate" />
-                </div>
-            </div>
-        );
-    }
-
-    const pct = progress.total > 0
-        ? Math.min(100, Math.round((progress.current / progress.total) * 100))
-        : 0;
-
-    return (
-        <div className="ai-progress" aria-live="polite">
-            <div className="ai-progress__label">
-                {PHASE_LABELS[progress.phase]}
-            </div>
-            <div className="ai-progress__track">
-                <div className="ai-progress__fill" style={{ width: `${pct}%` }} />
-            </div>
-        </div>
     );
 }
