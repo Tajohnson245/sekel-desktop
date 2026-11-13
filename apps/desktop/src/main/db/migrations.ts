@@ -739,4 +739,265 @@ export const MIGRATIONS: string[] = [
     ALTER TABLE deck_sessions ADD COLUMN updated_at TEXT;
     UPDATE deck_sessions SET updated_at = COALESCE(completed_at, started_at, created_at);
     `,
+    // Migration — cloud sync change capture (SEKEL-157, supabase-sync.md).
+    //   • sync_outbox: one row per changed record (coalesced by table + key)
+    //     waiting to be pushed; written only by the triggers below.
+    //   • sync_inbox: pulled server rows waiting to be applied locally.
+    //   • sync_state: capture (off until sync is first enabled on this device
+    //     — the initial upload enqueues everything that existed before) and
+    //     applying (on while pulled rows are written, so they don't echo back).
+    // Triggers cover every write path, including imports, time travel and FK
+    // cascades. The trigger list mirrors main/sync/tables.ts; a later spec
+    // change needs a new migration, never an edit here.
+    `
+    CREATE TABLE IF NOT EXISTS sync_outbox (
+        table_name TEXT NOT NULL,
+        row_id     TEXT NOT NULL,
+        user_id    TEXT NOT NULL,
+        op         TEXT NOT NULL CHECK (op IN ('upsert', 'delete')),
+        changed_at TEXT NOT NULL,
+        attempts   INTEGER NOT NULL DEFAULT 0,
+        last_error TEXT,
+        PRIMARY KEY (table_name, row_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_sync_outbox_user ON sync_outbox(user_id, attempts);
+
+    -- Applied in (deleted, ord, seq) order: upserts parents-first (ord = the
+    -- table's rank), then tombstones children-first (ord = -rank).
+    CREATE TABLE IF NOT EXISTS sync_inbox (
+        user_id    TEXT NOT NULL,
+        seq        INTEGER NOT NULL,
+        table_name TEXT NOT NULL,
+        row        TEXT NOT NULL,
+        deleted    INTEGER NOT NULL,
+        ord        INTEGER NOT NULL,
+        attempts   INTEGER NOT NULL DEFAULT 0,
+        last_error TEXT,
+        PRIMARY KEY (user_id, seq)
+    );
+    CREATE INDEX IF NOT EXISTS idx_sync_inbox_order ON sync_inbox(user_id, deleted, ord, seq);
+
+    CREATE TABLE IF NOT EXISTS sync_state (
+        id       INTEGER PRIMARY KEY CHECK (id = 1),
+        capture  INTEGER NOT NULL DEFAULT 0,
+        applying INTEGER NOT NULL DEFAULT 0
+    );
+    INSERT OR IGNORE INTO sync_state (id, capture, applying) VALUES (1, 0, 0);
+    CREATE TRIGGER IF NOT EXISTS sync_note_types_ai AFTER INSERT ON note_types
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND NEW.id IS NOT NULL AND NEW.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('note_types', NEW.id, NEW.user_id, 'upsert', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_note_types_au AFTER UPDATE ON note_types
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND NEW.id IS NOT NULL AND NEW.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('note_types', NEW.id, NEW.user_id, 'upsert', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_note_types_ad AFTER DELETE ON note_types
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND OLD.id IS NOT NULL AND OLD.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('note_types', OLD.id, OLD.user_id, 'delete', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_decks_ai AFTER INSERT ON decks
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND NEW.id IS NOT NULL AND NEW.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('decks', NEW.id, NEW.user_id, 'upsert', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_decks_au AFTER UPDATE ON decks
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND NEW.id IS NOT NULL AND NEW.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('decks', NEW.id, NEW.user_id, 'upsert', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_decks_ad AFTER DELETE ON decks
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND OLD.id IS NOT NULL AND OLD.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('decks', OLD.id, OLD.user_id, 'delete', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_notes_ai AFTER INSERT ON notes
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND NEW.id IS NOT NULL AND NEW.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('notes', NEW.id, NEW.user_id, 'upsert', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_notes_au AFTER UPDATE ON notes
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND NEW.id IS NOT NULL AND NEW.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('notes', NEW.id, NEW.user_id, 'upsert', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_notes_ad AFTER DELETE ON notes
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND OLD.id IS NOT NULL AND OLD.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('notes', OLD.id, OLD.user_id, 'delete', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_cards_ai AFTER INSERT ON cards
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND NEW.id IS NOT NULL AND NEW.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('cards', NEW.id, NEW.user_id, 'upsert', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_cards_au AFTER UPDATE ON cards
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND NEW.id IS NOT NULL AND NEW.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('cards', NEW.id, NEW.user_id, 'upsert', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_cards_ad AFTER DELETE ON cards
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND OLD.id IS NOT NULL AND OLD.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('cards', OLD.id, OLD.user_id, 'delete', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_deck_sessions_ai AFTER INSERT ON deck_sessions
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND NEW.id IS NOT NULL AND NEW.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('deck_sessions', NEW.id, NEW.user_id, 'upsert', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_deck_sessions_au AFTER UPDATE ON deck_sessions
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND NEW.id IS NOT NULL AND NEW.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('deck_sessions', NEW.id, NEW.user_id, 'upsert', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_deck_sessions_ad AFTER DELETE ON deck_sessions
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND OLD.id IS NOT NULL AND OLD.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('deck_sessions', OLD.id, OLD.user_id, 'delete', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_reviews_ai AFTER INSERT ON reviews
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND NEW.id IS NOT NULL AND NEW.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('reviews', NEW.id, NEW.user_id, 'upsert', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_reviews_au AFTER UPDATE ON reviews
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND NEW.id IS NOT NULL AND NEW.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('reviews', NEW.id, NEW.user_id, 'upsert', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_reviews_ad AFTER DELETE ON reviews
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND OLD.id IS NOT NULL AND OLD.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('reviews', OLD.id, OLD.user_id, 'delete', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_card_drafts_ai AFTER INSERT ON card_drafts
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND NEW.id IS NOT NULL AND NEW.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('card_drafts', NEW.id, NEW.user_id, 'upsert', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_card_drafts_au AFTER UPDATE ON card_drafts
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND NEW.id IS NOT NULL AND NEW.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('card_drafts', NEW.id, NEW.user_id, 'upsert', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_card_drafts_ad AFTER DELETE ON card_drafts
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND OLD.id IS NOT NULL AND OLD.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('card_drafts', OLD.id, OLD.user_id, 'delete', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_media_ai AFTER INSERT ON media
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND NEW.id IS NOT NULL AND NEW.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('media', NEW.id, NEW.user_id, 'upsert', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_media_au AFTER UPDATE ON media
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND NEW.id IS NOT NULL AND NEW.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('media', NEW.id, NEW.user_id, 'upsert', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_media_ad AFTER DELETE ON media
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND OLD.id IS NOT NULL AND OLD.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('media', OLD.id, OLD.user_id, 'delete', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_plans_ai AFTER INSERT ON plans
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND NEW.id IS NOT NULL AND NEW.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('plans', NEW.id, NEW.user_id, 'upsert', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_plans_au AFTER UPDATE ON plans
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND NEW.id IS NOT NULL AND NEW.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('plans', NEW.id, NEW.user_id, 'upsert', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_plans_ad AFTER DELETE ON plans
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND OLD.id IS NOT NULL AND OLD.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('plans', OLD.id, OLD.user_id, 'delete', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_user_exam_profiles_ai AFTER INSERT ON user_exam_profiles
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND NEW.user_id || ':' || NEW.exam_id IS NOT NULL AND NEW.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('user_exam_profiles', NEW.user_id || ':' || NEW.exam_id, NEW.user_id, 'upsert', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_user_exam_profiles_au AFTER UPDATE ON user_exam_profiles
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND NEW.user_id || ':' || NEW.exam_id IS NOT NULL AND NEW.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('user_exam_profiles', NEW.user_id || ':' || NEW.exam_id, NEW.user_id, 'upsert', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_user_exam_profiles_ad AFTER DELETE ON user_exam_profiles
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND OLD.user_id || ':' || OLD.exam_id IS NOT NULL AND OLD.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('user_exam_profiles', OLD.user_id || ':' || OLD.exam_id, OLD.user_id, 'delete', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_card_classifications_ai AFTER INSERT ON card_classifications
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND NEW.card_id || ':' || NEW.exam_id IS NOT NULL AND COALESCE(NEW.user_id, (SELECT c.user_id FROM cards c WHERE c.id = NEW.card_id)) IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('card_classifications', NEW.card_id || ':' || NEW.exam_id, COALESCE(NEW.user_id, (SELECT c.user_id FROM cards c WHERE c.id = NEW.card_id)), 'upsert', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_card_classifications_au AFTER UPDATE ON card_classifications
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND NEW.card_id || ':' || NEW.exam_id IS NOT NULL AND COALESCE(NEW.user_id, (SELECT c.user_id FROM cards c WHERE c.id = NEW.card_id)) IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('card_classifications', NEW.card_id || ':' || NEW.exam_id, COALESCE(NEW.user_id, (SELECT c.user_id FROM cards c WHERE c.id = NEW.card_id)), 'upsert', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_card_classifications_ad AFTER DELETE ON card_classifications
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND OLD.card_id || ':' || OLD.exam_id IS NOT NULL AND COALESCE(OLD.user_id, (SELECT c.user_id FROM cards c WHERE c.id = OLD.card_id)) IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('card_classifications', OLD.card_id || ':' || OLD.exam_id, COALESCE(OLD.user_id, (SELECT c.user_id FROM cards c WHERE c.id = OLD.card_id)), 'upsert', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_time_travel_log_ai AFTER INSERT ON time_travel_log
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND NEW.sync_id IS NOT NULL AND NEW.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('time_travel_log', NEW.sync_id, NEW.user_id, 'upsert', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_time_travel_log_au AFTER UPDATE ON time_travel_log
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND NEW.sync_id IS NOT NULL AND NEW.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('time_travel_log', NEW.sync_id, NEW.user_id, 'upsert', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    CREATE TRIGGER IF NOT EXISTS sync_time_travel_log_ad AFTER DELETE ON time_travel_log
+        WHEN (SELECT capture = 1 AND applying = 0 FROM sync_state WHERE id = 1) AND OLD.sync_id IS NOT NULL AND OLD.user_id IS NOT NULL
+    BEGIN
+        INSERT OR REPLACE INTO sync_outbox (table_name, row_id, user_id, op, changed_at)
+        VALUES ('time_travel_log', OLD.sync_id, OLD.user_id, 'delete', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'));
+    END;
+    `,
 ];
