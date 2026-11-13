@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { getDb } from './index';
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -20,10 +21,11 @@ export interface TimeTravelResult {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Build the WHERE clause for overdue review cards. */
+/** Build the WHERE clause for one user's overdue review cards (bind userId). */
 function overdueWhereClause(daysBack: number): string {
     return `
-        WHERE due < datetime('now', '-${daysBack} day')
+        WHERE user_id = ?
+          AND due < datetime('now', '-${daysBack} day')
           AND state = 'review'
           AND last_review IS NOT NULL
     `;
@@ -47,15 +49,16 @@ function localDateString(dayOffset: number): string {
 // ── Public API ───────────────────────────────────────────────────────────────
 
 /**
- * Preview what a time-travel redistribution would do (read-only, no DB writes).
+ * Preview what a time-travel redistribution would do for one user (read-only,
+ * no DB writes).
  */
-export function timeTravelPreview(daysBack: number): TimeTravelPreview {
+export function timeTravelPreview(userId: string, daysBack: number): TimeTravelPreview {
     const clampedDays = Math.max(1, Math.min(MAX_WINDOW_DAYS, Math.round(daysBack)));
     const db = getDb();
 
     const { overdue_count } = db.prepare(
         `SELECT COUNT(*) as overdue_count FROM cards ${overdueWhereClause(clampedDays)}`,
-    ).get() as { overdue_count: number };
+    ).get(userId) as { overdue_count: number };
 
     if (overdue_count === 0) {
         return { overdueCount: 0, windowDays: 0, dailyTarget: DEFAULT_DAILY_TARGET, distribution: [] };
@@ -75,16 +78,17 @@ export function timeTravelPreview(daysBack: number): TimeTravelPreview {
 }
 
 /**
- * Execute the time-travel redistribution — updates card `due` dates and logs
- * the event. Only `due` and `updated_at` are modified on cards.
+ * Execute the time-travel redistribution for one user — updates that user's
+ * card `due` dates and logs the event. Only `due` and `updated_at` are
+ * modified on cards; other accounts on this machine are never touched.
  */
-export function timeTravelExecute(daysBack: number): TimeTravelResult {
+export function timeTravelExecute(userId: string, daysBack: number): TimeTravelResult {
     const clampedDays = Math.max(1, Math.min(MAX_WINDOW_DAYS, Math.round(daysBack)));
     const db = getDb();
 
     const overdueCards = db.prepare(
         `SELECT id FROM cards ${overdueWhereClause(clampedDays)} ORDER BY due ASC`,
-    ).all() as { id: string }[];
+    ).all(userId) as { id: string }[];
 
     const overdueCount = overdueCards.length;
     if (overdueCount === 0) {
@@ -104,8 +108,8 @@ export function timeTravelExecute(daysBack: number): TimeTravelResult {
         }
 
         db.prepare(
-            'INSERT INTO time_travel_log (triggered_at, overdue_count, window_days, daily_target) VALUES (?, ?, ?, ?)',
-        ).run(now, overdueCount, windowDays, DEFAULT_DAILY_TARGET);
+            'INSERT INTO time_travel_log (sync_id, user_id, triggered_at, overdue_count, window_days, daily_target) VALUES (?, ?, ?, ?, ?, ?)',
+        ).run(randomUUID(), userId, now, overdueCount, windowDays, DEFAULT_DAILY_TARGET);
     });
 
     redistribute();

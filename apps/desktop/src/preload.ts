@@ -104,6 +104,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         // Reviews
         insertReview:          (params: unknown) => ipcRenderer.invoke('db:insertReview', params),
         deleteReview:          (reviewId: string, userId: string) => ipcRenderer.invoke('db:deleteReview', reviewId, userId),
+        recordReview:          (cardId: string, updates: unknown, review: unknown) => ipcRenderer.invoke('db:recordReview', cardId, updates, review),
+        undoReview:            (cardId: string, revert: unknown, reviewId: string | null, userId: string) => ipcRenderer.invoke('db:undoReview', cardId, revert, reviewId, userId),
         fetchUserReviewHistory: (userId: string, days?: number) => ipcRenderer.invoke('db:fetchUserReviewHistory', userId, days),
         // Sessions
         createDeckSession:     (userId: string, deckId: string) => ipcRenderer.invoke('db:createDeckSession', userId, deckId),
@@ -130,8 +132,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         saveMediaFile:         (params: { buffer: ArrayBuffer; filename: string; userId: string; mimeType: string }) =>
                                    ipcRenderer.invoke('db:saveMediaFile', params),
         // Time Travel
-        timeTravelPreview:     (daysBack: number) => ipcRenderer.invoke('db:timeTravelPreview', daysBack),
-        timeTravelExecute:     (daysBack: number) => ipcRenderer.invoke('db:timeTravelExecute', daysBack),
+        timeTravelPreview:     (userId: string, daysBack: number) => ipcRenderer.invoke('db:timeTravelPreview', userId, daysBack),
+        timeTravelExecute:     (userId: string, daysBack: number) => ipcRenderer.invoke('db:timeTravelExecute', userId, daysBack),
         // Deletion Log
         getDeletedItems:       () => ipcRenderer.invoke('db:getDeletedItems'),
         // Integrity

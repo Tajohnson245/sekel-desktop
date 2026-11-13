@@ -76,6 +76,10 @@ export const createDeckFromMissedCards = (userId: string, deckName: string, card
 // ── Reviews ───────────────────────────────────────────────────────────────────
 export const insertReview = (params: InsertReviewParams) => db().insertReview(params);
 export const deleteReview = (reviewId: string, userId: string) => db().deleteReview(reviewId, userId);
+export const recordReview = (cardId: string, updates: Partial<Card>, review: InsertReviewParams) =>
+    db().recordReview(cardId, updates, review);
+export const undoReview = (cardId: string, revert: Partial<Card>, reviewId: string | null, userId: string) =>
+    db().undoReview(cardId, revert, reviewId, userId);
 export const fetchUserReviewHistory = (userId: string, days?: number) => db().fetchUserReviewHistory(userId, days);
 
 // ── Statistics ────────────────────────────────────────────────────────────────

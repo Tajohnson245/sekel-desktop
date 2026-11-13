@@ -91,7 +91,7 @@ afterEach(() => { testDb.close(); });
 
 describe('timeTravelPreview', () => {
     it('returns overdueCount 0 when no cards are overdue', () => {
-        const result = timeTravelPreview(7);
+        const result = timeTravelPreview(USER, 7);
         expect(result.overdueCount).toBe(0);
         expect(result.windowDays).toBe(0);
         expect(result.distribution).toHaveLength(0);
@@ -122,7 +122,7 @@ describe('timeTravelPreview', () => {
             last_review: null,
         });
 
-        const result = timeTravelPreview(3);
+        const result = timeTravelPreview(USER, 3);
         expect(result.overdueCount).toBe(1);
     });
 
@@ -131,7 +131,7 @@ describe('timeTravelPreview', () => {
         const deck = seedDeck();
         seedOverdueReviewCards(30, deck.id, nt.id, 5);
 
-        const result = timeTravelPreview(3);
+        const result = timeTravelPreview(USER, 3);
         expect(result.overdueCount).toBe(30);
         expect(result.windowDays).toBe(1);
         expect(result.distribution).toHaveLength(1);
@@ -143,7 +143,7 @@ describe('timeTravelPreview', () => {
         const deck = seedDeck();
         seedOverdueReviewCards(200, deck.id, nt.id, 5);
 
-        const result = timeTravelPreview(3);
+        const result = timeTravelPreview(USER, 3);
         expect(result.overdueCount).toBe(200);
         expect(result.windowDays).toBe(4);
         expect(result.distribution).toHaveLength(4);
@@ -155,7 +155,7 @@ describe('timeTravelPreview', () => {
         const deck = seedDeck();
         seedOverdueReviewCards(500, deck.id, nt.id, 5);
 
-        const result = timeTravelPreview(3);
+        const result = timeTravelPreview(USER, 3);
         expect(result.overdueCount).toBe(500);
         expect(result.windowDays).toBe(7);
         expect(result.distribution).toHaveLength(7);
@@ -168,7 +168,7 @@ describe('timeTravelPreview', () => {
         seedOverdueReviewCards(10, deck.id, nt.id, 5);
 
         const before = testDb.prepare('SELECT * FROM cards ORDER BY id').all();
-        timeTravelPreview(3);
+        timeTravelPreview(USER, 3);
         const after = testDb.prepare('SELECT * FROM cards ORDER BY id').all();
 
         expect(after).toEqual(before);
@@ -177,7 +177,7 @@ describe('timeTravelPreview', () => {
 
 describe('timeTravelExecute', () => {
     it('returns overdueCount 0 and creates no log when no cards overdue', () => {
-        const result = timeTravelExecute(7);
+        const result = timeTravelExecute(USER, 7);
         expect(result.overdueCount).toBe(0);
         expect(result.windowDays).toBe(0);
 
@@ -190,7 +190,7 @@ describe('timeTravelExecute', () => {
         const deck = seedDeck();
         seedOverdueReviewCards(30, deck.id, nt.id, 5);
 
-        const result = timeTravelExecute(3);
+        const result = timeTravelExecute(USER, 3);
         expect(result.overdueCount).toBe(30);
         expect(result.windowDays).toBe(1);
 
@@ -212,7 +212,7 @@ describe('timeTravelExecute', () => {
         const deck = seedDeck();
         seedOverdueReviewCards(200, deck.id, nt.id, 5);
 
-        const result = timeTravelExecute(3);
+        const result = timeTravelExecute(USER, 3);
         expect(result.overdueCount).toBe(200);
         expect(result.windowDays).toBe(4);
 
@@ -233,7 +233,7 @@ describe('timeTravelExecute', () => {
         const deck = seedDeck();
         seedOverdueReviewCards(500, deck.id, nt.id, 5);
 
-        const result = timeTravelExecute(3);
+        const result = timeTravelExecute(USER, 3);
         expect(result.windowDays).toBe(7);
 
         const groups = testDb.prepare(
@@ -253,7 +253,7 @@ describe('timeTravelExecute', () => {
             'SELECT id, state, stability, difficulty, elapsed_days, scheduled_days, reps, lapses, last_review FROM cards ORDER BY id',
         ).all() as CardRow[];
 
-        timeTravelExecute(3);
+        timeTravelExecute(USER, 3);
 
         const after = testDb.prepare(
             'SELECT id, state, stability, difficulty, elapsed_days, scheduled_days, reps, lapses, last_review FROM cards ORDER BY id',
@@ -280,7 +280,7 @@ describe('timeTravelExecute', () => {
             });
         }
 
-        const result = timeTravelExecute(3);
+        const result = timeTravelExecute(USER, 3);
         expect(result.overdueCount).toBe(5);
     });
 
@@ -289,15 +289,36 @@ describe('timeTravelExecute', () => {
         const deck = seedDeck();
         seedOverdueReviewCards(100, deck.id, nt.id, 5);
 
-        timeTravelExecute(3);
+        timeTravelExecute(USER, 3);
 
-        type LogRow = { overdue_count: number; window_days: number; daily_target: number; triggered_at: string };
+        type LogRow = { overdue_count: number; window_days: number; daily_target: number; triggered_at: string; user_id: string; sync_id: string };
         const logs = testDb.prepare('SELECT * FROM time_travel_log').all() as LogRow[];
         expect(logs).toHaveLength(1);
         expect(logs[0].overdue_count).toBe(100);
         expect(logs[0].window_days).toBe(2);
         expect(logs[0].daily_target).toBe(50);
         expect(logs[0].triggered_at).toBeTruthy();
+        expect(logs[0].user_id).toBe(USER);
+        expect(logs[0].sync_id).toMatch(/^[0-9a-f-]{36}$/);
+    });
+
+    it("only touches the given user's cards", () => {
+        const OTHER = 'user-test-2';
+        const nt = seedNoteType();
+        const deck = seedDeck();
+        seedOverdueReviewCards(4, deck.id, nt.id, 5);
+        const otherNt = seedNoteType(OTHER);
+        const otherDeck = seedDeck('Other deck', OTHER);
+        const otherIds = seedOverdueReviewCards(3, otherDeck.id, otherNt.id, 5, OTHER);
+        const otherBefore = testDb.prepare(`SELECT id, due, updated_at FROM cards WHERE user_id = ? ORDER BY id`).all(OTHER);
+
+        expect(timeTravelPreview(USER, 3).overdueCount).toBe(4);
+        expect(timeTravelPreview(OTHER, 3).overdueCount).toBe(3);
+
+        const result = timeTravelExecute(USER, 3);
+        expect(result.overdueCount).toBe(4);
+        expect(testDb.prepare(`SELECT id, due, updated_at FROM cards WHERE user_id = ? ORDER BY id`).all(OTHER)).toEqual(otherBefore);
+        expect(otherIds).toHaveLength(3);
     });
 
     it('distributes unevenly when count is not divisible by windowDays', () => {
@@ -308,7 +329,7 @@ describe('timeTravelExecute', () => {
         // Day 0: cards 0-25 (26 cards), Day 1: cards 26-50 (25 cards)
         seedOverdueReviewCards(51, deck.id, nt.id, 5);
 
-        const result = timeTravelExecute(3);
+        const result = timeTravelExecute(USER, 3);
         expect(result.windowDays).toBe(2);
 
         const groups = testDb.prepare(
@@ -325,12 +346,12 @@ describe('timeTravelExecute', () => {
         seedOverdueReviewCards(10, deck.id, nt.id, 5);
 
         // daysBack=0 should be clamped to 1
-        const result = timeTravelPreview(0);
+        const result = timeTravelPreview(USER, 0);
         // Cards are 5 days overdue, so even with daysBack=1 they should be detected
         expect(result.overdueCount).toBe(10);
 
         // daysBack=99 should be clamped to 7
-        const result2 = timeTravelPreview(99);
+        const result2 = timeTravelPreview(USER, 99);
         expect(result2.overdueCount).toBe(0); // 5 days overdue < 7 day threshold — not detected
     });
 });

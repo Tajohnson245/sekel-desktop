@@ -6,17 +6,14 @@ import type { CardWithNote } from '../lib/queries';
 // ── Mocks: everything around the engine, so the test exercises StudyPlayer's
 //    own queue / rating / undo logic against a controllable `cards` prop. ──────
 
-const updateCardMutate = vi.fn(async () => ({}));
-const insertReviewMutate = vi.fn(async () => ({ id: `review-${insertReviewMutate.mock.calls.length}` }));
-const deleteReviewMutate = vi.fn(async () => true);
+// A rating and its Undo are each one atomic call (card + review row).
+const recordReviewMutate = vi.fn(async () => ({ card: {}, review: { id: `review-${recordReviewMutate.mock.calls.length}` } }));
+const undoReviewMutate = vi.fn(async () => ({}));
 const completeSessionMutate = vi.fn(async (id: string) => ({ id }));
 
-vi.mock('../hooks/useDecks', () => ({
-    useUpdateCard: () => ({ mutateAsync: updateCardMutate, isPending: false }),
-}));
 vi.mock('../hooks/useSessions', () => ({
-    useInsertReview: () => ({ mutateAsync: insertReviewMutate }),
-    useDeleteReview: () => ({ mutateAsync: deleteReviewMutate }),
+    useRecordReview: () => ({ mutateAsync: recordReviewMutate, isPending: false }),
+    useUndoReview: () => ({ mutateAsync: undoReviewMutate, isPending: false }),
     useCompleteSession: () => ({ mutateAsync: completeSessionMutate }),
 }));
 vi.mock('../hooks/useExamProfile', () => ({ useExamProfile: () => ({ data: undefined }) }));
@@ -81,10 +78,10 @@ const front = () => screen.getByTestId('card-front').textContent;
 const press = (key: string, init: Partial<KeyboardEventInit> = {}) => fireEvent.keyDown(document, { key, ...init });
 
 async function rateCurrent(key = '3') {
-    const before = insertReviewMutate.mock.calls.length;
+    const before = recordReviewMutate.mock.calls.length;
     press(' ');
     press(key);
-    await waitFor(() => expect(insertReviewMutate.mock.calls.length).toBe(before + 1));
+    await waitFor(() => expect(recordReviewMutate.mock.calls.length).toBe(before + 1));
 }
 
 beforeEach(() => {
@@ -138,8 +135,7 @@ describe('StudyPlayer rating', () => {
             press('3');
             press('3', { repeat: true });
         });
-        await waitFor(() => expect(insertReviewMutate).toHaveBeenCalledTimes(1));
-        expect(updateCardMutate).toHaveBeenCalledTimes(1);
+        await waitFor(() => expect(recordReviewMutate).toHaveBeenCalledTimes(1));
         await waitFor(() => expect(front()).toBe('B'));
     });
 
@@ -152,7 +148,10 @@ describe('StudyPlayer rating', () => {
 
         await rateCurrent();
         expect(createSession).toHaveBeenCalledTimes(2);
-        expect(insertReviewMutate).toHaveBeenCalledWith(expect.objectContaining({ session_id: 'session-2', card_id: 'A' }));
+        expect(recordReviewMutate).toHaveBeenCalledWith(expect.objectContaining({
+            cardId: 'A',
+            review: expect.objectContaining({ session_id: 'session-2', card_id: 'A' }),
+        }));
     });
 });
 
@@ -161,13 +160,12 @@ describe('StudyPlayer undo', () => {
         render(<StudyPlayer {...props()} />);
         await waitFor(() => expect(front()).toBe('A'));
         await rateCurrent('1');
-        const reviewId = (await insertReviewMutate.mock.results[0].value as { id: string }).id;
+        const reviewId = (await recordReviewMutate.mock.results[0].value as { review: { id: string } }).review.id;
         await waitFor(() => expect(front()).toBe('B'));
 
         press('u');
-        await waitFor(() => expect(deleteReviewMutate).toHaveBeenCalledWith({ reviewId, userId: 'user-1' }));
+        // One call reverts A's original scheduling and deletes the review row it wrote.
+        await waitFor(() => expect(undoReviewMutate).toHaveBeenCalledWith(expect.objectContaining({ cardId: 'A', reviewId, userId: 'user-1' })));
         await waitFor(() => expect(front()).toBe('A'));
-        // The revert wrote A's original scheduling back.
-        expect(updateCardMutate).toHaveBeenLastCalledWith(expect.objectContaining({ cardId: 'A' }));
     });
 });

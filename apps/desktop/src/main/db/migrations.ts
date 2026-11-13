@@ -705,4 +705,38 @@ export const MIGRATIONS: string[] = [
     `
     ALTER TABLE cards ADD COLUMN learning_steps INTEGER NOT NULL DEFAULT 0;
     `,
+    // Migration — sync groundwork (SEKEL-158). Every user-owned table gets
+    // what row-level cloud sync needs:
+    //   • card_classifications.user_id — scoping was only implied through
+    //     cards; backfilled from the owning card.
+    //   • time_travel_log.user_id + sync_id — the log had no owner and an
+    //     install-local INTEGER id. Old rows are attributed to the only user
+    //     when a single account has cards on this machine (otherwise left
+    //     NULL, i.e. never synced); sync_id is a fresh UUID v4.
+    //   • card_drafts.updated_at / deck_sessions.updated_at — the two tables
+    //     edited in place without one.
+    `
+    ALTER TABLE card_classifications ADD COLUMN user_id TEXT;
+    UPDATE card_classifications
+       SET user_id = (SELECT c.user_id FROM cards c WHERE c.id = card_classifications.card_id);
+    CREATE INDEX IF NOT EXISTS idx_card_classifications_user_id ON card_classifications(user_id);
+
+    ALTER TABLE time_travel_log ADD COLUMN user_id TEXT;
+    ALTER TABLE time_travel_log ADD COLUMN sync_id TEXT;
+    UPDATE time_travel_log
+       SET user_id = (SELECT MIN(user_id) FROM cards)
+     WHERE (SELECT COUNT(DISTINCT user_id) FROM cards) = 1;
+    UPDATE time_travel_log
+       SET sync_id = lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4'
+                  || substr(lower(hex(randomblob(2))), 2) || '-'
+                  || substr('89ab', 1 + (abs(random()) % 4), 1) || substr(lower(hex(randomblob(2))), 2) || '-'
+                  || lower(hex(randomblob(6)));
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_time_travel_log_sync_id ON time_travel_log(sync_id);
+
+    ALTER TABLE card_drafts ADD COLUMN updated_at TEXT;
+    UPDATE card_drafts SET updated_at = created_at;
+
+    ALTER TABLE deck_sessions ADD COLUMN updated_at TEXT;
+    UPDATE deck_sessions SET updated_at = COALESCE(completed_at, started_at, created_at);
+    `,
 ];

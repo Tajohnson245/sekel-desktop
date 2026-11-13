@@ -457,16 +457,17 @@ export async function importSekelFile(
             result.decksCreated++;
         }
 
-        // 3. Notes — anki_guid is globally unique; if this collection already
-        //    has the note (e.g. re-importing your own export) the copy keeps
-        //    its content but drops the Anki link instead of failing.
-        const guidTaken = db.prepare('SELECT 1 FROM notes WHERE anki_guid = ?');
+        // 3. Notes — anki_guid is unique per user (SEKEL-145); if this account
+        //    already has the note (e.g. re-importing your own export) the copy
+        //    keeps its content but drops the Anki link instead of failing.
+        //    Another account's copy of the same Anki note doesn't count.
+        const guidTaken = db.prepare('SELECT 1 FROM notes WHERE user_id = ? AND anki_guid = ?');
         const insertNote = db.prepare(`
             INSERT INTO notes (id, user_id, deck_id, note_type_id, fields, tags, anki_id, anki_guid, anki_meta, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `);
         for (const n of notes) {
-            const ankiGuid = n.anki_guid && !guidTaken.get(n.anki_guid) ? n.anki_guid : null;
+            const ankiGuid = n.anki_guid && !guidTaken.get(userId, n.anki_guid) ? n.anki_guid : null;
             insertNote.run(
                 noteIds.mapId(n.id), userId, deckIds.mapId(n.deck_id), noteTypeIds.mapId(n.note_type_id),
                 sanitizeNoteFields(n.fields),
@@ -498,13 +499,14 @@ export async function importSekelFile(
 
         // 5. Sessions — before reviews, which reference them.
         const insertSession = db.prepare(`
-            INSERT INTO deck_sessions (id, user_id, deck_id, status, started_at, completed_at, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO deck_sessions (id, user_id, deck_id, status, started_at, completed_at, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `);
         for (const s of sessions) {
             insertSession.run(
                 sessionIds.mapId(s.id), userId, deckIds.mapId(s.deck_id),
                 s.status, s.started_at, s.completed_at ?? null, s.created_at ?? now,
+                s.completed_at ?? s.started_at ?? s.created_at ?? now,
             );
             result.sessionsInserted++;
         }

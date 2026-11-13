@@ -1178,6 +1178,33 @@ export function deleteReview(reviewId: string, userId: string): boolean {
     return result.changes > 0;
 }
 
+/**
+ * Records one rating atomically: the card's new schedule and its review row
+ * land together or not at all. Two separate writes could leave a rescheduled
+ * card with no review (crash or IPC failure in between), which skews stats
+ * and, once synced, every other device.
+ */
+export function recordReview(cardId: string, updates: Partial<Card>, review: InsertReviewParams): { card: Card; review: Review } {
+    if (review.card_id !== cardId) throw new Error('recordReview: review.card_id must match cardId');
+    return getDb().transaction(() => {
+        const card = updateCardAfterReview(cardId, updates);
+        if (!card) throw new Error(`recordReview: card ${cardId} not found`);
+        return { card, review: insertReview(review) };
+    })();
+}
+
+/**
+ * Reverts a rating atomically (study-session Undo): restores the card's
+ * pre-review schedule and removes the review row in one transaction.
+ */
+export function undoReview(cardId: string, revert: Partial<Card>, reviewId: string | null, userId: string): Card {
+    return getDb().transaction(() => {
+        const card = updateCardAfterReview(cardId, revert);
+        if (reviewId) deleteReview(reviewId, userId);
+        return card;
+    })();
+}
+
 export function fetchUserReviewHistory(userId: string, days = 365): ReviewDayCount[] {
     const since = new Date();
     since.setDate(since.getDate() - days);
@@ -1204,9 +1231,9 @@ export function createDeckSession(userId: string, deckId: string): DeckSession {
     const now = new Date().toISOString();
     const id = randomUUID();
     getDb().prepare(`
-        INSERT INTO deck_sessions (id, user_id, deck_id, status, started_at, completed_at, created_at)
-        VALUES (?, ?, ?, 'in_progress', ?, NULL, ?)
-    `).run(id, userId, deckId, now, now);
+        INSERT INTO deck_sessions (id, user_id, deck_id, status, started_at, completed_at, created_at, updated_at)
+        VALUES (?, ?, ?, 'in_progress', ?, NULL, ?, ?)
+    `).run(id, userId, deckId, now, now, now);
     return getDb().prepare('SELECT * FROM deck_sessions WHERE id = ?').get(id) as DeckSession;
 }
 
@@ -1227,12 +1254,12 @@ export function createStudySession(
     const id = randomUUID();
     getDb().prepare(`
         INSERT INTO deck_sessions
-            (id, user_id, deck_id, status, kind, scope, system_keys, started_at, completed_at, created_at)
-        VALUES (?, ?, ?, 'in_progress', ?, ?, ?, ?, NULL, ?)
+            (id, user_id, deck_id, status, kind, scope, system_keys, started_at, completed_at, created_at, updated_at)
+        VALUES (?, ?, ?, 'in_progress', ?, ?, ?, ?, NULL, ?, ?)
     `).run(
         id, userId, representativeDeckId, kind, scope,
         systemKeys && systemKeys.length > 0 ? JSON.stringify(systemKeys) : null,
-        now, now,
+        now, now, now,
     );
     return getDb().prepare('SELECT * FROM deck_sessions WHERE id = ?').get(id) as DeckSession;
 }
@@ -1240,8 +1267,8 @@ export function createStudySession(
 export function completeDeckSession(sessionId: string): DeckSession {
     const now = new Date().toISOString();
     getDb().prepare(`
-        UPDATE deck_sessions SET status = 'completed', completed_at = ? WHERE id = ?
-    `).run(now, sessionId);
+        UPDATE deck_sessions SET status = 'completed', completed_at = ?, updated_at = ? WHERE id = ?
+    `).run(now, now, sessionId);
     return getDb().prepare('SELECT * FROM deck_sessions WHERE id = ?').get(sessionId) as DeckSession;
 }
 
@@ -1249,16 +1276,16 @@ export function abandonOpenSessions(userId: string): void {
     const now = new Date().toISOString();
     getDb().prepare(`
         UPDATE deck_sessions
-        SET status = 'abandoned', completed_at = ?
+        SET status = 'abandoned', completed_at = ?, updated_at = ?
         WHERE user_id = ? AND status = 'in_progress'
-    `).run(now, userId);
+    `).run(now, now, userId);
 }
 
 export function abandonAllOpenSessions(): void {
     const now = new Date().toISOString();
     getDb().prepare(`
-        UPDATE deck_sessions SET status = 'abandoned', completed_at = ? WHERE status = 'in_progress'
-    `).run(now);
+        UPDATE deck_sessions SET status = 'abandoned', completed_at = ?, updated_at = ? WHERE status = 'in_progress'
+    `).run(now, now);
 }
 
 export function fetchSessionAnalytics(sessionId: string): SessionAnalytics | null {
@@ -1478,9 +1505,9 @@ export function saveDraft(userId: string, draft: DraftCardInsert): DraftCard {
     const now = new Date().toISOString();
     const id = randomUUID();
     getDb().prepare(`
-        INSERT INTO card_drafts (id, user_id, front, back, source, created_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-    `).run(id, userId, draft.front, draft.back, draft.source ?? null, now);
+        INSERT INTO card_drafts (id, user_id, front, back, source, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(id, userId, draft.front, draft.back, draft.source ?? null, now, now);
     return getDb().prepare('SELECT * FROM card_drafts WHERE id = ?').get(id) as DraftCard;
 }
 
@@ -1490,6 +1517,8 @@ export function updateDraft(id: string, updates: Partial<Pick<DraftCard, 'front'
     if (updates.front !== undefined) { sets.push('front = ?'); values.push(updates.front); }
     if (updates.back !== undefined) { sets.push('back = ?'); values.push(updates.back); }
     if (sets.length === 0) return getDb().prepare('SELECT * FROM card_drafts WHERE id = ?').get(id) as DraftCard;
+    sets.push('updated_at = ?');
+    values.push(new Date().toISOString());
     values.push(id);
     getDb().prepare(`UPDATE card_drafts SET ${sets.join(', ')} WHERE id = ?`).run(...values);
     return getDb().prepare('SELECT * FROM card_drafts WHERE id = ?').get(id) as DraftCard;
@@ -2055,14 +2084,18 @@ export function getIntelligenceSummary(userId: string): IntelligenceSummary {
     `).get(userId, now) as { cnt: number };
     const totalDueCount = totalDueRow.cnt;
 
-    // ── Check if any classifications exist ───────────────────────────
+    // ── Check if this user has any classifications ───────────────────
+    // Scoped to the user: another account on this machine classifying its
+    // cards must not unlock this user's Intelligence panel.
     const classifiedRow = db.prepare(`
-        SELECT COUNT(*) AS cnt
-        FROM card_classifications cc
-        JOIN blueprint_exams be ON be.id = cc.exam_id
-        WHERE be.exam_key = ?
-        LIMIT 1
-    `).get(examRow.exam_key) as { cnt: number };
+        SELECT EXISTS (
+            SELECT 1
+            FROM card_classifications cc
+            JOIN cards c ON c.id = cc.card_id
+            JOIN blueprint_exams be ON be.id = cc.exam_id
+            WHERE be.exam_key = ? AND c.user_id = ?
+        ) AS cnt
+    `).get(examRow.exam_key, userId) as { cnt: number };
     const hasClassifications = classifiedRow.cnt > 0;
 
     // ── Assemble systemBreakdown ─────────────────────────────────────

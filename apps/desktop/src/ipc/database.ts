@@ -157,6 +157,31 @@ export function setupDatabaseHandlers(): void {
         return dbService.deleteReview(reviewId, userId);
     });
 
+    // A rating, atomically: the card's new schedule + its review row.
+    instrumentedHandle('db:recordReview', (_e, cardId: string, updates, review) => {
+        if (typeof cardId !== 'string' || cardId.length === 0) {
+            throw new Error('IPC validation failed (db:recordReview): cardId must be a non-empty string');
+        }
+        validate('db:recordReview', updates, updateCardAfterReviewRules);
+        validate('db:recordReview', review, insertReviewRules);
+        if ((review as { card_id?: unknown }).card_id !== cardId) {
+            throw new Error('IPC validation failed (db:recordReview): review.card_id must match cardId');
+        }
+        return dbService.recordReview(cardId, updates, review);
+    });
+
+    // Undo of a rating, atomically: restore the card + delete its review row.
+    instrumentedHandle('db:undoReview', (_e, cardId: string, revert, reviewId: string | null, userId: string) => {
+        if (typeof cardId !== 'string' || !cardId || typeof userId !== 'string' || !userId) {
+            throw new Error('IPC validation failed (db:undoReview): cardId and userId must be non-empty strings');
+        }
+        if (reviewId !== null && (typeof reviewId !== 'string' || !reviewId)) {
+            throw new Error('IPC validation failed (db:undoReview): reviewId must be a non-empty string or null');
+        }
+        validate('db:undoReview', revert, updateCardAfterReviewRules);
+        return dbService.undoReview(cardId, revert, reviewId, userId);
+    });
+
     instrumentedHandle('db:fetchUserReviewHistory', (_e, userId: string, days?: number) =>
         dbService.fetchUserReviewHistory(userId, days));
 
@@ -253,11 +278,15 @@ export function setupDatabaseHandlers(): void {
     });
 
     // ── Time Travel ─────────────────────────────────────────────────────────
-    instrumentedHandle('db:timeTravelPreview', (_e, daysBack: number) =>
-        timeTravel.timeTravelPreview(daysBack));
+    instrumentedHandle('db:timeTravelPreview', (_e, userId: string, daysBack: number) => {
+        if (typeof userId !== 'string' || !userId) throw new Error('IPC validation failed (db:timeTravelPreview): userId must be a non-empty string');
+        return timeTravel.timeTravelPreview(userId, daysBack);
+    });
 
-    instrumentedHandle('db:timeTravelExecute', (_e, daysBack: number) =>
-        timeTravel.timeTravelExecute(daysBack));
+    instrumentedHandle('db:timeTravelExecute', (_e, userId: string, daysBack: number) => {
+        if (typeof userId !== 'string' || !userId) throw new Error('IPC validation failed (db:timeTravelExecute): userId must be a non-empty string');
+        return timeTravel.timeTravelExecute(userId, daysBack);
+    });
 
     // ── Deletion Log ──────────────────────────────────────────────────────
     instrumentedHandle('db:getDeletedItems', () =>
