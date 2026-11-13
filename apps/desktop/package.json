@@ -52,6 +52,7 @@
     "functions:deploy:prod": "npx --yes supabase@2.122.1 functions deploy --project-ref uawkoueqectmkiyjcrtb --no-verify-jwt"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.12",
     "@electron-forge/cli": "^7.11.1",
     "@electron-forge/maker-deb": "^7.11.1",
     "@electron-forge/maker-dmg": "^7.11.1",
