@@ -1,248 +1,191 @@
 # Supabase Sync
-> Plan for mirroring every user's local SQLite data (decks, notes, cards, scheduling, reviews, classifications, plans, preferences, media) into matching Supabase tables, then syncing it across devices.
+> Every user's study data (decks, notes, cards and their FSRS schedule, reviews, sessions, drafts, media, classifications, exam profiles, plans) mirrored row by row into matching Supabase tables and synced between computers. SQLite stays the working database.
 
 ---
 
-**Status:** `In Progress` (plan, not started)
-**Target Version:** TBD (multi-release)
-**Branch:** `SEKEL-157-supabase-sync` (plan); later phases on their own SEKEL branches
+**Status:** `In Progress` (built and tested; not deployed)
+**Target Version:** the release after SEKEL-158 + SEKEL-157 merge
+**Branch:** `SEKEL-157-supabase-sync` (stacked on `SEKEL-158-sync-groundwork`)
 **Created:** 2026-11-12
-**Last Updated:** 2026-11-12
+**Last Updated:** 2026-11-13
 **Shipped:** —
 
 ---
 
 ## Overview
 
-Today SQLite (`{userData}/sekel.db`) is the only home for study data. Supabase only holds:
-- auth;
-- the `user_profiles` preferences row;
-- feedback;
-- AI usage counters;
-- whole-database backup snapshots (`backup_snapshots` + the `sekel-backups` bucket).
+Before this, SQLite (`{userData}/sekel.db`) was the only home for study data. Supabase held auth, the `user_profiles` preferences row, feedback, AI usage counters and whole-database backup snapshots. Old `decks` / `notes` / `cards` / … tables from the pre-local-first design were still in Supabase, but nothing read or wrote them, and they no longer matched the local schema.
 
-Supabase already has `decks`, `notes`, `cards`, `reviews` and similar tables from the pre-local-first design. Nothing in the app reads or writes them any more; they have drifted from the local schema and hold stale data.
+**Now:**
+- **Every user-owned row** also lives in a Supabase table with the same columns and the same id.
+- **Local changes** are captured by SQLite triggers and pushed within seconds.
+- **Other devices** pull and merge those changes.
+- **A new computer or a reinstall** gets the whole library back by signing in.
+- **SQLite stays the app's database:** every IPC handler, the plan service and the yield SQL are unchanged, and studying works offline.
 
-**Goal:** every row a user owns locally also exists in a Supabase table with the same shape and the same id, and stays up to date as they study. That gives:
-- per-row cloud durability;
-- a real admin dashboard;
-- an account that works on a second computer or after a reinstall.
-
-**Recommended shape: local-first sync, not cloud-first.**
-- SQLite stays the working database. Every IPC handler, the plan service and the yield SQL keep running offline and fast.
-- Supabase becomes the synced copy and, later, the hub that devices merge through.
-- Going cloud-first would mean rewriting the data layer and losing offline study, for no user-visible gain.
-
-## Starting point (verified 2026-11-12)
-
-What already helps:
-- **IDs:** every user-owned entity uses a client-generated UUID (`randomUUID()` in main), so rows can keep the same id in Postgres.
-- **Auth plumbing:** the main process already holds the signed-in session, pushed from the renderer (`main/backup/cloudState.ts`). It builds an RLS-scoped client from it (`main/backup/cloudClient.ts`), and the renderer owns token refresh.
-- **Change capture:** SQLite triggers fire for rows removed by `ON DELETE CASCADE` and for `ON DELETE SET NULL` updates. This was tested, so trigger-based change capture sees every delete path.
-- **Preferences:** most of them already live in Supabase `user_profiles`.
-
-What has to change first:
-- **No change tracking:** no triggers, `usn` columns, dirty flags or tombstones. Every delete is a hard delete.
-  - `updated_at` is not bumped on several write paths (deck parent unlink, Anki merge import, draft edits).
-  - `plans.updated_at` has a behavioral meaning (the rebalance window), so it can't double as a sync clock.
-- **A review is two IPC calls, not one transaction.** The card update runs at `StudyPlayer.tsx:240`, then the review insert at `:242`. A crash in between leaves a rescheduled card with no review row.
-- **One database for every account on the machine.** Most tables carry `user_id`, but:
-  - Some handlers take only an id: `updateDeck`, `deleteNote`, `updateCardAfterReview`, `fetchDueCards`, …
-  - Time travel rewrites every user's cards.
-  - `hasClassifications` ignores the user.
-  - `card_classifications` and `time_travel_log` have no `user_id` column.
-- **Install-specific integer ids:** `card_classifications` and `user_exam_profiles` point at local blueprint rowids, which differ between installs. Synced data must use the stable `exam_key` / `system_key` / `topic_key`.
-- **Machine-specific media paths:** `media.file_path` is an absolute local path, and editor uploads embed `sekel-media://<userId>/<file>` in note HTML. That's fine across devices for the same user, but the files themselves must move to Storage.
-- **`.spkg` import:** its guid check is global rather than per user, and it remaps every UUID, so re-importing duplicates.
-
-Legacy Supabase tables:
-- **Who uses them:** nothing in the app. The `admin` edge function and its `admin_*` RPCs still count rows in them, so the admin dashboard shows legacy numbers only.
-- **Dev contents:** small test leftovers last written in March–May 2026, plus orphaned `note_types` rows. The user FKs were re-added as `NOT VALID`.
-- **Prod contents:** not checked yet (see Phase 0).
-
-## Target architecture
+## How it works
 
 ```
-Renderer ──IPC──▶ main/db/service.ts ──▶ sekel.db (SQLite, source of truth on the device)
-                                             │  AFTER INSERT/UPDATE/DELETE triggers
-                                             ▼
-                                        sync_outbox (one row per changed record, coalesced)
-                                             │
-                         main/sync/engine.ts │ batches in dependency order
-                                             ▼
-                     rpc sync_push_v1(device, changes)  ──▶  Postgres tables (RLS: own rows)
-                     rpc sync_pull_v1(cursor)           ◀──  server_seq cursor (Phase 3)
-                     Storage: sekel-media/{uid}/{sha1}.{ext}
+Renderer ──IPC──▶ main/db/service.ts ──▶ sekel.db
+                                            │ AFTER INSERT/UPDATE/DELETE triggers (migration 26)
+                                            ▼
+                                       sync_outbox (one row per changed record)
+                                            │
+                  main/sync/engine.ts  ─────┤  every 5 s while signed in (when something is due)
+                                            ▼
+                  rpc sync_push_v1  ──▶ Postgres tables (RLS: own rows only)
+                  rpc sync_pull_v1  ◀── server_seq cursor ──▶ sync_inbox ──▶ sekel.db
+                  Storage: sekel-media/{user}/{sha1}{ext}
 ```
 
-### Postgres table conventions (every synced table)
+**One engine cycle** (signed in, and the server switch is on for the user):
+1. **Hello:** check the switch and the server clock. A device clock that's more than a minute off is corrected for.
+2. **After a backup restore:** make the cloud match the restored library (see Restores).
+3. **First sync on this device:** queue the whole library. Each row's own timestamp is its change time, so anything newer already in the cloud wins.
+4. **Push the outbox:**
+   - deletes first, then upserts parents-first;
+   - media files are uploaded before their rows;
+   - a batch the server rejects is split in half, repeatedly, until the bad row is found; that row is parked with its error and everything else goes through.
+5. **Pull** changes after the cursor into `sync_inbox`, then apply them in chunks: upserts parents-first, deletes children-first. Pulled rows are written with capture paused, so they don't echo back.
 
-| Column | Purpose |
+**When it runs:**
+- every 5 s while something is due;
+- on window focus;
+- on sign-in and token refresh;
+- from "Sync now";
+- at quit: a push bounded to 10 s that returns at once when nothing is pending or the device is offline.
+
+**Failures:**
+
+| Kind | What happens |
 |---|---|
-| Same columns as SQLite | Postgres types: `uuid`, `timestamptz`, `jsonb` for the JSON-in-TEXT columns, `boolean` for 0/1, `text` + `CHECK` instead of enums (no enum migrations later) |
-| `user_id uuid not null references auth.users on delete cascade` | Valid from day one; account deletion removes everything |
-| `client_changed_at timestamptz not null` | Conflict clock, taken from the outbox, **not** the app's `updated_at` |
-| `deleted_at timestamptz` | Tombstone; deletes are soft on the server so other devices learn about them |
-| `server_seq bigint not null` | Set from one global sequence by a trigger on every write; the pull cursor |
-| `origin_device uuid` | Which device wrote the row; lets pull skip echoes |
+| Network | Back off from 30 s up to 15 min |
+| Expired session | Wait for the renderer's token refresh |
+| Server without the sync API | Retry every 30 min; status "not available yet" |
+| Anything unexpected | Report to Sentry (tag `sync`) |
 
-Other rules for every synced table:
-- **RLS:** one policy per operation, `TO authenticated`, `(select auth.uid()) = user_id`. Revoke the default `anon` grants.
-- **Index:** `(user_id, server_seq)`.
-- **Foreign keys** between synced tables are `DEFERRABLE INITIALLY DEFERRED`, so a push batch applies in one transaction.
+**Conflicts: last writer wins**, on `client_changed_at`:
+- **Clock cap:** a device can't claim a time more than 5 minutes ahead of the server.
+- **Losing changes:** a change that loses re-stamps the winning server row, so every device, including the loser, pulls the winner again. A pulled row is skipped while a local edit to the same record is still waiting to be pushed; the edit is pushed, and either it wins or the winner comes back.
+- **Reviews** never conflict (UUIDs); Undo is a delete.
+- **Card schedules** follow the most recent change. If two devices review the same card offline, both reviews are kept and the later change sets the schedule.
 
-### Table map
+**Natural keys:**
+- **Exam profiles** sync by `exam_key`.
+- **Classifications** sync by `(card, exam_key, system_key)`, as one set per (card, exam), because classifying replaces the whole set.
+- The local install-specific blueprint rowids are mapped to and from those keys.
 
-| SQLite | Supabase | Notes |
-|---|---|---|
-| `note_types` | `note_types` | `fields`, `card_templates`, `anki_meta` → jsonb |
-| `decks` | `decks` | `parent_id` self-FK; `algorithm` CHECK (`fsrs`, `sm2`) |
-| `notes` | `notes` | `fields`, `tags`, `anki_meta` → jsonb; `format` CHECK; unique `(user_id, anki_guid)` |
-| `cards` | `cards` | All FSRS columns + `learning_steps`; `ease_factor` → `real` (imports write 2.5 today) |
-| `reviews` | `reviews` | Append-only; Undo becomes a tombstone |
-| `deck_sessions` | `deck_sessions` | Adds `kind`, `scope`, `system_keys`; status CHECK includes `abandoned` |
-| `card_drafts` | `card_drafts` | Keep the 5-draft server trigger; it matches `DRAFT_LIMIT` |
-| `media` | `media` | `storage_path` replaces `file_path`; files go to a private `sekel-media` bucket |
-| `card_classifications` | `card_classifications` | Adds `user_id`; `exam_key`, `system_key`, `topic_key` text instead of local integer ids |
-| `user_exam_profiles` | `user_exam_profiles` | `exam_key` instead of `exam_id`; unique `(user_id, exam_key)` |
-| `plans` | `plans` | `snapshot`, `deck_filter` → jsonb |
-| `time_travel_log` | `time_travel_log` | Needs `user_id` and a UUID locally first |
-| `user_profiles` (local) | Supabase `user_profiles` | Local copy only mirrors the plan rate. Move `plan_override_expires_at` to Supabase; the rate is derivable from `plans` |
-| `blueprint_*` | not synced | Static app data; synced rows reference it by key, with no FK |
-| `sync_metadata`, `schema_version` | local only | `sync_metadata` (unused today) holds sync cursors |
+**JSON:** the columns are Postgres `json`, not `jsonb`, and so is the wire format. `jsonb` reorders object keys, and note fields are order-sensitive (first-field fallbacks in previews and the classifier).
 
-### Change capture (local)
+## Restores
 
-- **New migration:** a `sync_outbox` table with `table_name`, `row_id`, `user_id`, `op`, `changed_at` and `attempts`, unique on `(table_name, row_id)`, so repeated edits collapse into one entry.
-- **Triggers:** `AFTER INSERT/UPDATE/DELETE` on every synced table upsert into the outbox.
-  - They skip while a pull is being applied: a one-row `sync_state.applying` flag checked in the trigger's `WHEN` clause.
-  - Triggers catch every write path (imports, time travel, cascades, migrations) without touching `service.ts` callers.
-- **Conflict clock:** `changed_at` from the outbox becomes `client_changed_at` on the server. App `updated_at` semantics stay untouched.
+Restoring a local or cloud backup flags the database (`markRestored`). On the next cycle the engine:
+1. notes the user's current server cursor;
+2. force-pushes every local row, stamped now;
+3. tombstones every server row that wasn't re-pushed (`sync_prune_v1`).
 
-### Push (main process, `src/main/sync/`)
+The cloud, and then every other device, ends up matching the restored library. If the push can't finish (offline), nothing is pruned, and the cloud keeps the union until the next attempt. Both restore dialogs now say so.
 
-- **Batches:**
-  - Read up to ~500 outbox rows **for the signed-in user only**, in dependency order (note_types → decks → notes → cards → deck_sessions → reviews → …).
-  - Serialize the current row, or a tombstone if it's gone.
-  - Send one `sync_push_v1` call per batch; on success, delete those outbox rows.
-- **`sync_push_v1`:**
-  - plpgsql, `SECURITY INVOKER` so RLS applies, with explicit per-table `INSERT … ON CONFLICT (id) DO UPDATE`. No dynamic SQL.
-  - Last-writer-wins guard: `WHERE excluded.client_changed_at >= t.client_changed_at`.
-  - Rejects any row whose `user_id` isn't `auth.uid()`.
-- **When it runs:**
-  - 5 s after a change (debounced) and on sign-in;
-  - every 60 s while the outbox is non-empty;
-  - at quit, bounded to 10 s like the snapshot;
-  - with exponential backoff on failure. Sentry tag `sync`.
-- **Initial upload (backfill):**
-  - The first time a user syncs on a device, enqueue every row they own in chunks.
-  - The outbox persists, so it resumes after quit.
-  - Show progress: "Uploading your library: 12,000 of 48,000".
-- **Media:**
-  - A separate queue uploads files to `sekel-media/{uid}/{sha1}{ext}` (content-addressed, so uploads are idempotent), 3 at a time.
-  - The `media` row is pushed only after its file has uploaded.
+## Remote switch
 
-### Pull and merge (Phase 3)
+`public.app_config` row `sync`: `{"enabled": false, "allow_users": []}`. Sync does nothing for a user until they're in `allow_users` or `enabled` is true. Change capture starts the first time sync is enabled on a device; the initial upload covers everything before that.
 
-- **`sync_pull_v1(cursor, limit)`** returns changed rows across tables ordered by `server_seq`, skipping the caller's own device.
-- **Applying a page:** one SQLite transaction with `sync_state.applying = 1`, in dependency order. Tombstones become local deletes.
-- **Conflict rules:**
+## Preferences
 
-| Data | Rule |
+- **Already in `user_profiles`:** theme, language, card style, card size, background, avatar, notifications, reminders, timer and daily limits.
+- **New `user_profiles.ui_state` (jsonb)** carries small per-user UI state that used to stay on one machine: minimal study view, feature tours seen, dismissed session briefings, plan-rebalance acknowledgements. localStorage remains the fast path and the fallback (`lib/uiState.ts`).
+- **The Profile tab** now saves only the fields it edited. It used to send the whole profile, which could overwrite a setting changed on another computer.
+- **`user_profiles.updated_at`** is stamped by the server.
+- **Exam profiles and plans** sync as tables (above).
+- **Stays per device:** window state, the collapsed sidebar, and the theme first-paint cache.
+
+## Key files
+
+| Area | Files |
 |---|---|
-| Decks, notes, note types, drafts, plans, exam profiles, sessions | Last writer wins on `client_changed_at`; device id breaks ties |
-| Deletes | A tombstone wins over an edit, so no zombie rows |
-| Reviews | Union. UUIDs never collide; an Undo tombstone removes the review |
-| Card scheduling | The row with the newer `last_review` wins, not the newer edit. If two devices reviewed the same card offline, both reviews stay in the log and the later one's schedule applies. Replaying FSRS over the merged log is possible later if it ever matters |
-| Classifications | Newer `classified_at` wins |
+| Supabase schema | `supabase/migrations/20261113120000_move_legacy_tables.sql`, `…120100_sync_schema.sql`, `…120200_sync_functions.sql` |
+| Table spec (single source of truth) | `src/main/sync/tables.ts` |
+| Local capture | migration 26 in `src/main/db/migrations.ts` (outbox, inbox, state, 36 triggers) |
+| Engine | `src/main/sync/engine.ts`, `codec.ts`, `outbox.ts`, `inbox.ts`, `meta.ts`, `supabaseTransport.ts`, `service.ts` |
+| App wiring | `src/main.ts` (start, focus, quit, media download), `src/ipc/sync.ts`, `src/ipc/cloudBackup.ts`, `src/main/backup/restore.ts` |
+| UI | `components/Profile/sections/CloudSyncSection.tsx` (Profile → Backup), `router/AppLayout.tsx` (refresh on pulled changes), admin "Last Synced" column |
+| Edge functions | `admin` (ignores deleted rows; last sync time), `delete-account` (clears `sekel-media`) |
 
-- **New device or reinstall:** sign in, pull everything, and download media on demand. The `sekel-media://` handler fetches from Storage when the file is missing. This covers most cases that need "Restore from cloud backup" today.
-- **After a local or cloud snapshot restore:** reset the cursors and run a full reconcile (push all local rows, pull all server rows).
+## Deploying (your part, in this order)
 
-### Preferences
+All of it is additive, so deploying the schema ahead of the app release can't break released clients.
 
-- **Already in Supabase `user_profiles`:** theme, language, card style, flip animation, card size, background, avatar, notifications, reminder times, timer, daily limits, intelligence, onboarding.
-- **Move into Supabase:**
-  - `plan_override_expires_at`, as a column on `user_profiles`.
-  - Exam profiles, via the synced `user_exam_profiles` table.
-  - Per-user UI state that should follow the user, as a `ui_state jsonb` column: minimal study view, feature-tour flags, briefing dismissals, rebalance acknowledgements.
-- **Stay on the device:** window state, sidebar collapsed, and the `sekel-theme` first-paint cache.
-- **Fix for multi-device:** `ProfileTab` upserts the whole profile object, so a second device can overwrite fresh edits. Switch every profile write to a patch of the changed fields, and add an `updated_at` trigger.
-
-## Phases
-
-Each phase is one or more SEKEL branches and PRs into `dev`. Every server change is additive, so it can be deployed ahead of the client (see the drift rules in CLAUDE.md).
-
-**Phase 0: groundwork (local only, no user-visible change)**
-1. **Atomic review:** a single `db:recordReview` IPC that updates the card and inserts the review in one transaction. Undo gets the same treatment.
-2. **Account safety:**
-   - add a user filter to every id-only handler;
-   - make time travel and `hasClassifications` per user;
-   - add `user_id` to `card_classifications`, backfilled from `cards`;
-   - add `user_id` and a UUID to `time_travel_log`;
-   - add `updated_at` to `card_drafts` and `deck_sessions`.
-3. **Stable keys:** helpers that map a classification's or exam profile's blueprint rowids to keys, and back.
-4. **`.spkg` import:** make the guid check per user.
-5. **Prod check (needs your approval to run):**
-   - row counts in the legacy tables, plus the newest write;
-   - the size distribution of the latest backup snapshot per user.
-
-   These numbers decide what happens to the legacy rows and size the database.
-
-**Phase 1: Supabase schema**
-1. Rename the legacy tables to `legacy_*`. Drop them one or two releases later.
-2. Create the synced tables, RLS policies, the `server_seq` sequence and triggers, `sync_push_v1` / `sync_pull_v1`, and the `sekel-media` bucket with its policies.
-3. Repoint the `admin_*` RPCs to the new tables, so the admin dashboard shows real data. Update `delete-account` to clear `sekel-media`.
-4. Regenerate `packages/db` types from the schema instead of hand-writing them.
-5. Deploy to dev; prod rides with the release that ships Phase 2.
-
-**Phase 2: push (one-way mirror)**
-1. Outbox migration and triggers, plus a test that every write path enqueues.
-2. Sync engine: serializers, batching, scheduling, backoff, Sentry.
-3. Initial upload with progress, and media upload.
-4. Status in Profile → Backup ("Synced 2 min ago" / "Uploading 1,200 changes").
-5. Behind a flag; internal accounts first, then everyone.
-
-**Outcome:** every user's data is in Supabase. Cloud snapshots keep running as the safety net.
-
-**Phase 3: pull and merge (multi-device)**
-1. Pull and apply with the conflict rules above.
-2. New-device bootstrap and on-demand media download.
-3. Restore integration (full reconcile).
-4. A two-device test suite.
-
-**Phase 4: preferences**
-1. Add `ui_state` and `plan_override_expires_at` to `user_profiles`.
-2. Make profile writes patch-only.
-3. Retire the local `user_profiles` mirror.
-
-**Phase 5: cleanup**
-1. Drop the `legacy_*` tables.
-2. Decide whether snapshot backups stay.
-3. Add a sync-health view to the admin dashboard: last sync and outbox depth per user.
+1. **Merge** SEKEL-158, then SEKEL-157, into `dev`.
+2. **Dev project** (`nrmfdiaaybilseqqvzam`): the Supabase GitHub integration applies the three migrations on merge. If it doesn't, run `npm run db:push` in `apps/desktop`.
+3. **Check the legacy data on prod** before the release (counts only):
+   ```sql
+   select (select count(*) from public.decks) decks, (select count(*) from public.cards) cards,
+          (select count(*) from public.reviews) reviews, (select max(updated_at) from public.cards) newest_card;
+   ```
+   Nothing reads these rows. The first migration keeps them in a `legacy` schema rather than deleting them.
+4. **Turn sync on for yourself** on dev, with your auth user id:
+   ```sql
+   update public.app_config set value = jsonb_set(value, '{allow_users}', '["<your user id>"]') where key = 'sync';
+   ```
+   Then run the app, check Profile → Backup → Cloud sync, sign in on a second computer (or a second Windows user) and check the library arrives.
+5. **Release:** `release.yml` applies the migrations to prod and redeploys `admin` and `delete-account` before the build. Start with `allow_users`; set `enabled` to `true` once you're happy.
+6. **Later (Phase 5):**
+   - drop the `legacy` schema;
+   - decide whether whole-database snapshots are still needed;
+   - regenerate `packages/db` types from the live schema.
 
 ## Testing
 
-- **Serializers:** round-trip every table, SQLite row → Postgres row → SQLite row.
-- **Triggers:** table-driven tests on in-memory SQLite that every service write, import path, cascade and time-travel run lands in the outbox, and that applying a pull does not.
-- **Push and pull integration:** against the dev project with a throwaway user, as the live AI eval does today. A CI job on a local Supabase (Docker) can come later.
-- **Conflict matrix:** two SQLite databases and one Postgres, covering edit/edit, edit/delete, offline review/review and Undo across devices.
-- **Scale:** backfill a 50,000-card, 500,000-review library and measure time and database size.
+| Test file | Tests | What it covers |
+|---|---|---|
+| `syncSchema.test.ts` | 27 | Every Supabase migration applied to real Postgres (PGlite) — see below |
+| `syncEngine.test.ts` | 10 | End to end: two SQLite "devices" with the real local migrations, the real engine, one PGlite server — see below |
+| `syncCapture.test.ts` | 9 | Triggers on every table, nothing before enabling, coalescing, cascaded deletes, natural keys, silence while applying, whole-library queueing |
+| `syncCodec.test.ts` | 18 | JSON exactness, booleans, timestamps, media paths, payload grouping, error classification |
+| `syncGroundwork.test.ts` (SEKEL-158) | | Atomic reviews, migration-25 backfills |
 
-## Decisions to confirm
+`syncSchema.test.ts` checks:
+- the schema matches the spec column by column;
+- the old tables moved and clients can't reach them;
+- RLS isolation, with no hard deletes and anonymous callers refused;
+- push and pull, including paging and skipping a device's own writes;
+- last-writer-wins, the clock cap, tombstones, forced pushes and re-sending the winner;
+- natural keys;
+- prune;
+- the remote switch;
+- account deletion;
+- media bucket policies.
 
-1. **End state:** full multi-device sync (Phases 2 and 3), or a one-way mirror only (Phase 2)? *Recommended: full sync, phased. Phase 2 is useful on its own.*
-2. **Legacy tables:** rename to `legacy_*` and drop later, or alter them in place? *Recommended: rename. Their shape and data predate local-first, and the user FKs aren't validated.*
-3. **Imported Anki review history:** sync all of it, even though it can dominate size? *Recommended: yes. Stats and the heatmap need it on every device. Confirm with the Phase 0 size check.*
-4. **Media:** upload all files, including Anki audio, with a per-file cap? *Recommended: yes, cap 50 MB per file, download on demand.*
-5. **Snapshot backups after sync ships:** *Recommended: keep them until Phase 3 has run cleanly for a few releases. They protect against sync bugs.*
-6. **Prod read:** approve the Phase 0 aggregate query on prod (counts and sizes only, no row contents).
+`syncEngine.test.ts` covers:
+- the first upload and download;
+- edits and cascading deletes both ways;
+- a conflict while a pending edit is waiting;
+- classification sets across installs with different blueprint ids;
+- media upload and on-demand download;
+- a missing file being parked;
+- the switch being off;
+- a server without the API;
+- isolating a bad row;
+- a backup restore propagating to another device.
+
+## Decisions
+
+1. **Local-first sync, not cloud-first.** SQLite stays authoritative on each device; Postgres is the hub.
+2. **Legacy tables moved to a `legacy` schema**, not altered in place.
+3. **Everything syncs, including imported Anki review history.**
+4. **Media:** every file up to 50 MB is uploaded, and other devices download it on first use.
+5. **Snapshot backups keep running** alongside sync as a safety net.
+6. **Plain last-writer-wins for every table, deletes included.** "Delete always wins" would block restoring deleted items and backups. The losing-change re-send makes devices converge.
+7. **The 5-drafts server trigger isn't carried over:** with soft deletes, tombstoned drafts would count against it forever. The app enforces `DRAFT_LIMIT`.
+8. **The local plan-rate mirror (`user_profiles.daily_new_limit` / `plan_override_expires_at` in SQLite) isn't synced.** The rate is derived from the synced `plans`, and the override is a same-day, one-session setting.
 
 ## Known Limitations / Future Work
 
-- No real-time push between devices. Changes arrive on the next pull: at start, on focus, every few minutes. Supabase Realtime could trigger pulls later.
-- Card scheduling conflicts resolve by the newest review rather than by replaying FSRS.
-- A web or mobile client could read these tables directly later. The schema is designed to support that, but it's not part of this plan.
+- **No push notifications between devices.** Changes arrive on the next pull: on focus, on sign-in, every 2 minutes, or "Sync now". Supabase Realtime could trigger pulls later.
+- **Clock-based conflicts:** two devices editing the same record offline settle on the later change; a device clock more than a minute off is corrected using the server's clock.
+- **Rows that keep failing are parked** and shown as "couldn't be uploaded" in Profile → Backup, with the error on hover. There's no retry button yet; editing the record queues it again.
+- **Some handlers still take only an id** (`updateDeck`, `deleteNote`, …). It's harmless for sync because ids are random UUIDs; adding a user filter is a follow-up.
+- **`packages/db` types for the synced tables** aren't generated yet (main/sync has its own).
 
 ---
 
