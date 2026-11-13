@@ -5,6 +5,8 @@ import {
     completeDeckSession,
     insertReview,
     deleteReview,
+    recordReview,
+    undoReview,
     fetchSessionAnalytics,
     fetchUserReviewHistory,
     fetchAllDueCardsCount,
@@ -12,8 +14,9 @@ import {
     type InsertReviewParams,
     type ReviewDayCount,
 } from '../lib/queries';
-import type { SessionAnalytics, StudySessionKind } from '../lib/types';
+import type { Card, SessionAnalytics, StudySessionKind } from '../lib/types';
 import { intelligenceKeys } from './useSekelIntelligence';
+import { invalidateAfterCardUpdate } from './useDecks';
 import { useAuthStore } from '../stores/authStore';
 
 // ─────────────────────────────────────────────────────────────────
@@ -104,6 +107,32 @@ export function useDeleteReview() {
     return useMutation({
         mutationFn: ({ reviewId, userId }: { reviewId: string; userId: string }) => deleteReview(reviewId, userId),
         onSuccess: () => markReviewDerivedDataStale(queryClient),
+    });
+}
+
+/** One rating: the card's new schedule and its review row, in one transaction. */
+export function useRecordReview() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ cardId, updates, review }: { cardId: string; updates: Partial<Card>; review: InsertReviewParams }) =>
+            recordReview(cardId, updates, review),
+        onSuccess: () => {
+            invalidateAfterCardUpdate(queryClient);
+            markReviewDerivedDataStale(queryClient);
+        },
+    });
+}
+
+/** Undo of one rating: restores the card and deletes its review, in one transaction. */
+export function useUndoReview() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: ({ cardId, revert, reviewId, userId }: { cardId: string; revert: Partial<Card>; reviewId: string | null; userId: string }) =>
+            undoReview(cardId, revert, reviewId, userId),
+        onSuccess: () => {
+            invalidateAfterCardUpdate(queryClient);
+            markReviewDerivedDataStale(queryClient);
+        },
     });
 }
 

@@ -309,25 +309,29 @@ export function useBulkDeleteDecks() {
 // Card Mutations
 // ─────────────────────────────────────────────────────────────────
 
+/**
+ * After a card's schedule changes: everything card-derived is out of date.
+ * Marks all deck and study queries stale so the next screen that mounts them
+ * refetches, but only refetches the visible counts right away. Study queues
+ * are left alone: StudyPlayer freezes its queue at session start, and
+ * re-reading it after every rating used to shrink the list under the
+ * player's index and skip cards.
+ */
+export function invalidateAfterCardUpdate(queryClient: ReturnType<typeof useQueryClient>) {
+    queryClient.invalidateQueries({ queryKey: deckKeys.all, refetchType: 'none' });
+    queryClient.invalidateQueries({ queryKey: ['study'], refetchType: 'none' });
+    queryClient.invalidateQueries({
+        queryKey: deckKeys.all,
+        predicate: (query) => !isStudyQueueKey(query.queryKey),
+    });
+}
+
 export function useUpdateCard() {
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: ({ cardId, updates }: { cardId: string; updates: Partial<Card> }) =>
             updateCardAfterReview(cardId, updates),
-        onSuccess: () => {
-            // Everything card-derived is now out of date: mark all deck and
-            // study queries stale so the next screen that mounts them refetches…
-            queryClient.invalidateQueries({ queryKey: deckKeys.all, refetchType: 'none' });
-            queryClient.invalidateQueries({ queryKey: ['study'], refetchType: 'none' });
-            // …but only refetch the visible counts right away. Study queues are
-            // left alone: StudyPlayer freezes its queue at session start, and
-            // re-reading it after every rating used to shrink the list under
-            // the player's index and skip cards.
-            queryClient.invalidateQueries({
-                queryKey: deckKeys.all,
-                predicate: (query) => !isStudyQueueKey(query.queryKey),
-            });
-        },
+        onSuccess: () => invalidateAfterCardUpdate(queryClient),
     });
 }

@@ -186,21 +186,22 @@ function loadDeckSample(deckId: string, size: number): { totalNotes: number; fie
 /** Replaces the card's rows for this exam with the outcome (mapped or off-exam). */
 function storeOutcome(cardId: string, ctx: ExamContext, outcome: Extract<CardOutcome, { kind: 'mapped' | 'off_exam' }>, now: string): void {
     const db = getDb();
+    // user_id is copied from the owning card (classifications are per user).
     const insert = db.prepare(`
         INSERT INTO card_classifications
-            (card_id, exam_id, system_id, topic_id, confidence, split_weight, classified_at, model_version)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            (card_id, user_id, exam_id, system_id, topic_id, confidence, split_weight, classified_at, model_version)
+        VALUES (?, (SELECT user_id FROM cards WHERE id = ?), ?, ?, ?, ?, ?, ?, ?)
     `);
     db.transaction(() => {
         db.prepare('DELETE FROM card_classifications WHERE card_id = ? AND exam_id = ?').run(cardId, ctx.examId);
         if (outcome.kind === 'off_exam') {
-            insert.run(cardId, ctx.examId, null, null, 0, 1.0, now, MODEL_VERSION);
+            insert.run(cardId, cardId, ctx.examId, null, null, 0, 1.0, now, MODEL_VERSION);
             return;
         }
         for (const c of outcome.classifications) {
             const systemId = ctx.systemIds.get(c.systemKey) ?? null;
             const topicId = c.topicKey ? ctx.topicIds.get(`${c.systemKey}/${c.topicKey}`) ?? null : null;
-            insert.run(cardId, ctx.examId, systemId, topicId, c.confidence, c.splitWeight, now, MODEL_VERSION);
+            insert.run(cardId, cardId, ctx.examId, systemId, topicId, c.confidence, c.splitWeight, now, MODEL_VERSION);
         }
     })();
 }

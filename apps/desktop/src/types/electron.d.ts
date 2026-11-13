@@ -270,6 +270,10 @@ interface ElectronDB {
     // Reviews
     insertReview:          (params: InsertReviewParams) => Promise<Review>;
     deleteReview:          (reviewId: string, userId: string) => Promise<boolean>;
+    /** One rating, atomically: the card's new schedule and its review row. */
+    recordReview:          (cardId: string, updates: Partial<Card>, review: InsertReviewParams) => Promise<{ card: Card; review: Review }>;
+    /** Undo of one rating, atomically: restores the card and deletes the review. */
+    undoReview:            (cardId: string, revert: Partial<Card>, reviewId: string | null, userId: string) => Promise<Card>;
     fetchUserReviewHistory: (userId: string, days?: number) => Promise<ReviewDayCount[]>;
     // Sessions
     createDeckSession:     (userId: string, deckId: string) => Promise<DeckSession>;
@@ -294,8 +298,8 @@ interface ElectronDB {
     // Media
     saveMediaFile:         (params: { buffer: ArrayBuffer; filename: string; userId: string; mimeType: string }) => Promise<string>;
     // Time Travel
-    timeTravelPreview:     (daysBack: number) => Promise<TimeTravelPreview>;
-    timeTravelExecute:     (daysBack: number) => Promise<TimeTravelResult>;
+    timeTravelPreview:     (userId: string, daysBack: number) => Promise<TimeTravelPreview>;
+    timeTravelExecute:     (userId: string, daysBack: number) => Promise<TimeTravelResult>;
     // Deletion Log
     getDeletedItems:       () => Promise<DeletedItem[]>;
     // Integrity

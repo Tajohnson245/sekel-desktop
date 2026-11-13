@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useUpdateCard } from '../../hooks/useDecks';
-import { useCompleteSession, useDeleteReview, useInsertReview } from '../../hooks/useSessions';
+import { useCompleteSession, useRecordReview, useUndoReview } from '../../hooks/useSessions';
 import { useExamProfile } from '../../hooks/useExamProfile';
 import { useYieldScores } from '../../hooks/useYield';
 import { getSchedulingOptions } from '../../lib/fsrs';
@@ -71,10 +70,11 @@ export default function StudyPlayer({
     const { data: examProfile } = useExamProfile();
     const examKey = examProfile?.exam_key;
 
-    const updateCard = useUpdateCard();
+    // A rating and its Undo each write the card + review row in one transaction.
+    const recordReview = useRecordReview();
+    const undoReview = useUndoReview();
     const completeSession = useCompleteSession();
-    const insertReview = useInsertReview();
-    const deleteReview = useDeleteReview();
+    const isSaving = recordReview.isPending || undoReview.isPending;
 
     // ── Frozen queue ────────────────────────────────────────────────
     // The queue is captured once per session from fresh query data and never
@@ -237,25 +237,27 @@ export default function StudyPlayer({
             const isLastCard = currentIndex + 1 >= cards.length;
             const durationMs = Math.min(Date.now() - cardStartTimeRef.current, maxSeconds * 1000);
 
-            await updateCard.mutateAsync({ cardId: currentCard.id, updates });
-
-            const review = await insertReview.mutateAsync({
-                user_id: userId,
-                card_id: currentCard.id,
-                rating,
-                session_id: activeSessionId,
-                // Per-card deck attribution — correct for cross-deck sessions where
-                // the session row only holds a representative deck.
-                deck_id: currentCard.note.deck_id,
-                review_index: reviewedCount + 1,
-                review_duration_ms: durationMs,
-                state_before: currentCard.state,
-                stability_before: currentCard.stability,
-                difficulty_before: currentCard.difficulty,
-                state_after: updates.state ?? currentCard.state,
-                stability_after: updates.stability ?? 0,
-                difficulty_after: updates.difficulty ?? 0,
-                scheduled_days: updates.scheduled_days ?? 0,
+            const { review } = await recordReview.mutateAsync({
+                cardId: currentCard.id,
+                updates,
+                review: {
+                    user_id: userId,
+                    card_id: currentCard.id,
+                    rating,
+                    session_id: activeSessionId,
+                    // Per-card deck attribution — correct for cross-deck sessions where
+                    // the session row only holds a representative deck.
+                    deck_id: currentCard.note.deck_id,
+                    review_index: reviewedCount + 1,
+                    review_duration_ms: durationMs,
+                    state_before: currentCard.state,
+                    stability_before: currentCard.stability,
+                    difficulty_before: currentCard.difficulty,
+                    state_after: updates.state ?? currentCard.state,
+                    stability_after: updates.stability ?? 0,
+                    difficulty_after: updates.difficulty ?? 0,
+                    scheduled_days: updates.scheduled_days ?? 0,
+                },
             });
 
             // Snapshot for single-level Undo (spec §8, key U).
@@ -287,7 +289,7 @@ export default function StudyPlayer({
     // is a clean revert) and steps the view back, revealed, for re-rating.
     const handleUndo = useCallback(async () => {
         const snap = lastRatedRef.current;
-        if (!snap || updateCard.isPending || ratingInFlightRef.current) return;
+        if (!snap || isSaving || ratingInFlightRef.current) return;
         // Guard: the previous card must still occupy its slot.
         if (cards[snap.index]?.id !== snap.card.id) {
             showToast(t('study.undo_unavailable', { defaultValue: "Can't undo — the list changed" }), 'error');
@@ -306,11 +308,14 @@ export default function StudyPlayer({
             last_review: c.last_review,
             learning_steps: c.learning_steps ?? 0,
         };
-        await updateCard.mutateAsync({ cardId: c.id, updates: revert });
-        // Remove the review row too, so an undone rating doesn't linger in
-        // retention, lapse and plan-progress stats (re-rating writes a new one).
-        if (snap.reviewId && userId) {
-            await deleteReview.mutateAsync({ reviewId: snap.reviewId, userId }).catch(() => { /* card already reverted */ });
+        // Restores the card and removes the review row together, so an undone
+        // rating doesn't linger in retention, lapse and plan-progress stats
+        // (re-rating writes a new one).
+        try {
+            await undoReview.mutateAsync({ cardId: c.id, revert, reviewId: snap.reviewId, userId });
+        } catch {
+            showToast(t('errors.generic', { defaultValue: 'Something went wrong — please try again' }), 'error');
+            return;
         }
         setReviewedCount((p) => Math.max(0, p - 1));
         if (snap.rating === 'again') setAgainCount((p) => Math.max(0, p - 1));
@@ -319,7 +324,7 @@ export default function StudyPlayer({
         setIsRevealed(true);
         lastRatedRef.current = null;
         showToast(t('study.undo_done', { defaultValue: 'Undid last rating' }), 'success');
-    }, [cards, updateCard, deleteReview, userId, showToast, t]);
+    }, [cards, isSaving, undoReview, userId, showToast, t]);
 
     const requestExit = useCallback(() => {
         if (reviewedCount > 0 || isRevealed) setShowExitConfirm(true);
@@ -371,7 +376,7 @@ export default function StudyPlayer({
     // Auto-advance on timeout
     useEffect(() => {
         if (!autoAdvance || elapsedSeconds < maxSeconds) return;
-        if (updateCard.isPending || !currentCard) return;
+        if (isSaving || !currentCard) return;
         if (!isRevealed) {
             handleReveal();
             cardStartTimeRef.current = Date.now();
@@ -381,7 +386,7 @@ export default function StudyPlayer({
             showToast(t('study.timer.auto_graded_again'), 'error');
             handleRate('again');
         }
-    }, [elapsedSeconds, maxSeconds, autoAdvance, isRevealed, updateCard.isPending, currentCard]);
+    }, [elapsedSeconds, maxSeconds, autoAdvance, isRevealed, isSaving, currentCard]);
 
     const handleStudyAgain = () => {
         setSessionId(null);
@@ -574,7 +579,7 @@ export default function StudyPlayer({
                     <RatingButtons
                         options={schedulingOptions}
                         onRate={handleRate}
-                        isLoading={updateCard.isPending}
+                        isLoading={isSaving}
                         disabled={!isRevealed}
                     />
                 ) : (
@@ -583,7 +588,7 @@ export default function StudyPlayer({
                         size="lg"
                         onClick={() => handleRate('good')}
                         disabled={!isRevealed}
-                        isLoading={updateCard.isPending}
+                        isLoading={isSaving}
                     >
                         {t('common.next')}
                     </Button>

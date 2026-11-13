@@ -194,10 +194,11 @@ export function StudyTab() {
     };
 
     const handleTimeTravelCheck = async () => {
+        if (!user) return;
         setTtLoading(true);
         setTtPreview(null);
         try {
-            const preview = await window.electronAPI.db.timeTravelPreview(ttDaysBack);
+            const preview = await window.electronAPI.db.timeTravelPreview(user.id, ttDaysBack);
             setTtPreview(preview);
         } catch (_error) {
             showToast(t('time_travel.error'), 'error');
@@ -207,9 +208,10 @@ export function StudyTab() {
     };
 
     const handleTimeTravelExecute = async () => {
+        if (!user) return;
         setTtExecuting(true);
         try {
-            await window.electronAPI.db.timeTravelExecute(ttDaysBack);
+            await window.electronAPI.db.timeTravelExecute(user.id, ttDaysBack);
             showToast(t('time_travel.success'), 'success');
             setTtPreview(null);
         } catch (_error) {
